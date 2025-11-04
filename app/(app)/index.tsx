@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 
