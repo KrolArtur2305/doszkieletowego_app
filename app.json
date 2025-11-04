@@ -28,6 +28,10 @@
     },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR_PUBLIC_ANON_KEY"
+    }
   }
 }

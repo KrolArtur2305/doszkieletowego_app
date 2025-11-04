@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, Image, ActivityIndicator, StyleSheet } from 'react-native';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../supabase';
 import { BlurView } from 'expo-blur';
 
 type FileItem = { name: string; id: string };
