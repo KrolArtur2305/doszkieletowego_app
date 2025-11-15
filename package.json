@@ -16,6 +16,8 @@
     "@supabase/supabase-js": "^2.79.0",
     "expo": "54.0.23",
     "expo-blur": "~15.0.7",
+    "expo-image-picker": "^17.0.8",
+    "expo-linking": "^8.0.8",
     "expo-router": "~6.0.14",
     "expo-secure-store": "~15.0.7",
     "expo-status-bar": "~3.0.8",
@@ -30,10 +32,13 @@
     "@types/react": "~19.1.10",
     "babel-preset-expo": "~54.0.0",
     "eas-cli": "^7.8.0",
+    "react-refresh": "^0.18.0",
     "typescript": "~5.9.2"
   },
   "expo": {
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router"
+    ]
   },
   "private": true
 }
