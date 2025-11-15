@@ -1,23 +1,48 @@
-import { useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { router } from 'expo-router';
-
+import { useEffect, useState } from 'react';
+import { useRouter, useSegments } from 'expo-router';
 import { supabase } from '../supabase';
 
 export function useSupabaseAuth() {
+  const [session, setSession] = useState<any | null>(null);
+  const [initialised, setInitialised] = useState(false);
+
+  const router = useRouter();
+  const segments = useSegments();
+
+  // Pobierz sesję i ustaw nasłuch zmian
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
-        await SecureStore.setItemAsync('sb_session', JSON.stringify(session));
-        router.replace('/(app)/index');
-      } else {
-        await SecureStore.deleteItemAsync('sb_session');
-        router.replace('/(auth)/login');
-      }
+    let isMounted = true;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      setSession(session);
+      setInitialised(true);
     });
 
+    const { data: subscription } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        if (!isMounted) return;
+        setSession(newSession);
+      }
+    );
+
     return () => {
-      listener?.subscription.unsubscribe();
+      isMounted = false;
+      subscription?.subscription.unsubscribe();
     };
   }, []);
+
+  // Przełączanie między (auth) i (app)
+  useEffect(() => {
+    if (!initialised) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inAppGroup = segments[0] === '(app)';
+
+    if (!session && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (session && !inAppGroup) {
+      router.replace('/(app)');
+    }
+  }, [session, initialised, segments, router]);
 }
