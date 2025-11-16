@@ -1,414 +1,871 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   FlatList,
-  Image,
   TouchableOpacity,
-  RefreshControl,
-  Alert,
+  Image,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  ScrollView,
+  Pressable,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../supabase';
 
-const STORAGE_BUCKET = 'zdjecia'; // <<< JEŚLI masz inny bucket, zmień TĘ nazwę
-
-type PhotoRecord = {
+type PhotoRow = {
   id: string;
+  user_id: string;
+  projekt_id: string | null;
+  etap_id: string | null;
+  nazwa: string | null;
+  komentarz: string | null;
   file_path: string;
-  created_at: string | null;
-  nazwa?: string | null;
-  komentarz?: string | null;
-  etap_id?: string | null;
-  public_url?: string; // dodajemy pole z gotowym URL-em do wyświetlania
+  created_at: string;
 };
 
-export default function PhotosScreen() {
-  const [photos, setPhotos] = useState<PhotoRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+type StageRow = {
+  id: string;
+  nazwa: string;
+};
 
-  const buildPublicUrl = (filePath: string) => {
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
-    return data.publicUrl;
+type ViewMode = 'carousel' | 'grid';
+
+export default function PhotosScreen() {
+  const [photos, setPhotos] = useState<PhotoRow[]>([]);
+  const [stages, setStages] = useState<StageRow[]>([]);
+  const [activeStageId, setActiveStageId] = useState<'all' | string>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('carousel');
+  const [loading, setLoading] = useState(false);
+
+  // modal dodawania
+  const [addVisible, setAddVisible] = useState(false);
+  const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [pickedImage, setPickedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+
+  // modal podglądu
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  const loadStages = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('etapy_szablon')
+      .select('id, nazwa')
+      .order('kolejnosc', { ascending: true });
+
+    if (!error && data) {
+      setStages(data as StageRow[]);
+    }
+  }, []);
+
+  const loadPhotos = useCallback(async () => {
+    setLoading(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('zdjecia')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setPhotos(data as PhotoRow[]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadStages();
+    loadPhotos();
+  }, [loadStages, loadPhotos]);
+
+  const filteredPhotos =
+    activeStageId === 'all'
+      ? photos
+      : photos.filter((p) => p.etap_id === activeStageId);
+
+  const stageLabelById = (id: string | null) => {
+    if (!id) return 'Etap budowy';
+    const s = stages.find((st) => st.id === id);
+    return s?.nazwa ?? 'Etap budowy';
   };
 
-  const loadPhotos = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+  // ---- dodawanie zdjęcia ----
+  const pickImage = async () => {
+    setFormError(null);
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      setFormError('Potrzebuję dostępu do galerii, aby dodać zdjęcie.');
+      return;
+    }
 
-      if (userError) throw userError;
-      if (!user) {
-        router.replace('/(auth)/login');
-        return;
-      }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      quality: 0.85,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    });
 
-      const { data, error } = await supabase
-        .from('zdjecia')
-        .select('id, file_path, created_at, nazwa, komentarz, etap_id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const rows = (data || []) as PhotoRecord[];
-
-      const enhanced = rows.map((p) => ({
-        ...p,
-        public_url: p.file_path ? buildPublicUrl(p.file_path) : undefined,
-      }));
-
-      console.log('FOTO z Supabase:', enhanced);
-      setPhotos(enhanced);
-    } catch (e: any) {
-      console.error('Błąd ładowania zdjęć', e);
-      setError('Nie udało się załadować zdjęć. Spróbuj ponownie.');
-    } finally {
-      setLoading(false);
+    if (!result.canceled) {
+      setPickedImage(result.assets[0]);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadPhotos();
-    setRefreshing(false);
+  const resetAddForm = () => {
+    setSelectedStageId(null);
+    setComment('');
+    setPickedImage(null);
+    setFormError(null);
   };
 
-  useEffect(() => {
-    loadPhotos();
-  }, []);
+  const handleOpenAdd = () => {
+    resetAddForm();
+    setAddVisible(true);
+  };
 
   const handleAddPhoto = async () => {
+    if (!pickedImage) {
+      setFormError('Wybierz zdjęcie z galerii.');
+      return;
+    }
+    if (!selectedStageId) {
+      setFormError('Wybierz etap budowy.');
+      return;
+    }
+
+    setUploading(true);
+    setFormError(null);
+
     try {
-      setUploading(true);
-      setError(null);
-
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Brak uprawnień', 'Nadaj uprawnienia do galerii, aby dodać zdjęcie.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.8,
-      });
-
-      if (result.canceled) return;
-
-      const asset = result.assets[0];
-      if (!asset.uri) {
-        Alert.alert('Błąd', 'Nie udało się odczytać pliku.');
-        return;
-      }
-
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
-      if (userError) throw userError;
       if (!user) {
-        router.replace('/(auth)/login');
+        setFormError('Brak zalogowanego użytkownika.');
+        setUploading(false);
         return;
       }
 
-      // Przygotowanie ścieżki w bucketcie
-      const extMatch = asset.uri.split('.').pop();
-      const fileExt = extMatch ? extMatch.split('?')[0] : 'jpg';
-      const fileName = `photo_${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      // 1. upload do Storage
+      const fileExt = pickedImage.uri.split('.').pop() ?? 'jpg';
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `user-${user.id}/${fileName}`;
 
-      // Konwersja uri -> blob
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
+      const fileRes = await fetch(pickedImage.uri);
+      const fileBlob = await fileRes.blob();
 
-      // Upload do Storage
       const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filePath, blob, {
-          contentType: blob.type || 'image/jpeg',
+        .from('zdjecia-budowy')
+        .upload(filePath, fileBlob, {
+          cacheControl: '3600',
           upsert: false,
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.log(uploadError);
+        setFormError('Nie udało się wysłać pliku.');
+        setUploading(false);
+        return;
+      }
 
-      // Wpis do tabeli zdjecia (zachowujemy pattern: w file_path trzymamy samą ścieżkę)
-      const { error: insertError } = await supabase.from('zdjecia').insert({
-        user_id: user.id,
-        projekt_id: null,
-        etap_id: null,
-        nazwa: fileName,
-        komentarz: null,
-        file_path: filePath,
-      });
+      // 2. zapis rekordu w tabeli zdjecia
+      const { error: insertError, data: inserted } = await supabase
+        .from('zdjecia')
+        .insert({
+          user_id: user.id,
+          projekt_id: null, // na później
+          etap_id: selectedStageId,
+          nazwa: pickedImage.fileName ?? pickedImage.uri.split('/').pop(),
+          komentarz: comment || null,
+          file_path: filePath,
+        })
+        .select('*')
+        .single();
 
-      if (insertError) throw insertError;
+      if (insertError || !inserted) {
+        console.log(insertError);
+        setFormError('Nie udało się zapisać zdjęcia w bazie.');
+        setUploading(false);
+        return;
+      }
 
-      await loadPhotos();
-      Alert.alert('Sukces', 'Zdjęcie zostało dodane.');
-    } catch (e: any) {
-      console.error('Błąd dodawania zdjęcia', e);
-      Alert.alert('Błąd', 'Nie udało się dodać zdjęcia. Spróbuj ponownie.');
+      setPhotos((prev) => [inserted as PhotoRow, ...prev]);
+      setAddVisible(false);
+      resetAddForm();
+    } catch (err) {
+      console.log(err);
+      setFormError('Wystąpił nieoczekiwany błąd.');
     } finally {
       setUploading(false);
     }
   };
 
-  const renderPhoto = ({ item }: { item: PhotoRecord }) => {
-    const title = item.nazwa || 'Zdjęcie z budowy';
-    const desc = item.komentarz || 'Brak komentarza';
-    const dateLabel = item.created_at
-      ? new Date(item.created_at).toLocaleString('pl-PL', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : 'Brak daty';
+  // ---- podgląd pełnoekranowy ----
+  const openPreview = (index: number) => {
+    setPreviewIndex(index);
+    setPreviewVisible(true);
+  };
 
-    return (
-      <BlurView intensity={40} tint="dark" style={styles.photoCard}>
-        <View style={styles.photoImageWrapper}>
-          {item.public_url ? (
-            <Image
-              source={{ uri: item.public_url }}
-              style={styles.photoImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.photoPlaceholder}>
-              <Text style={styles.photoPlaceholderText}>Brak podglądu</Text>
-            </View>
-          )}
-          <View style={styles.photoStageBadge}>
-            <Text style={styles.photoStageText}>Etap budowy</Text>
-          </View>
-        </View>
+  const closePreview = () => setPreviewVisible(false);
 
-        <View style={styles.photoBody}>
-          <Text style={styles.photoTitle}>{title}</Text>
-          <Text numberOfLines={2} style={styles.photoDesc}>
-            {desc}
-          </Text>
-          <View style={styles.photoFooter}>
-            <Text style={styles.photoDate}>{dateLabel}</Text>
-            <Text style={styles.photoMeta}>ID: {item.id}</Text>
-          </View>
-        </View>
-      </BlurView>
+  const showPrev = () => {
+    setPreviewIndex((prev) =>
+      prev <= 0 ? filteredPhotos.length - 1 : prev - 1,
     );
   };
 
-  if (loading && photos.length === 0) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10B981" />
-        <Text style={styles.centerText}>Ładuję zdjęcia z budowy…</Text>
-      </View>
+  const showNext = () => {
+    setPreviewIndex((prev) =>
+      prev >= filteredPhotos.length - 1 ? 0 : prev + 1,
     );
-  }
+  };
+
+  // ---- render ----
+  const renderPhotoCard = ({ item, index }: { item: PhotoRow; index: number }) => (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => openPreview(index)}
+      style={styles.photoCard}
+    >
+      <Image
+        source={{
+          uri: supabase.storage.from('zdjecia-budowy').getPublicUrl(item.file_path)
+            .data.publicUrl,
+        }}
+        style={styles.photoImage}
+        resizeMode="cover"
+      />
+      <View style={styles.photoOverlay}>
+        <Text style={styles.stageBadge}>{stageLabelById(item.etap_id)}</Text>
+        <Text style={styles.photoName}>{item.nazwa ?? 'Zdjęcie z budowy'}</Text>
+        <Text style={styles.photoComment}>
+          {item.komentarz ? item.komentarz : 'Brak komentarza'}
+        </Text>
+        <Text style={styles.photoMeta}>
+          {new Date(item.created_at).toLocaleString('pl-PL')}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderGridItem = ({ item, index }: { item: PhotoRow; index: number }) => (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => openPreview(index)}
+      style={styles.gridItem}
+    >
+      <Image
+        source={{
+          uri: supabase.storage.from('zdjecia-budowy').getPublicUrl(item.file_path)
+            .data.publicUrl,
+        }}
+        style={styles.gridImage}
+        resizeMode="cover"
+      />
+      <View style={styles.gridLabel}>
+        <Text style={styles.gridStageText}>{stageLabelById(item.etap_id)}</Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.halo} />
+    <View style={styles.screen}>
+      {/* GÓRNY HEADER */}
+      <View style={styles.header}>
+        <Text style={styles.logoText}>
+          doszkieletowego
+          <Text style={styles.logoDot}>.pl</Text>
+        </Text>
+      </View>
 
-      <Text style={styles.title}>Zdjęcia z budowy</Text>
-      <Text style={styles.subtitle}>
-        Twoja historia budowy w jednym futurystycznym podglądzie.
-      </Text>
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-      <FlatList
-        data={photos}
-        keyExtractor={(item) => item.id}
-        renderItem={renderPhoto}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#10B981"
-          />
-        }
-        ListEmptyComponent={
-          !loading ? (
-            <Text style={styles.emptyText}>
-              Nie dodano jeszcze żadnych zdjęć. Zrób pierwsze ujęcie z budowy!
-            </Text>
-          ) : null
-        }
-      />
-
-      <TouchableOpacity
-        style={[styles.fab, uploading && { opacity: 0.6 }]}
-        disabled={uploading}
-        onPress={handleAddPhoto}
+      {/* FILTRY ETAPÓW */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.stageFilterRow}
       >
-        {uploading ? (
-          <ActivityIndicator color="#022c22" />
-        ) : (
-          <Text style={styles.fabText}>+</Text>
-        )}
+        <TouchableOpacity
+          onPress={() => setActiveStageId('all')}
+          style={[
+            styles.stageChip,
+            activeStageId === 'all' && styles.stageChipActive,
+          ]}
+        >
+          <Text
+            style={[
+              styles.stageChipText,
+              activeStageId === 'all' && styles.stageChipTextActive,
+            ]}
+          >
+            Wszystkie
+          </Text>
+        </TouchableOpacity>
+
+        {stages.map((stage) => (
+          <TouchableOpacity
+            key={stage.id}
+            onPress={() => setActiveStageId(stage.id)}
+            style={[
+              styles.stageChip,
+              activeStageId === stage.id && styles.stageChipActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.stageChipText,
+                activeStageId === stage.id && styles.stageChipTextActive,
+              ]}
+            >
+              {stage.nazwa}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* PRZEŁĄCZNIK WIDOKU */}
+      <View style={styles.viewSwitchRow}>
+        <TouchableOpacity
+          onPress={() => setViewMode('carousel')}
+          style={[
+            styles.viewSwitchButton,
+            viewMode === 'carousel' && styles.viewSwitchButtonActive,
+          ]}
+        >
+          <Text
+            style={[
+              styles.viewSwitchText,
+              viewMode === 'carousel' && styles.viewSwitchTextActive,
+            ]}
+          >
+            Karuzela
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setViewMode('grid')}
+          style={[
+            styles.viewSwitchButton,
+            viewMode === 'grid' && styles.viewSwitchButtonActive,
+          ]}
+        >
+          <Text
+            style={[
+              styles.viewSwitchText,
+              viewMode === 'grid' && styles.viewSwitchTextActive,
+            ]}
+          >
+            Siatka
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* LISTA ZDJĘĆ */}
+      {loading ? (
+        <View style={styles.loaderBox}>
+          <ActivityIndicator size="large" color="#4ADE80" />
+        </View>
+      ) : filteredPhotos.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>Brak zdjęć</Text>
+          <Text style={styles.emptyText}>
+            Dodaj pierwsze zdjęcie z budowy, aby stworzyć futurystyczny dziennik
+            postępu.
+          </Text>
+        </View>
+      ) : viewMode === 'carousel' ? (
+        <FlatList
+          key="carousel"
+          data={filteredPhotos}
+          renderItem={renderPhotoCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 140 }}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          key="grid"
+          data={filteredPhotos}
+          renderItem={renderGridItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={{ gap: 14 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: 140,
+            gap: 14,
+          }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {/* FAB + */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={handleOpenAdd}
+        style={styles.fab}
+      >
+        <Text style={styles.fabPlus}>+</Text>
       </TouchableOpacity>
+
+      {/* MODAL DODAWANIA */}
+      <Modal visible={addVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Dodaj zdjęcie</Text>
+
+            {/* wybór zdjęcia */}
+            <TouchableOpacity
+              style={styles.modalPickButton}
+              onPress={pickImage}
+            >
+              <Text style={styles.modalPickText}>
+                {pickedImage ? 'Zmień zdjęcie' : 'Wybierz zdjęcie z galerii'}
+              </Text>
+            </TouchableOpacity>
+
+            {pickedImage && (
+              <Image
+                source={{ uri: pickedImage.uri }}
+                style={styles.modalPreview}
+                resizeMode="cover"
+              />
+            )}
+
+            {/* wybór etapu */}
+            <Text style={styles.modalLabel}>Etap budowy*</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingVertical: 6 }}
+            >
+              {stages.map((stage) => (
+                <TouchableOpacity
+                  key={stage.id}
+                  onPress={() => setSelectedStageId(stage.id)}
+                  style={[
+                    styles.stageChip,
+                    selectedStageId === stage.id && styles.stageChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stageChipText,
+                      selectedStageId === stage.id &&
+                        styles.stageChipTextActive,
+                    ]}
+                  >
+                    {stage.nazwa}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* komentarz */}
+            <Text style={styles.modalLabel}>Komentarz (opcjonalnie)</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="np. Montaż ścian zewnętrznych"
+              placeholderTextColor="#6B7280"
+              value={comment}
+              onChangeText={setComment}
+              multiline
+            />
+
+            {formError ? (
+              <Text style={styles.modalError}>{formError}</Text>
+            ) : null}
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => {
+                  setAddVisible(false);
+                  resetAddForm();
+                }}
+                disabled={uploading}
+              >
+                <Text style={styles.modalCancelText}>Anuluj</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSave}
+                onPress={handleAddPhoto}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <ActivityIndicator color="#022C22" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Zapisz</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL PODGLĄDU */}
+      <Modal visible={previewVisible} transparent animationType="fade">
+        <View style={styles.previewOverlay}>
+          <Pressable style={styles.previewBackdrop} onPress={closePreview} />
+          {filteredPhotos[previewIndex] && (
+            <View style={styles.previewCard}>
+              <Image
+                source={{
+                  uri: supabase.storage
+                    .from('zdjecia-budowy')
+                    .getPublicUrl(filteredPhotos[previewIndex].file_path).data
+                    .publicUrl,
+                }}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.previewCaption}>
+                {filteredPhotos[previewIndex].nazwa ??
+                  'Zdjęcie z budowy'}{' '}
+                · {stageLabelById(filteredPhotos[previewIndex].etap_id)}
+              </Text>
+              <View style={styles.previewButtonsRow}>
+                <TouchableOpacity
+                  style={styles.previewNavButton}
+                  onPress={showPrev}
+                >
+                  <Text style={styles.previewNavText}>Poprzednie</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.previewNavButton}
+                  onPress={showNext}
+                >
+                  <Text style={styles.previewNavText}>Następne</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: '#020617',
   },
-  halo: {
-    position: 'absolute',
-    width: 650,
-    height: 650,
-    borderRadius: 9999,
-    backgroundColor: '#22c55e',
-    opacity: 0.14,
-    top: -260,
-    right: -200,
+  header: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 6,
   },
-  title: {
-    fontSize: 24,
+  logoText: {
+    fontSize: 28,
     fontWeight: '800',
-    color: '#ECFDF5',
-    marginTop: 40,
-    marginHorizontal: 20,
+    color: '#F9FAFB',
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginTop: 4,
-    marginHorizontal: 20,
-    marginBottom: 12,
+  logoDot: {
+    color: '#4ADE80',
   },
-  listContent: {
+  stageFilterRow: {
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 4,
+    gap: 8,
+  },
+  stageChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#020617',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.45)',
+    marginRight: 8,
+  },
+  stageChipActive: {
+    backgroundColor: '#22C55E',
+    borderColor: '#22C55E',
+  },
+  stageChipText: {
+    color: '#E5E7EB',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  stageChipTextActive: {
+    color: '#022C22',
+  },
+  viewSwitchRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginTop: 6,
+    marginBottom: 8,
+    gap: 10,
+  },
+  viewSwitchButton: {
+    flex: 1,
+    borderRadius: 999,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.45)',
+    backgroundColor: '#020617',
+  },
+  viewSwitchButtonActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#22C55E',
+  },
+  viewSwitchText: {
+    color: '#CBD5F5',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  viewSwitchTextActive: {
+    color: '#BBF7D0',
+  },
+  loaderBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyBox: {
+    marginTop: 40,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    color: '#E5E7EB',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptyText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    textAlign: 'center',
   },
   photoCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.38)',
-    overflow: 'hidden',
-    marginBottom: 18,
-    backgroundColor: 'rgba(15,23,42,0.9)',
-  },
-  photoImageWrapper: {
-    position: 'relative',
-    height: 210,
+    marginHorizontal: 16,
+    marginBottom: 16,
     backgroundColor: '#020617',
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.9)',
   },
   photoImage: {
     width: '100%',
-    height: '100%',
+    height: 260,
   },
-  photoPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  photoOverlay: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 14,
   },
-  photoPlaceholderText: {
-    color: '#6B7280',
-  },
-  photoStageBadge: {
-    position: 'absolute',
-    left: 12,
-    bottom: 12,
+  stageBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#020617',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(15,23,42,0.95)',
-  },
-  photoStageText: {
     color: '#E5E7EB',
     fontSize: 12,
-    fontWeight: '600',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.5)',
+    marginBottom: 6,
   },
-  photoBody: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  photoTitle: {
-    fontSize: 15,
+  photoName: {
+    color: '#F9FAFB',
+    fontSize: 16,
     fontWeight: '700',
-    color: '#E5E7EB',
     marginBottom: 4,
   },
-  photoDesc: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    marginBottom: 8,
-  },
-  photoFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  photoDate: {
-    fontSize: 12,
-    color: '#9CA3AF',
+  photoComment: {
+    color: '#CBD5F5',
+    fontSize: 14,
+    marginBottom: 4,
   },
   photoMeta: {
-    fontSize: 11,
-    color: '#6B7280',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#6B7280',
-    marginTop: 40,
-    paddingHorizontal: 24,
-  },
-  errorText: {
-    color: '#FCA5A5',
-    textAlign: 'center',
-    marginHorizontal: 20,
-    marginBottom: 8,
-  },
-  center: {
-    flex: 1,
-    backgroundColor: '#020617',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerText: {
-    marginTop: 8,
     color: '#9CA3AF',
+    fontSize: 12,
+  },
+  gridItem: {
+    flex: 1,
+    height: 170,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#020617',
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gridLabel: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15,23,42,0.85)',
+  },
+  gridStageText: {
+    color: '#E5E7EB',
+    fontSize: 11,
   },
   fab: {
     position: 'absolute',
-    right: 24,
+    right: 26,
     bottom: 32,
-    width: 60,
-    height: 60,
+    width: 68,
+    height: 68,
     borderRadius: 999,
-    backgroundColor: '#22c55e',
-    alignItems: 'center',
+    backgroundColor: '#22C55E',
     justifyContent: 'center',
-    shadowColor: '#22c55e',
+    alignItems: 'center',
+    shadowColor: '#22C55E',
     shadowOpacity: 0.5,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 22,
-    elevation: 12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
   },
-  fabText: {
-    color: '#022c22',
+  fabPlus: {
     fontSize: 30,
+    color: '#022C22',
     fontWeight: '800',
-    marginTop: -3,
+    marginTop: -2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.9)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    borderRadius: 24,
+    padding: 18,
+    backgroundColor: '#020617',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.4)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#F9FAFB',
+    marginBottom: 12,
+  },
+  modalPickButton: {
+    borderRadius: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.5)',
+    marginBottom: 10,
+  },
+  modalPickText: {
+    color: '#E5E7EB',
+    fontSize: 14,
+  },
+  modalPreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+    marginBottom: 10,
+  },
+  modalLabel: {
+    color: '#E5E7EB',
+    fontSize: 13,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  modalInput: {
+    minHeight: 60,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.5)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    color: '#F9FAFB',
+    textAlignVertical: 'top',
+  },
+  modalError: {
+    color: '#FCA5A5',
+    marginTop: 6,
+    fontSize: 13,
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 14,
+  },
+  modalCancel: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.5)',
+  },
+  modalCancelText: {
+    color: '#E5E7EB',
+    fontSize: 14,
+  },
+  modalSave: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#22C55E',
+  },
+  modalSaveText: {
+    color: '#022C22',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewCard: {
+    width: '90%',
+    borderRadius: 24,
+    backgroundColor: '#020617',
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.6)',
+    alignItems: 'center',
+  },
+  previewImage: {
+    width: '100%',
+    height: 320,
+    marginBottom: 12,
+  },
+  previewCaption: {
+    color: '#E5E7EB',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  previewButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  previewNavButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#0F172A',
+  },
+  previewNavText: {
+    color: '#E5E7EB',
+    fontSize: 13,
   },
 });
