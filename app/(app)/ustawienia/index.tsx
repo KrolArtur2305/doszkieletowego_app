@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 
 export default function UstawieniaScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [surname, setSurname] = useState<string>('');
+  const [profileComplete, setProfileComplete] = useState<boolean>(false);
+  const [investmentComplete, setInvestmentComplete] = useState<boolean>(false);
 
   useEffect(() => {
     (async () => {
@@ -17,15 +21,31 @@ export default function UstawieniaScreen() {
       if (!user) return;
       setEmail(user.email ?? '');
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('imie, nazwisko')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const [profileRes, investmentRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('imie, nazwisko, profil_wypelniony')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('inwestycje')
+          .select('inwestycja_wypelniona, nazwa')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ]);
 
-      if (data) {
-        setName(data.imie ?? '');
-        setSurname(data.nazwisko ?? '');
+      if (profileRes.data) {
+        setName(profileRes.data.imie ?? '');
+        setSurname(profileRes.data.nazwisko ?? '');
+        setProfileComplete(Boolean(profileRes.data.profil_wypelniony));
+      } else {
+        setProfileComplete(false);
+      }
+
+      if (investmentRes.data) {
+        setInvestmentComplete(Boolean(investmentRes.data.inwestycja_wypelniona));
+      } else {
+        setInvestmentComplete(false);
       }
     })();
   }, []);
@@ -109,6 +129,36 @@ export default function UstawieniaScreen() {
           <Feather name="chevron-right" size={18} color="#94A3B8" />
         </TouchableOpacity>
       </BlurView>
+
+      <BlurView intensity={80} tint="dark" style={styles.card}>
+        <Text style={styles.sectionTitle}>Profil</Text>
+        <View style={styles.statusRow}>
+          <View style={statusBadge(profileComplete)}>
+            <Feather name={profileComplete ? 'check-circle' : 'alert-circle'} size={16} color={profileComplete ? '#34D399' : '#FACC15'} />
+            <Text style={statusText(profileComplete)}>
+              {profileComplete ? 'Profil uzupełniony' : 'Profil wymagany'}
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/(app)/profil')}>
+            <Text style={styles.secondaryButtonText}>Edytuj profil</Text>
+          </TouchableOpacity>
+        </View>
+      </BlurView>
+
+      <BlurView intensity={80} tint="dark" style={styles.card}>
+        <Text style={styles.sectionTitle}>Inwestycja</Text>
+        <View style={styles.statusRow}>
+          <View style={statusBadge(investmentComplete)}>
+            <Feather name={investmentComplete ? 'check-circle' : 'alert-circle'} size={16} color={investmentComplete ? '#34D399' : '#FACC15'} />
+            <Text style={statusText(investmentComplete)}>
+              {investmentComplete ? 'Inwestycja uzupełniona' : 'Inwestycja wymagana'}
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/(app)/inwestycja')}>
+            <Text style={styles.secondaryButtonText}>Edytuj inwestycję</Text>
+          </TouchableOpacity>
+        </View>
+      </BlurView>
     </ScrollView>
   );
 }
@@ -179,4 +229,36 @@ const styles = StyleSheet.create({
   },
   actionLabel: { color: '#F8FAFC', fontSize: 16, fontWeight: '600' },
   actionDescription: { color: '#94A3B8', marginTop: 2 },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  secondaryButton: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(94,234,212,0.4)',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(94,234,212,0.08)',
+  },
+  secondaryButtonText: { color: '#5EEAD4', fontWeight: '700' },
+});
+
+const statusBadge = (ok: boolean) => ({
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 8,
+  borderRadius: 999,
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  backgroundColor: ok ? 'rgba(52,211,153,0.12)' : 'rgba(250,204,21,0.12)',
+  borderWidth: 1,
+  borderColor: ok ? 'rgba(52,211,153,0.4)' : 'rgba(250,204,21,0.35)',
+});
+
+const statusText = (ok: boolean) => ({
+  color: ok ? '#34D399' : '#FACC15',
+  fontWeight: '700',
 });
