@@ -9,7 +9,6 @@ export function useSupabaseAuth() {
   const router = useRouter();
   const segments = useSegments();
 
-  // Pobierz sesję i ustaw nasłuch zmian
   useEffect(() => {
     let isMounted = true;
 
@@ -19,12 +18,10 @@ export function useSupabaseAuth() {
       setInitialised(true);
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        if (!isMounted) return;
-        setSession(newSession);
-      }
-    );
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!isMounted) return;
+      setSession(newSession);
+    });
 
     return () => {
       isMounted = false;
@@ -32,7 +29,6 @@ export function useSupabaseAuth() {
     };
   }, []);
 
-  // Przełączanie między (auth) i (app)
   useEffect(() => {
     if (!initialised) return;
 
@@ -45,4 +41,7 @@ export function useSupabaseAuth() {
       router.replace('/(app)');
     }
   }, [session, initialised, segments, router]);
+
+  // KLUCZ: to było brakujące
+  return { session, initialised };
 }

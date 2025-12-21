@@ -1,102 +1,167 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
+  FlatList,
   Modal,
-  TextInput,
-  Alert,
   ActivityIndicator,
+  RefreshControl,
+  Alert,
   Dimensions,
+  ScrollView,
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/supabase';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
+import { supabase } from '../../../supabase';
 
-const { width } = Dimensions.get('window');
-const STORAGE_BUCKET = 'zdjecia';
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
 
-// Etapy – używane w pasku filtrów i w modalu
-const STAGES = [
-  { id: 'ALL', label: 'Wszystkie' },
-  { id: 'ZERO', label: 'Stan zero' },
-  { id: 'SSO', label: 'Stan surowy otwarty' },
-  { id: 'SSZ', label: 'Stan surowy zamknięty' },
-  { id: 'DEV', label: 'Deweloperski' },
-];
+type ViewMode = 'grid' | 'carousel';
 
-type PhotoRow = {
+type Etap = {
   id: string;
-  nazwa: string | null;
-  komentarz: string | null;
-  created_at: string;
-  file_path: string;
+  nazwa: string;
+  slug: string | null;
+  // kolejnosc?: number; // jeśli masz w tabeli - możesz dodać i sortować
 };
 
-export default function PhotosScreen() {
-  const [photos, setPhotos] = useState<PhotoRow[]>([]);
-  const [loadingList, setLoadingList] = useState(true);
+type Zdjecie = {
+  id: string;
+  user_id: string;
+  etap_id: string | null;
+  etap_nazwa: string | null;
+  url: string;
+  storage_path: string | null;
+  created_at: string;
+};
 
-  const [viewMode, setViewMode] = useState<'carousel' | 'grid'>('carousel');
-  const [activeStageFilter, setActiveStageFilter] = useState<string>('ALL');
+const COLORS = {
+  bg: '#050915',
+  cardBorder: 'rgba(255,255,255,0.08)',
+  cardBg: 'rgba(255,255,255,0.03)',
+  text: '#F8FAFC',
+  muted: '#94A3B8',
+  soft: '#CBD5F5',
+  accent: '#5EEAD4',
+  accent2: '#38BDF8',
+  danger: '#FF3B30',
+};
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [pickedImageUri, setPickedImageUri] = useState<string | null>(null);
-  const [comment, setComment] = useState('');
+const bucketName = 'zdjecia';
+
+function makeSlug(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+export default function ZdjeciaScreen() {
+  const [zdjecia, setZdjecia] = useState<Zdjecie[]>([]);
+  const [etapy, setEtapy] = useState<Etap[]>([]);
+  const [selectedEtap, setSelectedEtap] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
+
+  const [selectedZdjecie, setSelectedZdjecie] = useState<Zdjecie | null>(null);
+
   const [uploading, setUploading] = useState(false);
-  const [modalStage, setModalStage] = useState<string | null>(null);
+  const [selectedEtapForUpload, setSelectedEtapForUpload] = useState<string>('');
 
-  const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewIndex, setPreviewIndex] = useState(0);
-
-  // ------------------------------------
-  // Helpers
-  // ------------------------------------
-  const getPublicUrl = (path: string) => {
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    return data.publicUrl;
-  };
-
-  const loadPhotos = useCallback(async () => {
-    try {
-      setLoadingList(true);
-      const { data, error } = await supabase
-        .from('zdjecia')
-        .select('id, nazwa, komentarz, created_at, file_path')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.log('Błąd pobierania zdjęć:', error.message);
-        Alert.alert('Błąd', 'Nie udało się pobrać zdjęć.');
-        return;
-      }
-
-      setPhotos(data ?? []);
-    } finally {
-      setLoadingList(false);
-    }
+  useEffect(() => {
+    (async () => {
+      await Promise.all([loadEtapy(), loadZdjecia(true)]);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    loadPhotos();
-  }, [loadPhotos]);
+    if (!loading) loadZdjecia(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEtap]);
 
-  // Na razie filtr etapu nie zmienia danych – żeby nic nie popsuć w logice.
-  // Możemy później podpiąć to do etap_id, jak ustalimy strukturę.
-  const displayedPhotos = photos;
+  const loadEtapy = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('etapy_szablon')
+        .select('id, nazwa, slug')
+        .order('kolejnosc', { ascending: true }); // jeśli nie masz kolumny, usuń .order
 
-  // ------------------------------------
-  // Pick + upload
-  // ------------------------------------
-  const pickImage = async () => {
+      if (error) throw error;
+      setEtapy((data || []) as Etap[]);
+    } catch (e) {
+      console.error('Błąd ładowania etapów:', e);
+      Alert.alert('Błąd', 'Nie udało się załadować etapów');
+    }
+  };
+
+  const loadZdjecia = async (isInitial: boolean) => {
+    try {
+      if (isInitial) setLoading(true);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user?.id) {
+        setZdjecia([]);
+        return;
+      }
+
+      let query = supabase
+        .from('zdjecia')
+        .select('id,user_id,etap_id,etap_nazwa,url,storage_path,created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (selectedEtap !== 'all') {
+        query = query.eq('etap_id', selectedEtap);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      setZdjecia((data || []) as Zdjecie[]);
+    } catch (e) {
+      console.error('Błąd ładowania zdjęć:', e);
+      Alert.alert('Błąd', 'Nie udało się załadować zdjęć');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadZdjecia(false);
+  }, [selectedEtap]);
+
+  const canPick = useMemo(() => Boolean(selectedEtapForUpload), [selectedEtapForUpload]);
+
+  const handlePickAndUpload = async () => {
+    if (!selectedEtapForUpload) {
+      Alert.alert('Uwaga', 'Wybierz etap dla zdjęcia');
+      return;
+    }
+
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Brak dostępu', 'Zezwól aplikacji na dostęp do zdjęć.');
+    if (perm.status !== 'granted') {
+      Alert.alert('Brak uprawnień', 'Potrzebujemy dostępu do galerii');
       return;
     }
 
@@ -104,687 +169,553 @@ export default function PhotosScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.85,
+      aspect: [4, 3],
     });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setPickedImageUri(result.assets[0].uri);
-    }
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    await uploadPhoto(result.assets[0].uri);
   };
 
-  const handleSave = async () => {
-    if (!pickedImageUri) {
-      Alert.alert('Brak zdjęcia', 'Wybierz zdjęcie z telefonu.');
-      return;
-    }
-    if (!modalStage || modalStage === 'ALL') {
-      Alert.alert('Etap budowy', 'Wybierz etap budowy.');
-      return;
-    }
-
+  const uploadPhoto = async (uri: string) => {
     try {
       setUploading(true);
 
       const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (userError || !user) {
-        Alert.alert('Błąd', 'Nie udało się pobrać danych użytkownika.');
+      if (!session?.user?.id) {
+        Alert.alert('Błąd', 'Musisz być zalogowany');
         return;
       }
 
-      const fileExt = pickedImageUri.split('.').pop() ?? 'jpg';
-      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      const etap = etapy.find((e) => e.id === selectedEtapForUpload);
+      if (!etap) {
+        Alert.alert('Błąd', 'Nie znaleziono etapu');
+        return;
+      }
 
-      // pobieramy blob z URI
-      const response = await fetch(pickedImageUri);
-      const blob = await response.blob();
+      const etapSlug = etap.slug?.trim() ? etap.slug : makeSlug(etap.nazwa);
+      const timestamp = Date.now();
+
+      const extGuess = uri.split('.').pop()?.toLowerCase();
+      const fileExt = extGuess && extGuess.length <= 5 ? extGuess : 'jpg';
+      const contentType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
+
+      const fileName = `${timestamp}.${fileExt}`;
+      const storagePath = `${session.user.id}/${etapSlug}/${fileName}`;
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: 'base64',
+      });
+      const arrayBuffer = decodeBase64(base64);
 
       const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filePath, blob, {
-          cacheControl: '3600',
+        .from(bucketName)
+        .upload(storagePath, arrayBuffer, {
+          contentType,
           upsert: false,
-          contentType: blob.type || 'image/jpeg',
         });
 
-      if (uploadError) {
-        console.log('Upload error:', uploadError.message);
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
-      // etap na razie NIE jest zapisywany do osobnej kolumny
+      const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
+      const publicUrl = urlData?.publicUrl;
+
+      if (!publicUrl) throw new Error('Brak publicUrl po uploadzie');
+
       const { error: insertError } = await supabase.from('zdjecia').insert({
-        user_id: user.id,
-        nazwa: fileName,
-        komentarz: comment || null,
-        file_path: filePath,
+        user_id: session.user.id,
+        etap_id: etap.id,
+        etap_nazwa: etap.nazwa,
+        url: publicUrl,
+        storage_path: storagePath, // <- kluczowe do pewnego usuwania
       });
 
-      if (insertError) {
-        console.log('Insert error:', insertError.message);
-        throw insertError;
-      }
+      if (insertError) throw insertError;
 
-      setModalVisible(false);
-      setPickedImageUri(null);
-      setComment('');
-      setModalStage(null);
-      await loadPhotos();
+      setAddModalVisible(false);
+      setSelectedEtapForUpload('');
+      await loadZdjecia(false);
+      Alert.alert('Sukces', 'Zdjęcie zostało dodane');
     } catch (e: any) {
-      console.log('Błąd dodawania zdjęcia:', e?.message ?? e);
-      Alert.alert('Błąd', 'Nie udało się dodać zdjęcia. Sprawdź połączenie z internetem.');
+      console.error('Błąd uploadu:', e);
+      Alert.alert('Błąd', e?.message ? String(e.message) : 'Nie udało się dodać zdjęcia');
     } finally {
       setUploading(false);
     }
   };
 
-  // ------------------------------------
-  // Render
-  // ------------------------------------
-  const renderPhotoCard = (item: PhotoRow, index: number, grid?: boolean) => {
-    const uri = getPublicUrl(item.file_path);
-    return (
-      <TouchableOpacity
-        key={item.id}
-        activeOpacity={0.9}
-        onPress={() => {
-          setPreviewIndex(index);
-          setPreviewVisible(true);
-        }}
-        style={[styles.card, grid && styles.cardGrid, !grid && { marginBottom: 16 }]}
-      >
-        <Image
-          source={{ uri }}
-          style={grid ? styles.cardImageGrid : styles.cardImage}
-          contentFit="cover"
-        />
-        <View style={styles.cardContent}>
-          <View style={styles.stagePill}>
-            <Text style={styles.stagePillText}>Etap budowy</Text>
-          </View>
-          <Text style={styles.photoTitle} numberOfLines={1}>
-            {item.nazwa || 'Zdjęcie z budowy'}
-          </Text>
-          <Text style={styles.photoComment} numberOfLines={1}>
-            {item.komentarz || 'Brak komentarza'}
-          </Text>
-          <Text style={styles.photoMeta}>
-            {new Date(item.created_at).toLocaleString('pl-PL')}
+  const handleDeletePhoto = async (z: Zdjecie) => {
+    Alert.alert('Usuń zdjęcie', 'Czy na pewno chcesz usunąć to zdjęcie?', [
+      { text: 'Anuluj', style: 'cancel' },
+      {
+        text: 'Usuń',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            // 1) usuń rekord
+            const { error: delError } = await supabase.from('zdjecia').delete().eq('id', z.id);
+            if (delError) throw delError;
+
+            // 2) usuń plik (tylko jeśli mamy storage_path)
+            if (z.storage_path) {
+              const { error: rmError } = await supabase.storage.from(bucketName).remove([z.storage_path]);
+              if (rmError) {
+                // nie blokuj usera, ale loguj
+                console.warn('Nie udało się usunąć pliku ze storage:', rmError);
+              }
+            }
+
+            setPreviewModalVisible(false);
+            setSelectedZdjecie(null);
+            await loadZdjecia(false);
+            Alert.alert('Sukces', 'Zdjęcie zostało usunięte');
+          } catch (e) {
+            console.error('Błąd usuwania:', e);
+            Alert.alert('Błąd', 'Nie udało się usunąć zdjęcia');
+          }
+        },
+      },
+    ]);
+  };
+
+  const openPreview = (item: Zdjecie) => {
+    setSelectedZdjecie(item);
+    setPreviewModalVisible(true);
+  };
+
+  const renderGridItem = ({ item }: { item: Zdjecie }) => (
+    <TouchableOpacity style={styles.gridCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
+      <BlurView intensity={25} tint="dark" style={styles.cardBlur}>
+        <Image source={{ uri: item.url }} style={styles.gridImage} contentFit="cover" transition={250} />
+        <View style={styles.cardOverlay}>
+          <Text style={styles.etapBadge}>{(item.etap_nazwa || 'Etap').toUpperCase()}</Text>
+          <Text style={styles.dateText}>
+            {new Date(item.created_at).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
           </Text>
         </View>
-      </TouchableOpacity>
+      </BlurView>
+    </TouchableOpacity>
+  );
+
+  const renderCarouselItem = ({ item }: { item: Zdjecie }) => (
+    <TouchableOpacity style={styles.carouselCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
+      <BlurView intensity={25} tint="dark" style={styles.carouselBlur}>
+        <Image source={{ uri: item.url }} style={styles.carouselImage} contentFit="cover" transition={250} />
+        <View style={styles.carouselInfo}>
+          <Text style={styles.carouselEtap}>{(item.etap_nazwa || 'Etap').toUpperCase()}</Text>
+          <Text style={styles.carouselDate}>
+            {new Date(item.created_at).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </Text>
+        </View>
+      </BlurView>
+    </TouchableOpacity>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <BlurView intensity={15} tint="dark" style={styles.emptyCard}>
+        <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.25)" />
+        <Text style={styles.emptyTitle}>Brak zdjęć</Text>
+        <Text style={styles.emptySubtitle}>
+          {selectedEtap === 'all' ? 'Dodaj swoje pierwsze zdjęcie z budowy.' : 'Brak zdjęć dla wybranego etapu.'}
+        </Text>
+        <TouchableOpacity style={styles.emptyButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
+          <Ionicons name="add" size={18} color={COLORS.bg} />
+          <Text style={styles.emptyButtonText}>Dodaj zdjęcie</Text>
+        </TouchableOpacity>
+      </BlurView>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={styles.loadingText}>Ładowanie zdjęć…</Text>
+      </View>
     );
-  };
+  }
 
   return (
     <View style={styles.container}>
-      {/* tło / łuk u góry */}
-      <View style={styles.headerBg} />
+      {/* glows */}
+      <View style={styles.glowOne} />
+      <View style={styles.glowTwo} />
 
-      {/* nagłówek z logo */}
       <View style={styles.header}>
-        <Text style={styles.logoText}>
-          doszkieletowego
-          <Text style={styles.logoDot}>.pl</Text>
-        </Text>
+        <View>
+          <Text style={styles.headerLabel}>Galeria budowy</Text>
+          <Text style={styles.title}>Zdjęcia</Text>
+        </View>
+
+        <View style={styles.viewToggle}>
+          <TouchableOpacity
+            style={[styles.toggleButton, viewMode === 'grid' && styles.toggleButtonActive]}
+            onPress={() => setViewMode('grid')}
+          >
+            <Ionicons name="grid" size={20} color={viewMode === 'grid' ? COLORS.accent : 'rgba(255,255,255,0.45)'} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.toggleButton, viewMode === 'carousel' && styles.toggleButtonActive]}
+            onPress={() => setViewMode('carousel')}
+          >
+            <Ionicons name="albums" size={20} color={viewMode === 'carousel' ? COLORS.accent : 'rgba(255,255,255,0.45)'} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* filtry etapów */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.stageScroll}
-        contentContainerStyle={styles.stageScrollContent}
-      >
-        {STAGES.map((stage, idx) => (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer} contentContainerStyle={styles.filterContent}>
+        <TouchableOpacity
+          style={[styles.filterPill, selectedEtap === 'all' && styles.filterPillActive]}
+          onPress={() => setSelectedEtap('all')}
+        >
+          <Text style={[styles.filterText, selectedEtap === 'all' && styles.filterTextActive]}>WSZYSTKIE</Text>
+        </TouchableOpacity>
+
+        {etapy.map((etap) => (
           <TouchableOpacity
-            key={stage.id}
-            style={[
-              styles.stageChip,
-              activeStageFilter === stage.id && styles.stageChipActive,
-              idx !== STAGES.length - 1 && { marginRight: 8 },
-            ]}
-            onPress={() => setActiveStageFilter(stage.id)}
+            key={etap.id}
+            style={[styles.filterPill, selectedEtap === etap.id && styles.filterPillActive]}
+            onPress={() => setSelectedEtap(etap.id)}
           >
-            <Text
-              style={[
-                styles.stageChipText,
-                activeStageFilter === stage.id && styles.stageChipTextActive,
-              ]}
-            >
-              {stage.label}
+            <Text style={[styles.filterText, selectedEtap === etap.id && styles.filterTextActive]}>
+              {etap.nazwa.toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* przełącznik Karuzela / Siatka */}
-      <View style={styles.switchRow}>
-        <TouchableOpacity
-          style={[
-            styles.switchButton,
-            viewMode === 'carousel' && styles.switchButtonActive,
-            { marginRight: 10 },
-          ]}
-          onPress={() => setViewMode('carousel')}
-        >
-          <Ionicons
-            name="albums-outline"
-            size={18}
-            color={viewMode === 'carousel' ? '#022c22' : '#9CA3AF'}
-            style={{ marginRight: 6 }}
-          />
-          <Text
-            style={[
-              styles.switchText,
-              viewMode === 'carousel' && styles.switchTextActive,
-            ]}
-          >
-            Karuzela
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.switchButton,
-            viewMode === 'grid' && styles.switchButtonActive,
-          ]}
-          onPress={() => setViewMode('grid')}
-        >
-          <Ionicons
-            name="grid-outline"
-            size={18}
-            color={viewMode === 'grid' ? '#022c22' : '#9CA3AF'}
-            style={{ marginRight: 6 }}
-          />
-          <Text style={[styles.switchText, viewMode === 'grid' && styles.switchTextActive]}>
-            Siatka
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* lista zdjęć */}
-      {loadingList ? (
-        <View style={styles.emptyState}>
-          <ActivityIndicator size="large" color="#22c55e" />
-        </View>
-      ) : displayedPhotos.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Brak zdjęć</Text>
-          <Text style={styles.emptySubtitle}>
-            Dodaj pierwsze zdjęcia z budowy, aby stworzyć historię Twojego domu.
-          </Text>
-        </View>
+      {zdjecia.length === 0 ? (
+        renderEmptyState()
+      ) : viewMode === 'grid' ? (
+        <FlatList
+          data={zdjecia}
+          renderItem={renderGridItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.gridContainer}
+          columnWrapperStyle={styles.gridRow}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
+        />
       ) : (
-        <ScrollView
-          style={styles.list}
-          contentContainerStyle={viewMode === 'grid' ? styles.listContentGrid : styles.listContent}
-        >
-          {viewMode === 'carousel'
-            ? displayedPhotos.map((p, i) => renderPhotoCard(p, i, false))
-            : displayedPhotos.map((p, i) => renderPhotoCard(p, i, true))}
-        </ScrollView>
+        <FlatList
+          data={zdjecia}
+          renderItem={renderCarouselItem}
+          keyExtractor={(item) => item.id}
+          horizontal
+          pagingEnabled
+          snapToInterval={SCREEN_WIDTH - 32}
+          decelerationRate="fast"
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carouselContainer}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
+        />
       )}
 
-      {/* przycisk dodania */}
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.9}
-        onPress={() => {
-          setModalVisible(true);
-          setPickedImageUri(null);
-          setComment('');
-          setModalStage(null);
-        }}
-      >
-        <BlurView intensity={80} style={styles.fabBlur}>
-          <Ionicons name="add" size={32} color="#022c22" />
+      {/* FAB */}
+      <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
+        <BlurView intensity={80} tint="dark" style={styles.fabBlur}>
+          <Ionicons name="add" size={30} color={COLORS.accent} />
         </BlurView>
       </TouchableOpacity>
 
-      {/* modal dodawania */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <BlurView intensity={80} tint="dark" style={styles.modalCard}>
+      {/* ADD MODAL */}
+      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
+        <BlurView intensity={90} tint="dark" style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Dodaj zdjęcie</Text>
 
-            <Text style={styles.modalLabel}>Etap budowy</Text>
+            <Text style={styles.modalLabel}>WYBIERZ ETAP</Text>
 
-            {/* wybór etapu W MODALU */}
-            <View style={styles.modalStagesRow}>
-              {STAGES.filter((s) => s.id !== 'ALL').map((stage) => (
-                <TouchableOpacity
-                  key={stage.id}
-                  style={[
-                    styles.modalStageChip,
-                    modalStage === stage.id && styles.modalStageChipActive,
-                    { marginRight: 8, marginBottom: 8 },
-                  ]}
-                  onPress={() => setModalStage(stage.id)}
-                >
-                  <Text
-                    style={[
-                      styles.modalStageText,
-                      modalStage === stage.id && styles.modalStageTextActive,
-                    ]}
+            <ScrollView style={styles.etapList} showsVerticalScrollIndicator={false}>
+              {etapy.map((etap) => {
+                const active = selectedEtapForUpload === etap.id;
+                return (
+                  <TouchableOpacity
+                    key={etap.id}
+                    style={[styles.etapOption, active && styles.etapOptionActive]}
+                    onPress={() => setSelectedEtapForUpload(etap.id)}
+                    activeOpacity={0.85}
                   >
-                    {stage.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <Text style={[styles.etapOptionText, active && styles.etapOptionTextActive]}>{etap.nazwa}</Text>
+                    {active && <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
-            <TouchableOpacity style={styles.imagePickerBox} onPress={pickImage} activeOpacity={0.9}>
-              {pickedImageUri ? (
-                <Image
-                  source={{ uri: pickedImageUri }}
-                  style={styles.imagePickerPreview}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={styles.imagePickerPlaceholder}>
-                  <Ionicons name="image-outline" size={32} color="#9CA3AF" />
-                  <Text style={[styles.imagePickerText, { marginTop: 6 }]}>
-                    Wybierz zdjęcie z telefonu
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            <Text style={styles.modalLabel}>Komentarz (opcjonalnie)</Text>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="np. Mikołaj"
-              placeholderTextColor="#6B7280"
-              value={comment}
-              onChangeText={setComment}
-              multiline
-            />
-
-            <View style={styles.modalButtonsRow}>
+            <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButtonSecondary, { marginRight: 10 }]}
-                onPress={() => setModalVisible(false)}
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setAddModalVisible(false);
+                  setSelectedEtapForUpload('');
+                }}
                 disabled={uploading}
+                activeOpacity={0.85}
               >
-                <Text style={styles.modalButtonSecondaryText}>Anuluj</Text>
+                <Text style={styles.modalButtonTextSecondary}>Anuluj</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.modalButtonPrimary}
-                onPress={handleSave}
-                disabled={uploading}
+                style={[styles.modalButton, styles.modalButtonPrimary, !canPick && { opacity: 0.55 }]}
+                onPress={handlePickAndUpload}
+                disabled={uploading || !canPick}
+                activeOpacity={0.85}
               >
-                {uploading ? (
-                  <ActivityIndicator color="#022c22" />
-                ) : (
-                  <Text style={styles.modalButtonPrimaryText}>Zapisz</Text>
-                )}
+                {uploading ? <ActivityIndicator color={COLORS.bg} /> : <Text style={styles.modalButtonTextPrimary}>Wybierz zdjęcie</Text>}
               </TouchableOpacity>
             </View>
-          </BlurView>
-        </View>
+
+            <Text style={styles.modalHint}>
+              Zdjęcie zostanie zapisane do Storage ({bucketName}) i przypisane do etapu.
+            </Text>
+          </View>
+        </BlurView>
       </Modal>
 
-      {/* fullscreen preview */}
-      <Modal
-        visible={previewVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPreviewVisible(false)}
-      >
-        <View style={styles.previewBackdrop}>
-          <ScrollView horizontal pagingEnabled contentOffset={{ x: previewIndex * width, y: 0 }}>
-            {displayedPhotos.map((p) => (
-              <View
-                key={p.id}
-                style={{ width, justifyContent: 'center', alignItems: 'center' }}
-              >
-                <Image
-                  source={{ uri: getPublicUrl(p.file_path) }}
-                  style={styles.previewImage}
-                  contentFit="contain"
-                />
-              </View>
-            ))}
-          </ScrollView>
-          <TouchableOpacity style={styles.previewClose} onPress={() => setPreviewVisible(false)}>
-            <Ionicons name="close" size={28} color="#F9FAFB" />
+      {/* PREVIEW MODAL */}
+      <Modal visible={previewModalVisible} transparent animationType="fade" onRequestClose={() => setPreviewModalVisible(false)}>
+        <BlurView intensity={95} tint="dark" style={styles.previewOverlay}>
+          <TouchableOpacity style={styles.closeButton} onPress={() => setPreviewModalVisible(false)} activeOpacity={0.85}>
+            <Ionicons name="close" size={28} color={COLORS.text} />
           </TouchableOpacity>
-        </View>
+
+          {selectedZdjecie && (
+            <>
+              <Image source={{ uri: selectedZdjecie.url }} style={styles.previewImage} contentFit="contain" />
+
+              <View style={styles.previewInfo}>
+                <BlurView intensity={80} tint="dark" style={styles.previewInfoBlur}>
+                  <Text style={styles.previewEtap}>{(selectedZdjecie.etap_nazwa || 'Etap').toUpperCase()}</Text>
+                  <Text style={styles.previewDate}>
+                    {new Date(selectedZdjecie.created_at).toLocaleString('pl-PL', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePhoto(selectedZdjecie)} activeOpacity={0.85}>
+                    <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                    <Text style={styles.deleteButtonText}>Usuń zdjęcie</Text>
+                  </TouchableOpacity>
+                </BlurView>
+              </View>
+            </>
+          )}
+        </BlurView>
       </Modal>
     </View>
   );
 }
 
-// ------------------------------------
-// STYLES
-// ------------------------------------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#020617',
-  },
-  headerBg: {
+  container: { flex: 1, backgroundColor: COLORS.bg },
+
+  glowOne: {
     position: 'absolute',
-    top: -140,
-    left: -80,
-    width: width * 1.6,
-    height: width * 1.6,
-    borderBottomLeftRadius: width * 1.6,
-    borderBottomRightRadius: width * 1.6,
-    backgroundColor: '#064e3b',
+    width: 320,
+    height: 320,
+    borderRadius: 999,
+    backgroundColor: COLORS.accent,
+    opacity: 0.12,
+    top: -40,
+    right: -120,
   },
+  glowTwo: {
+    position: 'absolute',
+    width: 360,
+    height: 360,
+    borderRadius: 999,
+    backgroundColor: COLORS.accent2,
+    opacity: 0.10,
+    bottom: 120,
+    left: -170,
+  },
+
+  loadingContainer: { flex: 1, backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
+
   header: {
-    paddingTop: Platform.select({ ios: 60, android: 40 }),
-    paddingHorizontal: 24,
-    paddingBottom: 12,
-  },
-  logoText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#F9FAFB',
-  },
-  logoDot: {
-    color: '#4ade80',
-  },
-  stageScroll: {
-    maxHeight: 60,
-  },
-  stageScrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  stageChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-  },
-  stageChipActive: {
-    backgroundColor: '#22c55e',
-    borderColor: '#22c55e',
-  },
-  stageChipText: {
-    color: '#E5E7EB',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  stageChipTextActive: {
-    color: '#022c22',
-    fontWeight: '700',
-  },
-  switchRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  switchButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.4)',
-    backgroundColor: 'rgba(15,23,42,0.9)',
-  },
-  switchButtonActive: {
-    backgroundColor: '#22c55e',
-    borderColor: '#22c55e',
-  },
-  switchText: {
-    color: '#9CA3AF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  switchTextActive: {
-    color: '#022c22',
-    fontWeight: '700',
-  },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 120,
-    paddingTop: 10,
-  },
-  listContentGrid: {
-    paddingHorizontal: 14,
-    paddingBottom: 120,
-    paddingTop: 10,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 58 : 38,
+    paddingBottom: 14,
   },
-  card: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: '#020617',
+  headerLabel: { color: COLORS.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontSize: 12 },
+  title: { fontSize: 30, fontWeight: '800', color: COLORS.text, marginTop: 4 },
+
+  viewToggle: { flexDirection: 'row', gap: 8 },
+  toggleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.9)',
-  },
-  cardGrid: {
-    width: (width - 14 * 2 - 12) / 2,
-    marginBottom: 12,
-  },
-  cardImage: {
-    width: '100%',
-    height: 220,
-  },
-  cardImageGrid: {
-    width: '100%',
-    height: 160,
-  },
-  cardContent: {
-    padding: 14,
-  },
-  stagePill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(15,23,42,0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.5)',
-    marginBottom: 8,
-  },
-  stagePillText: {
-    color: '#E5E7EB',
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  photoTitle: {
-    color: '#F9FAFB',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  photoComment: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  photoMeta: {
-    color: '#6B7280',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
+    borderColor: COLORS.cardBorder,
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    alignItems: 'center',
   },
-  emptyTitle: {
-    color: '#E5E7EB',
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
+  toggleButtonActive: {
+    backgroundColor: 'rgba(94,234,212,0.14)',
+    borderColor: 'rgba(94,234,212,0.35)',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  emptySubtitle: {
-    color: '#9CA3AF',
-    fontSize: 14,
-    textAlign: 'center',
+
+  filterContainer: { maxHeight: 60, marginBottom: 14 },
+  filterContent: { paddingHorizontal: 16, gap: 8 },
+  filterPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
+  filterPillActive: {
+    backgroundColor: 'rgba(94,234,212,0.14)',
+    borderColor: 'rgba(94,234,212,0.45)',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.32,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  filterText: { fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.45)', letterSpacing: 1 },
+  filterTextActive: { color: COLORS.accent },
+
+  gridContainer: { paddingHorizontal: 8, paddingBottom: 110 },
+  gridRow: { gap: 16, paddingHorizontal: 8, marginBottom: 16 },
+  gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * 1.22, borderRadius: 18, overflow: 'hidden' },
+  cardBlur: { flex: 1, borderWidth: 1, borderColor: COLORS.cardBorder },
+  gridImage: { width: '100%', height: '100%' },
+  cardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: 'rgba(0,0,0,0.55)' },
+  etapBadge: { fontSize: 10, fontWeight: '900', color: COLORS.accent, letterSpacing: 1, marginBottom: 4 },
+  dateText: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '600' },
+
+  carouselContainer: { paddingHorizontal: 16, paddingBottom: 110 },
+  carouselCard: { width: SCREEN_WIDTH - 32, height: SCREEN_HEIGHT * 0.60, marginRight: 16, borderRadius: 26, overflow: 'hidden' },
+  carouselBlur: { flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  carouselImage: { width: '100%', height: '80%' },
+  carouselInfo: { padding: 20, backgroundColor: 'rgba(0,0,0,0.65)' },
+  carouselEtap: { fontSize: 13, fontWeight: '900', color: COLORS.accent, letterSpacing: 1.4, marginBottom: 6 },
+  carouselDate: { fontSize: 13, color: 'rgba(255,255,255,0.72)', fontWeight: '600' },
+
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 },
+  emptyCard: {
+    width: '100%',
+    padding: 34,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  emptyTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginTop: 18, marginBottom: 8 },
+  emptySubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginBottom: 22, lineHeight: 20 },
+  emptyButton: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: COLORS.accent,
+  },
+  emptyButtonText: { fontSize: 14, fontWeight: '900', color: COLORS.bg, letterSpacing: 0.5 },
+
   fab: {
     position: 'absolute',
-    right: 24,
-    bottom: 100,
-    width: 72,
-    height: 72,
-    borderRadius: 999,
-    backgroundColor: 'rgba(34,197,94,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fabBlur: {
+    bottom: 28,
+    right: 16,
     width: 64,
     height: 64,
-    borderRadius: 999,
-    backgroundColor: '#22c55e',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.85)',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  modalCard: {
-    borderRadius: 24,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#F9FAFB',
-    marginBottom: 16,
-  },
-  modalLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#E5E7EB',
-    marginBottom: 6,
-    marginTop: 10,
-  },
-  modalStagesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 12,
-  },
-  modalStageChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.6)',
-    backgroundColor: 'rgba(15,23,42,0.9)',
-  },
-  modalStageChipActive: {
-    backgroundColor: '#22c55e',
-    borderColor: '#22c55e',
-  },
-  modalStageText: {
-    color: '#E5E7EB',
-    fontSize: 12,
-  },
-  modalStageTextActive: {
-    color: '#022c22',
-    fontWeight: '700',
-  },
-  imagePickerBox: {
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(31,41,55,0.9)',
-    backgroundColor: 'rgba(15,23,42,0.9)',
-    height: 200,
+    borderRadius: 32,
     overflow: 'hidden',
-    marginTop: 4,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  imagePickerPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imagePickerText: {
-    color: '#9CA3AF',
-    fontSize: 13,
-  },
-  imagePickerPreview: {
+  fabBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(94,234,212,0.38)' },
+
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 22 },
+  modalContent: {
     width: '100%',
-    height: '100%',
-  },
-  commentInput: {
-    borderRadius: 16,
+    maxWidth: 420,
+    backgroundColor: 'rgba(10,15,30,0.96)',
+    borderRadius: 26,
+    padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(31,41,55,0.9)',
-    backgroundColor: 'rgba(15,23,42,0.9)',
-    padding: 12,
-    color: '#E5E7EB',
-    minHeight: 60,
-    textAlignVertical: 'top',
-    marginTop: 4,
+    borderColor: 'rgba(255,255,255,0.10)',
   },
-  modalButtonsRow: {
+  modalTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text, marginBottom: 18, textAlign: 'center' },
+  modalLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.6, marginBottom: 10 },
+  etapList: { maxHeight: 280, marginBottom: 16 },
+  etapOption: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 18,
-  },
-  modalButtonSecondary: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 999,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.6)',
-    backgroundColor: 'transparent',
+    borderColor: 'rgba(255,255,255,0.06)',
+    marginBottom: 8,
   },
-  modalButtonSecondaryText: {
-    color: '#E5E7EB',
-    fontWeight: '500',
-  },
-  modalButtonPrimary: {
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: '#22c55e',
-  },
-  modalButtonPrimaryText: {
-    color: '#022c22',
-    fontWeight: '700',
-  },
-  previewBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewImage: {
-    width: width,
-    height: '80%',
-  },
-  previewClose: {
+  etapOptionActive: { backgroundColor: 'rgba(94,234,212,0.10)', borderColor: 'rgba(94,234,212,0.28)' },
+  etapOptionText: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.72)' },
+  etapOptionTextActive: { color: COLORS.accent },
+
+  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  modalButton: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  modalButtonSecondary: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  modalButtonPrimary: { backgroundColor: COLORS.accent },
+  modalButtonTextSecondary: { fontSize: 15, fontWeight: '900', color: 'rgba(255,255,255,0.72)' },
+  modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: COLORS.bg },
+  modalHint: { marginTop: 12, fontSize: 12, color: COLORS.muted, textAlign: 'center' },
+
+  previewOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  closeButton: {
     position: 'absolute',
-    top: Platform.select({ ios: 60, android: 40 }),
-    right: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    backgroundColor: 'rgba(15,23,42,0.8)',
+    top: Platform.OS === 'ios' ? 56 : 36,
+    right: 18,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  previewImage: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.72 },
+  previewInfo: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  previewInfoBlur: { padding: 22, paddingBottom: Platform.OS === 'ios' ? 44 : 22 },
+  previewEtap: { fontSize: 14, fontWeight: '900', color: COLORS.accent, letterSpacing: 1.6, marginBottom: 8 },
+  previewDate: { fontSize: 14, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginBottom: 16 },
+  deleteButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,59,48,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,59,48,0.28)',
   },
+  deleteButtonText: { fontSize: 15, fontWeight: '900', color: COLORS.danger },
 });
