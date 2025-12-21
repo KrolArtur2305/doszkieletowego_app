@@ -19,7 +19,7 @@ import * as FileSystem from 'expo-file-system';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../../lib/supabase';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -29,17 +29,13 @@ type ViewMode = 'grid' | 'carousel';
 type Etap = {
   id: string;
   nazwa: string;
-  slug: string | null;
-  // kolejnosc?: number; // jeśli masz w tabeli - możesz dodać i sortować
 };
 
 type Zdjecie = {
   id: string;
   user_id: string;
   etap_id: string | null;
-  etap_nazwa: string | null;
   url: string;
-  storage_path: string | null;
   created_at: string;
 };
 
@@ -57,7 +53,7 @@ const COLORS = {
 
 const bucketName = 'zdjecia';
 
-function makeSlug(input: string) {
+function sanitizeFolderName(input: string) {
   return input
     .toLowerCase()
     .trim()
@@ -83,6 +79,30 @@ export default function ZdjeciaScreen() {
   const [uploading, setUploading] = useState(false);
   const [selectedEtapForUpload, setSelectedEtapForUpload] = useState<string>('');
 
+  const etapNameMap = useMemo(
+    () =>
+      etapy.reduce<Record<string, string>>((acc, etap) => {
+        acc[etap.id] = etap.nazwa;
+        return acc;
+      }, {}),
+    [etapy],
+  );
+
+  const getEtapName = useCallback(
+    (etapId: string | null) => {
+      if (!etapId) return 'Etap';
+      return etapNameMap[etapId] ?? 'Etap';
+    },
+    [etapNameMap],
+  );
+
+  const deriveStoragePath = useCallback((url: string) => {
+    const marker = `${bucketName}/`;
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.slice(idx + marker.length);
+  }, []);
+
   useEffect(() => {
     (async () => {
       await Promise.all([loadEtapy(), loadZdjecia(true)]);
@@ -97,10 +117,7 @@ export default function ZdjeciaScreen() {
 
   const loadEtapy = async () => {
     try {
-      const { data, error } = await supabase
-        .from('etapy_szablon')
-        .select('id, nazwa, slug')
-        .order('kolejnosc', { ascending: true }); // jeśli nie masz kolumny, usuń .order
+      const { data, error } = await supabase.from('etapy_szablon').select('id,nazwa').limit(4);
 
       if (error) throw error;
       setEtapy((data || []) as Etap[]);
@@ -120,12 +137,14 @@ export default function ZdjeciaScreen() {
 
       if (!session?.user?.id) {
         setZdjecia([]);
+        setLoading(false);
+        setRefreshing(false);
         return;
       }
 
       let query = supabase
         .from('zdjecia')
-        .select('id,user_id,etap_id,etap_nazwa,url,storage_path,created_at')
+        .select('id,user_id,etap_id,url,created_at')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
@@ -196,7 +215,7 @@ export default function ZdjeciaScreen() {
         return;
       }
 
-      const etapSlug = etap.slug?.trim() ? etap.slug : makeSlug(etap.nazwa);
+      const etapFolder = sanitizeFolderName(etap.nazwa);
       const timestamp = Date.now();
 
       const extGuess = uri.split('.').pop()?.toLowerCase();
@@ -204,7 +223,7 @@ export default function ZdjeciaScreen() {
       const contentType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
 
       const fileName = `${timestamp}.${fileExt}`;
-      const storagePath = `${session.user.id}/${etapSlug}/${fileName}`;
+      const storagePath = `${session.user.id}/${etapFolder}/${fileName}`;
       const base64 = await FileSystem.readAsStringAsync(uri, {
         encoding: 'base64',
       });
@@ -227,9 +246,7 @@ export default function ZdjeciaScreen() {
       const { error: insertError } = await supabase.from('zdjecia').insert({
         user_id: session.user.id,
         etap_id: etap.id,
-        etap_nazwa: etap.nazwa,
         url: publicUrl,
-        storage_path: storagePath, // <- kluczowe do pewnego usuwania
       });
 
       if (insertError) throw insertError;
@@ -258,9 +275,10 @@ export default function ZdjeciaScreen() {
             const { error: delError } = await supabase.from('zdjecia').delete().eq('id', z.id);
             if (delError) throw delError;
 
-            // 2) usuń plik (tylko jeśli mamy storage_path)
-            if (z.storage_path) {
-              const { error: rmError } = await supabase.storage.from(bucketName).remove([z.storage_path]);
+            // 2) usuń plik (tylko jeśli uda się wyliczyć ścieżkę)
+            const storagePath = deriveStoragePath(z.url);
+            if (storagePath) {
+              const { error: rmError } = await supabase.storage.from(bucketName).remove([storagePath]);
               if (rmError) {
                 // nie blokuj usera, ale loguj
                 console.warn('Nie udało się usunąć pliku ze storage:', rmError);
@@ -285,33 +303,39 @@ export default function ZdjeciaScreen() {
     setPreviewModalVisible(true);
   };
 
-  const renderGridItem = ({ item }: { item: Zdjecie }) => (
-    <TouchableOpacity style={styles.gridCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
-      <BlurView intensity={25} tint="dark" style={styles.cardBlur}>
-        <Image source={{ uri: item.url }} style={styles.gridImage} contentFit="cover" transition={250} />
-        <View style={styles.cardOverlay}>
-          <Text style={styles.etapBadge}>{(item.etap_nazwa || 'Etap').toUpperCase()}</Text>
-          <Text style={styles.dateText}>
-            {new Date(item.created_at).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-          </Text>
-        </View>
-      </BlurView>
-    </TouchableOpacity>
-  );
+  const renderGridItem = ({ item }: { item: Zdjecie }) => {
+    const etapName = getEtapName(item.etap_id);
+    return (
+      <TouchableOpacity style={styles.gridCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
+        <BlurView intensity={25} tint="dark" style={styles.cardBlur}>
+          <Image source={{ uri: item.url }} style={styles.gridImage} contentFit="cover" transition={250} />
+          <View style={styles.cardOverlay}>
+            <Text style={styles.etapBadge}>{etapName.toUpperCase()}</Text>
+            <Text style={styles.dateText}>
+              {new Date(item.created_at).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            </Text>
+          </View>
+        </BlurView>
+      </TouchableOpacity>
+    );
+  };
 
-  const renderCarouselItem = ({ item }: { item: Zdjecie }) => (
-    <TouchableOpacity style={styles.carouselCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
-      <BlurView intensity={25} tint="dark" style={styles.carouselBlur}>
-        <Image source={{ uri: item.url }} style={styles.carouselImage} contentFit="cover" transition={250} />
-        <View style={styles.carouselInfo}>
-          <Text style={styles.carouselEtap}>{(item.etap_nazwa || 'Etap').toUpperCase()}</Text>
-          <Text style={styles.carouselDate}>
-            {new Date(item.created_at).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short', year: 'numeric' })}
-          </Text>
-        </View>
-      </BlurView>
-    </TouchableOpacity>
-  );
+  const renderCarouselItem = ({ item }: { item: Zdjecie }) => {
+    const etapName = getEtapName(item.etap_id);
+    return (
+      <TouchableOpacity style={styles.carouselCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
+        <BlurView intensity={25} tint="dark" style={styles.carouselBlur}>
+          <Image source={{ uri: item.url }} style={styles.carouselImage} contentFit="cover" transition={250} />
+          <View style={styles.carouselInfo}>
+            <Text style={styles.carouselEtap}>{etapName.toUpperCase()}</Text>
+            <Text style={styles.carouselDate}>
+              {new Date(item.created_at).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </Text>
+          </View>
+        </BlurView>
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
@@ -490,7 +514,7 @@ export default function ZdjeciaScreen() {
 
               <View style={styles.previewInfo}>
                 <BlurView intensity={80} tint="dark" style={styles.previewInfoBlur}>
-                  <Text style={styles.previewEtap}>{(selectedZdjecie.etap_nazwa || 'Etap').toUpperCase()}</Text>
+                  <Text style={styles.previewEtap}>{getEtapName(selectedZdjecie.etap_id).toUpperCase()}</Text>
                   <Text style={styles.previewDate}>
                     {new Date(selectedZdjecie.created_at).toLocaleString('pl-PL', {
                       day: '2-digit',
