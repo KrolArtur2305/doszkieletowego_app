@@ -2,6 +2,7 @@
   "name": "mobile",
   "version": "1.0.0",
   "main": "expo-router/entry",
+  "private": true,
   "scripts": {
     "start": "expo start",
     "start:clear": "expo start --clear",
@@ -15,9 +16,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.79.0",
     "base64-arraybuffer": "^1.0.2",
-    "expo": "54.0.23",
+    "expo": "~54.0.30",
     "expo-blur": "~15.0.7",
     "expo-file-system": "^19.0.17",
+    "expo-image": "~3.0.11",
     "expo-image-picker": "^17.0.8",
     "expo-linking": "^8.0.8",
     "expo-router": "~6.0.14",
@@ -38,9 +40,6 @@
     "typescript": "~5.9.2"
   },
   "expo": {
-    "plugins": [
-      "expo-router"
-    ]
-  },
-  "private": true
+    "plugins": ["expo-router"]
+  }
 }

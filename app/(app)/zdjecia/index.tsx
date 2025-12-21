@@ -16,7 +16,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../supabase';
+import { supabase } from '../../../lib/supabase';
 
 const { width } = Dimensions.get('window');
 const STORAGE_BUCKET = 'zdjecia';
@@ -138,12 +138,11 @@ export default function PhotosScreen() {
       const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      // kluczowa poprawka – pobieramy blob z URI
+      // pobieramy blob z URI
       const response = await fetch(pickedImageUri);
       const blob = await response.blob();
 
-      const { error: uploadError } = await supabase
-        .storage
+      const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
         .upload(filePath, blob, {
           cacheControl: '3600',
@@ -156,9 +155,7 @@ export default function PhotosScreen() {
         throw uploadError;
       }
 
-      // UWAGA: etap na razie NIE jest zapisywany do osobnej kolumny,
-      // żeby nie rozwalić istniejącej struktury. Dodajemy tylko to,
-      // co już było (user_id, nazwa, komentarz, file_path).
+      // etap na razie NIE jest zapisywany do osobnej kolumny
       const { error: insertError } = await supabase.from('zdjecia').insert({
         user_id: user.id,
         nazwa: fileName,
@@ -197,7 +194,7 @@ export default function PhotosScreen() {
           setPreviewIndex(index);
           setPreviewVisible(true);
         }}
-        style={[styles.card, grid && styles.cardGrid]}
+        style={[styles.card, grid && styles.cardGrid, !grid && { marginBottom: 16 }]}
       >
         <Image
           source={{ uri }}
@@ -242,12 +239,13 @@ export default function PhotosScreen() {
         style={styles.stageScroll}
         contentContainerStyle={styles.stageScrollContent}
       >
-        {STAGES.map((stage) => (
+        {STAGES.map((stage, idx) => (
           <TouchableOpacity
             key={stage.id}
             style={[
               styles.stageChip,
               activeStageFilter === stage.id && styles.stageChipActive,
+              idx !== STAGES.length - 1 && { marginRight: 8 },
             ]}
             onPress={() => setActiveStageFilter(stage.id)}
           >
@@ -269,6 +267,7 @@ export default function PhotosScreen() {
           style={[
             styles.switchButton,
             viewMode === 'carousel' && styles.switchButtonActive,
+            { marginRight: 10 },
           ]}
           onPress={() => setViewMode('carousel')}
         >
@@ -276,6 +275,7 @@ export default function PhotosScreen() {
             name="albums-outline"
             size={18}
             color={viewMode === 'carousel' ? '#022c22' : '#9CA3AF'}
+            style={{ marginRight: 6 }}
           />
           <Text
             style={[
@@ -298,13 +298,9 @@ export default function PhotosScreen() {
             name="grid-outline"
             size={18}
             color={viewMode === 'grid' ? '#022c22' : '#9CA3AF'}
+            style={{ marginRight: 6 }}
           />
-          <Text
-            style={[
-              styles.switchText,
-              viewMode === 'grid' && styles.switchTextActive,
-            ]}
-          >
+          <Text style={[styles.switchText, viewMode === 'grid' && styles.switchTextActive]}>
             Siatka
           </Text>
         </TouchableOpacity>
@@ -325,9 +321,7 @@ export default function PhotosScreen() {
       ) : (
         <ScrollView
           style={styles.list}
-          contentContainerStyle={
-            viewMode === 'grid' ? styles.listContentGrid : styles.listContent
-          }
+          contentContainerStyle={viewMode === 'grid' ? styles.listContentGrid : styles.listContent}
         >
           {viewMode === 'carousel'
             ? displayedPhotos.map((p, i) => renderPhotoCard(p, i, false))
@@ -364,7 +358,7 @@ export default function PhotosScreen() {
 
             <Text style={styles.modalLabel}>Etap budowy</Text>
 
-            {/* wybór etapu W MODALU – to było brakujące */}
+            {/* wybór etapu W MODALU */}
             <View style={styles.modalStagesRow}>
               {STAGES.filter((s) => s.id !== 'ALL').map((stage) => (
                 <TouchableOpacity
@@ -372,6 +366,7 @@ export default function PhotosScreen() {
                   style={[
                     styles.modalStageChip,
                     modalStage === stage.id && styles.modalStageChipActive,
+                    { marginRight: 8, marginBottom: 8 },
                   ]}
                   onPress={() => setModalStage(stage.id)}
                 >
@@ -387,11 +382,7 @@ export default function PhotosScreen() {
               ))}
             </View>
 
-            <TouchableOpacity
-              style={styles.imagePickerBox}
-              onPress={pickImage}
-              activeOpacity={0.9}
-            >
+            <TouchableOpacity style={styles.imagePickerBox} onPress={pickImage} activeOpacity={0.9}>
               {pickedImageUri ? (
                 <Image
                   source={{ uri: pickedImageUri }}
@@ -401,7 +392,7 @@ export default function PhotosScreen() {
               ) : (
                 <View style={styles.imagePickerPlaceholder}>
                   <Ionicons name="image-outline" size={32} color="#9CA3AF" />
-                  <Text style={styles.imagePickerText}>
+                  <Text style={[styles.imagePickerText, { marginTop: 6 }]}>
                     Wybierz zdjęcie z telefonu
                   </Text>
                 </View>
@@ -420,7 +411,7 @@ export default function PhotosScreen() {
 
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
-                style={styles.modalButtonSecondary}
+                style={[styles.modalButtonSecondary, { marginRight: 10 }]}
                 onPress={() => setModalVisible(false)}
                 disabled={uploading}
               >
@@ -442,7 +433,7 @@ export default function PhotosScreen() {
         </View>
       </Modal>
 
-      {/* fullscreen preview – nic tu nie zmieniałem, tylko podstawowa wersja */}
+      {/* fullscreen preview */}
       <Modal
         visible={previewVisible}
         transparent
@@ -450,13 +441,12 @@ export default function PhotosScreen() {
         onRequestClose={() => setPreviewVisible(false)}
       >
         <View style={styles.previewBackdrop}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            contentOffset={{ x: previewIndex * width, y: 0 }}
-          >
+          <ScrollView horizontal pagingEnabled contentOffset={{ x: previewIndex * width, y: 0 }}>
             {displayedPhotos.map((p) => (
-              <View key={p.id} style={{ width, justifyContent: 'center', alignItems: 'center' }}>
+              <View
+                key={p.id}
+                style={{ width, justifyContent: 'center', alignItems: 'center' }}
+              >
                 <Image
                   source={{ uri: getPublicUrl(p.file_path) }}
                   style={styles.previewImage}
@@ -465,10 +455,7 @@ export default function PhotosScreen() {
               </View>
             ))}
           </ScrollView>
-          <TouchableOpacity
-            style={styles.previewClose}
-            onPress={() => setPreviewVisible(false)}
-          >
+          <TouchableOpacity style={styles.previewClose} onPress={() => setPreviewVisible(false)}>
             <Ionicons name="close" size={28} color="#F9FAFB" />
           </TouchableOpacity>
         </View>
@@ -514,7 +501,6 @@ const styles = StyleSheet.create({
   stageScrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    gap: 8,
   },
   stageChip: {
     paddingHorizontal: 14,
@@ -542,7 +528,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 8,
     marginTop: 4,
-    gap: 10,
   },
   switchButton: {
     flex: 1,
@@ -554,7 +539,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(148,163,184,0.4)',
     backgroundColor: 'rgba(15,23,42,0.9)',
-    gap: 6,
   },
   switchButtonActive: {
     backgroundColor: '#22c55e',
@@ -576,7 +560,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 120,
     paddingTop: 10,
-    gap: 16,
   },
   listContentGrid: {
     paddingHorizontal: 14,
@@ -585,7 +568,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
   },
   card: {
     borderRadius: 24,
@@ -596,6 +578,7 @@ const styles = StyleSheet.create({
   },
   cardGrid: {
     width: (width - 14 * 2 - 12) / 2,
+    marginBottom: 12,
   },
   cardImage: {
     width: '100%',
@@ -607,7 +590,6 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 14,
-    gap: 4,
   },
   stagePill: {
     alignSelf: 'flex-start',
@@ -617,7 +599,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15,23,42,0.9)',
     borderWidth: 1,
     borderColor: 'rgba(148,163,184,0.5)',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   stagePillText: {
     color: '#E5E7EB',
@@ -628,10 +610,12 @@ const styles = StyleSheet.create({
     color: '#F9FAFB',
     fontSize: 16,
     fontWeight: '700',
+    marginBottom: 4,
   },
   photoComment: {
     color: '#9CA3AF',
     fontSize: 13,
+    marginBottom: 4,
   },
   photoMeta: {
     color: '#6B7280',
@@ -700,7 +684,6 @@ const styles = StyleSheet.create({
   modalStagesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
     marginBottom: 12,
   },
   modalStageChip: {
@@ -736,7 +719,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
   },
   imagePickerText: {
     color: '#9CA3AF',
@@ -761,7 +743,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 18,
-    gap: 10,
   },
   modalButtonSecondary: {
     paddingHorizontal: 18,

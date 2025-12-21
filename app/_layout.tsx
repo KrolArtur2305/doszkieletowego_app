@@ -1,11 +1,9 @@
-import { Stack } from 'expo-router';
-import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
+import { Stack } from "expo-router";
 
 export default function RootLayout() {
-  useSupabaseAuth();
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(app)" />
     </Stack>

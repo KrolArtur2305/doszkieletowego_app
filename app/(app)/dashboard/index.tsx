@@ -3,7 +3,7 @@ import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Image, FlatList }
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { supabase } from '../../supabase';
+import { supabase } from '../../../lib/supabase';
 
 const shortcuts = [
   { label: 'Zdjęcia', icon: 'camera', route: '/(app)/zdjecia' },

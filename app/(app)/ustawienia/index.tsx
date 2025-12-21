@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
-import { supabase } from '../../supabase';
+import { supabase } from '../../../lib/supabase';
 
 export default function UstawieniaScreen() {
   const [email, setEmail] = useState<string>('');
