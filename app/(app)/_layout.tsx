@@ -142,11 +142,11 @@ export default function AppLayout() {
             tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={size} />,
           }}
         />
-        <Tabs.Screen name="index" options={{ href: null, tabBarButton: () => null }} />
-        <Tabs.Screen name="postepy/index" options={{ href: null, tabBarButton: () => null }} />
-        <Tabs.Screen name="projekt/index" options={{ href: null, tabBarButton: () => null }} />
-        <Tabs.Screen name="inwestycja/index" options={{ href: null, tabBarButton: () => null }} />
-        <Tabs.Screen name="profil/index" options={{ href: null, tabBarButton: () => null }} />
+        <Tabs.Screen name="index" options={{ href: null }} />
+        <Tabs.Screen name="postepy/index" options={{ href: null }} />
+        <Tabs.Screen name="projekt/index" options={{ href: null }} />
+        <Tabs.Screen name="inwestycja/index" options={{ href: null }} />
+        <Tabs.Screen name="profil/index" options={{ href: null }} />
       </Tabs>
     </>
   );
