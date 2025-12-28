@@ -10,6 +10,12 @@
     "strict": true,
     "noEmit": true,
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "app/*"
+      ]
+    },
     "allowJs": true,
     "esModuleInterop": true,
     "skipLibCheck": true
