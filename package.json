@@ -14,23 +14,22 @@
     "eas:build:android": "eas build -p android --profile development"
   },
   "dependencies": {
-    "expo": "~54.0.30",
-    "expo-router": "~6.0.14",
-
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-
     "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "8.4.4",
+    "@supabase/supabase-js": "^2.79.0",
+    "base64-arraybuffer": "^1.0.2",
+    "expo": "~54.0.30",
     "expo-blur": "~15.0.8",
-    "expo-secure-store": "~15.0.7",
-    "expo-linking": "~8.0.11",
-    "expo-status-bar": "~3.0.8",
     "expo-file-system": "^19.0.17",
     "expo-image": "~3.0.11",
     "expo-image-picker": "^17.0.8",
-
-    "@supabase/supabase-js": "^2.79.0",
-    "base64-arraybuffer": "^1.0.2",
+    "expo-linking": "~8.0.11",
+    "expo-router": "~6.0.14",
+    "expo-secure-store": "~15.0.7",
+    "expo-status-bar": "~3.0.8",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-url-polyfill": "^2.0.0",
@@ -38,12 +37,15 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "babel-plugin-module-resolver": "^5.0.2",
     "babel-preset-expo": "~54.0.0",
     "eas-cli": "^7.8.0",
     "react-refresh": "^0.18.0",
     "typescript": "~5.9.2"
   },
   "expo": {
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

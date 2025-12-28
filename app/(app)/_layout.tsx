@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { Tabs, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 
-import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
-import { supabase } from '../../supabase';
+import { supabase } from '@/lib/supabase';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 export default function AppLayout() {
   const { session, initialised } = useSupabaseAuth();
@@ -12,8 +11,8 @@ export default function AppLayout() {
   const segments = useSegments();
 
   const [checking, setChecking] = useState(true);
-  const [profileComplete, setProfileComplete] = useState<boolean>(false);
-  const [investmentComplete, setInvestmentComplete] = useState<boolean>(false);
+  const [profileComplete, setProfileComplete] = useState(false);
+  const [investmentComplete, setInvestmentComplete] = useState(false);
 
   const userId = session?.user?.id;
   const currentPath = useMemo(() => segments.join('/'), [segments]);
@@ -22,9 +21,9 @@ export default function AppLayout() {
     if (!initialised || !userId) return;
 
     let isMounted = true;
+
     const fetchStatus = async () => {
       setChecking(true);
-
       try {
         const [{ data: profileData }, { data: investmentData }] = await Promise.all([
           supabase
@@ -60,28 +59,26 @@ export default function AppLayout() {
   useEffect(() => {
     if (!initialised || !userId || checking) return;
 
+    // 1) Profil
     if (!profileComplete) {
-      if (currentPath !== '(app)/profil') {
-        router.replace('/(app)/profil');
-      }
+      if (currentPath !== '(app)/profil') router.replace('/(app)/profil');
       return;
     }
 
+    // 2) Inwestycja
     if (!investmentComplete) {
-      if (currentPath !== '(app)/inwestycja') {
-        router.replace('/(app)/inwestycja');
-      }
+      if (currentPath !== '(app)/inwestycja') router.replace('/(app)/inwestycja');
       return;
     }
 
+    // 3) Wszystko gotowe -> dashboard w tabs
     if (currentPath === '(app)/profil' || currentPath === '(app)/inwestycja') {
-      router.replace('/(app)/dashboard');
+      router.replace('/(app)/(tabs)/dashboard');
     }
   }, [initialised, userId, checking, profileComplete, investmentComplete, currentPath, router]);
 
-  if (!initialised || !session) {
-    return null;
-  }
+  // jeśli user nie jest zalogowany, nie renderujemy app layoutu (auth layout przejmie)
+  if (!initialised || !session) return null;
 
   return (
     <>
@@ -103,51 +100,15 @@ export default function AppLayout() {
         </View>
       )}
 
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: '#0B1120',
-            borderTopColor: 'rgba(255,255,255,0.08)',
-          },
-          tabBarActiveTintColor: '#5EEAD4',
-          tabBarInactiveTintColor: '#94A3B8',
-        }}
-      >
-        <Tabs.Screen
-          name="dashboard/index"
-          options={{
-            title: 'Dashboard',
-            tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={size} />,
-          }}
-        />
-        <Tabs.Screen
-          name="budzet/index"
-          options={{
-            title: 'Budżet',
-            tabBarIcon: ({ color, size }) => <Feather name="pie-chart" color={color} size={size} />,
-          }}
-        />
-        <Tabs.Screen
-          name="zdjecia/index"
-          options={{
-            title: 'Zdjęcia',
-            tabBarIcon: ({ color, size }) => <Feather name="camera" color={color} size={size} />,
-          }}
-        />
-        <Tabs.Screen
-          name="ustawienia/index"
-          options={{
-            title: 'Ustawienia',
-            tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={size} />,
-          }}
-        />
-        <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="postepy/index" options={{ href: null }} />
-        <Tabs.Screen name="projekt/index" options={{ href: null }} />
-        <Tabs.Screen name="inwestycja/index" options={{ href: null }} />
-        <Tabs.Screen name="profil/index" options={{ href: null }} />
-      </Tabs>
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Tabs */}
+        <Stack.Screen name="(tabs)" />
+
+        {/* Onboarding / gating */}
+        <Stack.Screen name="profil/index" />
+        <Stack.Screen name="inwestycja/index" />
+      </Stack>
     </>
   );
 }
+

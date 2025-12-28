@@ -5,3 +5,4 @@ export default function RootIndex() {
   // useSupabaseAuth w _layout.tsx i tak przełączy na (app), jeśli użytkownik jest zalogowany.
   return <Redirect href="/(auth)/login" />;
 }
+

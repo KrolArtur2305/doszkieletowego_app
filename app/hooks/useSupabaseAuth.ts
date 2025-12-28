@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSegments } from 'expo-router';
-import { supabase } from '../supabase';
+import { supabase } from '../lib/supabase';
 
 export function useSupabaseAuth() {
   const [session, setSession] = useState<any | null>(null);
@@ -18,10 +18,12 @@ export function useSupabaseAuth() {
       setInitialised(true);
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (!isMounted) return;
-      setSession(newSession);
-    });
+    const { data: subscription } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        if (!isMounted) return;
+        setSession(newSession);
+      }
+    );
 
     return () => {
       isMounted = false;
@@ -42,6 +44,5 @@ export function useSupabaseAuth() {
     }
   }, [session, initialised, segments, router]);
 
-  // KLUCZ: to było brakujące
   return { session, initialised };
 }

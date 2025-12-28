@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -57,3 +57,4 @@ const styles = StyleSheet.create({
   buttonText: { color: '#042F2E', fontWeight: '700', fontSize: 16 },
   error: { color: '#FCA5A5', marginBottom: 6, textAlign: 'center' },
 });
+

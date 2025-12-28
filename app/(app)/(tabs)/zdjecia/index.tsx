@@ -19,7 +19,7 @@ import * as FileSystem from 'expo-file-system';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -743,3 +743,4 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: { fontSize: 15, fontWeight: '900', color: COLORS.danger },
 });
+

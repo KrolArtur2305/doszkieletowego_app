@@ -129,3 +129,4 @@ const styles = StyleSheet.create({
   attributeLabel: { color: '#94A3B8' },
   attributeValue: { color: '#F8FAFC', fontSize: 16, fontWeight: '600', marginTop: 4 },
 });
+
