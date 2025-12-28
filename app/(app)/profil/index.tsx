@@ -15,9 +15,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { supabase } from '../../../lib/supabase';
-
-
+import { supabase } from '../../lib/supabase';
 
 export default function ProfilScreen() {
   const router = useRouter();

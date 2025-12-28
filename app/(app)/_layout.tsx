@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 
@@ -14,101 +14,88 @@ export default function AppLayout() {
   const [profileComplete, setProfileComplete] = useState(false);
   const [investmentComplete, setInvestmentComplete] = useState(false);
 
-  const userId = session?.user?.id;
-  const currentPath = useMemo(() => segments.join('/'), [segments]);
-
   useEffect(() => {
-    if (!initialised || !userId) return;
+    let alive = true;
 
-    let isMounted = true;
+    const run = async () => {
+      if (!initialised) return;
 
-    const fetchStatus = async () => {
-      setChecking(true);
       try {
-        const [{ data: profileData }, { data: investmentData }] = await Promise.all([
+        if (!session?.user?.id) {
+          if (alive) {
+            setProfileComplete(false);
+            setInvestmentComplete(false);
+          }
+          return;
+        }
+
+        const userId = session.user.id;
+
+        const [profileRes, invRes] = await Promise.all([
           supabase
             .from('profiles')
             .select('profil_wypelniony')
             .eq('user_id', userId)
-            .limit(1)
             .maybeSingle(),
           supabase
             .from('inwestycje')
             .select('inwestycja_wypelniona')
             .eq('user_id', userId)
-            .limit(1)
             .maybeSingle(),
         ]);
 
-        if (!isMounted) return;
+        if (!alive) return;
 
-        setProfileComplete(Boolean(profileData?.profil_wypelniony));
-        setInvestmentComplete(Boolean(investmentData?.inwestycja_wypelniona));
+        setProfileComplete(Boolean(profileRes.data?.profil_wypelniony));
+        setInvestmentComplete(Boolean(invRes.data?.inwestycja_wypelniona));
       } finally {
-        if (isMounted) setChecking(false);
+        if (alive) setChecking(false);
       }
     };
 
-    fetchStatus();
+    run();
 
     return () => {
-      isMounted = false;
+      alive = false;
     };
-  }, [initialised, userId, currentPath]);
+  }, [initialised, session?.user?.id]);
 
   useEffect(() => {
-    if (!initialised || !userId || checking) return;
+    if (!initialised) return;
 
-    // 1) Profil
-    if (!profileComplete) {
-      if (currentPath !== '(app)/profil') router.replace('/(app)/profil');
+    const inAuthGroup = segments[0] === '(auth)';
+    const inAppGroup = segments[0] === '(app)';
+
+    if (!session && !inAuthGroup) {
+      router.replace('/(auth)/login');
       return;
     }
 
-    // 2) Inwestycja
-    if (!investmentComplete) {
-      if (currentPath !== '(app)/inwestycja') router.replace('/(app)/inwestycja');
+    if (session && !inAppGroup) {
+      router.replace('/(app)');
       return;
     }
 
-    // 3) Wszystko gotowe -> dashboard w tabs
-    if (currentPath === '(app)/profil' || currentPath === '(app)/inwestycja') {
-      router.replace('/(app)/(tabs)/dashboard');
+    // opcjonalny flow: profil -> inwestycja -> tabs
+    if (session) {
+      if (!profileComplete) {
+        router.replace('/(app)/profil');
+        return;
+      }
+      if (!investmentComplete) {
+        router.replace('/(app)/inwestycja');
+        return;
+      }
     }
-  }, [initialised, userId, checking, profileComplete, investmentComplete, currentPath, router]);
+  }, [initialised, session, segments, router, profileComplete, investmentComplete]);
 
-  // jeśli user nie jest zalogowany, nie renderujemy app layoutu (auth layout przejmie)
-  if (!initialised || !session) return null;
+  if (!initialised || checking) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#050915', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
-  return (
-    <>
-      {checking && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(5,9,21,0.75)',
-            zIndex: 10,
-          }}
-        >
-          <ActivityIndicator size="large" color="#5EEAD4" />
-        </View>
-      )}
-
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* Tabs */}
-        <Stack.Screen name="(tabs)" />
-
-        {/* Onboarding / gating */}
-        <Stack.Screen name="profil/index" />
-        <Stack.Screen name="inwestycja/index" />
-      </Stack>
-    </>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
-

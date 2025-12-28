@@ -16,7 +16,9 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { supabase } from '../../../supabase';
+import { supabase } from '../../lib/supabase';
+
+
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -128,7 +130,6 @@ export default function InwestycjaScreen() {
   const handleSaveAndContinue = async () => {
     try {
       console.log('[INV] CLICK');
-
       if (saving) return;
 
       const n = nazwa.trim();
@@ -161,16 +162,24 @@ export default function InwestycjaScreen() {
 
       const user = userRes.user;
 
-      const payload: any = {
+      // ✅ ważne: budzet ustawiamy na null gdy pole puste / niepoprawne
+      const payload: {
+        user_id: string;
+        nazwa: string;
+        lokalizacja: string;
+        data_start: string | null;
+        data_koniec: string | null;
+        budzet: number | null;
+        inwestycja_wypelniona: boolean;
+      } = {
         user_id: user.id,
         nazwa: n,
         lokalizacja: loc,
         data_start: dataStartISO || null,
         data_koniec: dataKoniecISO || null,
+        budzet: budgetNumber, // <- null jeśli puste / nie-number
         inwestycja_wypelniona: true,
       };
-
-      if (budgetNumber !== null) payload.budzet = budgetNumber;
 
       console.log('[INV] upsert payload', payload);
 
@@ -212,7 +221,6 @@ export default function InwestycjaScreen() {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.screen}>
-        {/* Poświaty w tle */}
         <View pointerEvents="none" style={styles.bg}>
           <View style={styles.glowA} />
           <View style={styles.glowB} />
@@ -220,7 +228,6 @@ export default function InwestycjaScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {/* Logo trochę niżej */}
           <View style={styles.logoWrap}>
             <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
@@ -451,4 +458,3 @@ const styles = StyleSheet.create({
   ctaButtonDisabled: { opacity: 0.65 },
   ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center' },
 });
-
