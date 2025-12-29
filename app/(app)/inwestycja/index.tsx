@@ -16,7 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 
 
@@ -229,7 +229,7 @@ export default function InwestycjaScreen() {
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.logoWrap}>
-            <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
 
           <Text style={styles.header}>INWESTYCJA</Text>
@@ -458,6 +458,8 @@ const styles = StyleSheet.create({
   ctaButtonDisabled: { opacity: 0.65 },
   ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center' },
 });
+
+
 
 
 

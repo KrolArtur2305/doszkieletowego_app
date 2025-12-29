@@ -4,8 +4,8 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { supabase } from '../../../lib/supabase';
-import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
+import { supabase } from '../../../../lib/supabase';
+import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 
 type EtapRow = {
   id: string;
@@ -333,6 +333,7 @@ const styles = StyleSheet.create({
 
   error: { color: '#FCA5A5', marginTop: 8 },
 });
+
 
 
 

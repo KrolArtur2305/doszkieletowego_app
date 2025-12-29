@@ -12,8 +12,8 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { supabase } from '../../../lib/supabase';
-import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
+import { supabase } from '../../../../lib/supabase';
+import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 
 const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
@@ -264,6 +264,8 @@ const styles = StyleSheet.create({
 
   errorText: { color: '#FCA5A5', marginBottom: 10 },
 });
+
+
 
 
 

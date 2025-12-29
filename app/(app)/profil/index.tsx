@@ -15,7 +15,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 export default function ProfilScreen() {
   const router = useRouter();
@@ -168,7 +168,7 @@ export default function ProfilScreen() {
           {/* logo */}
           <View style={styles.logoWrap}>
             <Image
-              source={require('../../../assets/logo.png')}
+              source={require('../../assets/logo.png')}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -429,6 +429,8 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+
+
 
 
 

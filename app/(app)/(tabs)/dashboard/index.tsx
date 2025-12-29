@@ -10,9 +10,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-
-// ✅ POPRAWNY IMPORT – 3x ../ (NIC WIĘCEJ, NIC MNIEJ)
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../../lib/supabase';
 
 const shortcuts = [
   { label: 'Zdjęcia', icon: 'camera', route: '/(app)/(tabs)/zdjecia' },
@@ -38,7 +36,7 @@ export default function DashboardScreen() {
         <View style={styles.logoWrap}>
           {/* assets są w root → tu MUSI być 5x ../ */}
           <Image
-            source={require('../../../../../assets/logo.png')}
+            source={require('../../../assets/logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />

@@ -1,5 +1,5 @@
 ﻿import { Stack } from "expo-router";
-import { useSupabaseAuth } from 'hooks/useSupabaseAuth';
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 
 export default function RootLayout() {
   useSupabaseAuth();

@@ -13,7 +13,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../../lib/supabase';
 
 export default function UstawieniaScreen() {
   const router = useRouter();
@@ -278,6 +278,7 @@ const statusText = (ok: boolean): TextStyle => ({
   color: ok ? '#34D399' : '#FACC15',
   fontWeight: '700',
 });
+
 
 
 
