@@ -1,7 +1,8 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
+
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -22,17 +23,17 @@ export default function LoginScreen() {
       <View style={styles.bg} />
       <BlurView intensity={80} tint="dark" style={styles.card}>
         <Text style={styles.title}>doszkieletowego</Text>
-        <Text style={styles.subtitle}>Zaloguj siÄ™</Text>
+        <Text style={styles.subtitle}>Zaloguj się</Text>
 
         <TextInput placeholder="E-mail" placeholderTextColor="#9CA3AF" style={styles.input}
           autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-        <TextInput placeholder="HasĹ‚o" placeholderTextColor="#9CA3AF" style={styles.input}
+        <TextInput placeholder="Hasło" placeholderTextColor="#9CA3AF" style={styles.input}
           secureTextEntry value={password} onChangeText={setPassword} />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <TouchableOpacity disabled={loading} onPress={onLogin} style={[styles.button, loading && { opacity: 0.7 }]}>
-          {loading ? <ActivityIndicator /> : <Text style={styles.buttonText}>WejdĹş</Text>}
+          {loading ? <ActivityIndicator /> : <Text style={styles.buttonText}>Wejdź</Text>}
         </TouchableOpacity>
       </BlurView>
     </KeyboardAvoidingView>
@@ -41,9 +42,9 @@ export default function LoginScreen() {
 
 function mapError(msg: string) {
   const l = msg.toLowerCase();
-  if (l.includes('invalid login credentials')) return 'Niepoprawny e-mail lub hasĹ‚o.';
-  if (l.includes('email not confirmed')) return 'PotwierdĹş adres e-mail.';
-  return 'CoĹ› poszĹ‚o nie tak. SprĂłbuj ponownie.';
+  if (l.includes('invalid login credentials')) return 'Niepoprawny e-mail lub hasło.';
+  if (l.includes('email not confirmed')) return 'Potwierdź adres e-mail.';
+  return 'Coś poszło nie tak. Spróbuj ponownie.';
 }
 
 const styles = StyleSheet.create({
@@ -57,7 +58,4 @@ const styles = StyleSheet.create({
   buttonText: { color: '#042F2E', fontWeight: '700', fontSize: 16 },
   error: { color: '#FCA5A5', marginBottom: 6, textAlign: 'center' },
 });
-
-
-
 
