@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
@@ -57,7 +57,7 @@ export default function PostepyScreen() {
         }
       } catch (e: any) {
         if (!cancelled) {
-          setError(e?.message ?? 'Nie udało się pobrać etapów.');
+          setError(e?.message ?? 'Nie udaĹ‚o siÄ™ pobraÄ‡ etapĂłw.');
           setEtapy([]);
         }
       } finally {
@@ -144,12 +144,12 @@ export default function PostepyScreen() {
       <View style={styles.glow} />
 
       <BlurView intensity={75} tint="dark" style={styles.card}>
-        <Text style={styles.sectionLabel}>Postęp budowy</Text>
+        <Text style={styles.sectionLabel}>PostÄ™p budowy</Text>
 
         {loading ? (
           <ActivityIndicator color="#5EEAD4" />
         ) : !hasAnyStages ? (
-          <Text style={styles.muted}>Brak etapów przypisanych do tej inwestycji.</Text>
+          <Text style={styles.muted}>Brak etapĂłw przypisanych do tej inwestycji.</Text>
         ) : (
           <>
             <Text style={styles.sectionTitle}>Budowa w {progressPercent}%</Text>
@@ -186,7 +186,7 @@ export default function PostepyScreen() {
       </BlurView>
 
       <BlurView intensity={75} tint="dark" style={styles.card}>
-        <Text style={styles.sectionLabel}>Nadchodzący etap</Text>
+        <Text style={styles.sectionLabel}>NadchodzÄ…cy etap</Text>
 
         {loading ? (
           <ActivityIndicator color="#5EEAD4" />
@@ -203,14 +203,14 @@ export default function PostepyScreen() {
             )}
           </>
         ) : (
-          <Text style={styles.muted}>Brak nadchodzących etapów.</Text>
+          <Text style={styles.muted}>Brak nadchodzÄ…cych etapĂłw.</Text>
         )}
 
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={() => router.push('/(app)/(tabs)/postepy')}
         >
-          <Text style={styles.primaryButtonText}>Sprawdź wszystkie etapy</Text>
+          <Text style={styles.primaryButtonText}>SprawdĹş wszystkie etapy</Text>
           <Feather name="arrow-right" size={18} color="#0B1120" />
         </TouchableOpacity>
       </BlurView>
@@ -239,7 +239,7 @@ export default function PostepyScreen() {
             </View>
           ))
         ) : (
-          <Text style={styles.muted}>Brak wykonanych etapów.</Text>
+          <Text style={styles.muted}>Brak wykonanych etapĂłw.</Text>
         )}
       </BlurView>
 
@@ -333,3 +333,6 @@ const styles = StyleSheet.create({
 
   error: { color: '#FCA5A5', marginTop: 8 },
 });
+
+
+

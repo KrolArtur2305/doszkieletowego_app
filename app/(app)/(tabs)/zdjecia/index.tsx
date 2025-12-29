@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import * as FileSystem from 'expo-file-system';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -122,8 +122,8 @@ export default function ZdjeciaScreen() {
       if (error) throw error;
       setEtapy((data || []) as Etap[]);
     } catch (e) {
-      console.error('Błąd ładowania etapów:', e);
-      Alert.alert('Błąd', 'Nie udało się załadować etapów');
+      console.error('BĹ‚Ä…d Ĺ‚adowania etapĂłw:', e);
+      Alert.alert('BĹ‚Ä…d', 'Nie udaĹ‚o siÄ™ zaĹ‚adowaÄ‡ etapĂłw');
     }
   };
 
@@ -157,8 +157,8 @@ export default function ZdjeciaScreen() {
 
       setZdjecia((data || []) as Zdjecie[]);
     } catch (e) {
-      console.error('Błąd ładowania zdjęć:', e);
-      Alert.alert('Błąd', 'Nie udało się załadować zdjęć');
+      console.error('BĹ‚Ä…d Ĺ‚adowania zdjÄ™Ä‡:', e);
+      Alert.alert('BĹ‚Ä…d', 'Nie udaĹ‚o siÄ™ zaĹ‚adowaÄ‡ zdjÄ™Ä‡');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -174,13 +174,13 @@ export default function ZdjeciaScreen() {
 
   const handlePickAndUpload = async () => {
     if (!selectedEtapForUpload) {
-      Alert.alert('Uwaga', 'Wybierz etap dla zdjęcia');
+      Alert.alert('Uwaga', 'Wybierz etap dla zdjÄ™cia');
       return;
     }
 
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Brak uprawnień', 'Potrzebujemy dostępu do galerii');
+      Alert.alert('Brak uprawnieĹ„', 'Potrzebujemy dostÄ™pu do galerii');
       return;
     }
 
@@ -205,13 +205,13 @@ export default function ZdjeciaScreen() {
       } = await supabase.auth.getSession();
 
       if (!session?.user?.id) {
-        Alert.alert('Błąd', 'Musisz być zalogowany');
+        Alert.alert('BĹ‚Ä…d', 'Musisz byÄ‡ zalogowany');
         return;
       }
 
       const etap = etapy.find((e) => e.id === selectedEtapForUpload);
       if (!etap) {
-        Alert.alert('Błąd', 'Nie znaleziono etapu');
+        Alert.alert('BĹ‚Ä…d', 'Nie znaleziono etapu');
         return;
       }
 
@@ -254,44 +254,44 @@ export default function ZdjeciaScreen() {
       setAddModalVisible(false);
       setSelectedEtapForUpload('');
       await loadZdjecia(false);
-      Alert.alert('Sukces', 'Zdjęcie zostało dodane');
+      Alert.alert('Sukces', 'ZdjÄ™cie zostaĹ‚o dodane');
     } catch (e: any) {
-      console.error('Błąd uploadu:', e);
-      Alert.alert('Błąd', e?.message ? String(e.message) : 'Nie udało się dodać zdjęcia');
+      console.error('BĹ‚Ä…d uploadu:', e);
+      Alert.alert('BĹ‚Ä…d', e?.message ? String(e.message) : 'Nie udaĹ‚o siÄ™ dodaÄ‡ zdjÄ™cia');
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeletePhoto = async (z: Zdjecie) => {
-    Alert.alert('Usuń zdjęcie', 'Czy na pewno chcesz usunąć to zdjęcie?', [
+    Alert.alert('UsuĹ„ zdjÄ™cie', 'Czy na pewno chcesz usunÄ…Ä‡ to zdjÄ™cie?', [
       { text: 'Anuluj', style: 'cancel' },
       {
-        text: 'Usuń',
+        text: 'UsuĹ„',
         style: 'destructive',
         onPress: async () => {
           try {
-            // 1) usuń rekord
+            // 1) usuĹ„ rekord
             const { error: delError } = await supabase.from('zdjecia').delete().eq('id', z.id);
             if (delError) throw delError;
 
-            // 2) usuń plik (tylko jeśli uda się wyliczyć ścieżkę)
+            // 2) usuĹ„ plik (tylko jeĹ›li uda siÄ™ wyliczyÄ‡ Ĺ›cieĹĽkÄ™)
             const storagePath = deriveStoragePath(z.url);
             if (storagePath) {
               const { error: rmError } = await supabase.storage.from(bucketName).remove([storagePath]);
               if (rmError) {
                 // nie blokuj usera, ale loguj
-                console.warn('Nie udało się usunąć pliku ze storage:', rmError);
+                console.warn('Nie udaĹ‚o siÄ™ usunÄ…Ä‡ pliku ze storage:', rmError);
               }
             }
 
             setPreviewModalVisible(false);
             setSelectedZdjecie(null);
             await loadZdjecia(false);
-            Alert.alert('Sukces', 'Zdjęcie zostało usunięte');
+            Alert.alert('Sukces', 'ZdjÄ™cie zostaĹ‚o usuniÄ™te');
           } catch (e) {
-            console.error('Błąd usuwania:', e);
-            Alert.alert('Błąd', 'Nie udało się usunąć zdjęcia');
+            console.error('BĹ‚Ä…d usuwania:', e);
+            Alert.alert('BĹ‚Ä…d', 'Nie udaĹ‚o siÄ™ usunÄ…Ä‡ zdjÄ™cia');
           }
         },
       },
@@ -341,13 +341,13 @@ export default function ZdjeciaScreen() {
     <View style={styles.emptyContainer}>
       <BlurView intensity={15} tint="dark" style={styles.emptyCard}>
         <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.25)" />
-        <Text style={styles.emptyTitle}>Brak zdjęć</Text>
+        <Text style={styles.emptyTitle}>Brak zdjÄ™Ä‡</Text>
         <Text style={styles.emptySubtitle}>
-          {selectedEtap === 'all' ? 'Dodaj swoje pierwsze zdjęcie z budowy.' : 'Brak zdjęć dla wybranego etapu.'}
+          {selectedEtap === 'all' ? 'Dodaj swoje pierwsze zdjÄ™cie z budowy.' : 'Brak zdjÄ™Ä‡ dla wybranego etapu.'}
         </Text>
         <TouchableOpacity style={styles.emptyButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color={COLORS.bg} />
-          <Text style={styles.emptyButtonText}>Dodaj zdjęcie</Text>
+          <Text style={styles.emptyButtonText}>Dodaj zdjÄ™cie</Text>
         </TouchableOpacity>
       </BlurView>
     </View>
@@ -357,7 +357,7 @@ export default function ZdjeciaScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.accent} />
-        <Text style={styles.loadingText}>Ładowanie zdjęć…</Text>
+        <Text style={styles.loadingText}>Ĺadowanie zdjÄ™Ä‡â€¦</Text>
       </View>
     );
   }
@@ -371,7 +371,7 @@ export default function ZdjeciaScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerLabel}>Galeria budowy</Text>
-          <Text style={styles.title}>Zdjęcia</Text>
+          <Text style={styles.title}>ZdjÄ™cia</Text>
         </View>
 
         <View style={styles.viewToggle}>
@@ -450,7 +450,7 @@ export default function ZdjeciaScreen() {
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
         <BlurView intensity={90} tint="dark" style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Dodaj zdjęcie</Text>
+            <Text style={styles.modalTitle}>Dodaj zdjÄ™cie</Text>
 
             <Text style={styles.modalLabel}>WYBIERZ ETAP</Text>
 
@@ -490,12 +490,12 @@ export default function ZdjeciaScreen() {
                 disabled={uploading || !canPick}
                 activeOpacity={0.85}
               >
-                {uploading ? <ActivityIndicator color={COLORS.bg} /> : <Text style={styles.modalButtonTextPrimary}>Wybierz zdjęcie</Text>}
+                {uploading ? <ActivityIndicator color={COLORS.bg} /> : <Text style={styles.modalButtonTextPrimary}>Wybierz zdjÄ™cie</Text>}
               </TouchableOpacity>
             </View>
 
             <Text style={styles.modalHint}>
-              Zdjęcie zostanie zapisane do Storage ({bucketName}) i przypisane do etapu.
+              ZdjÄ™cie zostanie zapisane do Storage ({bucketName}) i przypisane do etapu.
             </Text>
           </View>
         </BlurView>
@@ -527,7 +527,7 @@ export default function ZdjeciaScreen() {
 
                   <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePhoto(selectedZdjecie)} activeOpacity={0.85}>
                     <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
-                    <Text style={styles.deleteButtonText}>Usuń zdjęcie</Text>
+                    <Text style={styles.deleteButtonText}>UsuĹ„ zdjÄ™cie</Text>
                   </TouchableOpacity>
                 </BlurView>
               </View>
@@ -743,4 +743,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: { fontSize: 15, fontWeight: '900', color: COLORS.danger },
 });
+
+
+
 

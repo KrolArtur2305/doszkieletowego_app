@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -136,17 +136,17 @@ export default function InwestycjaScreen() {
       const loc = lokalizacja.trim();
 
       if (!n) {
-        Alert.alert('Uzupełnij dane', 'Nazwa inwestycji jest wymagana, aby kontynuować.');
+        Alert.alert('UzupeĹ‚nij dane', 'Nazwa inwestycji jest wymagana, aby kontynuowaÄ‡.');
         return;
       }
 
       if (!loc) {
-        Alert.alert('Uzupełnij dane', 'Lokalizacja jest wymagana, aby kontynuować.');
+        Alert.alert('UzupeĹ‚nij dane', 'Lokalizacja jest wymagana, aby kontynuowaÄ‡.');
         return;
       }
 
       if (budgetNumber !== null && budgetNumber < 0) {
-        Alert.alert('Nieprawidłowy budżet', 'Budżet nie może być ujemny.');
+        Alert.alert('NieprawidĹ‚owy budĹĽet', 'BudĹĽet nie moĹĽe byÄ‡ ujemny.');
         return;
       }
 
@@ -156,13 +156,13 @@ export default function InwestycjaScreen() {
       console.log('[INV] getUser(save)', { hasUser: !!userRes?.user, userErr });
 
       if (userErr || !userRes?.user) {
-        Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
+        Alert.alert('BĹ‚Ä…d', 'Brak uĹĽytkownika. Zaloguj siÄ™ ponownie.');
         return;
       }
 
       const user = userRes.user;
 
-      // ✅ ważne: budzet ustawiamy na null gdy pole puste / niepoprawne
+      // âś… waĹĽne: budzet ustawiamy na null gdy pole puste / niepoprawne
       const payload: {
         user_id: string;
         nazwa: string;
@@ -177,7 +177,7 @@ export default function InwestycjaScreen() {
         lokalizacja: loc,
         data_start: dataStartISO || null,
         data_koniec: dataKoniecISO || null,
-        budzet: budgetNumber, // <- null jeśli puste / nie-number
+        budzet: budgetNumber, // <- null jeĹ›li puste / nie-number
         inwestycja_wypelniona: true,
       };
 
@@ -192,7 +192,7 @@ export default function InwestycjaScreen() {
       console.log('[INV] upsert result', { data, error });
 
       if (error) {
-        Alert.alert('Błąd zapisu', error.message);
+        Alert.alert('BĹ‚Ä…d zapisu', error.message);
         return;
       }
 
@@ -200,7 +200,7 @@ export default function InwestycjaScreen() {
       router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
       console.log('[INV] exception', e);
-      Alert.alert('Błąd', e?.message ?? 'Coś poszło nie tak.');
+      Alert.alert('BĹ‚Ä…d', e?.message ?? 'CoĹ› poszĹ‚o nie tak.');
     } finally {
       setSaving(false);
     }
@@ -233,7 +233,7 @@ export default function InwestycjaScreen() {
           </View>
 
           <Text style={styles.header}>INWESTYCJA</Text>
-          <Text style={styles.headerSub}>Uzupełnij dane inwestycji.</Text>
+          <Text style={styles.headerSub}>UzupeĹ‚nij dane inwestycji.</Text>
 
           <BlurView intensity={85} tint="dark" style={styles.card}>
             <View style={styles.form}>
@@ -295,7 +295,7 @@ export default function InwestycjaScreen() {
                 <View style={{ width: 12 }} />
 
                 <View style={[styles.field, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Data zakończenia</Text>
+                  <Text style={styles.fieldLabel}>Data zakoĹ„czenia</Text>
                   <View style={styles.inputWrap}>
                     <Text style={[styles.input, { paddingVertical: 0 }]}>{koniecDisplay || 'DD.MM.RRRR'}</Text>
                     <TouchableOpacity
@@ -320,7 +320,7 @@ export default function InwestycjaScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Planowany budżet (PLN)</Text>
+                <Text style={styles.fieldLabel}>Planowany budĹĽet (PLN)</Text>
                 <View style={styles.inputWrap}>
                   <Text style={styles.prefix}>PLN</Text>
                   <TextInput
@@ -342,7 +342,7 @@ export default function InwestycjaScreen() {
               disabled={loading || saving}
               activeOpacity={0.85}
             >
-              <Text style={styles.ctaText}>{saving ? 'Zapisywanie…' : 'Zapisz i przejdź dalej'}</Text>
+              <Text style={styles.ctaText}>{saving ? 'Zapisywanieâ€¦' : 'Zapisz i przejdĹş dalej'}</Text>
             </TouchableOpacity>
           </BlurView>
         </ScrollView>
@@ -458,3 +458,6 @@ const styles = StyleSheet.create({
   ctaButtonDisabled: { opacity: 0.65 },
   ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center' },
 });
+
+
+

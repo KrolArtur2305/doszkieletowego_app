@@ -1,12 +1,18 @@
-import { useMemo } from 'react';
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+﻿import { useMemo } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-// ✅ POPRAWKA: w tabs/dashboard trzeba 4x wyjść do góry
+// ✅ POPRAWNY IMPORT – 3x ../ (NIC WIĘCEJ, NIC MNIEJ)
 import { supabase } from '../../../lib/supabase';
-
 
 const shortcuts = [
   { label: 'Zdjęcia', icon: 'camera', route: '/(app)/(tabs)/zdjecia' },
@@ -17,8 +23,7 @@ const shortcuts = [
 ];
 
 export default function DashboardScreen() {
-  // supabase import jest tu tylko po to, żeby TS/build nie krzyczał,
-  // a Ty możesz go użyć w swoich query jak wcześniej
+  // tylko żeby TS wiedział, że import jest używany
   useMemo(() => supabase, []);
 
   return (
@@ -31,12 +36,18 @@ export default function DashboardScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.logoWrap}>
-          {/* jeśli masz inną nazwę pliku logo – zmień tylko ten require */}
-          <Image source={require('../../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          {/* assets są w root → tu MUSI być 5x ../ */}
+          <Image
+            source={require('../../../../../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         <Text style={styles.header}>DASHBOARD</Text>
-        <Text style={styles.headerSub}>Skróty do najważniejszych modułów.</Text>
+        <Text style={styles.headerSub}>
+          Skróty do najważniejszych modułów.
+        </Text>
 
         <BlurView intensity={85} tint="dark" style={styles.card}>
           <View style={styles.grid}>
@@ -78,7 +89,7 @@ const styles = StyleSheet.create({
     height: 520,
     borderRadius: 9999,
     backgroundColor: '#5EEAD4',
-    opacity: 0.10,
+    opacity: 0.1,
     bottom: -260,
     left: -220,
   },
@@ -142,4 +153,3 @@ const styles = StyleSheet.create({
   },
   tileText: { color: '#F8FAFC', fontSize: 14, fontWeight: '800' },
 });
-

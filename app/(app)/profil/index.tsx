@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -31,7 +31,7 @@ export default function ProfilScreen() {
 
   const fullNamePreview = useMemo(() => {
     const v = [imie.trim(), nazwisko.trim()].filter(Boolean).join(' ');
-    return v || 'Uzupełnij dane profilu';
+    return v || 'UzupeĹ‚nij dane profilu';
   }, [imie, nazwisko]);
 
   const normalizePhone = (v: string) => v.replace(/[^\d+]/g, '');
@@ -94,12 +94,12 @@ export default function ProfilScreen() {
     console.log('[Profil] CLICK save');
 
     if (!first) {
-      Alert.alert('Uzupełnij dane', 'Imię jest wymagane, aby kontynuować.');
+      Alert.alert('UzupeĹ‚nij dane', 'ImiÄ™ jest wymagane, aby kontynuowaÄ‡.');
       return;
     }
 
     if (phone && phone.replace(/\D/g, '').length < 7) {
-      Alert.alert('Nieprawidłowy numer', 'Podaj poprawny numer telefonu lub zostaw puste pole.');
+      Alert.alert('NieprawidĹ‚owy numer', 'Podaj poprawny numer telefonu lub zostaw puste pole.');
       return;
     }
 
@@ -109,7 +109,7 @@ export default function ProfilScreen() {
       console.log('[Profil] getUser (save):', { hasUser: !!userRes?.user, userErr });
 
       if (userErr || !userRes?.user) {
-        Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
+        Alert.alert('BĹ‚Ä…d', 'Brak uĹĽytkownika. Zaloguj siÄ™ ponownie.');
         return;
       }
 
@@ -135,12 +135,12 @@ export default function ProfilScreen() {
       console.log('[Profil] upsert result:', { data, error });
 
       if (error) {
-        Alert.alert('Błąd zapisu', error.message);
+        Alert.alert('BĹ‚Ä…d zapisu', error.message);
         return;
       }
 
       if (!data?.profil_wypelniony) {
-        Alert.alert('Błąd', 'Profil nie został oznaczony jako wypełniony.');
+        Alert.alert('BĹ‚Ä…d', 'Profil nie zostaĹ‚ oznaczony jako wypeĹ‚niony.');
         return;
       }
 
@@ -148,7 +148,7 @@ export default function ProfilScreen() {
       router.replace('/(app)/inwestycja');
     } catch (e: any) {
       console.log('[Profil] exception:', e);
-      Alert.alert('Błąd', e?.message ?? 'Coś poszło nie tak.');
+      Alert.alert('BĹ‚Ä…d', e?.message ?? 'CoĹ› poszĹ‚o nie tak.');
     } finally {
       setSaving(false);
     }
@@ -157,7 +157,7 @@ export default function ProfilScreen() {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.screen}>
-        {/* tło / poświaty */}
+        {/* tĹ‚o / poĹ›wiaty */}
         <View pointerEvents="none" style={styles.bg}>
           <View style={styles.glowA} />
           <View style={styles.glowB} />
@@ -174,9 +174,9 @@ export default function ProfilScreen() {
             />
           </View>
 
-          {/* nagłówek */}
+          {/* nagĹ‚Ăłwek */}
           <Text style={styles.header}>PROFIL</Text>
-          <Text style={styles.headerSub}>Dodaj lub zaktualizuj dane, aby odblokować aplikację.</Text>
+          <Text style={styles.headerSub}>Dodaj lub zaktualizuj dane, aby odblokowaÄ‡ aplikacjÄ™.</Text>
 
           {/* karta */}
           <BlurView intensity={85} tint="dark" style={styles.card}>
@@ -186,8 +186,8 @@ export default function ProfilScreen() {
                 <Feather name="user" size={18} color="#5EEAD4" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.previewLabel}>Podgląd</Text>
-                <Text style={styles.previewValue}>{loading ? 'Ładowanie…' : fullNamePreview}</Text>
+                <Text style={styles.previewLabel}>PodglÄ…d</Text>
+                <Text style={styles.previewValue}>{loading ? 'Ĺadowanieâ€¦' : fullNamePreview}</Text>
               </View>
             </View>
 
@@ -198,20 +198,20 @@ export default function ProfilScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.previewLabel}>E-mail</Text>
-                <Text style={styles.previewValue}>{email || (loading ? 'Ładowanie…' : '—')}</Text>
+                <Text style={styles.previewValue}>{email || (loading ? 'Ĺadowanieâ€¦' : 'â€”')}</Text>
               </View>
             </View>
 
             {/* formularz */}
             <View style={styles.form}>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Imię *</Text>
+                <Text style={styles.fieldLabel}>ImiÄ™ *</Text>
                 <View style={styles.inputWrap}>
                   <Feather name="edit-3" color="rgba(148,163,184,0.95)" size={16} />
                   <TextInput
                     value={imie}
                     onChangeText={setImie}
-                    placeholder="Wpisz imię"
+                    placeholder="Wpisz imiÄ™"
                     placeholderTextColor="rgba(148,163,184,0.7)"
                     style={styles.input}
                     editable={!loading && !saving}
@@ -263,12 +263,12 @@ export default function ProfilScreen() {
               disabled={loading || saving}
               activeOpacity={0.85}
             >
-              <Text style={styles.ctaText}>{saving ? 'Zapisywanie…' : 'Zapisz i przejdź dalej'}</Text>
+              <Text style={styles.ctaText}>{saving ? 'Zapisywanieâ€¦' : 'Zapisz i przejdĹş dalej'}</Text>
             </TouchableOpacity>
 
             {/* drobny hint */}
             <Text style={styles.hint}>
-              * Pole wymagane. Pozostałe możesz uzupełnić później w ustawieniach.
+              * Pole wymagane. PozostaĹ‚e moĹĽesz uzupeĹ‚niÄ‡ pĂłĹşniej w ustawieniach.
             </Text>
           </BlurView>
         </ScrollView>
@@ -429,4 +429,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+
+
+
 

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 
-import { supabase } from '@/lib/supabase';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { supabase } from '../lib/supabase';
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 
 export default function AppLayout() {
   const { session, initialised } = useSupabaseAuth();
@@ -99,3 +99,6 @@ export default function AppLayout() {
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
+
+
+
