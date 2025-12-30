@@ -1,34 +1,34 @@
 ﻿import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, Redirect, usePathname } from 'expo-router';
 
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 
 export default function AppLayout() {
-  const { session, initialised } = useSupabaseAuth();
-  const router = useRouter();
-  const segments = useSegments();
+  const { session, loading: authLoading } = useSupabaseAuth();
+  const pathname = usePathname();
 
-  const [checking, setChecking] = useState(true);
-  const [profileComplete, setProfileComplete] = useState(false);
-  const [investmentComplete, setInvestmentComplete] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
+  const [investmentComplete, setInvestmentComplete] = useState<boolean | null>(null);
 
   useEffect(() => {
     let alive = true;
 
     const run = async () => {
-      if (!initialised) return;
+      if (authLoading || !session?.user?.id) {
+        if (alive) {
+          setChecking(false);
+          setProfileComplete(null);
+          setInvestmentComplete(null);
+        }
+        return;
+      }
+
+      setChecking(true);
 
       try {
-        if (!session?.user?.id) {
-          if (alive) {
-            setProfileComplete(false);
-            setInvestmentComplete(false);
-          }
-          return;
-        }
-
         const userId = session.user.id;
 
         const [profileRes, invRes] = await Promise.all([
@@ -46,8 +46,12 @@ export default function AppLayout() {
 
         if (!alive) return;
 
-        setProfileComplete(Boolean(profileRes.data?.profil_wypelniony));
-        setInvestmentComplete(Boolean(invRes.data?.inwestycja_wypelniona));
+        setProfileComplete(!!profileRes.data?.profil_wypelniony);
+        setInvestmentComplete(!!invRes.data?.inwestycja_wypelniona);
+      } catch {
+        if (!alive) return;
+        setProfileComplete(false);
+        setInvestmentComplete(false);
       } finally {
         if (alive) setChecking(false);
       }
@@ -58,38 +62,9 @@ export default function AppLayout() {
     return () => {
       alive = false;
     };
-  }, [initialised, session?.user?.id]);
+  }, [authLoading, session?.user?.id]);
 
-  useEffect(() => {
-    if (!initialised) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-    const inAppGroup = segments[0] === '(app)';
-
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/login');
-      return;
-    }
-
-    if (session && !inAppGroup) {
-      router.replace('/(app)');
-      return;
-    }
-
-    // opcjonalny flow: profil -> inwestycja -> tabs
-    if (session) {
-      if (!profileComplete) {
-        router.replace('/(app)/profil');
-        return;
-      }
-      if (!investmentComplete) {
-        router.replace('/(app)/inwestycja');
-        return;
-      }
-    }
-  }, [initialised, session, segments, router, profileComplete, investmentComplete]);
-
-  if (!initialised || checking) {
+  if (authLoading || checking) {
     return (
       <View style={{ flex: 1, backgroundColor: '#050915', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator />
@@ -97,11 +72,22 @@ export default function AppLayout() {
     );
   }
 
+  if (!session) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#050915', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  // ✅ KLUCZ: nie redirectuj na tę samą trasę
+  if (profileComplete === false && pathname !== '/(app)/profil') {
+    return <Redirect href="/(app)/profil" />;
+  }
+
+  if (profileComplete !== false && investmentComplete === false && pathname !== '/(app)/inwestycja') {
+    return <Redirect href="/(app)/inwestycja" />;
+  }
+
   return <Stack screenOptions={{ headerShown: false }} />;
 }
-
-
-
-
-
-

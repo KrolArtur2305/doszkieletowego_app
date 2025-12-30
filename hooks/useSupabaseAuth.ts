@@ -7,23 +7,36 @@ export function useSupabaseAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
+    let alive = true;
 
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
-      if (error) console.log('[auth] getSession error:', error.message);
-      setSession(data.session ?? null);
-      setLoading(false);
-    });
+    // bezpiecznik: nie pozwól wisieć w nieskończoność
+    const timer = setTimeout(() => {
+      if (alive) setLoading(false);
+    }, 2000);
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!alive) return;
+        if (error) console.log('[auth] getSession error:', error.message);
+        setSession(data.session ?? null);
+      } catch (e: any) {
+        if (!alive) return;
+        console.log('[auth] getSession exception:', e?.message ?? e);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (!mounted) return;
+      if (!alive) return;
       setSession(newSession ?? null);
       setLoading(false);
     });
 
     return () => {
-      mounted = false;
+      alive = false;
+      clearTimeout(timer);
       sub.subscription.unsubscribe();
     };
   }, []);
