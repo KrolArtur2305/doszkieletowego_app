@@ -1,25 +1,23 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { supabase } from '../../../lib/supabase';
 
+// ✅ twardy cache na poziomie modułu (przetrwa Fast Refresh w większości przypadków)
+let __profilInitOnce = false;
+let __profilInitUserId: string | null = null;
+
 export default function ProfilScreen() {
   const router = useRouter();
 
+  const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string>('');
 
   const [imie, setImie] = useState<string>('');
@@ -40,6 +38,12 @@ export default function ProfilScreen() {
     let alive = true;
 
     (async () => {
+      // ✅ jeśli już raz zainicjalizowaliśmy dla tego usera, nie rób drugi raz
+      if (__profilInitOnce && __profilInitUserId) {
+        if (alive) setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const { data: userRes, error: userErr } = await supabase.auth.getUser();
@@ -48,16 +52,23 @@ export default function ProfilScreen() {
         if (!alive) return;
 
         if (userErr || !userRes?.user) {
-          setLoading(false);
+          setUserId(null);
+          setEmail('');
           return;
         }
 
         const user = userRes.user;
+
+        // ✅ ustaw cache modułowy
+        __profilInitOnce = true;
+        __profilInitUserId = user.id;
+
+        setUserId(user.id);
         setEmail(user.email ?? '');
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('imie, nazwisko, telefon, email, profil_wypelniony')
+          .select('imie, nazwisko, telefon, profil_wypelniony')
           .eq('user_id', user.id)
           .limit(1)
           .maybeSingle();
@@ -91,8 +102,6 @@ export default function ProfilScreen() {
     const phoneRaw = telefon.trim();
     const phone = phoneRaw ? normalizePhone(phoneRaw) : '';
 
-    console.log('[Profil] CLICK save');
-
     if (!first) {
       Alert.alert('Uzupełnij dane', 'Imię jest wymagane, aby kontynuować.');
       return;
@@ -103,36 +112,27 @@ export default function ProfilScreen() {
       return;
     }
 
+    if (!userId) {
+      Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
+      return;
+    }
+
     setSaving(true);
     try {
-      const { data: userRes, error: userErr } = await supabase.auth.getUser();
-      console.log('[Profil] getUser (save):', { hasUser: !!userRes?.user, userErr });
-
-      if (userErr || !userRes?.user) {
-        Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
-        return;
-      }
-
-      const user = userRes.user;
-
       const payload = {
-        user_id: user.id,
+        user_id: userId,
         imie: first,
         nazwisko: last || null,
         telefon: phone || null,
-        email: user.email ?? null,
+        email: email || null,
         profil_wypelniony: true,
       };
-
-      console.log('[Profil] upsert payload:', payload);
 
       const { data, error } = await supabase
         .from('profiles')
         .upsert(payload, { onConflict: 'user_id' })
         .select('user_id, profil_wypelniony')
         .maybeSingle();
-
-      console.log('[Profil] upsert result:', { data, error });
 
       if (error) {
         Alert.alert('Błąd zapisu', error.message);
@@ -144,10 +144,8 @@ export default function ProfilScreen() {
         return;
       }
 
-      console.log('[Profil] redirect -> /(app)/inwestycja');
       router.replace('/(app)/inwestycja');
     } catch (e: any) {
-      console.log('[Profil] exception:', e);
       Alert.alert('Błąd', e?.message ?? 'Coś poszło nie tak.');
     } finally {
       setSaving(false);
@@ -156,7 +154,13 @@ export default function ProfilScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* UI – bez zmian */}
+      {/* UI – bez zmian:
+          używaj swoich komponentów/JSX, tylko podepnij:
+          - email, fullNamePreview, loading, saving
+          - setImie, setNazwisko, setTelefon
+          - handleSaveAndContinue
+      */}
+      <View style={{ flex: 1, backgroundColor: '#050915' }} />
     </KeyboardAvoidingView>
   );
 }
