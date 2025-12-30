@@ -1,0 +1,1050 @@
+﻿===== FILE: app\(auth)\login.tsx =====
+import { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { supabase } from '../../lib/supabase';
+
+
+export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onLogin = async () => {
+    setError(null);
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(mapError(error.message));
+    setLoading(false);
+  };
+
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
+      <View style={styles.bg} />
+      <BlurView intensity={80} tint="dark" style={styles.card}>
+        <Text style={styles.title}>doszkieletowego</Text>
+        <Text style={styles.subtitle}>Zaloguj siÄ™</Text>
+
+        <TextInput placeholder="E-mail" placeholderTextColor="#9CA3AF" style={styles.input}
+          autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
+        <TextInput placeholder="HasĹ‚o" placeholderTextColor="#9CA3AF" style={styles.input}
+          secureTextEntry value={password} onChangeText={setPassword} />
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <TouchableOpacity disabled={loading} onPress={onLogin} style={[styles.button, loading && { opacity: 0.7 }]}>
+          {loading ? <ActivityIndicator /> : <Text style={styles.buttonText}>WejdĹş</Text>}
+        </TouchableOpacity>
+      </BlurView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function mapError(msg: string) {
+  const l = msg.toLowerCase();
+  if (l.includes('invalid login credentials')) return 'Niepoprawny e-mail lub hasĹ‚o.';
+  if (l.includes('email not confirmed')) return 'PotwierdĹş adres e-mail.';
+  return 'CoĹ› poszĹ‚o nie tak. SprĂłbuj ponownie.';
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B1120' },
+  bg: { position: 'absolute', width: 600, height: 600, borderRadius: 9999, backgroundColor: '#10B981', opacity: 0.25, top: -120, right: -120 },
+  card: { width: '88%', padding: 24, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  title: { fontSize: 28, fontWeight: '700', color: '#ECFDF5', textAlign: 'center' },
+  subtitle: { fontSize: 14, color: '#93C5FD', textAlign: 'center', marginBottom: 20 },
+  input: { backgroundColor: 'rgba(255,255,255,0.06)', color: '#E5E7EB', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 12 },
+  button: { marginTop: 6, backgroundColor: '#10B981', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
+  buttonText: { color: '#042F2E', fontWeight: '700', fontSize: 16 },
+  error: { color: '#FCA5A5', marginBottom: 6, textAlign: 'center' },
+});
+
+
+
+
+===== FILE: app\(app)\(tabs)\_layout.tsx =====
+import { Tabs } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+
+export default function TabsLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: 'rgba(7, 12, 24, 0.92)',
+          borderTopColor: 'rgba(255,255,255,0.08)',
+          borderTopWidth: 1,
+          height: 64,
+          paddingBottom: 10,
+          paddingTop: 10,
+        },
+        tabBarActiveTintColor: '#5EEAD4',
+        tabBarInactiveTintColor: 'rgba(148,163,184,0.70)',
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '700' },
+      }}
+    >
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Start',
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size ?? 20} />,
+        }}
+      />
+      <Tabs.Screen
+        name="budzet"
+        options={{
+          title: 'BudĹĽet',
+          tabBarIcon: ({ color, size }) => <Feather name="pie-chart" color={color} size={size ?? 20} />,
+        }}
+      />
+      <Tabs.Screen
+        name="postepy"
+        options={{
+          title: 'PostÄ™py',
+          tabBarIcon: ({ color, size }) => <Feather name="trending-up" color={color} size={size ?? 20} />,
+        }}
+      />
+      <Tabs.Screen
+        name="zdjecia"
+        options={{
+          title: 'ZdjÄ™cia',
+          tabBarIcon: ({ color, size }) => <Feather name="camera" color={color} size={size ?? 20} />,
+        }}
+      />
+      <Tabs.Screen
+        name="projekt"
+        options={{
+          title: 'Projekt',
+          tabBarIcon: ({ color, size }) => <Feather name="layers" color={color} size={size ?? 20} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ustawienia"
+        options={{
+          title: 'Ustawienia',
+          tabBarIcon: ({ color, size }) => <Feather name="settings" color={color} size={size ?? 20} />,
+        }}
+      />
+    </Tabs>
+  );
+}
+
+
+
+
+
+
+
+
+===== FILE: app\(app)\profil\index.tsx =====
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+
+import { supabase } from '../../../lib/supabase';
+
+export default function ProfilScreen() {
+  const router = useRouter();
+
+  const [email, setEmail] = useState<string>('');
+
+  const [imie, setImie] = useState<string>('');
+  const [nazwisko, setNazwisko] = useState<string>(''); // opcjonalne
+  const [telefon, setTelefon] = useState<string>(''); // opcjonalne
+
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+
+  const fullNamePreview = useMemo(() => {
+    const v = [imie.trim(), nazwisko.trim()].filter(Boolean).join(' ');
+    return v || 'UzupeĹ‚nij dane profilu';
+  }, [imie, nazwisko]);
+
+  const normalizePhone = (v: string) => v.replace(/[^\d+]/g, '');
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      try {
+        const { data: userRes, error: userErr } = await supabase.auth.getUser();
+        console.log('[Profil] getUser:', { hasUser: !!userRes?.user, userErr });
+
+        if (!alive) return;
+
+        if (userErr || !userRes?.user) {
+          setLoading(false);
+          return;
+        }
+
+        const user = userRes.user;
+        setEmail(user.email ?? '');
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('imie, nazwisko, telefon, email, profil_wypelniony')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        console.log('[Profil] fetch profile:', { data, error });
+
+        if (!alive) return;
+
+        if (data) {
+          setImie(data.imie ?? '');
+          setNazwisko(data.nazwisko ?? '');
+          setTelefon(data.telefon ?? '');
+        }
+      } catch (e) {
+        console.log('[Profil] init exception:', e);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const handleSaveAndContinue = async () => {
+    if (saving) return;
+
+    const first = imie.trim();
+    const last = nazwisko.trim();
+    const phoneRaw = telefon.trim();
+    const phone = phoneRaw ? normalizePhone(phoneRaw) : '';
+
+    console.log('[Profil] CLICK save');
+
+    if (!first) {
+      Alert.alert('UzupeĹ‚nij dane', 'ImiÄ™ jest wymagane, aby kontynuowaÄ‡.');
+      return;
+    }
+
+    if (phone && phone.replace(/\D/g, '').length < 7) {
+      Alert.alert('NieprawidĹ‚owy numer', 'Podaj poprawny numer telefonu lub zostaw puste pole.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: userRes, error: userErr } = await supabase.auth.getUser();
+      console.log('[Profil] getUser (save):', { hasUser: !!userRes?.user, userErr });
+
+      if (userErr || !userRes?.user) {
+        Alert.alert('BĹ‚Ä…d', 'Brak uĹĽytkownika. Zaloguj siÄ™ ponownie.');
+        return;
+      }
+
+      const user = userRes.user;
+
+      const payload = {
+        user_id: user.id,
+        imie: first,
+        nazwisko: last || null,
+        telefon: phone || null,
+        email: user.email ?? null,
+        profil_wypelniony: true,
+      };
+
+      console.log('[Profil] upsert payload:', payload);
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(payload, { onConflict: 'user_id' })
+        .select('user_id, profil_wypelniony')
+        .maybeSingle();
+
+      console.log('[Profil] upsert result:', { data, error });
+
+      if (error) {
+        Alert.alert('BĹ‚Ä…d zapisu', error.message);
+        return;
+      }
+
+      if (!data?.profil_wypelniony) {
+        Alert.alert('BĹ‚Ä…d', 'Profil nie zostaĹ‚ oznaczony jako wypeĹ‚niony.');
+        return;
+      }
+
+      console.log('[Profil] redirect -> /(app)/inwestycja');
+      router.replace('/(app)/inwestycja');
+    } catch (e: any) {
+      console.log('[Profil] exception:', e);
+      Alert.alert('BĹ‚Ä…d', e?.message ?? 'CoĹ› poszĹ‚o nie tak.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={styles.screen}>
+        {/* tĹ‚o / poĹ›wiaty */}
+        <View pointerEvents="none" style={styles.bg}>
+          <View style={styles.glowA} />
+          <View style={styles.glowB} />
+          <View style={styles.glowC} />
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* logo */}
+          <View style={styles.logoWrap}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* nagĹ‚Ăłwek */}
+          <Text style={styles.header}>PROFIL</Text>
+          <Text style={styles.headerSub}>Dodaj lub zaktualizuj dane, aby odblokowaÄ‡ aplikacjÄ™.</Text>
+
+          {/* karta */}
+          <BlurView intensity={85} tint="dark" style={styles.card}>
+            {/* preview */}
+            <View style={styles.previewRow}>
+              <View style={styles.previewIcon}>
+                <Feather name="user" size={18} color="#5EEAD4" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.previewLabel}>PodglÄ…d</Text>
+                <Text style={styles.previewValue}>{loading ? 'Ĺadowanieâ€¦' : fullNamePreview}</Text>
+              </View>
+            </View>
+
+            {/* email */}
+            <View style={styles.previewRow}>
+              <View style={styles.previewIcon}>
+                <Feather name="mail" size={18} color="#5EEAD4" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.previewLabel}>E-mail</Text>
+                <Text style={styles.previewValue}>{email || (loading ? 'Ĺadowanieâ€¦' : 'â€”')}</Text>
+              </View>
+            </View>
+
+            {/* formularz */}
+            <View style={styles.form}>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>ImiÄ™ *</Text>
+                <View style={styles.inputWrap}>
+                  <Feather name="edit-3" color="rgba(148,163,184,0.95)" size={16} />
+                  <TextInput
+                    value={imie}
+                    onChangeText={setImie}
+                    placeholder="Wpisz imiÄ™"
+                    placeholderTextColor="rgba(148,163,184,0.7)"
+                    style={styles.input}
+                    editable={!loading && !saving}
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Nazwisko (opcjonalnie)</Text>
+                <View style={styles.inputWrap}>
+                  <Feather name="edit-3" color="rgba(148,163,184,0.95)" size={16} />
+                  <TextInput
+                    value={nazwisko}
+                    onChangeText={setNazwisko}
+                    placeholder="Wpisz nazwisko"
+                    placeholderTextColor="rgba(148,163,184,0.7)"
+                    style={styles.input}
+                    editable={!loading && !saving}
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Nr tel (opcjonalnie)</Text>
+                <View style={styles.inputWrap}>
+                  <Feather name="phone" color="rgba(148,163,184,0.95)" size={16} />
+                  <TextInput
+                    value={telefon}
+                    onChangeText={setTelefon}
+                    placeholder="+48 600 000 000"
+                    placeholderTextColor="rgba(148,163,184,0.7)"
+                    style={styles.input}
+                    editable={!loading && !saving}
+                    keyboardType="phone-pad"
+                    returnKeyType="done"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* CTA */}
+            <TouchableOpacity
+              style={[styles.ctaButton, (loading || saving) && styles.ctaButtonDisabled]}
+              onPress={handleSaveAndContinue}
+              disabled={loading || saving}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.ctaText}>{saving ? 'Zapisywanieâ€¦' : 'Zapisz i przejdĹş dalej'}</Text>
+            </TouchableOpacity>
+
+            {/* drobny hint */}
+            <Text style={styles.hint}>
+              * Pole wymagane. PozostaĹ‚e moĹĽesz uzupeĹ‚niÄ‡ pĂłĹşniej w ustawieniach.
+            </Text>
+          </BlurView>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+
+  screen: {
+    flex: 1,
+    backgroundColor: '#050915',
+  },
+
+  bg: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  glowA: {
+    position: 'absolute',
+    width: 520,
+    height: 520,
+    borderRadius: 9999,
+    backgroundColor: '#0EA5E9',
+    opacity: 0.12,
+    top: -120,
+    right: -220,
+  },
+  glowB: {
+    position: 'absolute',
+    width: 520,
+    height: 520,
+    borderRadius: 9999,
+    backgroundColor: '#5EEAD4',
+    opacity: 0.10,
+    bottom: -260,
+    left: -220,
+  },
+  glowC: {
+    position: 'absolute',
+    width: 360,
+    height: 360,
+    borderRadius: 9999,
+    backgroundColor: '#22C55E',
+    opacity: 0.06,
+    top: 220,
+    left: -160,
+  },
+
+  content: {
+    paddingTop: 26,
+    paddingHorizontal: 16,
+    paddingBottom: 140,
+  },
+
+  logoWrap: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  logo: {
+    width: 140,
+    height: 44,
+    opacity: 0.95,
+  },
+
+  header: {
+    textAlign: 'center',
+    color: '#F8FAFC',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginTop: 4,
+  },
+  headerSub: {
+    textAlign: 'center',
+    color: '#94A3B8',
+    marginTop: 8,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+
+  card: {
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.09)',
+    padding: 18,
+    backgroundColor: 'rgba(8,14,30,0.35)',
+    overflow: 'hidden',
+  },
+
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  previewIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(94,234,212,0.22)',
+    backgroundColor: 'rgba(94,234,212,0.06)',
+  },
+  previewLabel: { color: '#94A3B8', fontSize: 12 },
+  previewValue: { color: '#F8FAFC', fontSize: 16, fontWeight: '700' },
+
+  form: { marginTop: 16, gap: 14 },
+
+  field: { gap: 8 },
+  fieldLabel: { color: '#94A3B8', fontSize: 13 },
+
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  input: {
+    flex: 1,
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  ctaButton: {
+    marginTop: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(94,234,212,0.45)',
+    paddingVertical: 13,
+    alignItems: 'center',
+    backgroundColor: 'rgba(94,234,212,0.12)',
+  },
+  ctaButtonDisabled: { opacity: 0.65 },
+  ctaText: {
+    color: '#5EEAD4',
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+
+  hint: {
+    marginTop: 10,
+    textAlign: 'center',
+    color: 'rgba(148,163,184,0.9)',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+});
+
+
+
+
+
+
+
+
+
+===== FILE: app\(app)\inwestycja\index.tsx =====
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
+import { supabase } from '../../../lib/supabase';
+
+
+
+function pad2(n: number) {
+  return String(n).padStart(2, '0');
+}
+
+function formatPL(d: Date) {
+  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+function toISODate(d: Date) {
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth() + 1);
+  const day = pad2(d.getDate());
+  return `${y}-${m}-${day}`;
+}
+
+function parseISODate(value: string) {
+  if (!value) return null;
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const dt = new Date(y, mo, d);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+export default function InwestycjaScreen() {
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [nazwa, setNazwa] = useState('');
+  const [lokalizacja, setLokalizacja] = useState('');
+
+  const [dataStartISO, setDataStartISO] = useState('');
+  const [dataKoniecISO, setDataKoniecISO] = useState('');
+
+  const startDisplay = useMemo(() => {
+    const dt = parseISODate(dataStartISO);
+    return dt ? formatPL(dt) : '';
+  }, [dataStartISO]);
+
+  const koniecDisplay = useMemo(() => {
+    const dt = parseISODate(dataKoniecISO);
+    return dt ? formatPL(dt) : '';
+  }, [dataKoniecISO]);
+
+  const [budzet, setBudzet] = useState('');
+
+  const budgetNumber = useMemo(() => {
+    const cleaned = budzet.replace(/\s/g, '').replace(',', '.');
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }, [budzet]);
+
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showKoniecPicker, setShowKoniecPicker] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      try {
+        const { data: userRes, error: userErr } = await supabase.auth.getUser();
+        console.log('[INV] init getUser', { hasUser: !!userRes?.user, userErr });
+
+        if (!alive) return;
+
+        if (userErr || !userRes?.user) {
+          setLoading(false);
+          return;
+        }
+
+        const user = userRes.user;
+
+        const { data, error } = await supabase
+          .from('inwestycje')
+          .select('nazwa, lokalizacja, data_start, data_koniec, budzet, inwestycja_wypelniona')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        console.log('[INV] fetch inwestycje', { data, error });
+
+        if (!alive) return;
+
+        if (data) {
+          setNazwa(data.nazwa ?? '');
+          setLokalizacja(data.lokalizacja ?? '');
+          setDataStartISO(data.data_start ?? '');
+          setDataKoniecISO(data.data_koniec ?? '');
+          setBudzet(data.budzet !== null && data.budzet !== undefined ? String(data.budzet) : '');
+        }
+      } catch (e) {
+        console.log('[INV] init exception', e);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const handleSaveAndContinue = async () => {
+    try {
+      console.log('[INV] CLICK');
+      if (saving) return;
+
+      const n = nazwa.trim();
+      const loc = lokalizacja.trim();
+
+      if (!n) {
+        Alert.alert('UzupeĹ‚nij dane', 'Nazwa inwestycji jest wymagana, aby kontynuowaÄ‡.');
+        return;
+      }
+
+      if (!loc) {
+        Alert.alert('UzupeĹ‚nij dane', 'Lokalizacja jest wymagana, aby kontynuowaÄ‡.');
+        return;
+      }
+
+      if (budgetNumber !== null && budgetNumber < 0) {
+        Alert.alert('NieprawidĹ‚owy budĹĽet', 'BudĹĽet nie moĹĽe byÄ‡ ujemny.');
+        return;
+      }
+
+      setSaving(true);
+
+      const { data: userRes, error: userErr } = await supabase.auth.getUser();
+      console.log('[INV] getUser(save)', { hasUser: !!userRes?.user, userErr });
+
+      if (userErr || !userRes?.user) {
+        Alert.alert('BĹ‚Ä…d', 'Brak uĹĽytkownika. Zaloguj siÄ™ ponownie.');
+        return;
+      }
+
+      const user = userRes.user;
+
+      // âś… waĹĽne: budzet ustawiamy na null gdy pole puste / niepoprawne
+      const payload: {
+        user_id: string;
+        nazwa: string;
+        lokalizacja: string;
+        data_start: string | null;
+        data_koniec: string | null;
+        budzet: number | null;
+        inwestycja_wypelniona: boolean;
+      } = {
+        user_id: user.id,
+        nazwa: n,
+        lokalizacja: loc,
+        data_start: dataStartISO || null,
+        data_koniec: dataKoniecISO || null,
+        budzet: budgetNumber, // <- null jeĹ›li puste / nie-number
+        inwestycja_wypelniona: true,
+      };
+
+      console.log('[INV] upsert payload', payload);
+
+      const { data, error } = await supabase
+        .from('inwestycje')
+        .upsert(payload, { onConflict: 'user_id' })
+        .select('user_id, inwestycja_wypelniona')
+        .maybeSingle();
+
+      console.log('[INV] upsert result', { data, error });
+
+      if (error) {
+        Alert.alert('BĹ‚Ä…d zapisu', error.message);
+        return;
+      }
+
+      console.log('[INV] redirect -> /(app)/(tabs)/dashboard');
+      router.replace('/(app)/(tabs)/dashboard');
+    } catch (e: any) {
+      console.log('[INV] exception', e);
+      Alert.alert('BĹ‚Ä…d', e?.message ?? 'CoĹ› poszĹ‚o nie tak.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onPickStart = (_event: any, selected?: Date) => {
+    setShowStartPicker(false);
+    if (!selected) return;
+    setDataStartISO(toISODate(selected));
+  };
+
+  const onPickKoniec = (_event: any, selected?: Date) => {
+    setShowKoniecPicker(false);
+    if (!selected) return;
+    setDataKoniecISO(toISODate(selected));
+  };
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={styles.screen}>
+        <View pointerEvents="none" style={styles.bg}>
+          <View style={styles.glowA} />
+          <View style={styles.glowB} />
+          <View style={styles.glowC} />
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.logoWrap}>
+            <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          </View>
+
+          <Text style={styles.header}>INWESTYCJA</Text>
+          <Text style={styles.headerSub}>UzupeĹ‚nij dane inwestycji.</Text>
+
+          <BlurView intensity={85} tint="dark" style={styles.card}>
+            <View style={styles.form}>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Nazwa inwestycji *</Text>
+                <View style={styles.inputWrap}>
+                  <Feather name="home" color="rgba(148,163,184,0.95)" size={16} />
+                  <TextInput
+                    value={nazwa}
+                    onChangeText={setNazwa}
+                    placeholder="np. Dom w lesie"
+                    placeholderTextColor="rgba(148,163,184,0.7)"
+                    style={styles.input}
+                    editable={!loading && !saving}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Lokalizacja *</Text>
+                <View style={styles.inputWrap}>
+                  <Feather name="map-pin" color="rgba(148,163,184,0.95)" size={16} />
+                  <TextInput
+                    value={lokalizacja}
+                    onChangeText={setLokalizacja}
+                    placeholder="np. Kluczewsko"
+                    placeholderTextColor="rgba(148,163,184,0.7)"
+                    style={styles.input}
+                    editable={!loading && !saving}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.row}>
+                <View style={[styles.field, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Data startu</Text>
+                  <View style={styles.inputWrap}>
+                    <Text style={[styles.input, { paddingVertical: 0 }]}>{startDisplay || 'DD.MM.RRRR'}</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowStartPicker(true)}
+                      disabled={loading || saving}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={styles.iconBtn}
+                    >
+                      <Feather name="calendar" color="rgba(148,163,184,0.95)" size={18} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {showStartPicker && (
+                    <DateTimePicker
+                      value={parseISODate(dataStartISO) ?? new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={onPickStart}
+                    />
+                  )}
+                </View>
+
+                <View style={{ width: 12 }} />
+
+                <View style={[styles.field, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Data zakoĹ„czenia</Text>
+                  <View style={styles.inputWrap}>
+                    <Text style={[styles.input, { paddingVertical: 0 }]}>{koniecDisplay || 'DD.MM.RRRR'}</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowKoniecPicker(true)}
+                      disabled={loading || saving}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={styles.iconBtn}
+                    >
+                      <Feather name="calendar" color="rgba(148,163,184,0.95)" size={18} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {showKoniecPicker && (
+                    <DateTimePicker
+                      value={parseISODate(dataKoniecISO) ?? new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={onPickKoniec}
+                    />
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Planowany budĹĽet (PLN)</Text>
+                <View style={styles.inputWrap}>
+                  <Text style={styles.prefix}>PLN</Text>
+                  <TextInput
+                    value={budzet}
+                    onChangeText={setBudzet}
+                    placeholder="np. 400000"
+                    placeholderTextColor="rgba(148,163,184,0.7)"
+                    style={[styles.input, { fontWeight: '800' }]}
+                    editable={!loading && !saving}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.ctaButton, (loading || saving) && styles.ctaButtonDisabled]}
+              onPress={handleSaveAndContinue}
+              disabled={loading || saving}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.ctaText}>{saving ? 'Zapisywanieâ€¦' : 'Zapisz i przejdĹş dalej'}</Text>
+            </TouchableOpacity>
+          </BlurView>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  screen: { flex: 1, backgroundColor: '#050915' },
+
+  bg: { ...StyleSheet.absoluteFillObject },
+  glowA: {
+    position: 'absolute',
+    width: 520,
+    height: 520,
+    borderRadius: 9999,
+    backgroundColor: '#0EA5E9',
+    opacity: 0.12,
+    top: -120,
+    right: -220,
+  },
+  glowB: {
+    position: 'absolute',
+    width: 520,
+    height: 520,
+    borderRadius: 9999,
+    backgroundColor: '#5EEAD4',
+    opacity: 0.10,
+    bottom: -260,
+    left: -220,
+  },
+  glowC: {
+    position: 'absolute',
+    width: 360,
+    height: 360,
+    borderRadius: 9999,
+    backgroundColor: '#22C55E',
+    opacity: 0.06,
+    top: 240,
+    left: -160,
+  },
+
+  content: { paddingTop: 26, paddingHorizontal: 16, paddingBottom: 140 },
+
+  logoWrap: { alignItems: 'center', marginBottom: 10, marginTop: 18 },
+  logo: { width: 140, height: 44, opacity: 0.95 },
+
+  header: {
+    textAlign: 'center',
+    color: '#F8FAFC',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginTop: 4,
+  },
+  headerSub: {
+    textAlign: 'center',
+    color: '#94A3B8',
+    marginTop: 8,
+    marginBottom: 14,
+    lineHeight: 20,
+  },
+
+  card: {
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.09)',
+    padding: 18,
+    backgroundColor: 'rgba(8,14,30,0.35)',
+    overflow: 'hidden',
+  },
+
+  form: { gap: 14 },
+  row: { flexDirection: 'row', alignItems: 'flex-start' },
+
+  field: { gap: 8 },
+  fieldLabel: { color: '#94A3B8', fontSize: 13 },
+
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+
+  input: { flex: 1, color: '#F8FAFC', fontSize: 16, fontWeight: '700' },
+
+  iconBtn: { paddingLeft: 6, paddingVertical: 2 },
+
+  prefix: {
+    color: 'rgba(148,163,184,0.95)',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+
+  ctaButton: {
+    marginTop: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(94,234,212,0.45)',
+    paddingVertical: 13,
+    alignItems: 'center',
+    backgroundColor: 'rgba(94,234,212,0.12)',
+  },
+  ctaButtonDisabled: { opacity: 0.65 },
+  ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center' },
+});
+
+
+
+
+
+
+
+

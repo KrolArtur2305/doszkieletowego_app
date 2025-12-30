@@ -1,48 +1,32 @@
 import { useEffect, useState } from 'react';
-import { useRouter, useSegments } from 'expo-router';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 export function useSupabaseAuth() {
-  const [session, setSession] = useState<any | null>(null);
-  const [initialised, setInitialised] = useState(false);
-
-  const router = useRouter();
-  const segments = useSegments();
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      setSession(session);
-      setInitialised(true);
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) console.log('[auth] getSession error:', error.message);
+      setSession(data.session ?? null);
+      setLoading(false);
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        if (!isMounted) return;
-        setSession(newSession);
-      }
-    );
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!mounted) return;
+      setSession(newSession ?? null);
+      setLoading(false);
+    });
 
     return () => {
-      isMounted = false;
-      subscription?.subscription.unsubscribe();
+      mounted = false;
+      sub.subscription.unsubscribe();
     };
   }, []);
 
-  useEffect(() => {
-    if (!initialised) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-    const inAppGroup = segments[0] === '(app)';
-
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (session && !inAppGroup) {
-      router.replace('/(app)');
-    }
-  }, [session, initialised, segments, router]);
-
-  return { session, initialised };
+  return { session, loading };
 }

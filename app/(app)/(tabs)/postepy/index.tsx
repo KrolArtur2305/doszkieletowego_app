@@ -21,7 +21,10 @@ const STATUS_DONE = 'zrealizowany';
 
 export default function PostepyScreen() {
   const router = useRouter();
-  const { session, initialised } = useSupabaseAuth();
+  const { session, loading: authLoading } = useSupabaseAuth();
+  const initialised = !authLoading;
+
+
   const userId = session?.user?.id;
 
   const [loading, setLoading] = useState(true);
@@ -333,7 +336,6 @@ const styles = StyleSheet.create({
 
   error: { color: '#FCA5A5', marginTop: 8 },
 });
-
 
 
 
