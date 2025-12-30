@@ -79,11 +79,15 @@ export default function AppLayout() {
     // opcjonalny flow: profil -> inwestycja -> tabs
     if (session) {
       if (!profileComplete) {
-        router.replace('/(app)/profil');
+        if (segments[1] !== 'profil') {
+          router.replace('/(app)/profil');
+        }
         return;
       }
       if (!investmentComplete) {
-        router.replace('/(app)/inwestycja');
+        if (segments[1] !== 'inwestycja') {
+          router.replace('/(app)/inwestycja');
+        }
         return;
       }
     }
