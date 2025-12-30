@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -12,8 +12,8 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { supabase } from '../../../lib/supabase';
-import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
+import { supabase } from '../../../../lib/supabase';
+import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 
 const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
@@ -34,7 +34,7 @@ const translateStatus = (statusRaw: string) => {
   const s = (statusRaw || '').trim().toLowerCase();
   if (s === STATUS_SPENT) return 'Poniesione';
   if (s === STATUS_UPCOMING) return 'Planowane';
-  return '—';
+  return 'â€”';
 };
 
 const Donut = ({ percentage }: { percentage: number }) => {
@@ -142,12 +142,12 @@ export default function BudzetScreen() {
           id: r.id,
           title: r.nazwa ?? 'Wydatek',
           amount: safeNumber(r.kwota),
-          date: r.data ? new Date(r.data).toLocaleDateString('pl-PL') : '—',
+          date: r.data ? new Date(r.data).toLocaleDateString('pl-PL') : 'â€”',
           status: translateStatus(r.status),
         }))
       );
     } catch (e: any) {
-      setErrorMsg(e?.message ?? 'Nie udało się pobrać danych.');
+      setErrorMsg(e?.message ?? 'Nie udaĹ‚o siÄ™ pobraÄ‡ danych.');
     } finally {
       setLoading(false);
     }
@@ -166,7 +166,7 @@ export default function BudzetScreen() {
   const tiles = [
     {
       id: 'plan',
-      label: 'Planowany budżet',
+      label: 'Planowany budĹĽet',
       value: formatPLN(plannedBudget),
       cta: 'Edytuj',
       onPress: () => router.push('/(app)/inwestycja'),
@@ -205,7 +205,7 @@ export default function BudzetScreen() {
               <Donut percentage={utilization} />
               <View>
                 <Text style={styles.heroStatValue}>{formatPLN(remaining)}</Text>
-                <Text style={styles.heroStatLabel}>pozostało</Text>
+                <Text style={styles.heroStatLabel}>pozostaĹ‚o</Text>
               </View>
             </View>
           </>
@@ -219,7 +219,7 @@ export default function BudzetScreen() {
               <Text style={styles.highlightLabel}>{t.label}</Text>
               <Text style={styles.highlightValue}>{t.value}</Text>
               <TouchableOpacity onPress={t.onPress}>
-                <Text style={styles.link}>{t.cta} →</Text>
+                <Text style={styles.link}>{t.cta} â†’</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -264,3 +264,8 @@ const styles = StyleSheet.create({
 
   errorText: { color: '#FCA5A5', marginBottom: 10 },
 });
+
+
+
+
+

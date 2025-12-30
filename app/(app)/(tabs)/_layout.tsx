@@ -29,21 +29,21 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="budzet"
         options={{
-          title: 'BudÅ¼et',
+          title: 'Bud¿et',
           tabBarIcon: ({ color, size }) => <Feather name="pie-chart" color={color} size={size ?? 20} />,
         }}
       />
       <Tabs.Screen
         name="postepy"
         options={{
-          title: 'PostÄ™py',
+          title: 'Postêpy',
           tabBarIcon: ({ color, size }) => <Feather name="trending-up" color={color} size={size ?? 20} />,
         }}
       />
       <Tabs.Screen
         name="zdjecia"
         options={{
-          title: 'ZdjÄ™cia',
+          title: 'Zdjêcia',
           tabBarIcon: ({ color, size }) => <Feather name="camera" color={color} size={size ?? 20} />,
         }}
       />
@@ -64,4 +64,3 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
-

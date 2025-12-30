@@ -1,18 +1,18 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+﻿import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 
 const quickStats = [
-  { id: 'area', icon: 'maximize', label: 'Pow. użytkowa', value: '186 m²' },
+  { id: 'area', icon: 'maximize', label: 'Pow. uĹĽytkowa', value: '186 mÂ˛' },
   { id: 'floors', icon: 'layers', label: 'Kondygnacje', value: '2' },
   { id: 'rooms', icon: 'grid', label: 'Pomieszczenia', value: '9' },
 ];
 
 const attributes = [
-  { id: 'footprint', label: 'Powierzchnia zabudowy', value: '142 m²' },
-  { id: 'height', label: 'Wysokość kalenicy', value: '8.9 m' },
-  { id: 'roof', label: 'Kąt dachu', value: '32°' },
-  { id: 'garage', label: 'Garaż', value: '2 stanowiska' },
+  { id: 'footprint', label: 'Powierzchnia zabudowy', value: '142 mÂ˛' },
+  { id: 'height', label: 'WysokoĹ›Ä‡ kalenicy', value: '8.9 m' },
+  { id: 'roof', label: 'KÄ…t dachu', value: '32Â°' },
+  { id: 'garage', label: 'GaraĹĽ', value: '2 stanowiska' },
   { id: 'hvac', label: 'Wentylacja', value: 'Rekuperacja + GWC' },
   { id: 'smart', label: 'System inteligentny', value: 'KNX + automatyka rolet' },
 ];
@@ -22,9 +22,9 @@ export default function ProjektScreen() {
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
       <View style={styles.glow} />
       <BlurView intensity={80} tint="dark" style={styles.hero}>
-        <Text style={styles.heroLabel}>Mój projekt</Text>
+        <Text style={styles.heroLabel}>MĂłj projekt</Text>
         <Text style={styles.heroTitle}>Rezydencja DOSzkieletowa</Text>
-        <Text style={styles.heroSubtitle}>Futurystyczna bryła z przeszkleniami i modułem ogrodu zimowego.</Text>
+        <Text style={styles.heroSubtitle}>Futurystyczna bryĹ‚a z przeszkleniami i moduĹ‚em ogrodu zimowego.</Text>
         <View style={styles.quickStatsRow}>
           {quickStats.map((stat) => (
             <View key={stat.id} style={styles.quickStatCard}>
@@ -38,10 +38,10 @@ export default function ProjektScreen() {
 
       <BlurView intensity={80} tint="dark" style={styles.card}>
         <Text style={styles.sectionTitle}>Wizualizacja 3D</Text>
-        <Text style={styles.sectionSubtitle}>Placeholder – wpięcie modelu WebGL/Expo-Three w kolejnej wersji.</Text>
+        <Text style={styles.sectionSubtitle}>Placeholder â€“ wpiÄ™cie modelu WebGL/Expo-Three w kolejnej wersji.</Text>
         <View style={styles.previewBox}>
           <Feather name="cpu" size={36} color="#5EEAD4" />
-          <Text style={styles.previewLabel}>Otwórz model 3D</Text>
+          <Text style={styles.previewLabel}>OtwĂłrz model 3D</Text>
           <TouchableOpacity style={styles.previewButton}>
             <Text style={styles.previewButtonText}>Zobacz w AR</Text>
           </TouchableOpacity>
@@ -50,7 +50,7 @@ export default function ProjektScreen() {
 
       <BlurView intensity={80} tint="dark" style={styles.card}>
         <Text style={styles.sectionTitle}>Parametry budynku</Text>
-        <Text style={styles.sectionSubtitle}>Wszystkie dane zsynchronizujemy z Supabase → tabela projects.</Text>
+        <Text style={styles.sectionSubtitle}>Wszystkie dane zsynchronizujemy z Supabase â†’ tabela projects.</Text>
         {attributes.map((attribute, index) => (
           <View key={attribute.id} style={[styles.attributeRow, index !== attributes.length - 1 && styles.attributeDivider]}>
             <View>
@@ -129,4 +129,8 @@ const styles = StyleSheet.create({
   attributeLabel: { color: '#94A3B8' },
   attributeValue: { color: '#F8FAFC', fontSize: 16, fontWeight: '600', marginTop: 4 },
 });
+
+
+
+
 

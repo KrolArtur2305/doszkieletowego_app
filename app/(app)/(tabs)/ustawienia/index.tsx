@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -13,7 +13,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../../lib/supabase';
 
 export default function UstawieniaScreen() {
   const router = useRouter();
@@ -66,11 +66,11 @@ export default function UstawieniaScreen() {
   };
 
   const handlePlaceholder = (label: string) => {
-    Alert.alert(label, 'Funkcja będzie podpięta po stronie Supabase.');
+    Alert.alert(label, 'Funkcja bÄ™dzie podpiÄ™ta po stronie Supabase.');
   };
 
   const displayName =
-    [name, surname].filter(Boolean).join(' ') || 'Nieznany użytkownik';
+    [name, surname].filter(Boolean).join(' ') || 'Nieznany uĹĽytkownik';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
@@ -107,7 +107,7 @@ export default function UstawieniaScreen() {
               style={{ marginRight: 8 }}
             />
             <Text style={statusText(profileComplete)}>
-              {profileComplete ? 'Profil uzupełniony' : 'Profil wymagany'}
+              {profileComplete ? 'Profil uzupeĹ‚niony' : 'Profil wymagany'}
             </Text>
           </View>
 
@@ -133,7 +133,7 @@ export default function UstawieniaScreen() {
               style={{ marginRight: 8 }}
             />
             <Text style={statusText(investmentComplete)}>
-              {investmentComplete ? 'Inwestycja uzupełniona' : 'Inwestycja wymagana'}
+              {investmentComplete ? 'Inwestycja uzupeĹ‚niona' : 'Inwestycja wymagana'}
             </Text>
           </View>
 
@@ -146,19 +146,19 @@ export default function UstawieniaScreen() {
         </View>
       </BlurView>
 
-      {/* BEZPIECZEŃSTWO */}
+      {/* BEZPIECZEĹSTWO */}
       <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitle}>Bezpieczeństwo</Text>
+        <Text style={styles.sectionTitle}>BezpieczeĹ„stwo</Text>
 
         <TouchableOpacity
           style={styles.actionRow}
-          onPress={() => handlePlaceholder('Zmień hasło')}
+          onPress={() => handlePlaceholder('ZmieĹ„ hasĹ‚o')}
         >
           <View style={styles.actionIcon}>
             <Feather name="lock" size={16} color="#0B1120" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.actionLabel}>Zmień hasło</Text>
+            <Text style={styles.actionLabel}>ZmieĹ„ hasĹ‚o</Text>
             <Text style={styles.actionDescription}>Reset przez Supabase</Text>
           </View>
           <Feather name="chevron-right" size={18} color="#94A3B8" />
@@ -278,3 +278,7 @@ const statusText = (ok: boolean): TextStyle => ({
   color: ok ? '#34D399' : '#FACC15',
   fontWeight: '700',
 });
+
+
+
+
