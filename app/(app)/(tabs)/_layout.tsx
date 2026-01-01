@@ -20,45 +20,62 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="dashboard/index"
         options={{
           title: 'Start',
-          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size ?? 20} />,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="home" color={color} size={size ?? 20} />
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="budzet"
+        name="budzet/index"
         options={{
-          title: 'Bud¿et',
-          tabBarIcon: ({ color, size }) => <Feather name="pie-chart" color={color} size={size ?? 20} />,
+          title: 'BudÅ¼et',
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="pie-chart" color={color} size={size ?? 20} />
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="postepy"
+        name="postepy/index"
         options={{
-          title: 'Postêpy',
-          tabBarIcon: ({ color, size }) => <Feather name="trending-up" color={color} size={size ?? 20} />,
+          title: 'PostÄ™py',
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="trending-up" color={color} size={size ?? 20} />
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="zdjecia"
+        name="zdjecia/index"
         options={{
-          title: 'Zdjêcia',
-          tabBarIcon: ({ color, size }) => <Feather name="camera" color={color} size={size ?? 20} />,
+          title: 'ZdjÄ™cia',
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="camera" color={color} size={size ?? 20} />
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="projekt"
+        name="projekt/index"
         options={{
           title: 'Projekt',
-          tabBarIcon: ({ color, size }) => <Feather name="layers" color={color} size={size ?? 20} />,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="layers" color={color} size={size ?? 20} />
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="ustawienia"
+        name="ustawienia/index"
         options={{
           title: 'Ustawienia',
-          tabBarIcon: ({ color, size }) => <Feather name="settings" color={color} size={size ?? 20} />,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="settings" color={color} size={size ?? 20} />
+          ),
         }}
       />
     </Tabs>

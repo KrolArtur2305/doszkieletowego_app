@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+ï»¿import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 
@@ -14,14 +14,20 @@ export default function AppLayout() {
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [investmentComplete, setInvestmentComplete] = useState<boolean | null>(null);
 
-  // 1) Pobierz status profilu/inwestycji (tylko gdy jest sesja)
+  // chroni przed spamowaniem fetchy przy drobnych zmianach
+  const lastCheckKeyRef = useRef<string>('');
+
+  // 1) Pobierz status profilu/inwestycji:
+  //    - gdy jest sesja
+  //    - gdy zmieni siÄ™ pathname (np. po zapisie i router.replace)
   useEffect(() => {
     let alive = true;
 
     const run = async () => {
       if (authLoading) return;
 
-      if (!session?.user?.id) {
+      const userId = session?.user?.id;
+      if (!userId) {
         if (!alive) return;
         setChecking(false);
         setProfileComplete(null);
@@ -29,12 +35,15 @@ export default function AppLayout() {
         return;
       }
 
+      // âœ… klucz: user + pathname (Å¼eby po zapisie odÅ›wieÅ¼aÅ‚o)
+      const checkKey = `${userId}::${pathname}`;
+      if (lastCheckKeyRef.current === checkKey) return;
+      lastCheckKeyRef.current = checkKey;
+
       if (!alive) return;
       setChecking(true);
 
       try {
-        const userId = session.user.id;
-
         const [profileRes, invRes] = await Promise.all([
           supabase.from('profiles').select('profil_wypelniony').eq('user_id', userId).maybeSingle(),
           supabase.from('inwestycje').select('inwestycja_wypelniona').eq('user_id', userId).maybeSingle(),
@@ -46,7 +55,7 @@ export default function AppLayout() {
         setInvestmentComplete(Boolean(invRes.data?.inwestycja_wypelniona));
       } catch {
         if (!alive) return;
-        // jeœli coœ nie gra / brak rekordu -> traktuj jako niewype³nione
+        // jeÅ›li coÅ› nie gra -> traktuj jako niewypeÅ‚nione
         setProfileComplete(false);
         setInvestmentComplete(false);
       } finally {
@@ -59,32 +68,32 @@ export default function AppLayout() {
     return () => {
       alive = false;
     };
-  }, [authLoading, session?.user?.id]);
+  }, [authLoading, session?.user?.id, pathname]);
 
-  // 2) Wylicz gdzie user powinien trafiæ (profil/inwestycja). Gdy OK -> null
+  // 2) Wylicz gdzie user powinien trafiÄ‡ (profil/inwestycja). Gdy OK -> null
   const gateTarget = useMemo(() => {
-    if (!session) return null; // auth layout powinien przej¹æ
+    if (!session) return null;
     if (profileComplete === false) return '/(app)/profil';
     if (profileComplete === true && investmentComplete === false) return '/(app)/inwestycja';
-    return null; // wszystko OK albo jeszcze nie wiemy
+    return null;
   }, [session, profileComplete, investmentComplete]);
 
   // 3) Routing imperatywny (bez <Redirect/> w renderze)
   useEffect(() => {
-    // a) jeœli trzeba gate'owaæ na profil/inwestycjê
+    // a) jeÅ›li trzeba gate'owaÄ‡ na profil/inwestycjÄ™
     if (gateTarget) {
       if (pathname !== gateTarget) router.replace(gateTarget);
       return;
     }
 
-    // b) jeœli wszystko OK i jesteœ na /(app) -> przerzuæ do tabsów (¿eby nie by³o bia³ego ekranu)
+    // b) jeÅ›li wszystko OK i jesteÅ› na /(app) -> przerzuÄ‡ do tabsÃ³w
     if (
       session &&
       profileComplete === true &&
       investmentComplete === true &&
       pathname === '/(app)'
     ) {
-      router.replace('/(app)/(tabs)/dashboard')
+      router.replace('/(app)/(tabs)/dashboard');
     }
   }, [gateTarget, pathname, router, session, profileComplete, investmentComplete]);
 
