@@ -18,6 +18,8 @@ import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { supabase } from '../../../../lib/supabase'
 import * as ImagePicker from 'expo-image-picker'
+import * as ImageManipulator from 'expo-image-manipulator'
+import * as FileSystem from 'expo-file-system/legacy'
 
 type Projekt = {
   id: string
@@ -67,26 +69,41 @@ function safeNumberOrNull(v: string) {
   return Number.isFinite(n) ? n : null
 }
 
-function extFromUri(uri: string) {
-  const clean = uri.split('?')[0]
-  const parts = clean.split('.')
-  const ext = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : 'jpg'
-  if (ext === 'jpeg') return 'jpg'
-  if (ext !== 'jpg' && ext !== 'png' && ext !== 'webp') return 'jpg'
-  return ext
-}
-
-function mimeFromExt(ext: string) {
-  if (ext === 'png') return 'image/png'
-  if (ext === 'webp') return 'image/webp'
-  return 'image/jpeg'
-}
-
 function keyFromPublicUrl(publicUrl: string) {
-  // publicUrl: .../storage/v1/object/public/<bucket>/<path>
   const idx = publicUrl.indexOf(`/storage/v1/object/public/${BUCKET_RZUTY}/`)
   if (idx === -1) return null
   return publicUrl.slice(idx + `/storage/v1/object/public/${BUCKET_RZUTY}/`.length)
+}
+
+// bez zależności (base-64), działa w Hermes/JSC
+function base64ToUint8Array(base64: string) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  const lookup = new Uint8Array(256)
+  for (let i = 0; i < chars.length; i++) lookup[chars.charCodeAt(i)] = i
+
+  let bufferLength = (base64.length * 3) / 4
+  if (base64.endsWith('==')) bufferLength -= 2
+  else if (base64.endsWith('=')) bufferLength -= 1
+
+  const bytes = new Uint8Array(bufferLength)
+
+  let p = 0
+  for (let i = 0; i < base64.length; i += 4) {
+    const enc1 = lookup[base64.charCodeAt(i)]
+    const enc2 = lookup[base64.charCodeAt(i + 1)]
+    const enc3 = lookup[base64.charCodeAt(i + 2)]
+    const enc4 = lookup[base64.charCodeAt(i + 3)]
+
+    const chr1 = (enc1 << 2) | (enc2 >> 4)
+    const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2)
+    const chr3 = ((enc3 & 3) << 6) | enc4
+
+    bytes[p++] = chr1
+    if (base64[i + 2] !== '=') bytes[p++] = chr2
+    if (base64[i + 3] !== '=') bytes[p++] = chr3
+  }
+
+  return bytes
 }
 
 export default function ProjektScreen() {
@@ -147,7 +164,7 @@ export default function ProjektScreen() {
         if (projData?.id) {
           const { data: rzutyData, error: rzutyErr } = await supabase
             .from('rzuty_projektu')
-            .select('id,user_id,projekt_id,url,nazwa,created_at') // <- bez storage_path
+            .select('id,user_id,projekt_id,url,nazwa,created_at')
             .eq('user_id', user.id)
             .eq('projekt_id', projData.id)
             .order('created_at', { ascending: false })
@@ -236,11 +253,16 @@ export default function ProjektScreen() {
         return
       }
 
-      const picked = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      // kompatybilnie (żeby nie świeciło na czerwono zależnie od wersji)
+      const mediaTypes =
+        (ImagePicker as any).MediaType?.Images ??
+        (ImagePicker as any).MediaType?.Image ??
+        ImagePicker.MediaTypeOptions.Images
 
+      const picked = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes,
         allowsEditing: false,
-        quality: 0.9,
+        quality: 1,
       })
       if (picked.canceled) return
 
@@ -248,18 +270,32 @@ export default function ProjektScreen() {
       if (!asset?.uri) return
 
       const uri = asset.uri
-      const ext = extFromUri(uri)
-      const mime = mimeFromExt(ext)
 
-      const key = `${Date.now()}_${Math.random().toString(16).slice(2)}.${ext}`
+      // wymuszamy JPEG (iOS często daje HEIC -> potem masz 0 bytes / image/heic)
+      const manipulated = await ImageManipulator.manipulateAsync(uri, [], {
+        compress: 0.9,
+        format: ImageManipulator.SaveFormat.JPEG,
+      })
+
+      const key = `${Date.now()}_${Math.random().toString(16).slice(2)}.jpg`
       const path = `rzuty/${userId}/${proj.id}/${key}`
 
-      const res = await fetch(uri)
-      const blob = await res.blob()
+      const base64 = await FileSystem.readAsStringAsync(manipulated.uri, {
+        // TS w SDK bywa marudny na enumy, więc literal:
+        encoding: 'base64' as any,
+      })
+
+      const bytes = base64ToUint8Array(base64)
+
+      console.log('[RZUT]', {
+        originalUri: uri,
+        manipulatedUri: manipulated.uri,
+        blobSize: bytes.byteLength,
+      })
 
       const { error: upErr } = await supabase.storage
         .from(BUCKET_RZUTY)
-        .upload(path, blob, { contentType: mime, upsert: false })
+        .upload(path, bytes, { contentType: 'image/jpeg', upsert: false })
 
       if (upErr) {
         Alert.alert('Upload nieudany', upErr.message)
@@ -281,9 +317,8 @@ export default function ProjektScreen() {
           projekt_id: proj.id,
           url: publicUrl,
           nazwa: defaultName,
-          // storage_path: path, // <- brak tej kolumny w Supabase
         })
-        .select('id,user_id,projekt_id,url,nazwa,created_at') // <- bez storage_path
+        .select('id,user_id,projekt_id,url,nazwa,created_at')
         .single()
 
       if (insErr) {
@@ -292,7 +327,8 @@ export default function ProjektScreen() {
       }
 
       setRzuty((prev) => [row as any, ...prev])
-    } catch {
+    } catch (e: any) {
+      console.log('[Projekt] uploadRzutAndSave error:', e?.message || e)
       Alert.alert('Błąd', 'Nie udało się dodać rzutu.')
     }
   }
@@ -303,49 +339,42 @@ export default function ProjektScreen() {
   }
 
   const deleteRzut = async (r: Rzut) => {
-    Alert.alert(
-      'Usunąć rzut?',
-      'To usunie zdjęcie ze Storage i rekord z bazy.',
-      [
-        { text: 'Anuluj', style: 'cancel' },
-        {
-          text: 'Usuń',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (!userId) return
+    Alert.alert('Usunąć rzut?', 'To usunie zdjęcie ze Storage i rekord z bazy.', [
+      { text: 'Anuluj', style: 'cancel' },
+      {
+        text: 'Usuń',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            if (!userId) return
 
-              // 1) usuń rekord z DB
-              const { error: delDbErr } = await supabase
-                .from('rzuty_projektu')
-                .delete()
-                .eq('id', r.id)
-                .eq('user_id', userId)
+            const { error: delDbErr } = await supabase
+              .from('rzuty_projektu')
+              .delete()
+              .eq('id', r.id)
+              .eq('user_id', userId)
 
-              if (delDbErr) {
-                Alert.alert('Błąd', delDbErr.message)
-                return
-              }
-
-              // 2) usuń plik ze Storage (wyliczamy path z public URL)
-              const path = r.url ? keyFromPublicUrl(r.url) : null
-              if (path) {
-                await supabase.storage.from(BUCKET_RZUTY).remove([path])
-              }
-
-              // 3) UI
-              setRzuty((prev) => prev.filter((x) => x.id !== r.id))
-              if (previewRzut?.id === r.id) {
-                setPreviewOpen(false)
-                setPreviewRzut(null)
-              }
-            } catch {
-              Alert.alert('Błąd', 'Nie udało się usunąć rzutu.')
+            if (delDbErr) {
+              Alert.alert('Błąd', delDbErr.message)
+              return
             }
-          },
+
+            const path = r.url ? keyFromPublicUrl(r.url) : null
+            if (path) {
+              await supabase.storage.from(BUCKET_RZUTY).remove([path])
+            }
+
+            setRzuty((prev) => prev.filter((x) => x.id !== r.id))
+            if (previewRzut?.id === r.id) {
+              setPreviewOpen(false)
+              setPreviewRzut(null)
+            }
+          } catch {
+            Alert.alert('Błąd', 'Nie udało się usunąć rzutu.')
+          }
         },
-      ]
-    )
+      },
+    ])
   }
 
   const openEditParams = () => {
@@ -484,11 +513,7 @@ export default function ProjektScreen() {
                     <Text style={styles.rzutHint}>Kliknij: podgląd • Przytrzymaj: usuń</Text>
                   </View>
 
-                  <TouchableOpacity
-                    onPress={() => deleteRzut(r)}
-                    style={styles.trashBtn}
-                    hitSlop={10}
-                  >
+                  <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10}>
                     <Feather name="trash-2" size={16} color="#F8FAFC" />
                   </TouchableOpacity>
                 </View>
@@ -536,11 +561,7 @@ export default function ProjektScreen() {
             <BlurView intensity={90} tint="dark" style={styles.modalCard}>
               <Text style={styles.modalTitle}>Edytuj parametry</Text>
 
-              <FieldText
-                label="Nazwa projektu"
-                value={form.nazwa}
-                onChange={(t) => setForm((p) => ({ ...p, nazwa: t }))}
-              />
+              <FieldText label="Nazwa projektu" value={form.nazwa} onChange={(t) => setForm((p) => ({ ...p, nazwa: t }))} />
 
               <View style={styles.row2}>
                 <FieldNum
@@ -548,11 +569,7 @@ export default function ProjektScreen() {
                   value={form.powierzchnia_uzytkowa}
                   onChange={(t) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: t }))}
                 />
-                <FieldNum
-                  label="Kondygnacje"
-                  value={form.kondygnacje}
-                  onChange={(t) => setForm((p) => ({ ...p, kondygnacje: t }))}
-                />
+                <FieldNum label="Kondygnacje" value={form.kondygnacje} onChange={(t) => setForm((p) => ({ ...p, kondygnacje: t }))} />
               </View>
 
               <View style={styles.row2}>
@@ -574,11 +591,7 @@ export default function ProjektScreen() {
                   value={form.wysokosc_budynku}
                   onChange={(t) => setForm((p) => ({ ...p, wysokosc_budynku: t }))}
                 />
-                <FieldNum
-                  label="Kąt dachu (°)"
-                  value={form.kat_dachu}
-                  onChange={(t) => setForm((p) => ({ ...p, kat_dachu: t }))}
-                />
+                <FieldNum label="Kąt dachu (°)" value={form.kat_dachu} onChange={(t) => setForm((p) => ({ ...p, kat_dachu: t }))} />
               </View>
 
               <View style={styles.row2}>
@@ -594,14 +607,14 @@ export default function ProjektScreen() {
                 />
               </View>
 
-              <FieldNum
-                label="Dł. elewacji (m)"
-                value={form.dlugosc_elewacji}
-                onChange={(t) => setForm((p) => ({ ...p, dlugosc_elewacji: t }))}
-              />
+              <FieldNum label="Dł. elewacji (m)" value={form.dlugosc_elewacji} onChange={(t) => setForm((p) => ({ ...p, dlugosc_elewacji: t }))} />
 
               <View style={styles.modalActions}>
-                <TouchableOpacity onPress={() => setEditOpen(false)} style={[styles.modalBtn, styles.modalBtnGhost]} disabled={saving}>
+                <TouchableOpacity
+                  onPress={() => setEditOpen(false)}
+                  style={[styles.modalBtn, styles.modalBtnGhost]}
+                  disabled={saving}
+                >
                   <Text style={styles.modalBtnGhostText}>Anuluj</Text>
                 </TouchableOpacity>
 
@@ -629,13 +642,7 @@ function FieldText({
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder="—"
-        placeholderTextColor="#64748B"
-        style={styles.input}
-      />
+      <TextInput value={value} onChangeText={onChange} placeholder="—" placeholderTextColor="#64748B" style={styles.input} />
     </View>
   )
 }
