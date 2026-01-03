@@ -44,7 +44,6 @@ type Rzut = {
   projekt_id: string
   url: string
   nazwa?: string | null
-  storage_path?: string | null
   created_at: string
 }
 
@@ -148,7 +147,7 @@ export default function ProjektScreen() {
         if (projData?.id) {
           const { data: rzutyData, error: rzutyErr } = await supabase
             .from('rzuty_projektu')
-            .select('id,user_id,projekt_id,url,nazwa,storage_path,created_at')
+            .select('id,user_id,projekt_id,url,nazwa,created_at') // <- bez storage_path
             .eq('user_id', user.id)
             .eq('projekt_id', projData.id)
             .order('created_at', { ascending: false })
@@ -239,6 +238,7 @@ export default function ProjektScreen() {
 
       const picked = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
+
         allowsEditing: false,
         quality: 0.9,
       })
@@ -281,9 +281,9 @@ export default function ProjektScreen() {
           projekt_id: proj.id,
           url: publicUrl,
           nazwa: defaultName,
-          storage_path: path,
+          // storage_path: path, // <- brak tej kolumny w Supabase
         })
-        .select('id,user_id,projekt_id,url,nazwa,storage_path,created_at')
+        .select('id,user_id,projekt_id,url,nazwa,created_at') // <- bez storage_path
         .single()
 
       if (insErr) {
@@ -315,7 +315,7 @@ export default function ProjektScreen() {
             try {
               if (!userId) return
 
-              // 1) usuń rekord z DB (w razie problemów ze Storage i tak znika z UI)
+              // 1) usuń rekord z DB
               const { error: delDbErr } = await supabase
                 .from('rzuty_projektu')
                 .delete()
@@ -327,11 +327,8 @@ export default function ProjektScreen() {
                 return
               }
 
-              // 2) spróbuj usunąć plik ze Storage
-              const path =
-                r.storage_path ||
-                (r.url ? keyFromPublicUrl(r.url) : null)
-
+              // 2) usuń plik ze Storage (wyliczamy path z public URL)
+              const path = r.url ? keyFromPublicUrl(r.url) : null
               if (path) {
                 await supabase.storage.from(BUCKET_RZUTY).remove([path])
               }
@@ -515,7 +512,10 @@ export default function ProjektScreen() {
 
             <TouchableOpacity
               onPress={() => previewRzut && deleteRzut(previewRzut)}
-              style={[styles.previewIconBtn, { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.45)' }]}
+              style={[
+                styles.previewIconBtn,
+                { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.45)' },
+              ]}
             >
               <Feather name="trash-2" size={18} color="#F8FAFC" />
             </TouchableOpacity>
@@ -543,23 +543,55 @@ export default function ProjektScreen() {
               />
 
               <View style={styles.row2}>
-                <FieldNum label="Pow. użytkowa (m²)" value={form.powierzchnia_uzytkowa} onChange={(t) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: t }))} />
-                <FieldNum label="Kondygnacje" value={form.kondygnacje} onChange={(t) => setForm((p) => ({ ...p, kondygnacje: t }))} />
+                <FieldNum
+                  label="Pow. użytkowa (m²)"
+                  value={form.powierzchnia_uzytkowa}
+                  onChange={(t) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: t }))}
+                />
+                <FieldNum
+                  label="Kondygnacje"
+                  value={form.kondygnacje}
+                  onChange={(t) => setForm((p) => ({ ...p, kondygnacje: t }))}
+                />
               </View>
 
               <View style={styles.row2}>
-                <FieldNum label="Pomieszczenia" value={form.pomieszczenia} onChange={(t) => setForm((p) => ({ ...p, pomieszczenia: t }))} />
-                <FieldNum label="Pow. zabudowy (m²)" value={form.powierzchnia_zabudowy} onChange={(t) => setForm((p) => ({ ...p, powierzchnia_zabudowy: t }))} />
+                <FieldNum
+                  label="Pomieszczenia"
+                  value={form.pomieszczenia}
+                  onChange={(t) => setForm((p) => ({ ...p, pomieszczenia: t }))}
+                />
+                <FieldNum
+                  label="Pow. zabudowy (m²)"
+                  value={form.powierzchnia_zabudowy}
+                  onChange={(t) => setForm((p) => ({ ...p, powierzchnia_zabudowy: t }))}
+                />
               </View>
 
               <View style={styles.row2}>
-                <FieldNum label="Wysokość (m)" value={form.wysokosc_budynku} onChange={(t) => setForm((p) => ({ ...p, wysokosc_budynku: t }))} />
-                <FieldNum label="Kąt dachu (°)" value={form.kat_dachu} onChange={(t) => setForm((p) => ({ ...p, kat_dachu: t }))} />
+                <FieldNum
+                  label="Wysokość (m)"
+                  value={form.wysokosc_budynku}
+                  onChange={(t) => setForm((p) => ({ ...p, wysokosc_budynku: t }))}
+                />
+                <FieldNum
+                  label="Kąt dachu (°)"
+                  value={form.kat_dachu}
+                  onChange={(t) => setForm((p) => ({ ...p, kat_dachu: t }))}
+                />
               </View>
 
               <View style={styles.row2}>
-                <FieldNum label="Pow. dachu (m²)" value={form.powierzchnia_dachu} onChange={(t) => setForm((p) => ({ ...p, powierzchnia_dachu: t }))} />
-                <FieldNum label="Szer. elewacji (m)" value={form.szerokosc_elewacji} onChange={(t) => setForm((p) => ({ ...p, szerokosc_elewacji: t }))} />
+                <FieldNum
+                  label="Pow. dachu (m²)"
+                  value={form.powierzchnia_dachu}
+                  onChange={(t) => setForm((p) => ({ ...p, powierzchnia_dachu: t }))}
+                />
+                <FieldNum
+                  label="Szer. elewacji (m)"
+                  value={form.szerokosc_elewacji}
+                  onChange={(t) => setForm((p) => ({ ...p, szerokosc_elewacji: t }))}
+                />
               </View>
 
               <FieldNum
