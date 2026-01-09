@@ -1,7 +1,11 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,13 +18,25 @@ import {
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Swipeable } from 'react-native-gesture-handler';
 
 import { supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 
+const BRAND = '#19705C';
+
 const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
+
+const CATEGORIES = [
+  'Stan zero',
+  'Stan surowy otwarty',
+  'Stan surowy zamknięty',
+  'Instalacje',
+  'Stan deweloperski',
+  'Inne',
+];
 
 const formatPLN = (value: number) =>
   new Intl.NumberFormat('pl-PL', {
@@ -44,25 +60,49 @@ const formatPLDate = (dateRaw: any) => {
   return d.toLocaleDateString('pl-PL');
 };
 
-const Donut = ({ percentage, title, subtitle, onPress }: { percentage: number; title: string; subtitle: string; onPress?: () => void }) => {
+const toYYYYMMDD = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const Donut = ({
+  percentage,
+  title,
+  subtitle,
+  active,
+  onPress,
+}: {
+  percentage: number;
+  title: string;
+  subtitle: string;
+  active?: boolean;
+  onPress?: () => void;
+}) => {
   const clamped = Math.max(0, Math.min(1, percentage));
   return (
-    <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} disabled={!onPress} style={styles.donutTap}>
+    <TouchableOpacity
+      activeOpacity={onPress ? 0.85 : 1}
+      onPress={onPress}
+      disabled={!onPress}
+      style={[styles.donutTap, active && styles.donutTapActive]}
+    >
       <View style={styles.donutWrapper}>
         <View
           style={[
             styles.donutRing,
             {
-              borderTopColor: '#5EEAD4',
-              borderRightColor: '#5EEAD4',
-              borderBottomColor: clamped > 0.5 ? '#38BDF8' : 'rgba(255,255,255,0.12)',
-              borderLeftColor: clamped > 0.75 ? '#22D3EE' : 'rgba(255,255,255,0.12)',
+              borderTopColor: BRAND,
+              borderRightColor: BRAND,
+              borderBottomColor: clamped > 0.5 ? 'rgba(25,112,92,0.95)' : 'rgba(255,255,255,0.12)',
+              borderLeftColor: clamped > 0.75 ? 'rgba(25,112,92,0.75)' : 'rgba(255,255,255,0.12)',
             },
           ]}
         />
-        <View style={styles.donutInner}>
-          <Text style={styles.donutValue}>{Math.round(clamped * 100)}%</Text>
-          <Text style={styles.donutLabel}>{title}</Text>
+        <View style={[styles.donutInner, active && styles.donutInnerActive]}>
+          <Text style={[styles.donutValue, active && styles.donutValueActive]}>{Math.round(clamped * 100)}%</Text>
+          <Text style={[styles.donutLabel, active && styles.donutLabelActive]}>{title}</Text>
           <Text style={styles.donutSub}>{subtitle}</Text>
         </View>
       </View>
@@ -99,21 +139,11 @@ function guessMime(name: string, fallback?: string) {
   return 'application/octet-stream';
 }
 
-
 async function uriToArrayBuffer(uri: string): Promise<ArrayBuffer> {
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
-
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes.buffer;
+  const res = await fetch(uri);
+  if (!res.ok) throw new Error(`Nie udało się odczytać pliku: ${res.status} ${res.statusText}`);
+  return await res.arrayBuffer();
 }
-
-
 
 export default function BudzetScreen() {
   const router = useRouter();
@@ -136,13 +166,27 @@ export default function BudzetScreen() {
   const [saving, setSaving] = useState(false);
 
   const [fNazwa, setFNazwa] = useState('');
-  const [fKategoria, setFKategoria] = useState('Inne');
+  const [fKategoria, setFKategoria] = useState(CATEGORIES.includes('Inne') ? 'Inne' : CATEGORIES[0]);
   const [fKwota, setFKwota] = useState('');
   const [fStatus, setFStatus] = useState<typeof STATUS_SPENT | typeof STATUS_UPCOMING>(STATUS_UPCOMING);
   const [fData, setFData] = useState(''); // YYYY-MM-DD lub puste
   const [fOpis, setFOpis] = useState('');
   const [fSklep, setFSklep] = useState('');
   const [picked, setPicked] = useState<PickedFile | null>(null);
+
+  // date picker
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [datePickerValue, setDatePickerValue] = useState<Date>(() => new Date());
+
+  // carousel
+  const { width: SCREEN_W } = Dimensions.get('window');
+  const DONUT_CARD_W = Math.min(210, Math.round(SCREEN_W * 0.62));
+  const DONUT_SPACER = 12;
+  const SNAP = DONUT_CARD_W + DONUT_SPACER;
+
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const flatRef = useRef<Animated.FlatList<any>>(null);
+  const autoTimerRef = useRef<any>(null);
 
   const spentTotal = useMemo(
     () => wydatki.filter(w => normalize(w.status) === STATUS_SPENT).reduce((a, w) => a + safeNumber(w.kwota), 0),
@@ -171,6 +215,41 @@ export default function BudzetScreen() {
     scrollRef.current?.scrollTo({ y: 760, animated: true });
   };
 
+  const donutsBase = useMemo(
+    () => [
+      {
+        key: 'budget',
+        percentage: budgetUtil,
+        title: 'Budżet',
+        subtitle: `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget || 0)}`,
+        onPress: scrollToList,
+      },
+      {
+        key: 'time',
+        percentage: timeUtil,
+        title: 'Czas',
+        subtitle: dates.start && dates.end ? `${formatPLDate(dates.start)} → ${formatPLDate(dates.end)}` : 'Uzupełnij daty inwestycji',
+        onPress: undefined,
+      },
+      {
+        key: 'cats',
+        percentage: spentTotal > 0 ? 1 : 0,
+        title: 'Kategorie',
+        subtitle: '(na razie placeholder)',
+        onPress: scrollToList,
+      },
+    ],
+    [budgetUtil, spentTotal, plannedBudget, timeUtil, dates.start, dates.end]
+  );
+
+  // loop data (simple infinite feel): repeat 3x and start in middle
+  const donutsLoop = useMemo(() => {
+    const a = donutsBase;
+    return [...a, ...a, ...a].map((d, idx) => ({ ...d, _loopId: `${d.key}_${idx}` }));
+  }, [donutsBase]);
+
+  const middleIndex = donutsBase.length; // start at first item of middle block
+
   const loadBudget = useCallback(async () => {
     if (authLoading) return;
     if (!userId) return;
@@ -179,7 +258,6 @@ export default function BudzetScreen() {
     setLoading(true);
 
     try {
-      // inwestycje: budzet + daty
       const invRes = await supabase
         .from('inwestycje')
         .select('budzet, data_start, data_koniec')
@@ -191,7 +269,6 @@ export default function BudzetScreen() {
       setPlannedBudget(safeNumber((invRes.data as any)?.budzet));
       setDates({ start: (invRes.data as any)?.data_start ?? null, end: (invRes.data as any)?.data_koniec ?? null });
 
-      // wydatki
       const expRes = await supabase
         .from('wydatki')
         .select('id, nazwa, kategoria, kwota, data, status, created_at, opis, sklep, plik')
@@ -212,6 +289,34 @@ export default function BudzetScreen() {
   useEffect(() => {
     loadBudget();
   }, [loadBudget]);
+
+  useEffect(() => {
+    // set initial scroll to the middle block
+    const t = setTimeout(() => {
+      flatRef.current?.scrollToOffset({ offset: middleIndex * SNAP, animated: false });
+    }, 120);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [SNAP, middleIndex]);
+
+  useEffect(() => {
+    // auto-advance carousel
+    if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+    autoTimerRef.current = setInterval(() => {
+      try {
+        // read current animated value (best-effort)
+        // @ts-ignore
+        const current = scrollX.__getValue?.() ?? 0;
+        const idx = Math.round(current / SNAP);
+        flatRef.current?.scrollToOffset({ offset: (idx + 1) * SNAP, animated: true });
+      } catch {}
+    }, 3200);
+
+    return () => {
+      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [SNAP]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -242,19 +347,19 @@ export default function BudzetScreen() {
     if (!picked) return null;
     if (!userId) return null;
 
-    // ścieżka w bucket: {uid}/wydatki/{timestamp}_{name}
     const safeName = (picked.name || 'plik').replace(/[^a-zA-Z0-9._-]/g, '_');
     const key = `${userId}/wydatki/${Date.now()}_${safeName}`;
 
     const ab = await uriToArrayBuffer(picked.uri);
 
-    const up = await supabase.storage
-      .from('paragony')
-      .upload(key, ab, { contentType: picked.mimeType, upsert: false });
+    const up = await supabase.storage.from('paragony').upload(key, ab, {
+      contentType: picked.mimeType,
+      upsert: false,
+    });
 
     if (up.error) throw up.error;
 
-    return key; // zapisujemy do wydatki.plik
+    return key;
   };
 
   const addExpense = async () => {
@@ -269,26 +374,23 @@ export default function BudzetScreen() {
 
     setSaving(true);
     try {
-      // 1) upload (opcjonalny)
       const storageKey = await uploadOptionalFile();
 
-      // 2) insert do tabeli
       const payload = {
         user_id: userId,
         nazwa,
         kategoria,
         kwota: kw,
         status: fStatus,
-        data: fData?.trim() ? fData.trim() : null, // może być null
+        data: fData?.trim() ? fData.trim() : null,
         opis: fOpis.trim() || null,
         sklep: fSklep.trim() || null,
-        plik: storageKey, // może być null
+        plik: storageKey,
       };
 
       const ins = await supabase.from('wydatki').insert(payload).select('id').maybeSingle();
       if (ins.error) throw ins.error;
 
-      // reset formularza
       setFNazwa('');
       setFKategoria('Inne');
       setFKwota('');
@@ -309,7 +411,7 @@ export default function BudzetScreen() {
   };
 
   const openReceipt = async (storageKey: string) => {
-    // prywatny bucket → signed url
+    // bucket public, ale zostawiamy signedUrl (działa niezależnie od public/private)
     const signed = await supabase.storage.from('paragony').createSignedUrl(storageKey, 60 * 60);
     if (signed.error) {
       alert(signed.error.message);
@@ -318,36 +420,151 @@ export default function BudzetScreen() {
     if (signed.data?.signedUrl) Linking.openURL(signed.data.signedUrl);
   };
 
+  const confirmDeleteExpense = (row: WydatkiRow) => {
+    Alert.alert('Usunąć wydatek?', `${row.nazwa ?? 'Wydatek'}\n${formatPLN(safeNumber(row.kwota))}`, [
+      { text: 'Anuluj', style: 'cancel' },
+      {
+        text: 'Usuń',
+        style: 'destructive',
+        onPress: () => deleteExpense(row),
+      },
+    ]);
+  };
+
+  const deleteExpense = async (row: WydatkiRow) => {
+    if (!userId) return;
+
+    try {
+      // 1) usuń rekord
+      const del = await supabase.from('wydatki').delete().eq('id', row.id).eq('user_id', userId);
+      if (del.error) throw del.error;
+
+      // 2) spróbuj usunąć plik (best effort)
+      if (row.plik) {
+        const rem = await supabase.storage.from('paragony').remove([row.plik]);
+        // nie blokuj UX jeśli storage remove się nie uda
+        if (rem.error) console.log('[Budzet] delete file warn:', rem.error);
+      }
+
+      // 3) lokalny update + refresh
+      setWydatki(prev => prev.filter(w => w.id !== row.id));
+    } catch (e: any) {
+      console.log('[Budzet] deleteExpense error:', e);
+      alert(e?.message ?? 'Nie udało się usunąć wydatku.');
+    }
+  };
+
+  const renderRightActions = (_progress: any, _dragX: any, row: WydatkiRow) => {
+    return (
+      <TouchableOpacity style={styles.trashAction} onPress={() => confirmDeleteExpense(row)} activeOpacity={0.85}>
+        <Text style={styles.trashIcon}>🗑️</Text>
+        <Text style={styles.trashText}>Usuń</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const openDatePicker = () => {
+    const base = fData?.trim() ? new Date(fData.trim()) : new Date();
+    if (!Number.isNaN(base.getTime())) setDatePickerValue(base);
+    setDatePickerOpen(true);
+  };
+
+  const onDatePicked = (event: any, selected?: Date) => {
+    if (Platform.OS === 'android') setDatePickerOpen(false);
+    if (event?.type === 'dismissed') return;
+    const d = selected ?? datePickerValue;
+    setDatePickerValue(d);
+    setFData(toYYYYMMDD(d));
+  };
+
+  const onDonutsMomentumEnd = (e: any) => {
+    const x = e?.nativeEvent?.contentOffset?.x ?? 0;
+    const idx = Math.round(x / SNAP);
+
+    // if near edges, jump to middle block equivalent (seamless)
+    const baseLen = donutsBase.length;
+    if (idx < baseLen * 0.5) {
+      flatRef.current?.scrollToOffset({ offset: (idx + baseLen) * SNAP, animated: false });
+    } else if (idx > baseLen * 2.5) {
+      flatRef.current?.scrollToOffset({ offset: (idx - baseLen) * SNAP, animated: false });
+    }
+  };
+
   return (
     <ScrollView
       ref={scrollRef}
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#5EEAD4" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND} />}
     >
       <BlurView intensity={80} tint="dark" style={styles.hero}>
         {loading ? (
-          <ActivityIndicator color="#5EEAD4" />
+          <ActivityIndicator color={BRAND} />
         ) : (
           <>
             {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
 
-            <View style={styles.donutsRow}>
-              <Donut
-                percentage={budgetUtil}
-                title="Budżet"
-                subtitle={`${formatPLN(spentTotal)} / ${formatPLN(plannedBudget || 0)}`}
-                onPress={scrollToList}
-              />
-              <Donut
-                percentage={timeUtil}
-                title="Czas"
-                subtitle={dates.start && dates.end ? `${formatPLDate(dates.start)} → ${formatPLDate(dates.end)}` : 'Uzupełnij daty inwestycji'}
-              />
-              <Donut
-                percentage={spentTotal > 0 ? 1 : 0}
-                title="Kategorie"
-                subtitle="(na razie placeholder)"
-                onPress={scrollToList}
+            {/* DONUTS CAROUSEL */}
+            <View style={styles.donutsCarouselWrap}>
+              <Animated.FlatList
+                ref={flatRef}
+                data={donutsLoop}
+                keyExtractor={(item) => item._loopId}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={SNAP}
+                decelerationRate="fast"
+                bounces={false}
+                contentContainerStyle={{ paddingHorizontal: Math.max(0, Math.round((SCREEN_W - DONUT_CARD_W) / 2)) }}
+                onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
+                onMomentumScrollEnd={onDonutsMomentumEnd}
+                scrollEventThrottle={16}
+                renderItem={({ item, index }) => {
+                  const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP];
+
+                  const scale = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.92, 1.06, 0.92],
+                    extrapolate: 'clamp',
+                  });
+
+                  const opacity = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.6, 1, 0.6],
+                    extrapolate: 'clamp',
+                  });
+
+                  const glow = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0, 1, 0],
+                    extrapolate: 'clamp',
+                  });
+
+                  return (
+                    <Animated.View
+                      style={[
+                        styles.donutCard,
+                        { width: DONUT_CARD_W, marginRight: DONUT_SPACER, transform: [{ scale }], opacity },
+                      ]}
+                    >
+                      <Animated.View
+                        pointerEvents="none"
+                        style={[
+                          styles.donutGlowOverlay,
+                          {
+                            opacity: glow,
+                          },
+                        ]}
+                      />
+                      <Donut
+                        percentage={item.percentage}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        onPress={item.onPress}
+                        active={true}
+                      />
+                    </Animated.View>
+                  );
+                }}
               />
             </View>
 
@@ -363,7 +580,7 @@ export default function BudzetScreen() {
             </View>
 
             <TouchableOpacity style={styles.addBtn} onPress={() => setAddOpen(true)}>
-              <Text style={styles.addBtnText}>+ Dodaj wydatek</Text>
+              <Text style={styles.addBtnText}>+ DODAJ WYDATEK TEST</Text>
             </TouchableOpacity>
           </>
         )}
@@ -379,27 +596,41 @@ export default function BudzetScreen() {
           <Text style={styles.empty}>Brak wydatków. Dodaj pierwszy wydatek powyżej.</Text>
         ) : (
           wydatki.slice(0, 8).map((w) => (
-            <View key={w.id} style={styles.itemRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemName} numberOfLines={1}>{w.nazwa ?? 'Wydatek'}</Text>
-                <Text style={styles.itemMeta}>
-                  {(w.data ? formatPLDate(w.data) : (w.created_at ? `Dodano: ${formatPLDate(w.created_at)}` : '—'))}
-                  {'  •  '}
-                  {w.kategoria ?? 'Inne'}
-                  {'  •  '}
-                  {normalize(w.status) === STATUS_SPENT ? 'poniesiony' : 'zaplanowany'}
-                </Text>
-              </View>
+            <Swipeable
+              key={w.id}
+              renderRightActions={(p, d) => renderRightActions(p, d, w)}
+              overshootRight={false}
+              rightThreshold={40}
+            >
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onLongPress={() => confirmDeleteExpense(w)}
+                delayLongPress={350}
+                style={styles.itemRow}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemName} numberOfLines={1}>
+                    {w.nazwa ?? 'Wydatek'}
+                  </Text>
+                  <Text style={styles.itemMeta}>
+                    {w.data ? formatPLDate(w.data) : w.created_at ? `Dodano: ${formatPLDate(w.created_at)}` : '—'}
+                    {'  •  '}
+                    {w.kategoria ?? 'Inne'}
+                    {'  •  '}
+                    {normalize(w.status) === STATUS_SPENT ? 'poniesiony' : 'zaplanowany'}
+                  </Text>
+                </View>
 
-              <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                <Text style={styles.itemAmount}>{formatPLN(safeNumber(w.kwota))}</Text>
-                {!!w.plik && (
-                  <TouchableOpacity onPress={() => openReceipt(w.plik!)}>
-                    <Text style={styles.fileLink}>paragon →</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                  <Text style={styles.itemAmount}>{formatPLN(safeNumber(w.kwota))}</Text>
+                  {!!w.plik && (
+                    <TouchableOpacity onPress={() => openReceipt(w.plik!)}>
+                      <Text style={styles.fileLink}>paragon →</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </Swipeable>
           ))
         )}
       </BlurView>
@@ -411,13 +642,40 @@ export default function BudzetScreen() {
             <Text style={styles.modalTitle}>Dodaj wydatek</Text>
 
             <Text style={styles.lbl}>Nazwa *</Text>
-            <TextInput value={fNazwa} onChangeText={setFNazwa} style={styles.input} placeholder="np. Okna" placeholderTextColor="rgba(148,163,184,0.7)" />
+            <TextInput
+              value={fNazwa}
+              onChangeText={setFNazwa}
+              style={styles.input}
+              placeholder="np. Okna"
+              placeholderTextColor="rgba(148,163,184,0.7)"
+            />
 
             <Text style={styles.lbl}>Kategoria</Text>
-            <TextInput value={fKategoria} onChangeText={setFKategoria} style={styles.input} placeholder="np. Stan surowy" placeholderTextColor="rgba(148,163,184,0.7)" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
+              {CATEGORIES.map((c) => {
+                const on = normalize(fKategoria) === normalize(c);
+                return (
+                  <TouchableOpacity
+                    key={c}
+                    onPress={() => setFKategoria(c)}
+                    style={[styles.catPill, on && styles.catPillOn]}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.catText, on && styles.catTextOn]}>{c}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
             <Text style={styles.lbl}>Kwota (PLN) *</Text>
-            <TextInput value={fKwota} onChangeText={setFKwota} style={styles.input} keyboardType="numeric" placeholder="np. 12500" placeholderTextColor="rgba(148,163,184,0.7)" />
+            <TextInput
+              value={fKwota}
+              onChangeText={setFKwota}
+              style={styles.input}
+              keyboardType="numeric"
+              placeholder="np. 12500"
+              placeholderTextColor="rgba(148,163,184,0.7)"
+            />
 
             <View style={styles.row2}>
               <TouchableOpacity style={[styles.pill, fStatus === STATUS_UPCOMING && styles.pillOn]} onPress={() => setFStatus(STATUS_UPCOMING)}>
@@ -428,17 +686,73 @@ export default function BudzetScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.lbl}>Data (YYYY-MM-DD) — opcjonalnie</Text>
-            <TextInput value={fData} onChangeText={setFData} style={styles.input} placeholder="np. 2026-01-03" placeholderTextColor="rgba(148,163,184,0.7)" />
+            <Text style={styles.lbl}>Data — opcjonalnie</Text>
+            <View style={styles.dateRow}>
+              <TextInput
+                value={fData}
+                onChangeText={setFData}
+                style={[styles.input, { flex: 1 }]}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="rgba(148,163,184,0.7)"
+              />
+              <TouchableOpacity style={styles.calBtn} onPress={openDatePicker} activeOpacity={0.85}>
+                <Text style={styles.calIcon}>📅</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* iOS inline via modal; Android shows native dialog */}
+            {datePickerOpen && (
+              Platform.OS === 'ios' ? (
+                <View style={styles.iosDateWrap}>
+                  <DateTimePicker
+                    value={datePickerValue}
+                    mode="date"
+                    display="spinner"
+                    onChange={onDatePicked}
+                  />
+                  <TouchableOpacity
+                    style={styles.iosDateOk}
+                    onPress={() => {
+                      setDatePickerOpen(false);
+                      setFData(toYYYYMMDD(datePickerValue));
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.iosDateOkText}>Ustaw datę</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <DateTimePicker
+                  value={datePickerValue}
+                  mode="date"
+                  display="default"
+                  onChange={onDatePicked}
+                />
+              )
+            )}
 
             <Text style={styles.lbl}>Opis (opcjonalnie)</Text>
-            <TextInput value={fOpis} onChangeText={setFOpis} style={styles.input} placeholder="np. zaliczka" placeholderTextColor="rgba(148,163,184,0.7)" />
+            <TextInput
+              value={fOpis}
+              onChangeText={setFOpis}
+              style={styles.input}
+              placeholder="np. zaliczka"
+              placeholderTextColor="rgba(148,163,184,0.7)"
+            />
 
             <Text style={styles.lbl}>Sklep (opcjonalnie)</Text>
-            <TextInput value={fSklep} onChangeText={setFSklep} style={styles.input} placeholder="np. Castorama" placeholderTextColor="rgba(148,163,184,0.7)" />
+            <TextInput
+              value={fSklep}
+              onChangeText={setFSklep}
+              style={styles.input}
+              placeholder="np. Castorama"
+              placeholderTextColor="rgba(148,163,184,0.7)"
+            />
 
             <TouchableOpacity style={styles.fileBtn} onPress={pickFile}>
-              <Text style={styles.fileBtnText}>{picked ? `Wybrano: ${picked.name}` : 'Dodaj paragon (PDF/JPG/PNG) — opcjonalnie'}</Text>
+              <Text style={styles.fileBtnText}>
+                {picked ? `Wybrano: ${picked.name}` : 'Dodaj paragon (PDF/JPG/PNG) — opcjonalnie'}
+              </Text>
             </TouchableOpacity>
 
             <View style={styles.modalActions}>
@@ -465,22 +779,69 @@ const styles = StyleSheet.create({
   hero: { borderRadius: 24, padding: 16, marginBottom: 16, overflow: 'hidden' },
   errorText: { color: '#FCA5A5', marginBottom: 10 },
 
-  donutsRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  donutTap: { flex: 1 },
+  donutsCarouselWrap: {
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  donutCard: {
+    paddingVertical: 2,
+  },
+  donutGlowOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    bottom: 10,
+    borderRadius: 999,
+    shadowColor: BRAND,
+    shadowOpacity: 0.9,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    backgroundColor: 'rgba(25,112,92,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.35)',
+  },
+
+  donutTap: { alignItems: 'center', justifyContent: 'center' },
+  donutTapActive: {
+    // subtle neon edge on active slide
+    borderRadius: 24,
+  },
   donutWrapper: { alignItems: 'center', justifyContent: 'center' },
-  donutRing: { width: 110, height: 110, borderRadius: 55, borderWidth: 14, transform: [{ rotate: '-45deg' }] },
-  donutInner: { position: 'absolute', width: 82, height: 82, borderRadius: 41, alignItems: 'center', justifyContent: 'center' },
-  donutValue: { color: '#F8FAFC', fontSize: 18, fontWeight: '900' },
+  donutRing: { width: 122, height: 122, borderRadius: 61, borderWidth: 14, transform: [{ rotate: '-45deg' }] },
+  donutInner: { position: 'absolute', width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center' },
+  donutInnerActive: {
+    backgroundColor: 'rgba(25,112,92,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.25)',
+  },
+  donutValue: { color: '#F8FAFC', fontSize: 19, fontWeight: '900' },
+  donutValueActive: {
+    textShadowColor: BRAND,
+    textShadowRadius: 10,
+    textShadowOffset: { width: 0, height: 0 },
+  },
   donutLabel: { color: '#E2E8F0', marginTop: 2, fontSize: 12, fontWeight: '800' },
-  donutSub: { color: '#94A3B8', marginTop: 2, fontSize: 10, textAlign: 'center' },
+  donutLabelActive: {
+    color: '#E9FFF7',
+  },
+  donutSub: { color: '#94A3B8', marginTop: 2, fontSize: 10, textAlign: 'center', paddingHorizontal: 8 },
 
   heroStats: { flexDirection: 'row', gap: 12, marginTop: 14 },
   statBox: { flex: 1, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
   statLabel: { color: '#94A3B8', fontSize: 12 },
   statValue: { color: '#F8FAFC', fontSize: 16, fontWeight: '900', marginTop: 4 },
 
-  addBtn: { marginTop: 14, borderRadius: 16, paddingVertical: 12, alignItems: 'center', backgroundColor: 'rgba(94,234,212,0.12)', borderWidth: 1, borderColor: 'rgba(94,234,212,0.45)' },
-  addBtnText: { color: '#5EEAD4', fontWeight: '900' },
+  addBtn: {
+    marginTop: 14,
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(25,112,92,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.55)',
+  },
+  addBtnText: { color: 'rgba(220,255,245,0.95)', fontWeight: '900' },
 
   card: { borderRadius: 24, padding: 16, overflow: 'hidden' },
   listHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
@@ -489,11 +850,29 @@ const styles = StyleSheet.create({
 
   empty: { color: '#94A3B8', paddingVertical: 10 },
 
-  itemRow: { flexDirection: 'row', gap: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.10)' },
+  itemRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.10)',
+    paddingHorizontal: 2,
+  },
   itemName: { color: '#F8FAFC', fontWeight: '800' },
   itemMeta: { color: '#94A3B8', fontSize: 12, marginTop: 3 },
-  itemAmount: { color: '#5EEAD4', fontWeight: '900' },
-  fileLink: { color: '#38BDF8', fontWeight: '800', fontSize: 12 },
+  itemAmount: { color: 'rgba(220,255,245,0.95)', fontWeight: '900' },
+  fileLink: { color: 'rgba(120,255,220,0.9)', fontWeight: '800', fontSize: 12 },
+
+  trashAction: {
+    width: 92,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239,68,68,0.16)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(239,68,68,0.35)',
+  },
+  trashIcon: { fontSize: 18, marginBottom: 4 },
+  trashText: { color: '#FCA5A5', fontWeight: '900', fontSize: 12 },
 
   // modal
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
@@ -502,19 +881,65 @@ const styles = StyleSheet.create({
   lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
   input: { borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 12, paddingVertical: 10, color: '#F8FAFC' },
 
+  catRow: { gap: 10, paddingVertical: 2, paddingRight: 10 },
+  catPill: {
+    borderRadius: 999,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  catPillOn: {
+    borderColor: 'rgba(25,112,92,0.65)',
+    backgroundColor: 'rgba(25,112,92,0.14)',
+  },
+  catText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
+  catTextOn: { color: 'rgba(220,255,245,0.98)' },
+
   row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
   pill: { flex: 1, borderRadius: 999, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)' },
-  pillOn: { borderColor: 'rgba(94,234,212,0.55)', backgroundColor: 'rgba(94,234,212,0.10)' },
+  pillOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
   pillText: { color: '#94A3B8', fontWeight: '800' },
-  pillTextOn: { color: '#5EEAD4' },
+  pillTextOn: { color: 'rgba(220,255,245,0.98)' },
 
-  fileBtn: { marginTop: 12, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: 'rgba(56,189,248,0.35)', backgroundColor: 'rgba(56,189,248,0.08)' },
+  dateRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  calBtn: {
+    width: 48,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.45)',
+    backgroundColor: 'rgba(25,112,92,0.10)',
+  },
+  calIcon: { fontSize: 18 },
+
+  iosDateWrap: {
+    marginTop: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  iosDateOk: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(25,112,92,0.10)',
+  },
+  iosDateOkText: { color: 'rgba(220,255,245,0.98)', fontWeight: '900' },
+
+  fileBtn: { marginTop: 12, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: 'rgba(25,112,92,0.40)', backgroundColor: 'rgba(25,112,92,0.08)' },
   fileBtnText: { color: '#E2E8F0', fontWeight: '800', fontSize: 12 },
 
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   btn: { flex: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
   btnGhost: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)' },
   btnGhostText: { color: '#E2E8F0', fontWeight: '900' },
-  btnMain: { borderWidth: 1, borderColor: 'rgba(94,234,212,0.55)', backgroundColor: 'rgba(94,234,212,0.14)' },
-  btnMainText: { color: '#5EEAD4', fontWeight: '900' },
+  btnMain: { borderWidth: 1, borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.16)' },
+  btnMainText: { color: 'rgba(220,255,245,0.98)', fontWeight: '900' },
 });
