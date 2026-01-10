@@ -1,9 +1,5 @@
 {
-  "deno.enable": true,
-  "deno.enablePaths": [
-    "supabase/functions"
-  ],
-  "deno.disablePaths": [
-    "."
-  ]
+  "deno.enable": false,
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.lint": true
 }

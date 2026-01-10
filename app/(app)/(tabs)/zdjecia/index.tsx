@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,13 +12,15 @@ import {
   Dimensions,
   ScrollView,
   Platform,
+  TextInput,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -26,17 +28,23 @@ const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
 
 type ViewMode = 'grid' | 'carousel';
 
-type Etap = {
+type EtapZdjecia = {
   id: string;
   nazwa: string;
+  kolejnosc: number;
 };
 
 type Zdjecie = {
   id: string;
   user_id: string;
-  etap_id: string | null;
-  url: string;
+  etap_zdjecia_id: string;
+  file_path: string;
   created_at: string;
+  taken_at?: string | null;
+  komentarz?: string | null;
+  tags?: string[] | null;
+  // UI-only:
+  url?: string;
 };
 
 const COLORS = {
@@ -49,22 +57,25 @@ const COLORS = {
   accent: '#5EEAD4',
   accent2: '#38BDF8',
   danger: '#FF3B30',
+  brand: '#19705C',
 };
 
 const bucketName = 'zdjecia';
 
 function sanitizeFolderName(input: string) {
   return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
-    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/(^-|-$)/g, '');
 }
 
 export default function ZdjeciaScreen() {
   const [zdjecia, setZdjecia] = useState<Zdjecie[]>([]);
-  const [etapy, setEtapy] = useState<Etap[]>([]);
+  const [etapy, setEtapy] = useState<EtapZdjecia[]>([]);
   const [selectedEtap, setSelectedEtap] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
@@ -73,11 +84,20 @@ export default function ZdjeciaScreen() {
 
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
-
   const [selectedZdjecie, setSelectedZdjecie] = useState<Zdjecie | null>(null);
 
   const [uploading, setUploading] = useState(false);
+
+  // ADD FORM
   const [selectedEtapForUpload, setSelectedEtapForUpload] = useState<string>('');
+  const [takenAt, setTakenAt] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [opis, setOpis] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
+
+  // Dropdown states (filters + add modal)
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [uploadDropdownOpen, setUploadDropdownOpen] = useState(false);
 
   const etapNameMap = useMemo(
     () =>
@@ -89,18 +109,16 @@ export default function ZdjeciaScreen() {
   );
 
   const getEtapName = useCallback(
-    (etapId: string | null) => {
+    (etapId: string | null | undefined) => {
       if (!etapId) return 'Etap';
       return etapNameMap[etapId] ?? 'Etap';
     },
     [etapNameMap],
   );
 
-  const deriveStoragePath = useCallback((url: string) => {
-    const marker = `${bucketName}/`;
-    const idx = url.indexOf(marker);
-    if (idx === -1) return null;
-    return url.slice(idx + marker.length);
+  const getPublicUrlForPath = useCallback((filePath: string) => {
+    const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+    return data?.publicUrl || '';
   }, []);
 
   useEffect(() => {
@@ -117,13 +135,16 @@ export default function ZdjeciaScreen() {
 
   const loadEtapy = async () => {
     try {
-      const { data, error } = await supabase.from('etapy_szablon').select('id,nazwa').limit(4);
+      const { data, error } = await supabase
+        .from('etapy_zdjecia')
+        .select('id,nazwa,kolejnosc')
+        .order('kolejnosc', { ascending: true });
 
       if (error) throw error;
-      setEtapy((data || []) as Etap[]);
+      setEtapy((data || []) as EtapZdjecia[]);
     } catch (e) {
-      console.error('BĹ‚Ä…d Ĺ‚adowania etapĂłw:', e);
-      Alert.alert('BĹ‚Ä…d', 'Nie udaĹ‚o siÄ™ zaĹ‚adowaÄ‡ etapĂłw');
+      console.error('Błąd ładowania etapów zdjęć:', e);
+      Alert.alert('Błąd', 'Nie udało się załadować etapów do zdjęć');
     }
   };
 
@@ -144,21 +165,27 @@ export default function ZdjeciaScreen() {
 
       let query = supabase
         .from('zdjecia')
-        .select('id,user_id,etap_id,url,created_at')
+        .select('id,user_id,etap_zdjecia_id,file_path,created_at,taken_at,komentarz,tags')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (selectedEtap !== 'all') {
-        query = query.eq('etap_id', selectedEtap);
+        query = query.eq('etap_zdjecia_id', selectedEtap);
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
-      setZdjecia((data || []) as Zdjecie[]);
+      const rows = (data || []) as Zdjecie[];
+      const withUrls = rows.map((z) => ({
+        ...z,
+        url: getPublicUrlForPath(z.file_path),
+      }));
+
+      setZdjecia(withUrls);
     } catch (e) {
-      console.error('BĹ‚Ä…d Ĺ‚adowania zdjÄ™Ä‡:', e);
-      Alert.alert('BĹ‚Ä…d', 'Nie udaĹ‚o siÄ™ zaĹ‚adowaÄ‡ zdjÄ™Ä‡');
+      console.error('Błąd ładowania zdjęć:', e);
+      Alert.alert('Błąd', 'Nie udało się załadować zdjęć');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -174,21 +201,20 @@ export default function ZdjeciaScreen() {
 
   const handlePickAndUpload = async () => {
     if (!selectedEtapForUpload) {
-      Alert.alert('Uwaga', 'Wybierz etap dla zdjÄ™cia');
+      Alert.alert('Uwaga', 'Wybierz etap dla zdjęcia');
       return;
     }
 
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Brak uprawnieĹ„', 'Potrzebujemy dostÄ™pu do galerii');
+      Alert.alert('Brak uprawnień', 'Potrzebujemy dostępu do galerii');
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.85,
-      aspect: [4, 3],
     });
 
     if (result.canceled || !result.assets?.[0]?.uri) return;
@@ -205,13 +231,13 @@ export default function ZdjeciaScreen() {
       } = await supabase.auth.getSession();
 
       if (!session?.user?.id) {
-        Alert.alert('BĹ‚Ä…d', 'Musisz byÄ‡ zalogowany');
+        Alert.alert('Błąd', 'Musisz być zalogowany');
         return;
       }
 
       const etap = etapy.find((e) => e.id === selectedEtapForUpload);
       if (!etap) {
-        Alert.alert('BĹ‚Ä…d', 'Nie znaleziono etapu');
+        Alert.alert('Błąd', 'Nie znaleziono etapu');
         return;
       }
 
@@ -223,75 +249,72 @@ export default function ZdjeciaScreen() {
       const contentType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
 
       const fileName = `${timestamp}.${fileExt}`;
-      const storagePath = `${session.user.id}/${etapFolder}/${fileName}`;
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: 'base64',
-      });
+      const file_path = `${session.user.id}/${etapFolder}/${fileName}`;
+
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
       const arrayBuffer = decodeBase64(base64);
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(storagePath, arrayBuffer, {
-          contentType,
-          upsert: false,
-        });
-
+      const { error: uploadError } = await supabase.storage.from(bucketName).upload(file_path, arrayBuffer, {
+        contentType,
+        upsert: false,
+      });
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
-      const publicUrl = urlData?.publicUrl;
-
-      if (!publicUrl) throw new Error('Brak publicUrl po uploadzie');
+      const tags =
+        tagsInput
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean);
 
       const { error: insertError } = await supabase.from('zdjecia').insert({
         user_id: session.user.id,
-        etap_id: etap.id,
-        url: publicUrl,
+        etap_zdjecia_id: etap.id,
+        file_path,
+        taken_at: takenAt ? takenAt.toISOString() : null,
+        komentarz: opis ? opis : null,
+        tags: tags.length ? tags : null,
       });
 
       if (insertError) throw insertError;
 
       setAddModalVisible(false);
       setSelectedEtapForUpload('');
+      setTakenAt(null);
+      setOpis('');
+      setTagsInput('');
+      setUploadDropdownOpen(false);
+
       await loadZdjecia(false);
-      Alert.alert('Sukces', 'ZdjÄ™cie zostaĹ‚o dodane');
+      Alert.alert('Sukces', 'Zdjęcie zostało dodane');
     } catch (e: any) {
-      console.error('BĹ‚Ä…d uploadu:', e);
-      Alert.alert('BĹ‚Ä…d', e?.message ? String(e.message) : 'Nie udaĹ‚o siÄ™ dodaÄ‡ zdjÄ™cia');
+      console.error('Błąd uploadu:', e);
+      Alert.alert('Błąd', e?.message ? String(e.message) : 'Nie udało się dodać zdjęcia');
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeletePhoto = async (z: Zdjecie) => {
-    Alert.alert('UsuĹ„ zdjÄ™cie', 'Czy na pewno chcesz usunÄ…Ä‡ to zdjÄ™cie?', [
+    Alert.alert('Usuń zdjęcie', 'Czy na pewno chcesz usunąć to zdjęcie?', [
       { text: 'Anuluj', style: 'cancel' },
       {
-        text: 'UsuĹ„',
+        text: 'Usuń',
         style: 'destructive',
         onPress: async () => {
           try {
-            // 1) usuĹ„ rekord
             const { error: delError } = await supabase.from('zdjecia').delete().eq('id', z.id);
             if (delError) throw delError;
 
-            // 2) usuĹ„ plik (tylko jeĹ›li uda siÄ™ wyliczyÄ‡ Ĺ›cieĹĽkÄ™)
-            const storagePath = deriveStoragePath(z.url);
-            if (storagePath) {
-              const { error: rmError } = await supabase.storage.from(bucketName).remove([storagePath]);
-              if (rmError) {
-                // nie blokuj usera, ale loguj
-                console.warn('Nie udaĹ‚o siÄ™ usunÄ…Ä‡ pliku ze storage:', rmError);
-              }
-            }
+            const { error: rmError } = await supabase.storage.from(bucketName).remove([z.file_path]);
+            if (rmError) console.warn('Nie udało się usunąć pliku ze storage:', rmError);
 
             setPreviewModalVisible(false);
             setSelectedZdjecie(null);
             await loadZdjecia(false);
-            Alert.alert('Sukces', 'ZdjÄ™cie zostaĹ‚o usuniÄ™te');
+            Alert.alert('Sukces', 'Zdjęcie zostało usunięte');
           } catch (e) {
-            console.error('BĹ‚Ä…d usuwania:', e);
-            Alert.alert('BĹ‚Ä…d', 'Nie udaĹ‚o siÄ™ usunÄ…Ä‡ zdjÄ™cia');
+            console.error('Błąd usuwania:', e);
+            Alert.alert('Błąd', 'Nie udało się usunąć zdjęcia');
           }
         },
       },
@@ -303,17 +326,20 @@ export default function ZdjeciaScreen() {
     setPreviewModalVisible(true);
   };
 
+  const getDisplayDate = (z: Zdjecie) => {
+    const base = z.taken_at ? new Date(z.taken_at) : new Date(z.created_at);
+    return base.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
   const renderGridItem = ({ item }: { item: Zdjecie }) => {
-    const etapName = getEtapName(item.etap_id);
+    const etapName = getEtapName(item.etap_zdjecia_id);
     return (
       <TouchableOpacity style={styles.gridCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
         <BlurView intensity={25} tint="dark" style={styles.cardBlur}>
           <Image source={{ uri: item.url }} style={styles.gridImage} contentFit="cover" transition={250} />
           <View style={styles.cardOverlay}>
             <Text style={styles.etapBadge}>{etapName.toUpperCase()}</Text>
-            <Text style={styles.dateText}>
-              {new Date(item.created_at).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-            </Text>
+            <Text style={styles.dateText}>{getDisplayDate(item)}</Text>
           </View>
         </BlurView>
       </TouchableOpacity>
@@ -321,16 +347,14 @@ export default function ZdjeciaScreen() {
   };
 
   const renderCarouselItem = ({ item }: { item: Zdjecie }) => {
-    const etapName = getEtapName(item.etap_id);
+    const etapName = getEtapName(item.etap_zdjecia_id);
     return (
       <TouchableOpacity style={styles.carouselCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
         <BlurView intensity={25} tint="dark" style={styles.carouselBlur}>
           <Image source={{ uri: item.url }} style={styles.carouselImage} contentFit="cover" transition={250} />
           <View style={styles.carouselInfo}>
             <Text style={styles.carouselEtap}>{etapName.toUpperCase()}</Text>
-            <Text style={styles.carouselDate}>
-              {new Date(item.created_at).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </Text>
+            <Text style={styles.carouselDate}>{getDisplayDate(item)}</Text>
           </View>
         </BlurView>
       </TouchableOpacity>
@@ -341,77 +365,123 @@ export default function ZdjeciaScreen() {
     <View style={styles.emptyContainer}>
       <BlurView intensity={15} tint="dark" style={styles.emptyCard}>
         <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.25)" />
-        <Text style={styles.emptyTitle}>Brak zdjÄ™Ä‡</Text>
+        <Text style={styles.emptyTitle}>Brak zdjęć</Text>
         <Text style={styles.emptySubtitle}>
-          {selectedEtap === 'all' ? 'Dodaj swoje pierwsze zdjÄ™cie z budowy.' : 'Brak zdjÄ™Ä‡ dla wybranego etapu.'}
+          {selectedEtap === 'all' ? 'Dodaj swoje pierwsze zdjęcie z budowy.' : 'Brak zdjęć dla wybranego etapu.'}
         </Text>
         <TouchableOpacity style={styles.emptyButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color={COLORS.bg} />
-          <Text style={styles.emptyButtonText}>Dodaj zdjÄ™cie</Text>
+          <Text style={styles.emptyButtonText}>Dodaj zdjęcie</Text>
         </TouchableOpacity>
       </BlurView>
     </View>
   );
 
+  const selectedFilterLabel = useMemo(() => {
+    if (selectedEtap === 'all') return 'Wszystkie etapy';
+    return getEtapName(selectedEtap);
+  }, [selectedEtap, getEtapName]);
+
+  const selectedUploadEtapLabel = useMemo(() => {
+    if (!selectedEtapForUpload) return 'Wybierz etap';
+    return getEtapName(selectedEtapForUpload);
+  }, [selectedEtapForUpload, getEtapName]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-        <Text style={styles.loadingText}>Ĺadowanie zdjÄ™Ä‡â€¦</Text>
+        <ActivityIndicator size="large" color={COLORS.brand} />
+        <Text style={styles.loadingText}>Ładowanie zdjęć…</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* glows */}
       <View style={styles.glowOne} />
       <View style={styles.glowTwo} />
 
+      {/* HEADER */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerLabel}>Galeria budowy</Text>
-          <Text style={styles.title}>ZdjÄ™cia</Text>
-        </View>
+        <Text style={styles.title}>Zdjęcia</Text>
 
-        <View style={styles.viewToggle}>
+        <View style={styles.headerRight}>
           <TouchableOpacity
             style={[styles.toggleButton, viewMode === 'grid' && styles.toggleButtonActive]}
             onPress={() => setViewMode('grid')}
           >
-            <Ionicons name="grid" size={20} color={viewMode === 'grid' ? COLORS.accent : 'rgba(255,255,255,0.45)'} />
+            <Ionicons name="grid" size={20} color={viewMode === 'grid' ? COLORS.brand : 'rgba(255,255,255,0.45)'} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.toggleButton, viewMode === 'carousel' && styles.toggleButtonActive]}
             onPress={() => setViewMode('carousel')}
           >
-            <Ionicons name="albums" size={20} color={viewMode === 'carousel' ? COLORS.accent : 'rgba(255,255,255,0.45)'} />
+            <Ionicons name="albums" size={20} color={viewMode === 'carousel' ? COLORS.brand : 'rgba(255,255,255,0.45)'} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer} contentContainerStyle={styles.filterContent}>
-        <TouchableOpacity
-          style={[styles.filterPill, selectedEtap === 'all' && styles.filterPillActive]}
-          onPress={() => setSelectedEtap('all')}
-        >
-          <Text style={[styles.filterText, selectedEtap === 'all' && styles.filterTextActive]}>WSZYSTKIE</Text>
-        </TouchableOpacity>
+      {/* FILTER BAR */}
+      <View style={styles.filterBar}>
+        <Text style={styles.headerLabel}>Filtr etapu</Text>
 
-        {etapy.map((etap) => (
+        <View style={styles.dropdownWrap}>
           <TouchableOpacity
-            key={etap.id}
-            style={[styles.filterPill, selectedEtap === etap.id && styles.filterPillActive]}
-            onPress={() => setSelectedEtap(etap.id)}
+            style={styles.dropdownButton}
+            activeOpacity={0.85}
+            onPress={() => setFilterDropdownOpen((v) => !v)}
           >
-            <Text style={[styles.filterText, selectedEtap === etap.id && styles.filterTextActive]}>
-              {etap.nazwa.toUpperCase()}
+            <Ionicons name="filter" size={16} color={COLORS.brand} />
+            <Text style={styles.dropdownButtonText} numberOfLines={1}>
+              {selectedFilterLabel}
             </Text>
+            <Ionicons
+              name={filterDropdownOpen ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color="rgba(255,255,255,0.65)"
+            />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
 
+          {filterDropdownOpen && (
+            <View style={styles.dropdownPanel}>
+              <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
+                <TouchableOpacity
+                  style={[styles.dropdownItem, selectedEtap === 'all' && styles.dropdownItemActive]}
+                  onPress={() => {
+                    setSelectedEtap('all');
+                    setFilterDropdownOpen(false);
+                  }}
+                >
+                  <Text style={[styles.dropdownItemText, selectedEtap === 'all' && styles.dropdownItemTextActive]}>
+                    Wszystkie etapy
+                  </Text>
+                  {selectedEtap === 'all' && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
+                </TouchableOpacity>
+
+                {etapy.map((etap) => {
+                  const active = selectedEtap === etap.id;
+                  return (
+                    <TouchableOpacity
+                      key={etap.id}
+                      style={[styles.dropdownItem, active && styles.dropdownItemActive]}
+                      onPress={() => {
+                        setSelectedEtap(etap.id);
+                        setFilterDropdownOpen(false);
+                      }}
+                    >
+                      <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>{etap.nazwa}</Text>
+                      {active && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* LIST */}
       {zdjecia.length === 0 ? (
         renderEmptyState()
       ) : viewMode === 'grid' ? (
@@ -422,7 +492,7 @@ export default function ZdjeciaScreen() {
           numColumns={2}
           contentContainerStyle={styles.gridContainer}
           columnWrapperStyle={styles.gridRow}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brand} />}
         />
       ) : (
         <FlatList
@@ -435,41 +505,125 @@ export default function ZdjeciaScreen() {
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.carouselContainer}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brand} />}
         />
       )}
 
       {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
-        <BlurView intensity={80} tint="dark" style={styles.fabBlur}>
-          <Ionicons name="add" size={30} color={COLORS.accent} />
+      <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)} activeOpacity={0.9}>
+        <BlurView intensity={90} tint="dark" style={styles.fabBlur}>
+          <View style={styles.fabRing} />
+          <Ionicons name="add" size={30} color={COLORS.brand} />
         </BlurView>
       </TouchableOpacity>
 
       {/* ADD MODAL */}
-      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
+      <Modal
+        visible={addModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddModalVisible(false)}
+      >
         <BlurView intensity={90} tint="dark" style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Dodaj zdjÄ™cie</Text>
+            <Text style={styles.modalTitle}>Dodaj zdjęcie</Text>
 
-            <Text style={styles.modalLabel}>WYBIERZ ETAP</Text>
+            {/* UPLOAD ETAP DROPDOWN */}
+            <Text style={styles.modalLabel}>ETAP ZDJĘCIA</Text>
 
-            <ScrollView style={styles.etapList} showsVerticalScrollIndicator={false}>
-              {etapy.map((etap) => {
-                const active = selectedEtapForUpload === etap.id;
-                return (
-                  <TouchableOpacity
-                    key={etap.id}
-                    style={[styles.etapOption, active && styles.etapOptionActive]}
-                    onPress={() => setSelectedEtapForUpload(etap.id)}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[styles.etapOptionText, active && styles.etapOptionTextActive]}>{etap.nazwa}</Text>
-                    {active && <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              activeOpacity={0.85}
+              onPress={() => setUploadDropdownOpen((v) => !v)}
+            >
+              <Ionicons name="layers-outline" size={16} color={COLORS.brand} />
+              <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                {selectedUploadEtapLabel}
+              </Text>
+              <Ionicons
+                name={uploadDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color="rgba(255,255,255,0.65)"
+              />
+            </TouchableOpacity>
+
+            {uploadDropdownOpen && (
+              <View style={styles.dropdownPanel}>
+                <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+                  {etapy.map((etap) => {
+                    const active = selectedEtapForUpload === etap.id;
+                    return (
+                      <TouchableOpacity
+                        key={etap.id}
+                        style={[styles.dropdownItem, active && styles.dropdownItemActive]}
+                        onPress={() => {
+                          setSelectedEtapForUpload(etap.id);
+                          setUploadDropdownOpen(false);
+                        }}
+                      >
+                        <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>{etap.nazwa}</Text>
+                        {active && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* DATE */}
+            <Text style={styles.modalLabel}>DATA ZDJĘCIA (opcjonalnie)</Text>
+            <TouchableOpacity
+              style={styles.dateButton}
+              activeOpacity={0.85}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={18} color={COLORS.brand} />
+              <Text style={styles.dateButtonText}>
+                {takenAt ? takenAt.toLocaleDateString('pl-PL') : 'Wybierz datę'}
+              </Text>
+              {takenAt && (
+                <TouchableOpacity
+                  onPress={() => setTakenAt(null)}
+                  style={styles.dateClear}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.55)" />
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={takenAt ?? new Date()}
+                mode="date"
+                display="default"
+                onChange={(_, date) => {
+                  setShowDatePicker(false);
+                  if (date) setTakenAt(date);
+                }}
+              />
+            )}
+
+            {/* OPIS */}
+            <Text style={styles.modalLabel}>OPIS (opcjonalnie)</Text>
+            <TextInput
+              value={opis}
+              onChangeText={setOpis}
+              placeholder="Np. montaż okien od południa"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              style={styles.textArea}
+              multiline
+            />
+
+            {/* TAGI */}
+            <Text style={styles.modalLabel}>TAGI (opcjonalnie)</Text>
+            <TextInput
+              value={tagsInput}
+              onChangeText={setTagsInput}
+              placeholder="np. dach, okna, elektryka"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              style={styles.input}
+            />
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -477,6 +631,10 @@ export default function ZdjeciaScreen() {
                 onPress={() => {
                   setAddModalVisible(false);
                   setSelectedEtapForUpload('');
+                  setTakenAt(null);
+                  setOpis('');
+                  setTagsInput('');
+                  setUploadDropdownOpen(false);
                 }}
                 disabled={uploading}
                 activeOpacity={0.85}
@@ -490,19 +648,26 @@ export default function ZdjeciaScreen() {
                 disabled={uploading || !canPick}
                 activeOpacity={0.85}
               >
-                {uploading ? <ActivityIndicator color={COLORS.bg} /> : <Text style={styles.modalButtonTextPrimary}>Wybierz zdjÄ™cie</Text>}
+                {uploading ? (
+                  <ActivityIndicator color={COLORS.bg} />
+                ) : (
+                  <Text style={styles.modalButtonTextPrimary}>Wybierz zdjęcie</Text>
+                )}
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalHint}>
-              ZdjÄ™cie zostanie zapisane do Storage ({bucketName}) i przypisane do etapu.
-            </Text>
+            <Text style={styles.modalHint}>Zapis do Storage ({bucketName}) + etap + opcjonalne pola.</Text>
           </View>
         </BlurView>
       </Modal>
 
       {/* PREVIEW MODAL */}
-      <Modal visible={previewModalVisible} transparent animationType="fade" onRequestClose={() => setPreviewModalVisible(false)}>
+      <Modal
+        visible={previewModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewModalVisible(false)}
+      >
         <BlurView intensity={95} tint="dark" style={styles.previewOverlay}>
           <TouchableOpacity style={styles.closeButton} onPress={() => setPreviewModalVisible(false)} activeOpacity={0.85}>
             <Ionicons name="close" size={28} color={COLORS.text} />
@@ -514,20 +679,39 @@ export default function ZdjeciaScreen() {
 
               <View style={styles.previewInfo}>
                 <BlurView intensity={80} tint="dark" style={styles.previewInfoBlur}>
-                  <Text style={styles.previewEtap}>{getEtapName(selectedZdjecie.etap_id).toUpperCase()}</Text>
+                  <Text style={styles.previewEtap}>{getEtapName(selectedZdjecie.etap_zdjecia_id).toUpperCase()}</Text>
                   <Text style={styles.previewDate}>
-                    {new Date(selectedZdjecie.created_at).toLocaleString('pl-PL', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {(() => {
+                      const dt = selectedZdjecie.taken_at ? new Date(selectedZdjecie.taken_at) : new Date(selectedZdjecie.created_at);
+                      return dt.toLocaleString('pl-PL', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+                    })()}
                   </Text>
+
+                  {selectedZdjecie.komentarz ? (
+                    <Text style={styles.previewOpis} numberOfLines={3}>
+                      {selectedZdjecie.komentarz}
+                    </Text>
+                  ) : null}
+
+                  {selectedZdjecie.tags?.length ? (
+                    <View style={styles.tagsRow}>
+                      {selectedZdjecie.tags.slice(0, 6).map((t, idx) => (
+                        <View key={`${t}-${idx}`} style={styles.tagPill}>
+                          <Text style={styles.tagText}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
 
                   <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePhoto(selectedZdjecie)} activeOpacity={0.85}>
                     <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
-                    <Text style={styles.deleteButtonText}>UsuĹ„ zdjÄ™cie</Text>
+                    <Text style={styles.deleteButtonText}>Usuń zdjęcie</Text>
                   </TouchableOpacity>
                 </BlurView>
               </View>
@@ -547,8 +731,8 @@ const styles = StyleSheet.create({
     width: 320,
     height: 320,
     borderRadius: 999,
-    backgroundColor: COLORS.accent,
-    opacity: 0.12,
+    backgroundColor: COLORS.brand,
+    opacity: 0.18,
     top: -40,
     right: -120,
   },
@@ -557,7 +741,7 @@ const styles = StyleSheet.create({
     width: 360,
     height: 360,
     borderRadius: 999,
-    backgroundColor: COLORS.accent2,
+    backgroundColor: COLORS.brand,
     opacity: 0.10,
     bottom: 120,
     left: -170,
@@ -566,16 +750,32 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
 
+  // HEADER (center neon)
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 58 : 38,
-    paddingBottom: 14,
+    paddingBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerLabel: { color: COLORS.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontSize: 12 },
-  title: { fontSize: 30, fontWeight: '800', color: COLORS.text, marginTop: 4 },
+  headerRight: {
+    position: 'absolute',
+    right: 16,
+    bottom: 6,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerLabel: { color: COLORS.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontSize: 12, marginBottom: 8 },
+  title: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: COLORS.brand,
+    textAlign: 'center',
+    textShadowColor: 'rgba(25,112,92,0.85)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
+    letterSpacing: 0.6,
+  },
 
   viewToggle: { flexDirection: 'row', gap: 8 },
   toggleButton: {
@@ -589,54 +789,86 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: 'rgba(94,234,212,0.14)',
-    borderColor: 'rgba(94,234,212,0.35)',
-    shadowColor: COLORS.accent,
+    backgroundColor: 'rgba(25,112,92,0.14)',
+    borderColor: 'rgba(25,112,92,0.55)',
+    shadowColor: COLORS.brand,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.45,
     shadowRadius: 12,
     elevation: 6,
   },
 
-  filterContainer: { maxHeight: 60, marginBottom: 14 },
-  filterContent: { paddingHorizontal: 16, gap: 8 },
-  filterPill: {
-    paddingHorizontal: 18,
+  // FILTER BAR + DROPDOWN
+  filterBar: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  dropdownWrap: {
+    position: 'relative',
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 999,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: 'rgba(25,112,92,0.35)',
   },
-  filterPillActive: {
-    backgroundColor: 'rgba(94,234,212,0.14)',
-    borderColor: 'rgba(94,234,212,0.45)',
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.32,
-    shadowRadius: 10,
-    elevation: 6,
+  dropdownButtonText: {
+    flex: 1,
+    color: COLORS.text,
+    fontWeight: '800',
   },
-  filterText: { fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.45)', letterSpacing: 1 },
-  filterTextActive: { color: COLORS.accent },
+  dropdownPanel: {
+    marginTop: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.30)',
+    backgroundColor: 'rgba(10,15,30,0.96)',
+  },
+  dropdownItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  dropdownItemActive: {
+    backgroundColor: 'rgba(25,112,92,0.14)',
+  },
+  dropdownItemText: {
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '800',
+  },
+  dropdownItemTextActive: {
+    color: COLORS.brand,
+  },
 
+  // GRID/CAROUSEL
   gridContainer: { paddingHorizontal: 8, paddingBottom: 110 },
   gridRow: { gap: 16, paddingHorizontal: 8, marginBottom: 16 },
   gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * 1.22, borderRadius: 18, overflow: 'hidden' },
   cardBlur: { flex: 1, borderWidth: 1, borderColor: COLORS.cardBorder },
   gridImage: { width: '100%', height: '100%' },
   cardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: 'rgba(0,0,0,0.55)' },
-  etapBadge: { fontSize: 10, fontWeight: '900', color: COLORS.accent, letterSpacing: 1, marginBottom: 4 },
-  dateText: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '600' },
+  etapBadge: { fontSize: 10, fontWeight: '900', color: COLORS.brand, letterSpacing: 1, marginBottom: 4 },
+  dateText: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700' },
 
   carouselContainer: { paddingHorizontal: 16, paddingBottom: 110 },
-  carouselCard: { width: SCREEN_WIDTH - 32, height: SCREEN_HEIGHT * 0.60, marginRight: 16, borderRadius: 26, overflow: 'hidden' },
+  carouselCard: { width: SCREEN_WIDTH - 32, height: SCREEN_HEIGHT * 0.6, marginRight: 16, borderRadius: 26, overflow: 'hidden' },
   carouselBlur: { flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
   carouselImage: { width: '100%', height: '80%' },
   carouselInfo: { padding: 20, backgroundColor: 'rgba(0,0,0,0.65)' },
-  carouselEtap: { fontSize: 13, fontWeight: '900', color: COLORS.accent, letterSpacing: 1.4, marginBottom: 6 },
-  carouselDate: { fontSize: 13, color: 'rgba(255,255,255,0.72)', fontWeight: '600' },
+  carouselEtap: { fontSize: 13, fontWeight: '900', color: COLORS.brand, letterSpacing: 1.4, marginBottom: 6 },
+  carouselDate: { fontSize: 13, color: 'rgba(255,255,255,0.72)', fontWeight: '700' },
 
+  // EMPTY
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 },
   emptyCard: {
     width: '100%',
@@ -656,26 +888,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 16,
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.brand,
   },
-  emptyButtonText: { fontSize: 14, fontWeight: '900', color: COLORS.bg, letterSpacing: 0.5 },
+  emptyButtonText: { fontSize: 14, fontWeight: '900', color: '#03110C', letterSpacing: 0.5 },
 
+  // FAB FUTURISTIC (+)
   fab: {
     position: 'absolute',
     bottom: 28,
     right: 16,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     overflow: 'hidden',
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowColor: COLORS.brand,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    elevation: 14,
   },
-  fabBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(94,234,212,0.38)' },
+  fabBlur: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(25,112,92,0.55)',
+  },
+  fabRing: {
+    position: 'absolute',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.35)',
+    backgroundColor: 'rgba(25,112,92,0.06)',
+  },
 
+  // MODAL
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 22 },
   modalContent: {
     width: '100%',
@@ -687,31 +936,50 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.10)',
   },
   modalTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text, marginBottom: 18, textAlign: 'center' },
-  modalLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.6, marginBottom: 10 },
-  etapList: { maxHeight: 280, marginBottom: 16 },
-  etapOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    marginBottom: 8,
-  },
-  etapOptionActive: { backgroundColor: 'rgba(94,234,212,0.10)', borderColor: 'rgba(94,234,212,0.28)' },
-  etapOptionText: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.72)' },
-  etapOptionTextActive: { color: COLORS.accent },
+  modalLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.6, marginTop: 12, marginBottom: 10 },
 
-  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.28)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  dateButtonText: { color: COLORS.text, fontWeight: '800', flex: 1 },
+  dateClear: { paddingHorizontal: 6, paddingVertical: 2 },
+
+  textArea: {
+    minHeight: 78,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 14,
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+  input: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 14,
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+
+  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 16 },
   modalButton: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   modalButtonSecondary: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  modalButtonPrimary: { backgroundColor: COLORS.accent },
+  modalButtonPrimary: { backgroundColor: COLORS.brand },
   modalButtonTextSecondary: { fontSize: 15, fontWeight: '900', color: 'rgba(255,255,255,0.72)' },
-  modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: COLORS.bg },
+  modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: '#03110C' },
   modalHint: { marginTop: 12, fontSize: 12, color: COLORS.muted, textAlign: 'center' },
 
+  // PREVIEW
   previewOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   closeButton: {
     position: 'absolute',
@@ -728,8 +996,21 @@ const styles = StyleSheet.create({
   previewImage: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.72 },
   previewInfo: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   previewInfoBlur: { padding: 22, paddingBottom: Platform.OS === 'ios' ? 44 : 22 },
-  previewEtap: { fontSize: 14, fontWeight: '900', color: COLORS.accent, letterSpacing: 1.6, marginBottom: 8 },
-  previewDate: { fontSize: 14, color: 'rgba(255,255,255,0.72)', fontWeight: '600', marginBottom: 16 },
+  previewEtap: { fontSize: 14, fontWeight: '900', color: COLORS.brand, letterSpacing: 1.6, marginBottom: 8 },
+  previewDate: { fontSize: 14, color: 'rgba(255,255,255,0.72)', fontWeight: '700', marginBottom: 10 },
+  previewOpis: { color: 'rgba(255,255,255,0.78)', fontWeight: '700', marginBottom: 12, lineHeight: 18 },
+
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  tagPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(25,112,92,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.25)',
+  },
+  tagText: { color: COLORS.brand, fontWeight: '900', fontSize: 12 },
+
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -743,8 +1024,3 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: { fontSize: 15, fontWeight: '900', color: COLORS.danger },
 });
-
-
-
-
-
