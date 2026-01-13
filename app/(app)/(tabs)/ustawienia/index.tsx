@@ -1,13 +1,12 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  type ViewStyle,
-  type TextStyle,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
@@ -15,270 +14,367 @@ import { useRouter } from 'expo-router';
 
 import { supabase } from '../../../../lib/supabase';
 
+function safeEmailPrefix(email?: string | null) {
+  if (!email) return 'Użytkownik';
+  const [p] = email.split('@');
+  return p ? p : 'Użytkownik';
+}
+
+type MenuItem = {
+  key: string;
+  title: string;
+  subtitle?: string;
+  icon: keyof typeof Feather.glyphMap;
+  onPress: () => void;
+  danger?: boolean;
+};
+
 export default function UstawieniaScreen() {
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [surname, setSurname] = useState('');
-  const [profileComplete, setProfileComplete] = useState(false);
-  const [investmentComplete, setInvestmentComplete] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [displayName, setDisplayName] = useState('Ustawienia');
+  const [email, setEmail] = useState(''); // logika zostaje (UI nie pokazuje)
 
   useEffect(() => {
+    let alive = true;
+
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) return;
+      try {
+        setLoading(true);
+        const { data: userData, error: userErr } = await supabase.auth.getUser();
+        if (userErr) throw userErr;
 
-      setEmail(user.email ?? '');
+        const user = userData.user;
+        if (!user) {
+          if (!alive) return;
+          setDisplayName('Ustawienia');
+          setEmail('');
+          return;
+        }
 
-      const [profileRes, investmentRes] = await Promise.all([
-        supabase
+        if (!alive) return;
+        setEmail(user.email ?? '');
+
+        const { data: profile, error: profErr } = await supabase
           .from('profiles')
-          .select('imie, nazwisko, profil_wypelniony')
+          .select('imie')
           .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('inwestycje')
-          .select('inwestycja_wypelniona')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-      ]);
+          .maybeSingle();
 
-      if (profileRes.data) {
-        setName(profileRes.data.imie ?? '');
-        setSurname(profileRes.data.nazwisko ?? '');
-        setProfileComplete(Boolean(profileRes.data.profil_wypelniony));
-      } else {
-        setProfileComplete(false);
-      }
+        if (profErr && profErr.code !== 'PGRST116') {
+          console.warn('profiles select error:', profErr);
+        }
 
-      if (investmentRes.data) {
-        setInvestmentComplete(Boolean(investmentRes.data.inwestycja_wypelniona));
-      } else {
-        setInvestmentComplete(false);
+        const name = (profile?.imie || '').trim();
+        if (name) setDisplayName(name);
+        else setDisplayName(safeEmailPrefix(user.email));
+      } catch (e: any) {
+        Alert.alert('Błąd', e?.message ?? 'Nie udało się pobrać danych.');
+      } finally {
+        if (alive) setLoading(false);
       }
     })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
-
   const handlePlaceholder = (label: string) => {
-    Alert.alert(label, 'Funkcja bÄ™dzie podpiÄ™ta po stronie Supabase.');
+    Alert.alert(label, 'Ta funkcja będzie dodana później.');
   };
 
-  const displayName =
-    [name, surname].filter(Boolean).join(' ') || 'Nieznany uĹĽytkownik';
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.replace('/login'); // jeśli masz inną ścieżkę logowania, zmień tutaj
+    } catch (e: any) {
+      Alert.alert('Błąd', e?.message ?? 'Nie udało się wylogować.');
+    }
+  };
+
+  const menuItems: MenuItem[] = useMemo(
+    () => [
+      {
+        key: 'profil',
+        title: 'Profil',
+        subtitle: 'Dane właściciela konta',
+        icon: 'user',
+        onPress: () => router.push('/(app)/profil'),
+      },
+      {
+        key: 'inwestycja',
+        title: 'Inwestycja',
+        subtitle: 'Dane projektu / budowy',
+        icon: 'home',
+        onPress: () => router.push('/(app)/inwestycja'),
+      },
+      {
+        key: 'aplikacja',
+        title: 'Aplikacja',
+        subtitle: 'Ustawienia aplikacji (później)',
+        icon: 'sliders',
+        onPress: () => handlePlaceholder('Aplikacja'),
+      },
+      {
+        key: 'sub',
+        title: 'Zarządzaj subskrypcją',
+        subtitle: 'Później',
+        icon: 'credit-card',
+        onPress: () => handlePlaceholder('Subskrypcja'),
+      },
+      {
+        key: 'report',
+        title: 'Zgłoś problem',
+        subtitle: 'Wyślij opis błędu',
+        icon: 'alert-triangle',
+        onPress: () => router.push('/(app)/(tabs)/ustawienia/zglos_problem'),
+      },
+    ],
+    [router]
+  );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
-      <View style={styles.glow} />
+    <View style={styles.screen}>
+      {/* subtle background */}
+      <View style={styles.orbTop} />
+      <View style={styles.orbMid} />
 
-      {/* USER */}
-      <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.title}>{displayName}</Text>
-        <Text style={styles.subtitle}>{email}</Text>
-
-        <View style={styles.userMetaRow}>
-          <View style={styles.metaBadge}>
-            <Feather name="shield" size={16} color="#5EEAD4" />
-            <Text style={styles.metaBadgeText}>Supabase Auth</Text>
-          </View>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 170 }}>
+        {/* HEADER (centered, bigger title) */}
+        <View style={styles.header}>
+          <Text style={styles.headerMainTitle}>
+            {loading ? 'Ładowanie…' : 'Ustawienia konta'}
+          </Text>
+          <Text style={styles.headerName}>{displayName}</Text>
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-          <Feather name="log-out" size={18} color="#F43F5E" />
+        {/* MENU */}
+        <View style={styles.menuWrap}>
+          {menuItems.map((item) => (
+            <Pressable
+              key={item.key}
+              onPress={item.onPress}
+              style={({ pressed }) => [styles.tileOuter, pressed && styles.tileOuterPressed]}
+            >
+              {/* Modern “double border” feel */}
+              <View style={styles.tileFrame}>
+                <BlurView intensity={22} tint="dark" style={styles.tile}>
+                  <View style={styles.iconRing}>
+                    <View style={styles.iconInner}>
+                      <Feather name={item.icon} size={20} color={COLORS.accent} />
+                    </View>
+                  </View>
+
+                  <View style={styles.tileTextWrap}>
+                    <Text style={styles.tileTitle}>{item.title}</Text>
+                    {!!item.subtitle && <Text style={styles.tileSubtitle}>{item.subtitle}</Text>}
+                  </View>
+
+                  <Feather name="chevron-right" size={20} color={COLORS.chevron} />
+                </BlurView>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={{ height: 10 }} />
+      </ScrollView>
+
+      {/* LOGOUT */}
+      <View style={styles.logoutDock}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.9}>
+          <View style={styles.logoutIcon}>
+            <Feather name="log-out" size={19} color={COLORS.danger} />
+          </View>
           <Text style={styles.logoutText}>Wyloguj</Text>
         </TouchableOpacity>
-      </BlurView>
-
-      {/* PROFIL */}
-      <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitle}>Profil</Text>
-
-        <View style={styles.statusRow}>
-          <View style={statusBadge(profileComplete)}>
-            <Feather
-              name={profileComplete ? 'check-circle' : 'alert-circle'}
-              size={16}
-              color={profileComplete ? '#34D399' : '#FACC15'}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={statusText(profileComplete)}>
-              {profileComplete ? 'Profil uzupeĹ‚niony' : 'Profil wymagany'}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => router.push('/(app)/profil')}
-          >
-            <Text style={styles.secondaryButtonText}>Edytuj</Text>
-          </TouchableOpacity>
-        </View>
-      </BlurView>
-
-      {/* INWESTYCJA */}
-      <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitle}>Inwestycja</Text>
-
-        <View style={styles.statusRow}>
-          <View style={statusBadge(investmentComplete)}>
-            <Feather
-              name={investmentComplete ? 'check-circle' : 'alert-circle'}
-              size={16}
-              color={investmentComplete ? '#34D399' : '#FACC15'}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={statusText(investmentComplete)}>
-              {investmentComplete ? 'Inwestycja uzupeĹ‚niona' : 'Inwestycja wymagana'}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => router.push('/(app)/inwestycja')}
-          >
-            <Text style={styles.secondaryButtonText}>Edytuj</Text>
-          </TouchableOpacity>
-        </View>
-      </BlurView>
-
-      {/* BEZPIECZEĹSTWO */}
-      <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitle}>BezpieczeĹ„stwo</Text>
-
-        <TouchableOpacity
-          style={styles.actionRow}
-          onPress={() => handlePlaceholder('ZmieĹ„ hasĹ‚o')}
-        >
-          <View style={styles.actionIcon}>
-            <Feather name="lock" size={16} color="#0B1120" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.actionLabel}>ZmieĹ„ hasĹ‚o</Text>
-            <Text style={styles.actionDescription}>Reset przez Supabase</Text>
-          </View>
-          <Feather name="chevron-right" size={18} color="#94A3B8" />
-        </TouchableOpacity>
-      </BlurView>
-    </ScrollView>
+      </View>
+    </View>
   );
 }
+
+/* ===================== THEME ===================== */
+
+const COLORS = {
+  bg: '#0A0A0A',
+  text: '#FFFFFF',
+  muted: 'rgba(255,255,255,0.44)',
+  border: 'rgba(255,255,255,0.08)',
+  border2: 'rgba(255,255,255,0.14)',
+  cardFill: 'rgba(255,255,255,0.035)',
+  accent: '#19705C',
+  accentSoft: 'rgba(25,112,92,0.26)',
+  accentFill: 'rgba(25,112,92,0.07)',
+  chevron: 'rgba(255,255,255,0.34)',
+  danger: '#FF4747',
+  dangerBorder: 'rgba(255,71,71,0.30)',
+};
 
 /* ===================== STYLES ===================== */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050915', paddingHorizontal: 16, paddingTop: 40 },
+  screen: { flex: 1, backgroundColor: COLORS.bg },
 
-  glow: {
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 26 },
+
+  orbTop: {
+    position: 'absolute',
+    width: 460,
+    height: 460,
+    borderRadius: 999,
+    backgroundColor: COLORS.accent,
+    opacity: 0.10,
+    top: -250,
+    right: -230,
+  },
+  orbMid: {
     position: 'absolute',
     width: 340,
     height: 340,
     borderRadius: 999,
-    backgroundColor: '#F472B6',
-    opacity: 0.12,
-    top: 60,
-    right: -140,
+    backgroundColor: COLORS.accent,
+    opacity: 0.06,
+    top: 160,
+    left: -210,
   },
 
-  card: {
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    padding: 22,
-    marginBottom: 18,
-  },
-
-  title: { color: '#F8FAFC', fontSize: 24, fontWeight: '800' },
-  subtitle: { color: '#94A3B8', marginTop: 6 },
-
-  userMetaRow: { flexDirection: 'row', gap: 12, marginTop: 18 },
-  metaBadge: {
-    flexDirection: 'row',
+  header: {
+    paddingTop: 12,
+    paddingBottom: 18,
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(94,234,212,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.3)',
   },
-  metaBadgeText: { color: '#5EEAD4', fontWeight: '600' },
 
-  logoutButton: {
-    marginTop: 20,
-    borderRadius: 18,
+  headerMainTitle: {
+    color: COLORS.text,
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    textAlign: 'center',
+    textShadowColor: 'rgba(25,112,92,0.20)',
+    textShadowRadius: 14,
+  },
+
+  headerName: {
+    marginTop: 10,
+    color: 'rgba(255,255,255,0.86)',
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+    textAlign: 'center',
+  },
+
+  menuWrap: {
+    gap: 12,
+    marginTop: 18,
+  },
+
+  tileOuter: {
+    borderRadius: 22,
+    shadowColor: '#000',
+    shadowOpacity: 0.38,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 3,
+  },
+
+  tileOuterPressed: {
+    transform: [{ scale: 1.01 }],
+  },
+
+  // “frame” gives a more modern border vibe
+  tileFrame: {
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(244,63,94,0.4)',
-    paddingVertical: 12,
+    borderColor: 'rgba(25,112,92,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.01)',
+    padding: 1, // creates outer ring effect
+  },
+
+  tile: {
+    height: 72,
+    borderRadius: 21,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(244,63,94,0.1)',
-  },
-  logoutText: { color: '#F43F5E', fontWeight: '700' },
-
-  sectionTitle: { color: '#F8FAFC', fontSize: 20, fontWeight: '700', marginBottom: 12 },
-
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-
-  secondaryButton: {
-    borderRadius: 12,
+    backgroundColor: COLORS.cardFill,
     borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.4)',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: 'rgba(94,234,212,0.08)',
+    borderColor: COLORS.border,
+    overflow: 'hidden',
   },
-  secondaryButtonText: { color: '#5EEAD4', fontWeight: '700' },
 
-  actionRow: {
+  iconRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.accentSoft,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  iconInner: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.accentFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  tileTextWrap: { flex: 1 },
+
+  tileTitle: {
+    color: COLORS.text,
+    fontSize: 17.5,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+
+  tileSubtitle: {
+    marginTop: 4,
+    color: 'rgba(255,255,255,0.40)',
+    fontSize: 13,
+    fontWeight: '400',
+  },
+
+  logoutDock: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 24,
+  },
+
+  logoutButton: {
+    height: 58,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: COLORS.border2,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    gap: 10,
   },
-  actionIcon: {
+
+  logoutIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.dangerBorder,
+    backgroundColor: 'rgba(255,71,71,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#5EEAD4',
   },
-  actionLabel: { color: '#F8FAFC', fontSize: 16, fontWeight: '600' },
-  actionDescription: { color: '#94A3B8', marginTop: 2 },
+
+  logoutText: {
+    fontSize: 16.5,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.74)',
+    letterSpacing: -0.1,
+  },
 });
-
-/* ===================== DYNAMIC STYLES ===================== */
-
-const statusBadge = (ok: boolean): ViewStyle => ({
-  flexDirection: 'row',
-  alignItems: 'center',
-  borderRadius: 999,
-  paddingHorizontal: 12,
-  paddingVertical: 8,
-  backgroundColor: ok ? 'rgba(52,211,153,0.12)' : 'rgba(250,204,21,0.12)',
-  borderWidth: 1,
-  borderColor: ok ? 'rgba(52,211,153,0.4)' : 'rgba(250,204,21,0.35)',
-});
-
-const statusText = (ok: boolean): TextStyle => ({
-  color: ok ? '#34D399' : '#FACC15',
-  fontWeight: '700',
-});
-
-
-
-
