@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
   KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
@@ -20,6 +21,8 @@ import { supabase } from '../../../../lib/supabase'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import * as FileSystem from 'expo-file-system/legacy'
+import Model3DView from '../../../../components/Model3DView'
+import logo from '../../../../assets/logo.png'
 
 type Projekt = {
   id: string
@@ -50,7 +53,7 @@ type Rzut = {
 }
 
 const DEFAULT_MODEL_URL =
-  'https://YOUR-PROJECT.supabase.co/storage/v1/object/public/models/default.glb'
+  'https://pkgeautweumkupfxfjoo.supabase.co/storage/v1/object/public/models/dom_small.glb'
 
 const BUCKET_RZUTY = 'rzuty_projektu'
 
@@ -140,6 +143,7 @@ export default function ProjektScreen() {
         const { data: authData, error: authErr } = await supabase.auth.getUser()
         if (authErr) throw authErr
         const user = authData?.user
+
         if (!user?.id) {
           if (!alive) return
           setUserId(null)
@@ -253,7 +257,6 @@ export default function ProjektScreen() {
         return
       }
 
-      // kompatybilnie (żeby nie świeciło na czerwono zależnie od wersji)
       const mediaTypes =
         (ImagePicker as any).MediaType?.Images ??
         (ImagePicker as any).MediaType?.Image ??
@@ -269,10 +272,7 @@ export default function ProjektScreen() {
       const asset = picked.assets?.[0]
       if (!asset?.uri) return
 
-      const uri = asset.uri
-
-      // wymuszamy JPEG (iOS często daje HEIC -> potem masz 0 bytes / image/heic)
-      const manipulated = await ImageManipulator.manipulateAsync(uri, [], {
+      const manipulated = await ImageManipulator.manipulateAsync(asset.uri, [], {
         compress: 0.9,
         format: ImageManipulator.SaveFormat.JPEG,
       })
@@ -281,17 +281,9 @@ export default function ProjektScreen() {
       const path = `rzuty/${userId}/${proj.id}/${key}`
 
       const base64 = await FileSystem.readAsStringAsync(manipulated.uri, {
-        // TS w SDK bywa marudny na enumy, więc literal:
         encoding: 'base64' as any,
       })
-
       const bytes = base64ToUint8Array(base64)
-
-      console.log('[RZUT]', {
-        originalUri: uri,
-        manipulatedUri: manipulated.uri,
-        blobSize: bytes.byteLength,
-      })
 
       const { error: upErr } = await supabase.storage
         .from(BUCKET_RZUTY)
@@ -435,29 +427,56 @@ export default function ProjektScreen() {
     }
   }
 
+  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
-      <View style={styles.glow} />
+      <View style={[styles.safeTop, { height: topPad }]} />
 
-      {/* MODEL 3D */}
-      <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.heroLabel}>Mój projekt</Text>
-        <Text style={styles.heroTitle}>{projekt?.nazwa || '—'}</Text>
+      {/* TOP BAR: tylko logo */}
+      <View style={styles.topBar}>
+        <View style={styles.logoWrap}>
+          <Image source={logo} style={styles.logoImg} resizeMode="contain" />
+        </View>
+        <View style={{ width: 30, height: 30 }} />{/* balans bez pogody */}
+      </View>
 
-        <View style={styles.modelCard}>
-          <Feather name="cpu" size={34} color="#5EEAD4" />
-          <Text style={styles.modelTitle}>Model 3D</Text>
-          <Text style={styles.modelUrl} numberOfLines={1}>
-            {modelUrl}
-          </Text>
+      {/* Nagłówek: nazwa projektu */}
+      <View style={styles.headerBlock}>
+        <Text style={styles.projectTitle} numberOfLines={2}>
+          {projekt?.nazwa || '—'}
+        </Text>
+        <Text style={styles.projectLocation} numberOfLines={1}>
+          {/* lokalizacja podepniemy później z inwestycji */}
+          —
+        </Text>
+      </View>
 
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleChangeModel}>
-            <Text style={styles.primaryBtnText}>Zmień model 3D</Text>
+      {/* HERO MODEL 3D */}
+      <View style={styles.modelHeroWrap}>
+        <View style={styles.modelGlowA} />
+        <View style={styles.modelGlowB} />
+
+        <View style={styles.modelHero}>
+          <View style={styles.modelHeroTop}>
+            <Text style={styles.modelHeroTitle}>Model 3D</Text>
+            <Text style={styles.modelHeroSub} numberOfLines={1}>
+              {modelUrl}
+            </Text>
+          </View>
+
+          <View style={styles.modelStage}>
+            <Model3DView url={modelUrl} />
+          </View>
+
+          <TouchableOpacity style={styles.modelCta} onPress={handleChangeModel} activeOpacity={0.9}>
+            <Feather name="refresh-cw" size={16} color="#0B1120" />
+            <Text style={styles.modelCtaText}>Dodaj / zamień model 3D</Text>
           </TouchableOpacity>
         </View>
-      </BlurView>
+      </View>
 
-      {/* PARAMETRY - MAŁE KAFELKI */}
+      {/* PARAMETRY */}
       <BlurView intensity={80} tint="dark" style={styles.card}>
         <Text style={styles.sectionTitleCenter}>Parametry budynku</Text>
 
@@ -569,7 +588,11 @@ export default function ProjektScreen() {
                   value={form.powierzchnia_uzytkowa}
                   onChange={(t) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: t }))}
                 />
-                <FieldNum label="Kondygnacje" value={form.kondygnacje} onChange={(t) => setForm((p) => ({ ...p, kondygnacje: t }))} />
+                <FieldNum
+                  label="Kondygnacje"
+                  value={form.kondygnacje}
+                  onChange={(t) => setForm((p) => ({ ...p, kondygnacje: t }))}
+                />
               </View>
 
               <View style={styles.row2}>
@@ -591,7 +614,11 @@ export default function ProjektScreen() {
                   value={form.wysokosc_budynku}
                   onChange={(t) => setForm((p) => ({ ...p, wysokosc_budynku: t }))}
                 />
-                <FieldNum label="Kąt dachu (°)" value={form.kat_dachu} onChange={(t) => setForm((p) => ({ ...p, kat_dachu: t }))} />
+                <FieldNum
+                  label="Kąt dachu (°)"
+                  value={form.kat_dachu}
+                  onChange={(t) => setForm((p) => ({ ...p, kat_dachu: t }))}
+                />
               </View>
 
               <View style={styles.row2}>
@@ -607,14 +634,14 @@ export default function ProjektScreen() {
                 />
               </View>
 
-              <FieldNum label="Dł. elewacji (m)" value={form.dlugosc_elewacji} onChange={(t) => setForm((p) => ({ ...p, dlugosc_elewacji: t }))} />
+              <FieldNum
+                label="Dł. elewacji (m)"
+                value={form.dlugosc_elewacji}
+                onChange={(t) => setForm((p) => ({ ...p, dlugosc_elewacji: t }))}
+              />
 
               <View style={styles.modalActions}>
-                <TouchableOpacity
-                  onPress={() => setEditOpen(false)}
-                  style={[styles.modalBtn, styles.modalBtnGhost]}
-                  disabled={saving}
-                >
+                <TouchableOpacity onPress={() => setEditOpen(false)} style={[styles.modalBtn, styles.modalBtnGhost]} disabled={saving}>
                   <Text style={styles.modalBtnGhostText}>Anuluj</Text>
                 </TouchableOpacity>
 
@@ -630,15 +657,7 @@ export default function ProjektScreen() {
   )
 }
 
-function FieldText({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (t: string) => void
-}) {
+function FieldText({ label, value, onChange }: { label: string; value: string; onChange: (t: string) => void }) {
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -647,15 +666,7 @@ function FieldText({
   )
 }
 
-function FieldNum({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (t: string) => void
-}) {
+function FieldNum({ label, value, onChange }: { label: string; value: string; onChange: (t: string) => void }) {
   return (
     <View style={[styles.field, { flex: 1 }]}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -672,17 +683,73 @@ function FieldNum({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050915', paddingHorizontal: 16, paddingTop: 18 },
-  glow: {
+  container: { flex: 1, backgroundColor: '#050915', paddingHorizontal: 16 },
+
+  safeTop: { width: '100%' },
+
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  logoWrap: { alignItems: 'flex-start', justifyContent: 'center' },
+  logoImg: { width: 30, height: 30 },
+
+  headerBlock: { alignItems: 'center', paddingVertical: 6 },
+  projectTitle: { color: '#F8FAFC', fontSize: 26, fontWeight: '900', textAlign: 'center' },
+  projectLocation: { marginTop: 6, color: 'rgba(148,163,184,0.9)', fontSize: 13, fontWeight: '700' },
+
+  modelHeroWrap: { marginTop: 10, marginBottom: 18 },
+  modelGlowA: {
     position: 'absolute',
-    width: 420,
-    height: 420,
+    width: 260,
+    height: 260,
+    borderRadius: 999,
+    backgroundColor: '#10B981',
+    opacity: 0.12,
+    top: -90,
+    left: -80,
+  },
+  modelGlowB: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
     borderRadius: 999,
     backgroundColor: '#0EA5E9',
-    opacity: 0.13,
-    top: 40,
-    left: -120,
+    opacity: 0.10,
+    bottom: -120,
+    right: -90,
   },
+
+  modelHero: {
+    borderRadius: 28,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    padding: 16,
+  },
+  modelHeroTop: { alignItems: 'center' },
+  modelHeroTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '900' },
+  modelHeroSub: { marginTop: 6, color: 'rgba(148,163,184,0.85)', fontSize: 11, textAlign: 'center' },
+
+  modelStage: {
+    height: 260,
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  modelCta: {
+    marginTop: 10,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 16,
+    backgroundColor: '#5EEAD4',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  modelCtaText: { color: '#0B1120', fontWeight: '900' },
 
   card: {
     borderRadius: 24,
@@ -693,32 +760,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  heroLabel: {
-    color: '#94A3B8',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-  },
-  heroTitle: {
-    color: '#F8FAFC',
-    fontSize: 26,
-    fontWeight: '800',
-    marginTop: 6,
-    textAlign: 'center',
-  },
-
-  modelCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.35)',
-    backgroundColor: '#020617',
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  modelTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '900', marginTop: 10 },
-  modelUrl: { color: '#94A3B8', fontSize: 12, marginTop: 6, textAlign: 'center' },
-
   sectionTitleCenter: {
     color: '#F8FAFC',
     fontSize: 22,
@@ -726,15 +767,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
   },
-
-  primaryBtn: {
-    borderRadius: 16,
-    backgroundColor: '#5EEAD4',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    marginTop: 14,
-  },
-  primaryBtnText: { color: '#0B1120', fontWeight: '900' },
 
   secondaryBtn: {
     alignSelf: 'center',
