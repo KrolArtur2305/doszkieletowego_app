@@ -1,5 +1,12 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -22,9 +29,6 @@ const STATUS_DONE = 'zrealizowany';
 export default function PostepyScreen() {
   const router = useRouter();
   const { session, loading: authLoading } = useSupabaseAuth();
-  const initialised = !authLoading;
-
-
   const userId = session?.user?.id;
 
   const [loading, setLoading] = useState(true);
@@ -35,7 +39,7 @@ export default function PostepyScreen() {
     let cancelled = false;
 
     const load = async () => {
-      if (!initialised) return;
+      if (authLoading) return;
 
       setLoading(true);
       setError(null);
@@ -54,13 +58,10 @@ export default function PostepyScreen() {
           .order('kolejnosc', { ascending: true });
 
         if (error) throw error;
-
-        if (!cancelled) {
-          setEtapy((data ?? []) as EtapRow[]);
-        }
+        if (!cancelled) setEtapy((data ?? []) as EtapRow[]);
       } catch (e: any) {
         if (!cancelled) {
-          setError(e?.message ?? 'Nie udaĹ‚o siÄ™ pobraÄ‡ etapĂłw.');
+          setError(e?.message ?? 'Nie udało się pobrać etapów.');
           setEtapy([]);
         }
       } finally {
@@ -72,7 +73,7 @@ export default function PostepyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [initialised, userId]);
+  }, [authLoading, userId]);
 
   const {
     progressPercent,
@@ -143,23 +144,33 @@ export default function PostepyScreen() {
   }, [etapy]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
-      <View style={styles.glow} />
-
-      <BlurView intensity={75} tint="dark" style={styles.card}>
-        <Text style={styles.sectionLabel}>PostÄ™p budowy</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 140 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* POSTĘP */}
+      <BlurView intensity={18} tint="dark" style={styles.card}>
+        <Text style={styles.sectionLabel}>Postęp budowy</Text>
 
         {loading ? (
           <ActivityIndicator color="#5EEAD4" />
         ) : !hasAnyStages ? (
-          <Text style={styles.muted}>Brak etapĂłw przypisanych do tej inwestycji.</Text>
+          <Text style={styles.muted}>Brak etapów.</Text>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>Budowa w {progressPercent}%</Text>
+            <Text style={styles.sectionTitle}>
+              Budowa w {progressPercent}%
+            </Text>
 
             <View style={styles.batteryWrapper}>
               <View style={styles.batteryBody}>
-                <View style={[styles.batteryFill, { width: `${progressPercent}%` }]} />
+                <View
+                  style={[
+                    styles.batteryFill,
+                    { width: `${progressPercent}%` },
+                  ]}
+                />
               </View>
               <View style={styles.batteryCap} />
             </View>
@@ -188,14 +199,17 @@ export default function PostepyScreen() {
         )}
       </BlurView>
 
-      <BlurView intensity={75} tint="dark" style={styles.card}>
-        <Text style={styles.sectionLabel}>NadchodzÄ…cy etap</Text>
+      {/* NADCHODZĄCY */}
+      <BlurView intensity={18} tint="dark" style={styles.card}>
+        <Text style={styles.sectionLabel}>Nadchodzący etap</Text>
 
         {loading ? (
           <ActivityIndicator color="#5EEAD4" />
         ) : upcomingStage ? (
           <>
-            <Text style={styles.sectionTitle}>{upcomingStage.title}</Text>
+            <Text style={styles.sectionTitle}>
+              {upcomingStage.title}
+            </Text>
             {!!upcomingStage.date && (
               <Text style={styles.stageDate}>{upcomingStage.date}</Text>
             )}
@@ -206,19 +220,22 @@ export default function PostepyScreen() {
             )}
           </>
         ) : (
-          <Text style={styles.muted}>Brak nadchodzÄ…cych etapĂłw.</Text>
+          <Text style={styles.muted}>Brak nadchodzących etapów.</Text>
         )}
 
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => router.push('/(app)/(tabs)/postepy')}
+          onPress={() => router.push('/(app)/(tabs)/postepy/wszystkie')}
         >
-          <Text style={styles.primaryButtonText}>SprawdĹş wszystkie etapy</Text>
-          <Feather name="arrow-right" size={18} color="#0B1120" />
+          <Text style={styles.primaryButtonText}>
+            Sprawdź wszystkie etapy
+          </Text>
+          <Feather name="arrow-right" size={18} color="#022C22" />
         </TouchableOpacity>
       </BlurView>
 
-      <BlurView intensity={75} tint="dark" style={styles.card}>
+      {/* HISTORIA */}
+      <BlurView intensity={18} tint="dark" style={styles.card}>
         <Text style={styles.sectionLabel}>Historia</Text>
         <Text style={styles.sectionTitle}>Zrealizowane etapy</Text>
 
@@ -228,7 +245,7 @@ export default function PostepyScreen() {
           completedMilestones.map((m) => (
             <View key={m.id} style={styles.milestoneRow}>
               <View style={styles.milestoneIcon}>
-                <Feather name="check" size={16} color="#0B1120" />
+                <Feather name="check" size={16} color="#022C22" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.milestoneTitle}>{m.title}</Text>
@@ -242,7 +259,7 @@ export default function PostepyScreen() {
             </View>
           ))
         ) : (
-          <Text style={styles.muted}>Brak wykonanych etapĂłw.</Text>
+          <Text style={styles.muted}>Brak wykonanych etapów.</Text>
         )}
       </BlurView>
 
@@ -252,55 +269,88 @@ export default function PostepyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050915', paddingHorizontal: 16, paddingTop: 40 },
-  glow: {
-    position: 'absolute',
-    width: 360,
-    height: 360,
-    borderRadius: 999,
-    backgroundColor: '#9333EA',
-    opacity: 0.18,
-    top: 80,
-    right: -120,
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 24,
   },
+
   card: {
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.06)',
     padding: 22,
     marginBottom: 18,
+    backgroundColor: 'rgba(255,255,255,0.02)',
   },
-  sectionLabel: { color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1.5, fontSize: 12 },
-  sectionTitle: { color: '#F8FAFC', fontSize: 22, fontWeight: '800', marginTop: 6, marginBottom: 12 },
+
+  sectionLabel: {
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    fontSize: 12,
+  },
+  sectionTitle: {
+    color: '#F8FAFC',
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 6,
+    marginBottom: 12,
+  },
   muted: { color: '#94A3B8', marginTop: 8 },
-  batteryWrapper: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, gap: 12 },
+
+  batteryWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    gap: 12,
+  },
   batteryBody: {
     flex: 1,
-    height: 48,
+    height: 44,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.18)',
     overflow: 'hidden',
   },
-  batteryFill: { height: '100%', backgroundColor: '#5EEAD4' },
-  batteryCap: { width: 12, height: 24, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.2)' },
+  batteryFill: {
+    height: '100%',
+    backgroundColor: '#5EEAD4',
+  },
+  batteryCap: {
+    width: 10,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
 
-  stageRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  stageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
   stageItem: { alignItems: 'center', flex: 1 },
   stageDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.2)',
     marginBottom: 6,
   },
-  stageDotDone: { backgroundColor: '#5EEAD4', borderColor: '#5EEAD4' },
+  stageDotDone: {
+    backgroundColor: '#5EEAD4',
+    borderColor: '#5EEAD4',
+  },
   stageLabel: { color: '#94A3B8', fontSize: 12 },
   stageLabelDone: { color: '#F8FAFC', fontWeight: '700' },
 
   stageDate: { color: '#5EEAD4', fontWeight: '600' },
-  stageDescription: { color: '#CBD5F5', marginVertical: 12, lineHeight: 20 },
+  stageDescription: {
+    color: '#CBD5F5',
+    marginVertical: 12,
+    lineHeight: 20,
+  },
 
   primaryButton: {
     borderRadius: 18,
@@ -313,7 +363,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
-  primaryButtonText: { color: '#0B1120', fontWeight: '800', fontSize: 16 },
+  primaryButtonText: {
+    color: '#022C22',
+    fontWeight: '800',
+    fontSize: 16,
+  },
 
   milestoneRow: {
     flexDirection: 'row',
@@ -323,19 +377,20 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.04)',
   },
   milestoneIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#5EEAD4',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  milestoneTitle: { color: '#F8FAFC', fontSize: 16, fontWeight: '600' },
+  milestoneTitle: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   milestoneMeta: { color: '#94A3B8', marginTop: 2 },
   milestoneNotes: { color: '#CBD5F5', marginTop: 4 },
 
   error: { color: '#FCA5A5', marginTop: 8 },
 });
-
-
-

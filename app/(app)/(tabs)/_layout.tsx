@@ -6,6 +6,10 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+
+        // ✅ KLUCZOWE: przezroczyste tło scen tabów (żeby było widać globalne tło z AppLayout)
+        sceneStyle: { backgroundColor: 'transparent' },
+
         tabBarStyle: {
           backgroundColor: 'rgba(7, 12, 24, 0.92)',
           borderTopColor: 'rgba(255,255,255,0.08)',
