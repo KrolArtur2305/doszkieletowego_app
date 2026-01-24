@@ -15,7 +15,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../../../../lib/supabase';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 
@@ -23,7 +23,7 @@ const { width: W } = Dimensions.get('window');
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
-const BG = '#050505';
+const BG = 'transparent';
 
 const PHOTOS_BUCKET = 'zdjecia';
 
@@ -68,7 +68,6 @@ function buildMonthGrid(base: Date) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
 
-  // monday-first
   const firstDay = (first.getDay() + 6) % 7; // 0..6 where 0=Mon
   const daysInMonth = last.getDate();
 
@@ -80,17 +79,15 @@ function buildMonthGrid(base: Date) {
     cells.push({ day: d, isToday });
   }
   while (cells.length % 7 !== 0) cells.push({});
-  // 6 rows look best in UI
   while (cells.length < 42) cells.push({});
   return cells;
 }
 
 export default function DashboardScreen() {
   useMemo(() => supabase, []);
-
   const router = useRouter();
 
-  // ===== HERO (name + animated subtitle) =====
+  // ===== HERO =====
   const [imie, setImie] = useState<string>('');
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const subtitleY = useRef(new Animated.Value(8)).current;
@@ -104,10 +101,11 @@ export default function DashboardScreen() {
   const scrollX = useRef(new Animated.Value(0)).current;
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // ===== STATUS (placeholder now) =====
+  const listRef = useRef<FlatList<any> | null>(null);
+
+  // ===== STATUS =====
   const onPressPostepy = () => router.push('/(app)/(tabs)/postepy');
 
-  // ===== BUDGET/TIME DATA (reuse same logic as Budzet) =====
   const [statusLoading, setStatusLoading] = useState(true);
   const [plannedBudget, setPlannedBudget] = useState(0);
   const [spentTotal, setSpentTotal] = useState(0);
@@ -126,7 +124,6 @@ export default function DashboardScreen() {
     return clamp01(elapsed / total);
   }, [dates]);
 
-  // ===== DONUT DATA =====
   const donutData: DonutItem[] = useMemo(
     () => [
       {
@@ -135,21 +132,73 @@ export default function DashboardScreen() {
         label: 'Budżet',
         onPress: () => router.push('/(app)/(tabs)/budzet'),
       },
-      {
-        key: 'czas',
-        value: clamp01(timeUtil),
-        label: 'Czas',
-      },
-      {
-        key: 'postep',
-        value: 0.5,
-        label: 'Postęp',
-      },
+      { key: 'czas', value: clamp01(timeUtil), label: 'Czas' },
+      { key: 'postep', value: 0.5, label: 'Postęp' },
     ],
     [budgetUtil, timeUtil, router]
   );
 
-  // ===== PHOTOS (ostatnie 3 w karuzeli poziomej) =====
+  // ===== PROSTA ANIMACJA WEJŚCIA (bez pętli) =====
+  const listReadyRef = useRef(false);
+  const spinRunningRef = useRef(false);
+  const spinRanForFocusRef = useRef(false);
+
+  const runSimpleSpin = () => {
+    if (!listReadyRef.current) return;
+    if (spinRunningRef.current) return;
+    if (spinRanForFocusRef.current) return;
+
+    spinRunningRef.current = true;
+    spinRanForFocusRef.current = true;
+
+    // start na 0
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    setActiveIndex(0);
+
+    // 3 kroki w prawo: 0->1->2 (i zostaje)
+    const step1 = SNAP * 1;
+    const step2 = SNAP * 2;
+
+    // trochę wolniej i płynniej:
+    const t1 = setTimeout(() => {
+      listRef.current?.scrollToOffset({ offset: step1, animated: true });
+    }, 220);
+
+    const t2 = setTimeout(() => {
+      listRef.current?.scrollToOffset({ offset: step2, animated: true });
+    }, 820);
+
+    const t3 = setTimeout(() => {
+      setActiveIndex(2);
+      spinRunningRef.current = false;
+    }, 1400);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      spinRunningRef.current = false;
+    };
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      spinRanForFocusRef.current = false;
+
+      // odpal dopiero jak lista gotowa
+      const t = setTimeout(() => {
+        if (listReadyRef.current) runSimpleSpin();
+      }, 260);
+
+      return () => {
+        clearTimeout(t);
+        spinRunningRef.current = false;
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [SNAP])
+  );
+
+  // ===== PHOTOS =====
   const [photosLoading, setPhotosLoading] = useState(true);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [photosError, setPhotosError] = useState<string>('');
@@ -157,10 +206,7 @@ export default function DashboardScreen() {
   // ===== CALENDAR =====
   const [calBase] = useState(() => new Date());
   const calCells = useMemo(() => buildMonthGrid(calBase), [calBase]);
-  const monthLabel = useMemo(
-    () => calBase.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' }),
-    [calBase]
-  );
+  const monthLabel = useMemo(() => calBase.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' }), [calBase]);
 
   // ===== LOAD: PROFILE NAME + HERO ANIM =====
   useEffect(() => {
@@ -179,7 +225,6 @@ export default function DashboardScreen() {
       } catch {
         // ignore
       } finally {
-        // animate subtitle always
         Animated.parallel([
           Animated.timing(subtitleOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
           Animated.timing(subtitleY, { toValue: 0, duration: 420, useNativeDriver: true }),
@@ -192,7 +237,7 @@ export default function DashboardScreen() {
     };
   }, [subtitleOpacity, subtitleY]);
 
-  // ===== LOAD: STATUS (budget + time like Budzet) =====
+  // ===== LOAD: STATUS =====
   useEffect(() => {
     let alive = true;
 
@@ -212,7 +257,6 @@ export default function DashboardScreen() {
           .maybeSingle();
 
         if (invRes.error) throw invRes.error;
-
         if (!alive) return;
 
         setPlannedBudget(safeNumber((invRes.data as any)?.budzet));
@@ -250,7 +294,7 @@ export default function DashboardScreen() {
     };
   }, []);
 
-  // ===== LOAD: PHOTOS (userId/{etap}/{plik} → 3 najnowsze) =====
+  // ===== LOAD: PHOTOS =====
   useEffect(() => {
     let alive = true;
 
@@ -268,27 +312,18 @@ export default function DashboardScreen() {
           return;
         }
 
-        // 1) list etap folders under userId
-        const { data: etapList, error: etapErr } = await supabase.storage
-          .from(PHOTOS_BUCKET)
-          .list(user.id, { limit: 100 });
-
+        const { data: etapList, error: etapErr } = await supabase.storage.from(PHOTOS_BUCKET).list(user.id, { limit: 100 });
         if (etapErr) throw etapErr;
 
-        const etapFolders = (etapList ?? [])
-          .map((x) => x.name)
-          .filter((name) => !!name && !name.includes('.')); // folder heuristic
+        const etapFolders = (etapList ?? []).map((x) => x.name).filter((name) => !!name && !name.includes('.'));
 
-        // 2) list files inside each etap folder, take newest, merge sort by created_at
         const allFiles: Array<{ path: string; name: string; created_at?: string; id?: string }> = [];
 
         for (const etap of etapFolders) {
           const prefix = `${user.id}/${etap}`;
-          const { data: files, error: filesErr } = await supabase.storage
+          const { data: files } = await supabase.storage
             .from(PHOTOS_BUCKET)
             .list(prefix, { limit: 40, sortBy: { column: 'created_at', order: 'desc' } });
-
-          if (filesErr) continue;
 
           for (const f of files ?? []) {
             if (!f?.name || f.name.endsWith('/')) continue;
@@ -311,10 +346,7 @@ export default function DashboardScreen() {
 
         const out: PhotoItem[] = [];
         for (const f of newest) {
-          const { data: signed, error: signErr } = await supabase.storage
-            .from(PHOTOS_BUCKET)
-            .createSignedUrl(f.path, 60 * 30);
-          if (signErr) continue;
+          const { data: signed } = await supabase.storage.from(PHOTOS_BUCKET).createSignedUrl(f.path, 60 * 30);
           if (signed?.signedUrl) {
             out.push({
               key: f.id ?? f.path,
@@ -349,36 +381,30 @@ export default function DashboardScreen() {
   const handleMomentumEnd = (e: any) => {
     const x = e?.nativeEvent?.contentOffset?.x ?? 0;
     const idx = Math.round(x / SNAP);
-    setActiveIndex(idx);
+    setActiveIndex(Math.max(0, Math.min(donutData.length - 1, idx)));
   };
+
+  const getItemLayout = (_: any, index: number) => ({
+    length: SNAP,
+    offset: SNAP * index,
+    index,
+  });
 
   return (
     <View style={styles.screen}>
-      {/* background */}
-      <View pointerEvents="none" style={styles.bg}>
-        <View style={styles.orbA} />
-        <View style={styles.orbB} />
-        <View style={styles.noise} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* LOGO */}
         <View style={styles.logoRow}>
           <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
         </View>
 
-        {/* HERO */}
         <View style={styles.hero}>
-          <Text style={styles.heroTitle}>
-            Witaj {imie ? imie : ''}
-          </Text>
+          <Text style={styles.heroTitle}>Witaj {imie ? imie : ''}</Text>
 
           <Animated.View style={{ opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }}>
             <Text style={styles.heroSubtitle}>{heroDateLine}</Text>
           </Animated.View>
         </View>
 
-        {/* POSTĘP BUDOWY (klik) */}
         <TouchableOpacity activeOpacity={0.88} onPress={onPressPostepy} style={styles.progressCardOuter}>
           <BlurView intensity={18} tint="dark" style={styles.progressCard}>
             <Text style={styles.progressTitle}>Postęp budowy</Text>
@@ -404,9 +430,9 @@ export default function DashboardScreen() {
           </BlurView>
         </TouchableOpacity>
 
-        {/* DONUT CAROUSEL – CZARNE TŁO, SVG, 3D POP */}
         <View style={{ marginTop: 16 }}>
           <Animated.FlatList
+            ref={(r) => (listRef.current = r as any)}
             data={donutData}
             keyExtractor={(i) => i.key}
             horizontal
@@ -417,6 +443,18 @@ export default function DashboardScreen() {
             snapToInterval={SNAP}
             snapToAlignment="start"
             disableIntervalMomentum
+            scrollEventThrottle={16}
+            getItemLayout={getItemLayout}
+            removeClippedSubviews
+            windowSize={3}
+            initialNumToRender={3}
+            maxToRenderPerBatch={3}
+            updateCellsBatchingPeriod={50}
+            onContentSizeChange={() => {
+              listReadyRef.current = true;
+              // odpal prostą animację, ale tylko raz na focus
+              setTimeout(() => runSimpleSpin(), 120);
+            }}
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
             onMomentumScrollEnd={handleMomentumEnd}
             renderItem={({ item, index }) => {
@@ -441,6 +479,8 @@ export default function DashboardScreen() {
                 extrapolate: 'clamp',
               });
 
+              const isActiveSlide = index === activeIndex;
+
               return (
                 <Animated.View
                   style={[
@@ -452,28 +492,18 @@ export default function DashboardScreen() {
                     },
                   ]}
                 >
-                  <Animated.View
-                    pointerEvents="none"
-                    style={[
-                      styles.donutGlowWrap,
-                      {
-                        opacity: glow,
-                      },
-                    ]}
-                  />
+                  <Animated.View pointerEvents="none" style={[styles.donutGlowWrap, { opacity: glow }]} />
 
-                  {/* zero kart / zero tła */}
                   <View style={styles.donutInnerWrap}>
                     <FuturisticDonutSvg
                       value={item.value}
                       label={item.label}
                       onPressLabel={item.onPress}
-                      isActive={index === activeIndex}
-                      size={240}
-                      stroke={18}
+                      isActive={isActiveSlide}
+                      size={210}
+                      stroke={16}
                     />
 
-                    {/* mały opis pod donutem (tylko tam gdzie pasuje) */}
                     {item.key === 'budzet' && (
                       <Text style={styles.donutSubText}>
                         {statusLoading ? '—' : `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget)}`}
@@ -482,7 +512,9 @@ export default function DashboardScreen() {
 
                     {item.key === 'czas' && (
                       <Text style={styles.donutSubText}>
-                        {dates.start && dates.end ? `${new Date(dates.start).toLocaleDateString('pl-PL')} → ${new Date(dates.end).toLocaleDateString('pl-PL')}` : 'Uzupełnij daty inwestycji'}
+                        {dates.start && dates.end
+                          ? `${new Date(dates.start).toLocaleDateString('pl-PL')} → ${new Date(dates.end).toLocaleDateString('pl-PL')}`
+                          : 'Uzupełnij daty inwestycji'}
                       </Text>
                     )}
                   </View>
@@ -492,7 +524,6 @@ export default function DashboardScreen() {
           />
         </View>
 
-        {/* OSTATNIO DODANE ZDJĘCIA (duże, pozioma karuzela) */}
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>Ostatnio dodane zdjęcia</Text>
 
@@ -528,7 +559,6 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* KALENDARZ – działa bez paczek */}
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>Kalendarz</Text>
 
@@ -549,16 +579,8 @@ export default function DashboardScreen() {
 
               <View style={styles.grid}>
                 {calCells.map((c, idx) => (
-                  <View
-                    key={idx}
-                    style={[
-                      styles.cell,
-                      c.isToday && styles.cellToday,
-                    ]}
-                  >
-                    <Text style={[styles.cellText, c.isToday && styles.cellTextToday]}>
-                      {c.day ? String(c.day) : ''}
-                    </Text>
+                  <View key={idx} style={[styles.cell, c.isToday && styles.cellToday]}>
+                    <Text style={[styles.cellText, c.isToday && styles.cellTextToday]}>{c.day ? String(c.day) : ''}</Text>
                   </View>
                 ))}
               </View>
@@ -574,10 +596,6 @@ export default function DashboardScreen() {
 
 type Styles = {
   screen: ViewStyle;
-  bg: ViewStyle;
-  orbA: ViewStyle;
-  orbB: ViewStyle;
-  noise: ViewStyle;
 
   content: ViewStyle;
 
@@ -629,33 +647,6 @@ type Styles = {
 const styles = StyleSheet.create<Styles>({
   screen: { flex: 1, backgroundColor: BG },
 
-  bg: { ...StyleSheet.absoluteFillObject },
-  orbA: {
-    position: 'absolute',
-    width: 520,
-    height: 520,
-    borderRadius: 9999,
-    backgroundColor: ACCENT,
-    opacity: 0.10,
-    top: -240,
-    right: -260,
-  },
-  orbB: {
-    position: 'absolute',
-    width: 520,
-    height: 520,
-    borderRadius: 9999,
-    backgroundColor: ACCENT,
-    opacity: 0.06,
-    bottom: -340,
-    left: -280,
-  },
-  noise: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.035,
-    backgroundColor: 'rgba(255,255,255,1)',
-  },
-
   content: { paddingTop: 16, paddingHorizontal: 18, paddingBottom: 140 },
 
   logoRow: { alignItems: 'center', marginTop: 6, marginBottom: 10 },
@@ -663,9 +654,9 @@ const styles = StyleSheet.create<Styles>({
 
   hero: { marginTop: 8, marginBottom: 8 },
   heroTitle: {
-    color: '#FFFFFF',
+    color: ACCENT,
     fontSize: 34,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: -0.2,
     textShadowColor: 'rgba(25,112,92,0.18)',
     textShadowRadius: 18,
@@ -744,7 +735,7 @@ const styles = StyleSheet.create<Styles>({
   donutInnerWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
+    paddingVertical: 16,
   },
   donutSubText: {
     marginTop: 8,
@@ -796,7 +787,13 @@ const styles = StyleSheet.create<Styles>({
   calendarHint: { color: 'rgba(255,255,255,0.45)', fontSize: 12.5, fontWeight: '700' },
 
   weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 4 },
-  weekDay: { width: (W - 18 * 2 - 16 * 2) / 7, textAlign: 'center', color: 'rgba(255,255,255,0.40)', fontWeight: '800', fontSize: 12 },
+  weekDay: {
+    width: (W - 18 * 2 - 16 * 2) / 7,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.40)',
+    fontWeight: '800',
+    fontSize: 12,
+  },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 6 },
   cell: {

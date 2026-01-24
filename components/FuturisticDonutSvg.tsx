@@ -1,152 +1,175 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-const BRAND = '#19705C';
+const ACCENT = '#19705C';
 const NEON = '#25F0C8';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type Props = {
   value: number; // 0..1
-  size?: number; // "wizualny" rozmiar (pierścień + środek)
-  stroke?: number; // grubość głównego łuku
+  size?: number;
+  stroke?: number;
   label: string;
   onPressLabel?: () => void;
   isActive?: boolean;
 };
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+function clamp01(n: number) {
+  return Math.max(0, Math.min(1, n));
+}
 
 export function FuturisticDonutSvg({
   value,
-  size = 220,
-  stroke = 18,
+  size = 210,
+  stroke = 16,
   label,
   onPressLabel,
   isActive = false,
 }: Props) {
-  const clamped = Math.max(0, Math.min(1, value));
+  const v = clamp01(value);
 
-  // mamy 3 warstwy: glow arc (stroke+10), main arc (stroke), highlight (stroke*0.22)
-  const glowStroke = stroke + 10;
-  const PAD = useMemo(() => Math.ceil(glowStroke / 2) + 8, [glowStroke]); // KLUCZ: zapas na stroke + poświatę
+  const r = useMemo(() => (size - stroke) / 2, [size, stroke]);
+  const cx = size / 2;
+  const cy = size / 2;
+  const circumference = useMemo(() => 2 * Math.PI * r, [r]);
 
-  const svgSize = useMemo(() => size + PAD * 2, [size, PAD]);
-  const cx = svgSize / 2;
-  const cy = svgSize / 2;
+  // progress 0..1
+  const prog = useRef(new Animated.Value(0)).current;
 
-  // promień tak, żeby nawet glowStroke NIE wyszedł poza SVG
-  const r = useMemo(() => (svgSize - glowStroke) / 2 - 1, [svgSize, glowStroke]);
-  const c = useMemo(() => 2 * Math.PI * r, [r]);
+  // one-time spin on activation / value change
+  const spin = useRef(new Animated.Value(0)).current; // 0..1 mapped to deg
 
-  const progress = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
+  // subtle shimmer after finish (opacity only, no scale)
+  const shimmer = useRef(new Animated.Value(0)).current;
+  const shimmerLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  const [didFinish, setDidFinish] = useState(false);
+
+  const startShimmer = () => {
+    shimmer.stopAnimation();
+    shimmer.setValue(0);
+    shimmerLoopRef.current?.stop();
+
+    shimmerLoopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 1, duration: 850, useNativeDriver: false }),
+        Animated.timing(shimmer, { toValue: 0, duration: 850, useNativeDriver: false }),
+      ])
+    );
+    shimmerLoopRef.current.start();
+  };
+
+  const stopShimmer = () => {
+    shimmerLoopRef.current?.stop();
+    shimmerLoopRef.current = null;
+    shimmer.stopAnimation();
+    shimmer.setValue(0);
+  };
 
   useEffect(() => {
-    progress.setValue(0);
-    pulse.setValue(0);
+    // when slide becomes active, replay "spin once" + fill
+    if (!isActive) return;
 
+    setDidFinish(false);
+    stopShimmer();
+
+    prog.stopAnimation();
+    spin.stopAnimation();
+
+    // reset
+    prog.setValue(0);
+    spin.setValue(0);
+
+    // fill to value + slight overshoot feel (via easing-ish staged timing)
     Animated.parallel([
-      Animated.timing(progress, {
-        toValue: clamped,
-        duration: 1050,
-        useNativeDriver: false, // strokeDashoffset
-      }),
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 480, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 520, useNativeDriver: true }),
+        Animated.timing(prog, { toValue: Math.min(v, 0.92), duration: 620, useNativeDriver: false }),
+        Animated.timing(prog, { toValue: v, duration: 380, useNativeDriver: false }),
       ]),
-    ]).start();
-  }, [clamped, progress, pulse]);
+      // spin arc once: 0 → 1 corresponds to ~280deg (not full 360, bardziej “sweep”)
+      Animated.timing(spin, { toValue: 1, duration: 900, useNativeDriver: false }),
+    ]).start(({ finished }) => {
+      if (!finished) return;
+      setDidFinish(true);
+      startShimmer();
+    });
 
-  const dashoffset = progress.interpolate({
+    return () => {
+      // keep shimmer only for active one
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, v]);
+
+  useEffect(() => {
+    // if component unmounts
+    return () => {
+      stopShimmer();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // dash offset
+  const dashoffset = prog.interpolate({
     inputRange: [0, 1],
-    outputRange: [c, 0],
+    outputRange: [circumference, 0],
+    extrapolate: 'clamp',
   });
 
-  const glowScale = pulse.interpolate({
+  // rotation: start at top (-90deg) and add animated sweep
+  const rot = spin.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.06],
+    outputRange: ['-90deg', '190deg'], // 280deg sweep total (raz)
   });
 
-  const glowOpacity = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.18, 0.42],
-  });
+  const percent = Math.round(v * 100);
 
-  const popScale = isActive ? 1.04 : 0.95;
-
-  const inner = Math.round(size * 0.68);
+  // glow opacity: stronger after finish but shimmer oscillates
+  const glowOpacity = didFinish
+    ? shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.22] })
+    : shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.0, 0.0] });
 
   return (
-    <View style={[styles.wrap, { width: svgSize + 40 }]}>
-      <Animated.View
-        style={[
-          styles.donutOuter,
-          {
-            width: svgSize,
-            height: svgSize,
-            transform: [{ scale: popScale }],
-            shadowOpacity: isActive ? 0.55 : 0.18,
-            shadowRadius: isActive ? 26 : 14,
-          },
-        ]}
-      >
-        {/* GLOW (View) — musi mieć svgSize, inaczej będzie ucinane */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.glow,
-            {
-              width: svgSize,
-              height: svgSize,
-              borderRadius: svgSize / 2,
-              opacity: glowOpacity,
-              transform: [{ scale: glowScale }],
-            },
-          ]}
-        />
-
-        <Svg width={svgSize} height={svgSize}>
+    <View style={[styles.wrap, { width: size, height: size + 54 }]}>
+      <View style={{ width: size, height: size }}>
+        <Svg width={size} height={size}>
           <Defs>
-            <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor={NEON} stopOpacity="1" />
-              <Stop offset="55%" stopColor={BRAND} stopOpacity="1" />
-              <Stop offset="100%" stopColor={BRAND} stopOpacity="0.95" />
+            <LinearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={NEON} stopOpacity="1" />
+              <Stop offset="0.55" stopColor={ACCENT} stopOpacity="1" />
+              <Stop offset="1" stopColor={NEON} stopOpacity="0.90" />
             </LinearGradient>
           </Defs>
 
-          {/* track (ciemny ring pod spodem dla kontrastu) */}
+          {/* base ring — ciemniejszy jak na screenie */}
           <Circle
             cx={cx}
             cy={cy}
             r={r}
-            stroke="rgba(255,255,255,0.10)"
+            stroke="rgba(255,255,255,0.08)"
             strokeWidth={stroke}
-            fill="none"
-            rotation={-90}
-            originX={cx}
-            originY={cy}
+            fill="transparent"
           />
 
-          {/* NEON GLOW ARC (pod spodem) */}
-          <Circle
+          {/* glow layer (behind) */}
+          <AnimatedCircle
             cx={cx}
             cy={cy}
             r={r}
             stroke="url(#grad)"
-            strokeWidth={glowStroke}
+            strokeWidth={stroke + 10}
             strokeLinecap="round"
-            strokeOpacity={0.16}
-            fill="none"
-            rotation={-90}
+            fill="transparent"
+            opacity={glowOpacity}
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={dashoffset}
+            rotation={rot}
             originX={cx}
             originY={cy}
-            strokeDasharray={`${c} ${c}`}
-            // @ts-ignore
-            strokeDashoffset={dashoffset}
           />
 
-          {/* MAIN ARC */}
+          {/* main progress */}
           <AnimatedCircle
             cx={cx}
             cy={cy}
@@ -154,104 +177,81 @@ export function FuturisticDonutSvg({
             stroke="url(#grad)"
             strokeWidth={stroke}
             strokeLinecap="round"
-            fill="none"
-            rotation={-90}
+            fill="transparent"
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={dashoffset}
+            rotation={rot}
             originX={cx}
             originY={cy}
-            strokeDasharray={`${c} ${c}`}
-            // @ts-ignore
-            strokeDashoffset={dashoffset}
-          />
-
-          {/* „SHINE” highlight (3D) */}
-          <AnimatedCircle
-            cx={cx}
-            cy={cy}
-            r={r}
-            stroke={NEON}
-            strokeWidth={Math.max(2, Math.round(stroke * 0.22))}
-            strokeLinecap="round"
-            strokeOpacity={0.22}
-            fill="none"
-            rotation={-90}
-            originX={cx}
-            originY={cy}
-            strokeDasharray={`${c} ${c}`}
-            // @ts-ignore
-            strokeDashoffset={dashoffset}
           />
         </Svg>
 
-        {/* CENTER */}
-        <View
-          style={[
-            styles.center,
-            {
-              width: inner,
-              height: inner,
-              borderRadius: inner / 2,
-              left: (svgSize - inner) / 2,
-              top: (svgSize - inner) / 2,
-            },
-          ]}
-        >
-          <Text style={styles.percent}>{Math.round(clamped * 100)}%</Text>
+        {/* center text – ostre: bez skalowania + minimalny cień */}
+        <View pointerEvents="none" style={styles.center}>
+          <Text
+            style={[
+              styles.percent,
+              Platform.OS === 'android' ? styles.percentAndroid : null,
+            ]}
+            allowFontScaling={false}
+          >
+            {percent}%
+          </Text>
         </View>
-      </Animated.View>
+      </View>
 
-      {/* LABEL under */}
-      {onPressLabel ? (
-        <TouchableOpacity activeOpacity={0.85} onPress={onPressLabel} style={styles.labelTap}>
-          <Text style={styles.label}>{label}</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.labelTap}>
-          <Text style={styles.label}>{label}</Text>
-        </View>
-      )}
+      {/* label – większy, wyraźniejszy */}
+      <Pressable onPress={onPressLabel} disabled={!onPressLabel} style={styles.labelWrap}>
+        <Text style={[styles.label, !!onPressLabel && styles.labelLink]} allowFontScaling={false}>
+          {label}
+        </Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
-
-  donutOuter: {
+  wrap: {
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: BRAND,
-    shadowOffset: { width: 0, height: 10 },
+    justifyContent: 'flex-start',
     backgroundColor: 'transparent',
-    overflow: 'visible',
   },
-
-  glow: {
-    position: 'absolute',
-    shadowColor: NEON,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.55,
-    shadowRadius: 22,
-    backgroundColor: 'rgba(25,112,92,0.08)',
-  },
-
   center: {
     position: 'absolute',
+    inset: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.86)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.12)',
   },
-
   percent: {
-    color: '#E9FFF7',
+    color: '#F2FFF9',
     fontSize: 44,
     fontWeight: '900',
-    textShadowColor: 'rgba(37,240,200,0.22)',
-    textShadowRadius: 16,
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
+    // mały cień = czytelność bez rozmycia
+    textShadowColor: 'rgba(37,240,200,0.18)',
+    textShadowRadius: 6,
+    textShadowOffset: { width: 0, height: 0 },
   },
-
-  labelTap: { marginTop: 14, paddingVertical: 6, paddingHorizontal: 10 },
-  label: { color: 'rgba(255,255,255,0.78)', fontSize: 16, fontWeight: '700' },
+  // Android czasem ostrzej renderuje przy minimalnie większym fontWeight/bez dużego cienia
+  percentAndroid: {
+    textShadowRadius: 4,
+  },
+  labelWrap: {
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  label: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 17.5,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+  labelLink: {
+    color: 'rgba(255,255,255,0.92)',
+    textShadowColor: 'rgba(25,112,92,0.22)',
+    textShadowRadius: 10,
+    textShadowOffset: { width: 0, height: 0 },
+  },
 });

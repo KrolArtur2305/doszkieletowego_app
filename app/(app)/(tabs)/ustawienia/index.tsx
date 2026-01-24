@@ -34,7 +34,7 @@ export default function UstawieniaScreen() {
 
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState('Ustawienia');
-  const [email, setEmail] = useState(''); // logika zostaje (UI nie pokazuje)
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -62,7 +62,7 @@ export default function UstawieniaScreen() {
           .eq('user_id', user.id)
           .maybeSingle();
 
-        if (profErr && profErr.code !== 'PGRST116') {
+        if (profErr && (profErr as any).code !== 'PGRST116') {
           console.warn('profiles select error:', profErr);
         }
 
@@ -88,7 +88,7 @@ export default function UstawieniaScreen() {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      router.replace('/login'); // jeśli masz inną ścieżkę logowania, zmień tutaj
+      router.replace('/login');
     } catch (e: any) {
       Alert.alert('Błąd', e?.message ?? 'Nie udało się wylogować.');
     }
@@ -137,12 +137,18 @@ export default function UstawieniaScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* subtle background */}
-      <View style={styles.orbTop} />
-      <View style={styles.orbMid} />
+      {/* ✅ TWARDY CZARNY FULLSCREEN – to eliminuje “szarą bazę” raz na zawsze */}
+      <View pointerEvents="none" style={styles.blackBase} />
 
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 170 }}>
-        {/* HEADER (centered, bigger title) */}
+      {/* delikatne orby na wierzchu */}
+      <View pointerEvents="none" style={styles.orbTop} />
+      <View pointerEvents="none" style={styles.orbMid} />
+
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 170 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.headerMainTitle}>
             {loading ? 'Ładowanie…' : 'Ustawienia konta'}
@@ -150,7 +156,6 @@ export default function UstawieniaScreen() {
           <Text style={styles.headerName}>{displayName}</Text>
         </View>
 
-        {/* MENU */}
         <View style={styles.menuWrap}>
           {menuItems.map((item) => (
             <Pressable
@@ -158,9 +163,11 @@ export default function UstawieniaScreen() {
               onPress={item.onPress}
               style={({ pressed }) => [styles.tileOuter, pressed && styles.tileOuterPressed]}
             >
-              {/* Modern “double border” feel */}
               <View style={styles.tileFrame}>
-                <BlurView intensity={22} tint="dark" style={styles.tile}>
+                {/* czarny underlay pod blur */}
+                <View pointerEvents="none" style={styles.tileUnderlay} />
+
+                <BlurView intensity={18} tint="dark" style={styles.tile}>
                   <View style={styles.iconRing}>
                     <View style={styles.iconInner}>
                       <Feather name={item.icon} size={20} color={COLORS.accent} />
@@ -178,11 +185,8 @@ export default function UstawieniaScreen() {
             </Pressable>
           ))}
         </View>
-
-        <View style={{ height: 10 }} />
       </ScrollView>
 
-      {/* LOGOUT */}
       <View style={styles.logoutDock}>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.9}>
           <View style={styles.logoutIcon}>
@@ -195,12 +199,8 @@ export default function UstawieniaScreen() {
   );
 }
 
-/* ===================== THEME ===================== */
-
 const COLORS = {
-  bg: '#0A0A0A',
   text: '#FFFFFF',
-  muted: 'rgba(255,255,255,0.44)',
   border: 'rgba(255,255,255,0.08)',
   border2: 'rgba(255,255,255,0.14)',
   cardFill: 'rgba(255,255,255,0.035)',
@@ -212,12 +212,16 @@ const COLORS = {
   dangerBorder: 'rgba(255,71,71,0.30)',
 };
 
-/* ===================== STYLES ===================== */
-
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' },
 
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 26 },
+  // ✅ tu wymuszamy absolutnie czarne tło
+  blackBase: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+  },
+
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 26, backgroundColor: 'transparent' },
 
   orbTop: {
     position: 'absolute',
@@ -240,35 +244,26 @@ const styles = StyleSheet.create({
     left: -210,
   },
 
-  header: {
-    paddingTop: 12,
-    paddingBottom: 18,
-    alignItems: 'center',
-  },
-
+  header: { paddingTop: 12, paddingBottom: 18, alignItems: 'center' },
   headerMainTitle: {
     color: COLORS.text,
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: -0.2,
     textAlign: 'center',
-    textShadowColor: 'rgba(25,112,92,0.20)',
+    textShadowColor: 'rgba(25,112,92,0.22)',
     textShadowRadius: 14,
   },
-
   headerName: {
     marginTop: 10,
     color: 'rgba(255,255,255,0.86)',
     fontSize: 18,
-    fontWeight: '500',
+    fontWeight: '600',
     letterSpacing: -0.1,
     textAlign: 'center',
   },
 
-  menuWrap: {
-    gap: 12,
-    marginTop: 18,
-  },
+  menuWrap: { gap: 12, marginTop: 18 },
 
   tileOuter: {
     borderRadius: 22,
@@ -278,18 +273,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     elevation: 3,
   },
+  tileOuterPressed: { transform: [{ scale: 1.01 }] },
 
-  tileOuterPressed: {
-    transform: [{ scale: 1.01 }],
-  },
-
-  // “frame” gives a more modern border vibe
   tileFrame: {
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(25,112,92,0.22)',
     backgroundColor: 'rgba(255,255,255,0.01)',
-    padding: 1, // creates outer ring effect
+    padding: 1,
+    overflow: 'hidden',
+  },
+
+  tileUnderlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
 
   tile: {
@@ -315,7 +312,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-
   iconInner: {
     width: 34,
     height: 34,
@@ -326,32 +322,15 @@ const styles = StyleSheet.create({
   },
 
   tileTextWrap: { flex: 1 },
+  tileTitle: { color: COLORS.text, fontSize: 17.5, fontWeight: '700', letterSpacing: -0.1 },
+  tileSubtitle: { marginTop: 4, color: 'rgba(255,255,255,0.44)', fontSize: 13, fontWeight: '500' },
 
-  tileTitle: {
-    color: COLORS.text,
-    fontSize: 17.5,
-    fontWeight: '600',
-    letterSpacing: -0.1,
-  },
-
-  tileSubtitle: {
-    marginTop: 4,
-    color: 'rgba(255,255,255,0.40)',
-    fontSize: 13,
-    fontWeight: '400',
-  },
-
-  logoutDock: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 24,
-  },
+  logoutDock: { position: 'absolute', left: 20, right: 20, bottom: 24 },
 
   logoutButton: {
     height: 58,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     borderWidth: 1,
     borderColor: COLORS.border2,
     flexDirection: 'row',
@@ -359,22 +338,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-
   logoutIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.dangerBorder,
-    backgroundColor: 'rgba(255,71,71,0.06)',
+    backgroundColor: 'rgba(255,71,71,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   logoutText: {
     fontSize: 16.5,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.74)',
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.78)',
     letterSpacing: -0.1,
   },
 });

@@ -105,17 +105,23 @@ export default function AppLayout() {
 
   return (
     <View style={styles.root}>
-      {/* GLOBALNE TŁO — premium starfield (multi-kierunek, fade, respawn) */}
-      <StarsBackground count={26} />
+      {/* ✅ WARSTWA TŁA POD SPODem */}
+      <View pointerEvents="none" style={styles.bgLayer}>
+        <StarsBackground count={26} />
+      </View>
 
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          // kluczowe: nie nadpisuj tła
-          contentStyle: { backgroundColor: 'transparent' },
-        }}
-      />
+      {/* ✅ CONTENT NAD TŁEM */}
+      <View style={styles.contentLayer}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            // ✅ nie nadpisuj tła, pozwól ekranom rysować co chcą
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+      </View>
 
+      {/* ✅ OVERLAY NAD WSZYSTKIM */}
       {showOverlay ? (
         <View pointerEvents="auto" style={styles.overlay}>
           <ActivityIndicator />
@@ -125,7 +131,7 @@ export default function AppLayout() {
   );
 }
 
-/* =====================  STARFIELD (RN Animated, native driver) ===================== */
+/* =====================  STARFIELD (RN Animated) ===================== */
 
 function StarsBackground({ count = 26 }: { count?: number }) {
   const { width, height } = Dimensions.get('window');
@@ -147,7 +153,7 @@ function StarsBackground({ count = 26 }: { count?: number }) {
 
         x: new Animated.Value(0),
         y: new Animated.Value(0),
-        o: new Animated.Value(0.08),
+        o: new Animated.Value(0.10), // 🔧 trochę wyżej (było 0.08)
         s: new Animated.Value(1),
       };
     });
@@ -156,57 +162,54 @@ function StarsBackground({ count = 26 }: { count?: number }) {
   const startOne = (p: Particle) => {
     if (!running.current) return;
 
-    // multi-kierunkowo, ale delikatnie
     const angle = rand(-Math.PI, Math.PI);
     const maxDrift = 0.55;
 
     const dxUnit = Math.cos(angle) * maxDrift;
     const dyUnit = Math.sin(angle) * maxDrift;
 
-    // lekki bias “w dół”, ale nadal różne kierunki
     const dyBiased = dyUnit + 0.35;
     const dyFinal = clamp(dyBiased, -0.35, 1.0);
 
-    const dist = rand(120, 220); // dystans na jeden “przelot” (im mniejszy tym subtelniej)
+    const dist = rand(140, 260); // 🔧 trochę większy “ruch”
     const dx = dxUnit * dist;
     const dy = dyFinal * dist;
 
     const duration = Math.floor(rand(5200, 9800));
     const delay = Math.floor(rand(0, 1400));
 
-    const startX = rand(-20, width + 20);
-    const startY = rand(-30, height + 30);
+    const startX = rand(-30, width + 30);
+    const startY = rand(-40, height + 40);
 
     p.x.setValue(startX);
     p.y.setValue(startY);
 
-    const baseO = rand(0.06, 0.20);
-    p.o.setValue(baseO * 0.55);
+    const baseO = rand(0.08, 0.26); // 🔧 mocniej (było 0.06..0.20)
+    p.o.setValue(baseO * 0.60);
     p.s.setValue(1);
 
     Animated.sequence([
       Animated.delay(delay),
 
       Animated.parallel([
-        // ruch
         Animated.timing(p.x, { toValue: startX + dx, duration, useNativeDriver: true }),
         Animated.timing(p.y, { toValue: startY + dy, duration, useNativeDriver: true }),
 
-        // “oddech” opacity + mikroskalowanie
         Animated.sequence([
           Animated.parallel([
             Animated.timing(p.o, { toValue: baseO, duration: Math.floor(duration * 0.35), useNativeDriver: true }),
             Animated.timing(p.s, { toValue: rand(1.03, 1.14), duration: Math.floor(duration * 0.35), useNativeDriver: true }),
           ]),
           Animated.parallel([
-            Animated.timing(p.o, { toValue: rand(0.04, 0.12), duration: Math.floor(duration * 0.55), useNativeDriver: true }),
+            Animated.timing(p.o, { toValue: rand(0.05, 0.14), duration: Math.floor(duration * 0.55), useNativeDriver: true }),
             Animated.timing(p.s, { toValue: 1, duration: Math.floor(duration * 0.55), useNativeDriver: true }),
           ]),
         ]),
       ]),
     ]).start(({ finished }) => {
       if (!finished) return;
-      startOne(p); // respawn
+      if (!running.current) return;
+      startOne(p);
     });
   };
 
@@ -215,17 +218,25 @@ function StarsBackground({ count = 26 }: { count?: number }) {
     particles.current.forEach((p) => startOne(p));
     return () => {
       running.current = false;
+      // best-effort stop
+      particles.current.forEach((p) => {
+        try {
+          p.x.stopAnimation();
+          p.y.stopAnimation();
+          p.o.stopAnimation();
+          p.s.stopAnimation();
+        } catch {}
+      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 3 “premium” pulsujące punkty
   const pulseStars = useMemo(() => {
-    return Array.from({ length: 3 }).map((_, i) => ({
+    return Array.from({ length: 5 }).map((_, i) => ({
       id: `pulse-${i}`,
-      x: rand(width * 0.12, width * 0.88),
-      y: rand(height * 0.18, height * 0.80),
-      size: rand(2.0, 3.2),
+      x: rand(width * 0.10, width * 0.90),
+      y: rand(height * 0.12, height * 0.86),
+      size: rand(2.2, 4.2),
       color: Math.random() > 0.5 ? NEON : BRAND,
       delay: rand(0, 900),
       duration: rand(4200, 7200),
@@ -235,6 +246,7 @@ function StarsBackground({ count = 26 }: { count?: number }) {
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {/* ✅ czarne tło tła, ale już POD contentem */}
       <View style={styles.bg} />
 
       {particles.current.map((p) => (
@@ -242,6 +254,7 @@ function StarsBackground({ count = 26 }: { count?: number }) {
           key={p.id}
           style={[
             styles.star,
+            // ⚠️ shadow działa głównie na iOS, ale zostawiamy, bo nie szkodzi
             p.glow && {
               shadowColor: p.color,
               shadowOpacity: 0.55,
@@ -290,7 +303,7 @@ function PulseStar({
   delay: number;
   duration: number;
 }) {
-  const o = useRef(new Animated.Value(0.12)).current;
+  const o = useRef(new Animated.Value(0.14)).current;
   const s = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -298,11 +311,11 @@ function PulseStar({
       Animated.sequence([
         Animated.delay(Math.floor(delay)),
         Animated.parallel([
-          Animated.timing(o, { toValue: 0.28, duration: Math.floor(duration * 0.45), useNativeDriver: true }),
-          Animated.timing(s, { toValue: 1.22, duration: Math.floor(duration * 0.45), useNativeDriver: true }),
+          Animated.timing(o, { toValue: 0.34, duration: Math.floor(duration * 0.45), useNativeDriver: true }),
+          Animated.timing(s, { toValue: 1.28, duration: Math.floor(duration * 0.45), useNativeDriver: true }),
         ]),
         Animated.parallel([
-          Animated.timing(o, { toValue: 0.10, duration: Math.floor(duration * 0.55), useNativeDriver: true }),
+          Animated.timing(o, { toValue: 0.12, duration: Math.floor(duration * 0.55), useNativeDriver: true }),
           Animated.timing(s, { toValue: 1.0, duration: Math.floor(duration * 0.55), useNativeDriver: true }),
         ]),
       ])
@@ -344,15 +357,21 @@ function PulseStar({
 /* =====================  STYLES ===================== */
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
+  // 🔧 ROOT ma być transparent, bo tło jest osobną warstwą
+  root: { flex: 1, backgroundColor: 'transparent' },
+
+  // warstwy
+  bgLayer: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+  contentLayer: { flex: 1, zIndex: 1, backgroundColor: 'transparent' },
+
   bg: { ...StyleSheet.absoluteFillObject, backgroundColor: BG },
 
   star: { position: 'absolute' },
   pulse: { position: 'absolute' },
 
   overlay: {
-    position: 'absolute',
-    inset: 0,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.78)',
