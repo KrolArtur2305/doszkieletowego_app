@@ -41,6 +41,16 @@ type DonutItem = {
   onPress?: () => void;
 };
 
+type EtapRow = {
+  id: string;
+  user_id: string;
+  nazwa: string;
+  kolejnosc: number | null;
+  status: string | null;
+};
+
+const STATUS_DONE = 'zrealizowany';
+
 function formatPLDateLong(d: Date) {
   return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
@@ -124,6 +134,16 @@ export default function DashboardScreen() {
     return clamp01(elapsed / total);
   }, [dates]);
 
+  // ===== POSTĘPY (NOWE) =====
+  const [progressLoading, setProgressLoading] = useState(true);
+  const [obecnyEtap, setObecnyEtap] = useState<string>('—');
+  const [kolejnyEtap, setKolejnyEtap] = useState<string>('—');
+  const [milestonesText, setMilestonesText] = useState<string>('—');
+  const [progressValue, setProgressValue] = useState<number>(0); // 0..1
+
+  const isDone = (status: string | null) => (status ?? '').toLowerCase().trim() === STATUS_DONE;
+
+  // Donuty – postęp podpinamy dynamicznie
   const donutData: DonutItem[] = useMemo(
     () => [
       {
@@ -133,9 +153,9 @@ export default function DashboardScreen() {
         onPress: () => router.push('/(app)/(tabs)/budzet'),
       },
       { key: 'czas', value: clamp01(timeUtil), label: 'Czas' },
-      { key: 'postep', value: 0.5, label: 'Postęp' },
+      { key: 'postep', value: clamp01(progressValue), label: 'Postęp', onPress: onPressPostepy },
     ],
-    [budgetUtil, timeUtil, router]
+    [budgetUtil, timeUtil, progressValue, router]
   );
 
   // ===== PROSTA ANIMACJA WEJŚCIA (bez pętli) =====
@@ -159,7 +179,6 @@ export default function DashboardScreen() {
     const step1 = SNAP * 1;
     const step2 = SNAP * 2;
 
-    // trochę wolniej i płynniej:
     const t1 = setTimeout(() => {
       listRef.current?.scrollToOffset({ offset: step1, animated: true });
     }, 220);
@@ -185,7 +204,6 @@ export default function DashboardScreen() {
     React.useCallback(() => {
       spinRanForFocusRef.current = false;
 
-      // odpal dopiero jak lista gotowa
       const t = setTimeout(() => {
         if (listReadyRef.current) runSimpleSpin();
       }, 260);
@@ -237,7 +255,7 @@ export default function DashboardScreen() {
     };
   }, [subtitleOpacity, subtitleY]);
 
-  // ===== LOAD: STATUS =====
+  // ===== LOAD: STATUS (budżet+czas) =====
   useEffect(() => {
     let alive = true;
 
@@ -286,6 +304,66 @@ export default function DashboardScreen() {
         setDates({ start: null, end: null });
       } finally {
         if (alive) setStatusLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // ===== LOAD: POSTĘPY (NOWE) =====
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        setProgressLoading(true);
+
+        const { data: userData, error: userErr } = await supabase.auth.getUser();
+        if (userErr) throw userErr;
+        const user = userData.user;
+        if (!user) {
+          if (!alive) return;
+          setObecnyEtap('—');
+          setKolejnyEtap('—');
+          setMilestonesText('—');
+          setProgressValue(0);
+          return;
+        }
+
+        const res = await supabase
+          .from('etapy')
+          .select('id,user_id,nazwa,kolejnosc,status')
+          .eq('user_id', user.id)
+          .order('kolejnosc', { ascending: true });
+
+        if (res.error) throw res.error;
+
+        const rows = (res.data ?? []) as EtapRow[];
+        const sorted = [...rows].sort((a, b) => (a.kolejnosc ?? 9999) - (b.kolejnosc ?? 9999));
+
+        const total = sorted.length;
+        const doneCount = sorted.filter((e) => isDone(e.status)).length;
+
+        const currentIndex = sorted.findIndex((e) => !isDone(e.status));
+        const current = currentIndex >= 0 ? sorted[currentIndex] : null;
+        const next = currentIndex >= 0 ? sorted[currentIndex + 1] ?? null : null;
+
+        if (!alive) return;
+
+        setObecnyEtap(current?.nazwa ?? (total > 0 ? 'Wszystkie etapy zrealizowane' : 'Brak etapów'));
+        setKolejnyEtap(next?.nazwa ?? (current ? '—' : '—'));
+        setMilestonesText(total > 0 ? `${doneCount} / ${total}` : '—');
+        setProgressValue(total > 0 ? clamp01(doneCount / total) : 0);
+      } catch {
+        if (!alive) return;
+        setObecnyEtap('—');
+        setKolejnyEtap('—');
+        setMilestonesText('—');
+        setProgressValue(0);
+      } finally {
+        if (alive) setProgressLoading(false);
       }
     })();
 
@@ -411,21 +489,29 @@ export default function DashboardScreen() {
 
             <View style={styles.progressRow}>
               <Text style={styles.progressLabel}>OBECNY ETAP</Text>
-              <Text style={styles.progressValue}>Paroizolacja • Stolarka okienna</Text>
+              {progressLoading ? (
+                <Text style={styles.progressValue}>Ładowanie…</Text>
+              ) : (
+                <Text style={styles.progressValue}>{obecnyEtap}</Text>
+              )}
             </View>
 
             <View style={styles.sep} />
 
             <View style={styles.progressRow}>
               <Text style={styles.progressLabel}>KOLEJNY ETAP</Text>
-              <Text style={styles.progressValue}>Stan deweloperski</Text>
+              {progressLoading ? (
+                <Text style={styles.progressValue}>Ładowanie…</Text>
+              ) : (
+                <Text style={styles.progressValue}>{kolejnyEtap}</Text>
+              )}
             </View>
 
             <View style={styles.sep} />
 
             <View style={styles.progressRow}>
               <Text style={styles.progressLabel}>KROKI MILOWE</Text>
-              <Text style={styles.progressBig}>8 / 16</Text>
+              {progressLoading ? <Text style={styles.progressBig}>—</Text> : <Text style={styles.progressBig}>{milestonesText}</Text>}
             </View>
           </BlurView>
         </TouchableOpacity>
@@ -452,7 +538,6 @@ export default function DashboardScreen() {
             updateCellsBatchingPeriod={50}
             onContentSizeChange={() => {
               listReadyRef.current = true;
-              // odpal prostą animację, ale tylko raz na focus
               setTimeout(() => runSimpleSpin(), 120);
             }}
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
@@ -515,6 +600,12 @@ export default function DashboardScreen() {
                         {dates.start && dates.end
                           ? `${new Date(dates.start).toLocaleDateString('pl-PL')} → ${new Date(dates.end).toLocaleDateString('pl-PL')}`
                           : 'Uzupełnij daty inwestycji'}
+                      </Text>
+                    )}
+
+                    {item.key === 'postep' && (
+                      <Text style={styles.donutSubText}>
+                        {progressLoading ? 'Ładowanie postępu…' : milestonesText !== '—' ? `Zrealizowane: ${milestonesText}` : 'Brak etapów'}
                       </Text>
                     )}
                   </View>

@@ -398,8 +398,9 @@ export default function ZdjeciaScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.glowOne} />
-      <View style={styles.glowTwo} />
+      {/* ✅ te glowy powodowały “wzór”/podbijanie tła — mocno wyciszone */}
+      <View pointerEvents="none" style={styles.glowOne} />
+      <View pointerEvents="none" style={styles.glowTwo} />
 
       {/* HEADER */}
       <View style={styles.header}>
@@ -518,17 +519,11 @@ export default function ZdjeciaScreen() {
       </TouchableOpacity>
 
       {/* ADD MODAL */}
-      <Modal
-        visible={addModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAddModalVisible(false)}
-      >
+      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
         <BlurView intensity={90} tint="dark" style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Dodaj zdjęcie</Text>
 
-            {/* UPLOAD ETAP DROPDOWN */}
             <Text style={styles.modalLabel}>ETAP ZDJĘCIA</Text>
 
             <TouchableOpacity
@@ -570,23 +565,12 @@ export default function ZdjeciaScreen() {
               </View>
             )}
 
-            {/* DATE */}
             <Text style={styles.modalLabel}>DATA ZDJĘCIA (opcjonalnie)</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              activeOpacity={0.85}
-              onPress={() => setShowDatePicker(true)}
-            >
+            <TouchableOpacity style={styles.dateButton} activeOpacity={0.85} onPress={() => setShowDatePicker(true)}>
               <Ionicons name="calendar-outline" size={18} color={COLORS.brand} />
-              <Text style={styles.dateButtonText}>
-                {takenAt ? takenAt.toLocaleDateString('pl-PL') : 'Wybierz datę'}
-              </Text>
+              <Text style={styles.dateButtonText}>{takenAt ? takenAt.toLocaleDateString('pl-PL') : 'Wybierz datę'}</Text>
               {takenAt && (
-                <TouchableOpacity
-                  onPress={() => setTakenAt(null)}
-                  style={styles.dateClear}
-                  activeOpacity={0.85}
-                >
+                <TouchableOpacity onPress={() => setTakenAt(null)} style={styles.dateClear} activeOpacity={0.85}>
                   <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.55)" />
                 </TouchableOpacity>
               )}
@@ -604,7 +588,6 @@ export default function ZdjeciaScreen() {
               />
             )}
 
-            {/* OPIS */}
             <Text style={styles.modalLabel}>OPIS (opcjonalnie)</Text>
             <TextInput
               value={opis}
@@ -615,7 +598,6 @@ export default function ZdjeciaScreen() {
               multiline
             />
 
-            {/* TAGI */}
             <Text style={styles.modalLabel}>TAGI (opcjonalnie)</Text>
             <TextInput
               value={tagsInput}
@@ -648,11 +630,7 @@ export default function ZdjeciaScreen() {
                 disabled={uploading || !canPick}
                 activeOpacity={0.85}
               >
-                {uploading ? (
-                  <ActivityIndicator color={COLORS.bg} />
-                ) : (
-                  <Text style={styles.modalButtonTextPrimary}>Wybierz zdjęcie</Text>
-                )}
+                {uploading ? <ActivityIndicator color={COLORS.bg} /> : <Text style={styles.modalButtonTextPrimary}>Wybierz zdjęcie</Text>}
               </TouchableOpacity>
             </View>
 
@@ -662,12 +640,7 @@ export default function ZdjeciaScreen() {
       </Modal>
 
       {/* PREVIEW MODAL */}
-      <Modal
-        visible={previewModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPreviewModalVisible(false)}
-      >
+      <Modal visible={previewModalVisible} transparent animationType="fade" onRequestClose={() => setPreviewModalVisible(false)}>
         <BlurView intensity={95} tint="dark" style={styles.previewOverlay}>
           <TouchableOpacity style={styles.closeButton} onPress={() => setPreviewModalVisible(false)} activeOpacity={0.85}>
             <Ionicons name="close" size={28} color={COLORS.text} />
@@ -724,15 +697,17 @@ export default function ZdjeciaScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ✅ klucz: kompletnie przezroczyste (globalny starfield z (app)/_layout ma być widoczny)
   container: { flex: 1, backgroundColor: 'transparent' },
 
+  // ✅ te plamy robiły “wzór” — mocno wyciszone (premium, ale nie psuje czerni)
   glowOne: {
     position: 'absolute',
     width: 320,
     height: 320,
     borderRadius: 999,
     backgroundColor: COLORS.brand,
-    opacity: 0.18,
+    opacity: 0.04, // ✅ było 0.18 (za dużo)
     top: -40,
     right: -120,
   },
@@ -742,15 +717,15 @@ const styles = StyleSheet.create({
     height: 360,
     borderRadius: 999,
     backgroundColor: COLORS.brand,
-    opacity: 0.10,
+    opacity: 0.025, // ✅ było 0.10 (za dużo)
     bottom: 120,
     left: -170,
   },
 
+  // ✅ loading też ma być transparentny — inaczej zasłania globalne tło
   loadingContainer: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
 
-  // HEADER (center neon)
   header: {
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 58 : 38,
@@ -798,7 +773,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
-  // FILTER BAR + DROPDOWN
   filterBar: {
     paddingHorizontal: 16,
     paddingBottom: 10,
@@ -850,7 +824,6 @@ const styles = StyleSheet.create({
     color: COLORS.brand,
   },
 
-  // GRID/CAROUSEL
   gridContainer: { paddingHorizontal: 8, paddingBottom: 110 },
   gridRow: { gap: 16, paddingHorizontal: 8, marginBottom: 16 },
   gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * 1.22, borderRadius: 18, overflow: 'hidden' },
@@ -868,7 +841,6 @@ const styles = StyleSheet.create({
   carouselEtap: { fontSize: 13, fontWeight: '900', color: COLORS.brand, letterSpacing: 1.4, marginBottom: 6 },
   carouselDate: { fontSize: 13, color: 'rgba(255,255,255,0.72)', fontWeight: '700' },
 
-  // EMPTY
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 },
   emptyCard: {
     width: '100%',
@@ -892,7 +864,6 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: { fontSize: 14, fontWeight: '900', color: '#03110C', letterSpacing: 0.5 },
 
-  // FAB FUTURISTIC (+)
   fab: {
     position: 'absolute',
     bottom: 28,
@@ -924,7 +895,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(25,112,92,0.06)',
   },
 
-  // MODAL
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 22 },
   modalContent: {
     width: '100%',
@@ -979,7 +949,6 @@ const styles = StyleSheet.create({
   modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: '#03110C' },
   modalHint: { marginTop: 12, fontSize: 12, color: COLORS.muted, textAlign: 'center' },
 
-  // PREVIEW
   previewOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   closeButton: {
     position: 'absolute',

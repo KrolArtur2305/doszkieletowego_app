@@ -24,7 +24,7 @@ type EtapRow = {
   notatka: string | null;
 };
 
-const STATUS_DONE = 'zrealizowany';
+const STATUS_DONE = 'wykonany';
 
 export default function PostepyScreen() {
   const router = useRouter();
