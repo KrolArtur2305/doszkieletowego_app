@@ -724,7 +724,7 @@ export default function ZdjeciaScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
 
   glowOne: {
     position: 'absolute',
@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
     left: -170,
   },
 
-  loadingContainer: { flex: 1, backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' },
+  loadingContainer: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
 
   // HEADER (center neon)
