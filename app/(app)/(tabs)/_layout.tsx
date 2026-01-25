@@ -7,9 +7,6 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-
-        // ✅ TO JEST POPRAWNE dla Tabs (React Navigation):
-        // robi tło sceny przezroczyste, żeby było widać globalne tło z (app)/_layout
         sceneStyle: { backgroundColor: 'transparent' },
 
         tabBarStyle: {
@@ -29,7 +26,9 @@ export default function TabsLayout() {
         name="dashboard/index"
         options={{
           title: 'Start',
-          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size ?? 20} />,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="home" color={color} size={size ?? 20} />
+          ),
         }}
       />
 
@@ -37,7 +36,9 @@ export default function TabsLayout() {
         name="budzet/index"
         options={{
           title: 'Budżet',
-          tabBarIcon: ({ color, size }) => <Feather name="pie-chart" color={color} size={size ?? 20} />,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="pie-chart" color={color} size={size ?? 20} />
+          ),
         }}
       />
 
@@ -45,7 +46,9 @@ export default function TabsLayout() {
         name="postepy/index"
         options={{
           title: 'Postępy',
-          tabBarIcon: ({ color, size }) => <Feather name="trending-up" color={color} size={size ?? 20} />,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="trending-up" color={color} size={size ?? 20} />
+          ),
         }}
       />
 
@@ -53,7 +56,10 @@ export default function TabsLayout() {
         name="zdjecia/index"
         options={{
           title: 'Zdjęcia',
-          tabBarIcon: ({ color, size }) => <Feather name="camera" color={color} size={size ?? 20} />,
+          sceneStyle: { backgroundColor: 'transparent' }, // ✅ KLUCZOWE
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="camera" color={color} size={size ?? 20} />
+          ),
         }}
       />
 
@@ -61,7 +67,9 @@ export default function TabsLayout() {
         name="projekt/index"
         options={{
           title: 'Projekt',
-          tabBarIcon: ({ color, size }) => <Feather name="layers" color={color} size={size ?? 20} />,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="layers" color={color} size={size ?? 20} />
+          ),
         }}
       />
 
@@ -69,7 +77,9 @@ export default function TabsLayout() {
         name="ustawienia"
         options={{
           title: 'Ustawienia',
-          tabBarIcon: ({ color, size }) => <Feather name="settings" color={color} size={size ?? 20} />,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="settings" color={color} size={size ?? 20} />
+          ),
         }}
       />
     </Tabs>
