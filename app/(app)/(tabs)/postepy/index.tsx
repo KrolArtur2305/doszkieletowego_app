@@ -24,7 +24,21 @@ type EtapRow = {
   notatka: string | null;
 };
 
-const STATUS_DONE = 'wykonany';
+const NEON = '#25F0C8';
+
+// MUSI pasować do constraint w Supabase
+const STATUS_DONE = 'zrealizowany';
+const STATUS_DEFAULT = 'planowany';
+
+function normStatus(s: string | null | undefined) {
+  return String(s ?? '').toLowerCase().trim();
+}
+function isDoneStatus(s: string | null | undefined) {
+  return normStatus(s) === STATUS_DONE;
+}
+function safeOrder(n: number | null | undefined) {
+  return typeof n === 'number' && Number.isFinite(n) ? n : 9999;
+}
 
 export default function PostepyScreen() {
   const router = useRouter();
@@ -75,73 +89,75 @@ export default function PostepyScreen() {
     };
   }, [authLoading, userId]);
 
-  const {
-    progressPercent,
-    topStages,
-    upcomingStage,
-    completedMilestones,
-    hasAnyStages,
-  } = useMemo(() => {
-    if (etapy.length === 0) {
-      return {
-        progressPercent: 0,
-        topStages: [],
-        upcomingStage: null,
-        completedMilestones: [],
-        hasAnyStages: false,
-      };
-    }
+  const { progressPercent, topStages, obecny, nastepny, completedMilestones, hasAnyStages } =
+    useMemo(() => {
+      if (etapy.length === 0) {
+        return {
+          progressPercent: 0,
+          topStages: [] as Array<{ id: string; label: string; done: boolean }>,
+          obecny: null as null | { title: string; date: string | null; description: string | null },
+          nastepny: null as null | { title: string; date: string | null; description: string | null },
+          completedMilestones: [] as Array<{ id: string; title: string; date: string | null; notes: string | null }>,
+          hasAnyStages: false,
+        };
+      }
 
-    const sorted = [...etapy].sort(
-      (a, b) => (a.kolejnosc ?? 9999) - (b.kolejnosc ?? 9999)
-    );
+      const sorted = [...etapy].sort((a, b) => safeOrder(a.kolejnosc) - safeOrder(b.kolejnosc));
 
-    const isDone = (s: string | null) =>
-      (s ?? '').toLowerCase() === STATUS_DONE;
+      const total = sorted.length;
+      const doneCount = sorted.filter((e) => isDoneStatus(e.status)).length;
+      const percent = total ? Math.round((doneCount / total) * 100) : 0;
 
-    const total = sorted.length;
-    const done = sorted.filter((e) => isDone(e.status)).length;
-    const percent = Math.round((done / total) * 100);
-
-    const top4 = sorted.slice(0, 4).map((e) => ({
-      id: e.id,
-      label: e.nazwa,
-      done: isDone(e.status),
-    }));
-
-    const next = sorted.find((e) => !isDone(e.status));
-    const upcoming = next
-      ? {
-          title: next.nazwa,
-          date: next.data_wykonania
-            ? String(next.data_wykonania).slice(0, 10)
-            : null,
-          description: next.notatka ?? null,
-        }
-      : null;
-
-    const completed = sorted
-      .filter((e) => isDone(e.status))
-      .slice()
-      .reverse()
-      .slice(0, 6)
-      .map((e) => ({
+      // top4 – szybkie “kropki” postępu
+      const top4 = sorted.slice(0, 4).map((e) => ({
         id: e.id,
-        title: e.nazwa,
-        date: e.data_wykonania
-          ? String(e.data_wykonania).slice(0, 10)
-          : null,
-        notes: e.notatka ?? null,
+        label: e.nazwa,
+        done: isDoneStatus(e.status),
       }));
 
-    return {
-      progressPercent: percent,
-      topStages: top4,
-      upcomingStage: upcoming,
-      completedMilestones: completed,
-      hasAnyStages: true,
-    };
-  }, [etapy]);
+      // obecny = pierwszy niezrealizowany, nastepny = kolejny po nim
+      const current = sorted.find((e) => !isDoneStatus(e.status)) ?? null;
+      const idx = current ? sorted.findIndex((x) => x.id === current.id) : -1;
+      const next = idx >= 0 ? sorted[idx + 1] ?? null : null;
+
+      const obecnyStage = current
+        ? {
+            title: current.nazwa,
+            date: current.data_wykonania ? String(current.data_wykonania).slice(0, 10) : null,
+            description: current.notatka ?? null,
+          }
+        : null;
+
+      const nastepnyStage = next
+        ? {
+            title: next.nazwa,
+            date: next.data_wykonania ? String(next.data_wykonania).slice(0, 10) : null,
+            description: next.notatka ?? null,
+          }
+        : null;
+
+      // historia – ostatnie 6 zrealizowanych
+      const completed = sorted
+        .filter((e) => isDoneStatus(e.status))
+        .slice()
+        .reverse()
+        .slice(0, 6)
+        .map((e) => ({
+          id: e.id,
+          title: e.nazwa,
+          date: e.data_wykonania ? String(e.data_wykonania).slice(0, 10) : null,
+          notes: e.notatka ?? null,
+        }));
+
+      return {
+        progressPercent: percent,
+        topStages: top4,
+        obecny: obecnyStage,
+        nastepny: nastepnyStage,
+        completedMilestones: completed,
+        hasAnyStages: true,
+      };
+    }, [etapy]);
 
   return (
     <ScrollView
@@ -150,27 +166,23 @@ export default function PostepyScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* POSTĘP */}
-      <BlurView intensity={18} tint="dark" style={styles.card}>
-        <Text style={styles.sectionLabel}>Postęp budowy</Text>
+      <BlurView intensity={16} tint="dark" style={styles.card}>
+        <Text style={styles.cardLabel}>Postęp budowy</Text>
 
         {loading ? (
-          <ActivityIndicator color="#5EEAD4" />
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={NEON} />
+            <Text style={styles.loadingText}>Ładowanie…</Text>
+          </View>
         ) : !hasAnyStages ? (
           <Text style={styles.muted}>Brak etapów.</Text>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>
-              Budowa w {progressPercent}%
-            </Text>
+            <Text style={styles.sectionTitle}>Budowa w {progressPercent}%</Text>
 
             <View style={styles.batteryWrapper}>
               <View style={styles.batteryBody}>
-                <View
-                  style={[
-                    styles.batteryFill,
-                    { width: `${progressPercent}%` },
-                  ]}
-                />
+                <View style={[styles.batteryFill, { width: `${progressPercent}%` }]} />
               </View>
               <View style={styles.batteryCap} />
             </View>
@@ -178,18 +190,8 @@ export default function PostepyScreen() {
             <View style={styles.stageRow}>
               {topStages.map((stage) => (
                 <View key={stage.id} style={styles.stageItem}>
-                  <View
-                    style={[
-                      styles.stageDot,
-                      stage.done && styles.stageDotDone,
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.stageLabel,
-                      stage.done && styles.stageLabelDone,
-                    ]}
-                  >
+                  <View style={[styles.stageDot, stage.done && styles.stageDotDone]} />
+                  <Text style={[styles.stageLabel, stage.done && styles.stageLabelDone]} numberOfLines={2}>
                     {stage.label}
                   </Text>
                 </View>
@@ -199,48 +201,53 @@ export default function PostepyScreen() {
         )}
       </BlurView>
 
-      {/* NADCHODZĄCY */}
-      <BlurView intensity={18} tint="dark" style={styles.card}>
-        <Text style={styles.sectionLabel}>Nadchodzący etap</Text>
+      {/* OBECNY + KOLEJNY */}
+      <BlurView intensity={16} tint="dark" style={styles.card}>
+        <Text style={styles.cardLabel}>Etapy</Text>
 
         {loading ? (
-          <ActivityIndicator color="#5EEAD4" />
-        ) : upcomingStage ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={NEON} />
+            <Text style={styles.loadingText}>Ładowanie…</Text>
+          </View>
+        ) : obecny ? (
           <>
-            <Text style={styles.sectionTitle}>
-              {upcomingStage.title}
-            </Text>
-            {!!upcomingStage.date && (
-              <Text style={styles.stageDate}>{upcomingStage.date}</Text>
-            )}
-            {!!upcomingStage.description && (
-              <Text style={styles.stageDescription}>
-                {upcomingStage.description}
-              </Text>
-            )}
+            <Text style={styles.smallLabel}>OBECNY ETAP</Text>
+            <Text style={styles.sectionTitle}>{obecny.title}</Text>
+
+            {!!obecny.date && <Text style={styles.stageDate}>{obecny.date}</Text>}
+            {!!obecny.description && <Text style={styles.stageDescription}>{obecny.description}</Text>}
+
+            <View style={styles.sep} />
+
+            <Text style={styles.smallLabel}>KOLEJNY ETAP</Text>
+            <Text style={styles.nextTitle}>{nastepny?.title ?? 'Brak'}</Text>
+            {!!nastepny?.date && <Text style={styles.stageDate}>{nastepny.date}</Text>}
           </>
         ) : (
-          <Text style={styles.muted}>Brak nadchodzących etapów.</Text>
+          <Text style={styles.muted}>Wszystkie etapy są zrealizowane.</Text>
         )}
 
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={() => router.push('/(app)/(tabs)/postepy/wszystkie')}
+          activeOpacity={0.9}
         >
-          <Text style={styles.primaryButtonText}>
-            Sprawdź wszystkie etapy
-          </Text>
+          <Text style={styles.primaryButtonText}>Sprawdź wszystkie etapy</Text>
           <Feather name="arrow-right" size={18} color="#022C22" />
         </TouchableOpacity>
       </BlurView>
 
       {/* HISTORIA */}
-      <BlurView intensity={18} tint="dark" style={styles.card}>
-        <Text style={styles.sectionLabel}>Historia</Text>
+      <BlurView intensity={16} tint="dark" style={styles.card}>
+        <Text style={styles.cardLabel}>Historia</Text>
         <Text style={styles.sectionTitle}>Zrealizowane etapy</Text>
 
         {loading ? (
-          <ActivityIndicator color="#5EEAD4" />
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={NEON} />
+            <Text style={styles.loadingText}>Ładowanie…</Text>
+          </View>
         ) : completedMilestones.length > 0 ? (
           completedMilestones.map((m) => (
             <View key={m.id} style={styles.milestoneRow}>
@@ -249,17 +256,13 @@ export default function PostepyScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.milestoneTitle}>{m.title}</Text>
-                {!!m.date && (
-                  <Text style={styles.milestoneMeta}>{m.date}</Text>
-                )}
-                {!!m.notes && (
-                  <Text style={styles.milestoneNotes}>{m.notes}</Text>
-                )}
+                {!!m.date && <Text style={styles.milestoneMeta}>{m.date}</Text>}
+                {!!m.notes && <Text style={styles.milestoneNotes}>{m.notes}</Text>}
               </View>
             </View>
           ))
         ) : (
-          <Text style={styles.muted}>Brak wykonanych etapów.</Text>
+          <Text style={styles.muted}>Brak zrealizowanych etapów.</Text>
         )}
       </BlurView>
 
@@ -271,38 +274,49 @@ export default function PostepyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    backgroundColor: 'transparent',
   },
 
   card: {
     borderRadius: 28,
+    padding: 16,
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.026)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
-    padding: 22,
-    marginBottom: 18,
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    overflow: 'hidden',
   },
 
-  sectionLabel: {
-    color: '#94A3B8',
+  cardLabel: {
+    color: 'rgba(255,255,255,0.55)',
     textTransform: 'uppercase',
     letterSpacing: 1.4,
     fontSize: 12,
-  },
-  sectionTitle: {
-    color: '#F8FAFC',
-    fontSize: 22,
     fontWeight: '800',
-    marginTop: 6,
-    marginBottom: 12,
   },
-  muted: { color: '#94A3B8', marginTop: 8 },
 
+  sectionTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    marginTop: 8,
+    marginBottom: 10,
+    letterSpacing: -0.2,
+  },
+
+  muted: { color: 'rgba(255,255,255,0.50)', marginTop: 10, lineHeight: 20 },
+
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
+  loadingText: { color: 'rgba(255,255,255,0.55)', fontWeight: '800' },
+
+  // battery
   batteryWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginTop: 10,
+    marginBottom: 14,
     gap: 12,
   },
   batteryBody: {
@@ -312,10 +326,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
     overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   batteryFill: {
     height: '100%',
-    backgroundColor: '#5EEAD4',
+    backgroundColor: NEON,
   },
   batteryCap: {
     width: 10,
@@ -324,10 +339,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
 
+  // top stages row
   stageRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
+    marginTop: 8,
+    gap: 10,
   },
   stageItem: { alignItems: 'center', flex: 1 },
   stageDot: {
@@ -337,60 +354,85 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.2)',
     marginBottom: 6,
+    backgroundColor: 'transparent',
   },
   stageDotDone: {
-    backgroundColor: '#5EEAD4',
-    borderColor: '#5EEAD4',
+    backgroundColor: NEON,
+    borderColor: NEON,
+    shadowColor: NEON,
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
   },
-  stageLabel: { color: '#94A3B8', fontSize: 12 },
-  stageLabelDone: { color: '#F8FAFC', fontWeight: '700' },
+  stageLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 11.5, textAlign: 'center' },
+  stageLabelDone: { color: '#FFFFFF', fontWeight: '800' },
 
-  stageDate: { color: '#5EEAD4', fontWeight: '600' },
-  stageDescription: {
-    color: '#CBD5F5',
-    marginVertical: 12,
-    lineHeight: 20,
+  // current / next
+  smallLabel: {
+    marginTop: 10,
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 12.5,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
+  nextTitle: {
+    marginTop: 6,
+    color: '#FFFFFF',
+    fontSize: 16.5,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+
+  stageDate: { color: NEON, fontWeight: '800', marginTop: 2 },
+  stageDescription: {
+    color: 'rgba(255,255,255,0.70)',
+    marginTop: 10,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+
+  sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 14 },
 
   primaryButton: {
     borderRadius: 18,
-    backgroundColor: '#5EEAD4',
+    backgroundColor: NEON,
     paddingVertical: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 12,
+    marginTop: 14,
   },
   primaryButtonText: {
     color: '#022C22',
-    fontWeight: '800',
+    fontWeight: '900',
     fontSize: 16,
   },
 
+  // history
   milestoneRow: {
     flexDirection: 'row',
     gap: 12,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.04)',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   milestoneIcon: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#5EEAD4',
+    backgroundColor: NEON,
     alignItems: 'center',
     justifyContent: 'center',
   },
   milestoneTitle: {
-    color: '#F8FAFC',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontSize: 15.5,
+    fontWeight: '900',
   },
-  milestoneMeta: { color: '#94A3B8', marginTop: 2 },
-  milestoneNotes: { color: '#CBD5F5', marginTop: 4 },
+  milestoneMeta: { color: 'rgba(255,255,255,0.50)', marginTop: 2, fontWeight: '700' },
+  milestoneNotes: { color: 'rgba(255,255,255,0.70)', marginTop: 4, lineHeight: 19, fontWeight: '600' },
 
-  error: { color: '#FCA5A5', marginTop: 8 },
+  error: { color: '#FCA5A5', marginTop: 8, fontWeight: '800' },
 });

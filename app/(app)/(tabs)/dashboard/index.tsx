@@ -353,7 +353,7 @@ export default function DashboardScreen() {
         if (!alive) return;
 
         setObecnyEtap(current?.nazwa ?? (total > 0 ? 'Wszystkie etapy zrealizowane' : 'Brak etapów'));
-        setKolejnyEtap(next?.nazwa ?? (current ? '—' : '—'));
+        setKolejnyEtap(next?.nazwa ?? '—');
         setMilestonesText(total > 0 ? `${doneCount} / ${total}` : '—');
         setProgressValue(total > 0 ? clamp01(doneCount / total) : 0);
       } catch {
@@ -485,26 +485,24 @@ export default function DashboardScreen() {
 
         <TouchableOpacity activeOpacity={0.88} onPress={onPressPostepy} style={styles.progressCardOuter}>
           <BlurView intensity={18} tint="dark" style={styles.progressCard}>
-            <Text style={styles.progressTitle}>Postęp budowy</Text>
+            <View style={styles.progressTitleRow}>
+              <Text style={styles.progressTitle}>Postęp budowy</Text>
+
+              <TouchableOpacity onPress={onPressPostepy} activeOpacity={0.85} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.progressLink}>Sprawdź</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.progressRow}>
               <Text style={styles.progressLabel}>OBECNY ETAP</Text>
-              {progressLoading ? (
-                <Text style={styles.progressValue}>Ładowanie…</Text>
-              ) : (
-                <Text style={styles.progressValue}>{obecnyEtap}</Text>
-              )}
+              {progressLoading ? <Text style={styles.progressValue}>Ładowanie…</Text> : <Text style={styles.progressValue}>{obecnyEtap}</Text>}
             </View>
 
             <View style={styles.sep} />
 
             <View style={styles.progressRow}>
               <Text style={styles.progressLabel}>KOLEJNY ETAP</Text>
-              {progressLoading ? (
-                <Text style={styles.progressValue}>Ładowanie…</Text>
-              ) : (
-                <Text style={styles.progressValue}>{kolejnyEtap}</Text>
-              )}
+              {progressLoading ? <Text style={styles.progressValue}>Ładowanie…</Text> : <Text style={styles.progressValue}>{kolejnyEtap}</Text>}
             </View>
 
             <View style={styles.sep} />
@@ -567,16 +565,7 @@ export default function DashboardScreen() {
               const isActiveSlide = index === activeIndex;
 
               return (
-                <Animated.View
-                  style={[
-                    styles.donutSlide,
-                    {
-                      width: CARD_W,
-                      opacity,
-                      transform: [{ scale }],
-                    },
-                  ]}
-                >
+                <Animated.View style={[styles.donutSlide, { width: CARD_W, opacity, transform: [{ scale }] }]}>
                   <Animated.View pointerEvents="none" style={[styles.donutGlowWrap, { opacity: glow }]} />
 
                   <View style={styles.donutInnerWrap}>
@@ -590,9 +579,7 @@ export default function DashboardScreen() {
                     />
 
                     {item.key === 'budzet' && (
-                      <Text style={styles.donutSubText}>
-                        {statusLoading ? '—' : `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget)}`}
-                      </Text>
+                      <Text style={styles.donutSubText}>{statusLoading ? '—' : `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget)}`}</Text>
                     )}
 
                     {item.key === 'czas' && (
@@ -699,7 +686,9 @@ type Styles = {
 
   progressCardOuter: ViewStyle;
   progressCard: ViewStyle;
+  progressTitleRow: ViewStyle;
   progressTitle: TextStyle;
+  progressLink: TextStyle;
   progressRow: ViewStyle;
   progressLabel: TextStyle;
   progressValue: TextStyle;
@@ -776,13 +765,27 @@ const styles = StyleSheet.create<Styles>({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
   },
+  progressTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   progressTitle: {
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.2,
-    marginBottom: 10,
   },
+  progressLink: {
+    color: NEON,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(37,240,200,0.22)',
+    textShadowRadius: 10,
+  },
+
   progressRow: { paddingVertical: 10 },
   progressLabel: {
     color: 'rgba(255,255,255,0.42)',
@@ -819,7 +822,7 @@ const styles = StyleSheet.create<Styles>({
     bottom: 18,
     borderRadius: 999,
     shadowColor: NEON,
-    shadowOpacity: 0.20,
+    shadowOpacity: 0.2,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 0 },
   },
@@ -840,7 +843,7 @@ const styles = StyleSheet.create<Styles>({
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '900',
-    letterSpacing: -0.2,
+    letterSpacing: -0.2, // <-- tu ma być BEZ apostrofu
     marginBottom: 12,
     paddingHorizontal: 2,
   },
@@ -848,7 +851,7 @@ const styles = StyleSheet.create<Styles>({
     borderRadius: 28,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOpacity: 0.40,
+    shadowOpacity: 0.4,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 14 },
   },
@@ -863,7 +866,7 @@ const styles = StyleSheet.create<Styles>({
   emptyText: { color: 'rgba(255,255,255,0.48)', fontSize: 14.5, lineHeight: 20 },
 
   photoCard: {
-    width: Math.min(280, Math.round(W * 0.70)),
+    width: Math.min(280, Math.round(W * 0.7)),
     height: 170,
     borderRadius: 22,
     overflow: 'hidden',
@@ -881,7 +884,7 @@ const styles = StyleSheet.create<Styles>({
   weekDay: {
     width: (W - 18 * 2 - 16 * 2) / 7,
     textAlign: 'center',
-    color: 'rgba(255,255,255,0.40)',
+    color: 'rgba(255,255,255,0.4)',
     fontWeight: '800',
     fontSize: 12,
   },

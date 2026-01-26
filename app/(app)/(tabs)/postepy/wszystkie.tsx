@@ -24,10 +24,10 @@ type EtapRow = {
   utworzono?: string | null;
 };
 
-const ACCENT = '#19705C';
 const NEON = '#25F0C8';
 
-const STATUS_DONE = 'wykonany';
+// MUSI pasować do constraint w Supabase
+const STATUS_DONE = 'zrealizowany';
 const STATUS_DEFAULT = 'planowany';
 
 function normStatus(s: string | null | undefined) {
@@ -48,31 +48,40 @@ export default function WszystkieEtapyScreen() {
   const [etapy, setEtapy] = useState<EtapRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // local drafts for notes (so typing is smooth)
+  // notatki – lokalny draft
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
-
-  // debounce timers per row
   const noteTimers = useRef<Record<string, any>>({});
 
+  // „pokaż poprzednie”
+  const [showPrevCount, setShowPrevCount] = useState(0);
+  const PREV_STEP = 10;
+
   const sorted = useMemo(() => {
-    const s = [...etapy].sort((a, b) => safeOrder(a.kolejnosc) - safeOrder(b.kolejnosc));
-    return s;
+    return [...etapy].sort((a, b) => safeOrder(a.kolejnosc) - safeOrder(b.kolejnosc));
   }, [etapy]);
 
-  const progress = useMemo(() => {
-    const total = sorted.length;
-    if (!total) return { percent: 0, done: 0, total: 0 };
-    const done = sorted.filter((e) => isDoneStatus(e.status)).length;
-    const percent = Math.round((done / total) * 100);
-    return { percent, done, total };
-  }, [sorted]);
+  // logika: domyślnie ukryj zrealizowane, a „pokaż poprzednie” dokłada po 10
+  const listView = useMemo(() => {
+    if (sorted.length === 0) {
+      return { visible: [] as EtapRow[], hiddenPrevDone: [] as EtapRow[] };
+    }
 
-  const currentNext = useMemo(() => {
-    const obecny = sorted.find((e) => !isDoneStatus(e.status)) ?? null;
-    const idx = obecny ? sorted.findIndex((x) => x.id === obecny.id) : -1;
-    const nastepny = idx >= 0 ? sorted[idx + 1] ?? null : null;
-    return { obecny, nastepny };
-  }, [sorted]);
+    const firstNotDoneIdx = sorted.findIndex((e) => !isDoneStatus(e.status));
+
+    // jeśli wszystkie zrealizowane -> pokaż wszystko, żeby nie było pustki
+    if (firstNotDoneIdx === -1) {
+      return { visible: sorted, hiddenPrevDone: [] as EtapRow[] };
+    }
+
+    const prevDone = sorted.slice(0, firstNotDoneIdx).filter((e) => isDoneStatus(e.status));
+    const rest = sorted.slice(firstNotDoneIdx);
+
+    const sliceCount = Math.min(showPrevCount, prevDone.length);
+    const prevToShow = sliceCount > 0 ? prevDone.slice(prevDone.length - sliceCount) : [];
+    const hiddenPrev = prevDone.slice(0, Math.max(0, prevDone.length - sliceCount));
+
+    return { visible: [...prevToShow, ...rest], hiddenPrevDone: hiddenPrev };
+  }, [sorted, showPrevCount]);
 
   useEffect(() => {
     let alive = true;
@@ -85,6 +94,7 @@ export default function WszystkieEtapyScreen() {
         const { data: userData, error: userErr } = await supabase.auth.getUser();
         if (userErr) throw userErr;
         const user = userData.user;
+
         if (!user) {
           if (!alive) return;
           setEtapy([]);
@@ -100,13 +110,15 @@ export default function WszystkieEtapyScreen() {
         if (error) throw error;
 
         if (!alive) return;
+
         const rows = (data ?? []) as EtapRow[];
         setEtapy(rows);
 
-        // init note drafts
         const draft: Record<string, string> = {};
         for (const r of rows) draft[r.id] = r.notatka ?? '';
         setNoteDraft(draft);
+
+        setShowPrevCount(0);
       } catch (e: any) {
         if (!alive) return;
         setError(e?.message ?? 'Nie udało się pobrać etapów.');
@@ -118,9 +130,9 @@ export default function WszystkieEtapyScreen() {
     };
 
     load();
+
     return () => {
       alive = false;
-      // cleanup timers
       Object.values(noteTimers.current).forEach((t) => clearTimeout(t));
       noteTimers.current = {};
     };
@@ -133,7 +145,7 @@ export default function WszystkieEtapyScreen() {
   const updateStatus = async (row: EtapRow) => {
     const newStatus = isDoneStatus(row.status) ? STATUS_DEFAULT : STATUS_DONE;
 
-    // optimistic UI
+    // optimistic
     setEtapy((prev) => prev.map((e) => (e.id === row.id ? { ...e, status: newStatus } : e)));
 
     try {
@@ -141,24 +153,20 @@ export default function WszystkieEtapyScreen() {
 
       const { error } = await supabase
         .from('etapy')
-        .update({
-          status: newStatus,
-          // jak ustawiasz na wykonany, możesz opcjonalnie dopisać timestamp w notatce / osobnej kolumnie w przyszłości
-        })
+        .update({ status: newStatus })
         .eq('id', row.id);
 
       if (error) throw error;
     } catch (e: any) {
       // rollback
       setEtapy((prev) => prev.map((e) => (e.id === row.id ? { ...e, status: row.status } : e)));
-      setError(e?.message ?? 'Nie udało się zaktualizować statusu.');
+      setError(e?.message ?? 'Nie udało się zaktualizować etapu.');
     } finally {
       setSaving(row.id, false);
     }
   };
 
   const scheduleSaveNote = (rowId: string, value: string) => {
-    // cancel previous debounce
     if (noteTimers.current[rowId]) clearTimeout(noteTimers.current[rowId]);
 
     noteTimers.current[rowId] = setTimeout(async () => {
@@ -171,7 +179,7 @@ export default function WszystkieEtapyScreen() {
       } finally {
         setSaving(rowId, false);
       }
-    }, 700);
+    }, 650);
   };
 
   const onChangeNote = (rowId: string, text: string) => {
@@ -179,65 +187,25 @@ export default function WszystkieEtapyScreen() {
     scheduleSaveNote(rowId, text);
   };
 
+  const canShowPrev = !loading && listView.hiddenPrevDone.length > 0;
+
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* TOP BAR */}
+        {/* HEADER */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
             <Feather name="arrow-left" size={18} color="#EAFBF6" />
             <Text style={styles.backText}>Wróć</Text>
           </TouchableOpacity>
 
-          <Text style={styles.title}>Wszystkie etapy</Text>
+          <Text style={styles.title}>Wszystkie etapy budowy</Text>
 
           <View style={{ width: 62 }} />
         </View>
 
-        {/* SUMMARY */}
+        {/* LISTA */}
         <BlurView intensity={16} tint="dark" style={styles.card}>
-          <Text style={styles.cardLabel}>Podsumowanie</Text>
-
-          {loading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={NEON} />
-              <Text style={styles.loadingText}>Ładowanie etapów…</Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryKey}>Postęp</Text>
-                <Text style={styles.summaryVal}>{progress.percent}%</Text>
-              </View>
-
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryKey}>Kroki</Text>
-                <Text style={styles.summaryVal}>
-                  {progress.done} / {progress.total}
-                </Text>
-              </View>
-
-              <View style={styles.sep} />
-
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryKey}>Obecny etap</Text>
-                <Text style={styles.summaryValSmall}>{currentNext.obecny?.nazwa ?? 'Brak'}</Text>
-              </View>
-
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryKey}>Nadchodzący</Text>
-                <Text style={styles.summaryValSmall}>{currentNext.nastepny?.nazwa ?? 'Brak'}</Text>
-              </View>
-            </>
-          )}
-
-          {!!error && <Text style={styles.error}>{error}</Text>}
-        </BlurView>
-
-        {/* LIST */}
-        <BlurView intensity={16} tint="dark" style={styles.card}>
-          <Text style={styles.cardLabel}>Lista etapów</Text>
-
           {loading ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator color={NEON} />
@@ -246,8 +214,23 @@ export default function WszystkieEtapyScreen() {
           ) : sorted.length === 0 ? (
             <Text style={styles.muted}>Brak etapów. (Sprawdź seed w Supabase.)</Text>
           ) : (
-            <View style={{ marginTop: 10 }}>
-              {sorted.map((row) => {
+            <View>
+              {!!error && <Text style={styles.error}>{error}</Text>}
+
+              {canShowPrev && (
+                <TouchableOpacity
+                  activeOpacity={0.86}
+                  onPress={() => setShowPrevCount((v) => v + PREV_STEP)}
+                  style={styles.showPrevBtn}
+                >
+                  <Feather name="chevron-up" size={16} color="#EAFBF6" />
+                  <Text style={styles.showPrevText}>
+                    Pokaż poprzednie ({Math.min(PREV_STEP, listView.hiddenPrevDone.length)})
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {listView.visible.map((row) => {
                 const done = isDoneStatus(row.status);
                 const saving = !!savingIds[row.id];
 
@@ -268,13 +251,7 @@ export default function WszystkieEtapyScreen() {
                           {row.nazwa}
                         </Text>
 
-                        {saving ? (
-                          <ActivityIndicator size="small" color={NEON} />
-                        ) : (
-                          <Text style={[styles.badge, done ? styles.badgeDone : styles.badgePlanned]}>
-                            {done ? 'Wykonany' : 'Planowany'}
-                          </Text>
-                        )}
+                        {saving ? <ActivityIndicator size="small" color={NEON} /> : null}
                       </View>
 
                       <TextInput
@@ -339,33 +316,26 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  cardLabel: {
-    color: 'rgba(255,255,255,0.55)',
-    textTransform: 'uppercase',
-    letterSpacing: 1.4,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
   loadingText: { color: 'rgba(255,255,255,0.55)', fontWeight: '800' },
 
-  muted: { color: 'rgba(255,255,255,0.50)', marginTop: 10, lineHeight: 20 },
+  muted: { color: 'rgba(255,255,255,0.50)', marginTop: 4, lineHeight: 20 },
 
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 12 },
-  summaryKey: { color: 'rgba(255,255,255,0.48)', fontWeight: '900', letterSpacing: 0.6, fontSize: 12.5 },
-  summaryVal: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 20,
-    textShadowColor: 'rgba(37,240,200,0.16)',
-    textShadowRadius: 14,
+  error: { marginBottom: 10, color: '#FCA5A5', fontWeight: '800' },
+
+  showPrevBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.14)',
+    marginBottom: 10,
   },
-  summaryValSmall: { color: '#FFFFFF', fontWeight: '900', fontSize: 13.5 },
-
-  sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 12 },
-
-  error: { marginTop: 10, color: '#FCA5A5', fontWeight: '800' },
+  showPrevText: { color: '#EAFBF6', fontWeight: '900' },
 
   row: {
     flexDirection: 'row',
@@ -397,18 +367,6 @@ const styles = StyleSheet.create({
 
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   rowTitle: { color: '#FFFFFF', fontWeight: '900', fontSize: 15.5, flex: 1 },
-
-  badge: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    fontWeight: '900',
-    fontSize: 11.5,
-    overflow: 'hidden',
-  },
-  badgePlanned: { color: 'rgba(255,255,255,0.75)', borderColor: 'rgba(255,255,255,0.14)' },
-  badgeDone: { color: '#022C22', borderColor: 'rgba(37,240,200,0.35)', backgroundColor: 'rgba(37,240,200,0.85)' },
 
   note: {
     marginTop: 10,
