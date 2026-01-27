@@ -22,6 +22,7 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 12, fontWeight: '700' },
       }}
     >
+      {/* START */}
       <Tabs.Screen
         name="dashboard/index"
         options={{
@@ -32,6 +33,7 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* BUDŻET */}
       <Tabs.Screen
         name="budzet/index"
         options={{
@@ -42,27 +44,30 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* DOKUMENTY */}
       <Tabs.Screen
-        name="postepy/index"
+        name="dokumenty/index"
         options={{
-          title: 'Postępy',
+          title: 'Dokumenty',
           tabBarIcon: ({ color, size }) => (
-            <Feather name="trending-up" color={color} size={size ?? 20} />
+            <Feather name="file-text" color={color} size={size ?? 20} />
           ),
         }}
       />
 
+      {/* ZDJĘCIA */}
       <Tabs.Screen
         name="zdjecia/index"
         options={{
           title: 'Zdjęcia',
-          sceneStyle: { backgroundColor: 'transparent' }, // ✅ KLUCZOWE
+          sceneStyle: { backgroundColor: 'transparent' },
           tabBarIcon: ({ color, size }) => (
             <Feather name="camera" color={color} size={size ?? 20} />
           ),
         }}
       />
 
+      {/* PROJEKT */}
       <Tabs.Screen
         name="projekt/index"
         options={{
@@ -73,15 +78,20 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* PROFIL (kieruje do tego samego co ustawienia) */}
       <Tabs.Screen
         name="ustawienia"
         options={{
-          title: 'Ustawienia',
+          title: 'Profil',
           tabBarIcon: ({ color, size }) => (
-            <Feather name="settings" color={color} size={size ?? 20} />
+            <Feather name="user" color={color} size={size ?? 20} />
           ),
         }}
       />
+
+      {/* 🔒 UKRYJ POSTĘPY (ważne: ukryj konkretne routy, nie tylko folder) */}
+      <Tabs.Screen name="postepy/index" options={{ href: null }} />
+      <Tabs.Screen name="postepy/wszystkie" options={{ href: null }} />
     </Tabs>
   );
 }
