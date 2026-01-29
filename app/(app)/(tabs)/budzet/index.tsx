@@ -2,7 +2,6 @@
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   Dimensions,
   Modal,
   Platform,
@@ -23,8 +22,10 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 import { supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
+import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 
-const BRAND = '#19705C';
+const ACCENT = '#19705C';
+const NEON = '#25F0C8';
 
 const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
@@ -67,48 +68,9 @@ const toYYYYMMDD = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
-const Donut = ({
-  percentage,
-  title,
-  subtitle,
-  active,
-  onPress,
-}: {
-  percentage: number;
-  title: string;
-  subtitle: string;
-  active?: boolean;
-  onPress?: () => void;
-}) => {
-  const clamped = Math.max(0, Math.min(1, percentage));
-  return (
-    <TouchableOpacity
-      activeOpacity={onPress ? 0.85 : 1}
-      onPress={onPress}
-      disabled={!onPress}
-      style={[styles.donutTap, active && styles.donutTapActive]}
-    >
-      <View style={styles.donutWrapper}>
-        <View
-          style={[
-            styles.donutRing,
-            {
-              borderTopColor: BRAND,
-              borderRightColor: BRAND,
-              borderBottomColor: clamped > 0.5 ? 'rgba(25,112,92,0.95)' : 'rgba(255,255,255,0.12)',
-              borderLeftColor: clamped > 0.75 ? 'rgba(25,112,92,0.75)' : 'rgba(255,255,255,0.12)',
-            },
-          ]}
-        />
-        <View style={[styles.donutInner, active && styles.donutInnerActive]}>
-          <Text style={[styles.donutValue, active && styles.donutValueActive]}>{Math.round(clamped * 100)}%</Text>
-          <Text style={[styles.donutLabel, active && styles.donutLabelActive]}>{title}</Text>
-          <Text style={styles.donutSub}>{subtitle}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-};
+function clamp01(n: number) {
+  return Math.max(0, Math.min(1, n));
+}
 
 type WydatkiRow = {
   id: string;
@@ -178,22 +140,12 @@ export default function BudzetScreen() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState<Date>(() => new Date());
 
-  // carousel
-  const { width: SCREEN_W } = Dimensions.get('window');
-  const DONUT_CARD_W = Math.min(210, Math.round(SCREEN_W * 0.62));
-  const DONUT_SPACER = 12;
-  const SNAP = DONUT_CARD_W + DONUT_SPACER;
-
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const flatRef = useRef<Animated.FlatList<any>>(null);
-  const autoTimerRef = useRef<any>(null);
-
   const spentTotal = useMemo(
-    () => wydatki.filter(w => normalize(w.status) === STATUS_SPENT).reduce((a, w) => a + safeNumber(w.kwota), 0),
+    () => wydatki.filter((w) => normalize(w.status) === STATUS_SPENT).reduce((a, w) => a + safeNumber(w.kwota), 0),
     [wydatki]
   );
   const upcomingTotal = useMemo(
-    () => wydatki.filter(w => normalize(w.status) === STATUS_UPCOMING).reduce((a, w) => a + safeNumber(w.kwota), 0),
+    () => wydatki.filter((w) => normalize(w.status) === STATUS_UPCOMING).reduce((a, w) => a + safeNumber(w.kwota), 0),
     [wydatki]
   );
 
@@ -212,43 +164,9 @@ export default function BudzetScreen() {
   }, [dates]);
 
   const scrollToList = () => {
-    scrollRef.current?.scrollTo({ y: 760, animated: true });
+    // ustawione “na oko” – działa, bo donut+stats+chart to podobna wysokość
+    scrollRef.current?.scrollTo({ y: 740, animated: true });
   };
-
-  const donutsBase = useMemo(
-    () => [
-      {
-        key: 'budget',
-        percentage: budgetUtil,
-        title: 'Budżet',
-        subtitle: `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget || 0)}`,
-        onPress: scrollToList,
-      },
-      {
-        key: 'time',
-        percentage: timeUtil,
-        title: 'Czas',
-        subtitle: dates.start && dates.end ? `${formatPLDate(dates.start)} → ${formatPLDate(dates.end)}` : 'Uzupełnij daty inwestycji',
-        onPress: undefined,
-      },
-      {
-        key: 'cats',
-        percentage: spentTotal > 0 ? 1 : 0,
-        title: 'Kategorie',
-        subtitle: '(na razie placeholder)',
-        onPress: scrollToList,
-      },
-    ],
-    [budgetUtil, spentTotal, plannedBudget, timeUtil, dates.start, dates.end]
-  );
-
-  // loop data (simple infinite feel): repeat 3x and start in middle
-  const donutsLoop = useMemo(() => {
-    const a = donutsBase;
-    return [...a, ...a, ...a].map((d, idx) => ({ ...d, _loopId: `${d.key}_${idx}` }));
-  }, [donutsBase]);
-
-  const middleIndex = donutsBase.length; // start at first item of middle block
 
   const loadBudget = useCallback(async () => {
     if (authLoading) return;
@@ -289,34 +207,6 @@ export default function BudzetScreen() {
   useEffect(() => {
     loadBudget();
   }, [loadBudget]);
-
-  useEffect(() => {
-    // set initial scroll to the middle block
-    const t = setTimeout(() => {
-      flatRef.current?.scrollToOffset({ offset: middleIndex * SNAP, animated: false });
-    }, 120);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SNAP, middleIndex]);
-
-  useEffect(() => {
-    // auto-advance carousel
-    if (autoTimerRef.current) clearInterval(autoTimerRef.current);
-    autoTimerRef.current = setInterval(() => {
-      try {
-        // read current animated value (best-effort)
-        // @ts-ignore
-        const current = scrollX.__getValue?.() ?? 0;
-        const idx = Math.round(current / SNAP);
-        flatRef.current?.scrollToOffset({ offset: (idx + 1) * SNAP, animated: true });
-      } catch {}
-    }, 3200);
-
-    return () => {
-      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SNAP]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -411,7 +301,6 @@ export default function BudzetScreen() {
   };
 
   const openReceipt = async (storageKey: string) => {
-    // bucket public, ale zostawiamy signedUrl (działa niezależnie od public/private)
     const signed = await supabase.storage.from('paragony').createSignedUrl(storageKey, 60 * 60);
     if (signed.error) {
       alert(signed.error.message);
@@ -435,19 +324,15 @@ export default function BudzetScreen() {
     if (!userId) return;
 
     try {
-      // 1) usuń rekord
       const del = await supabase.from('wydatki').delete().eq('id', row.id).eq('user_id', userId);
       if (del.error) throw del.error;
 
-      // 2) spróbuj usunąć plik (best effort)
       if (row.plik) {
         const rem = await supabase.storage.from('paragony').remove([row.plik]);
-        // nie blokuj UX jeśli storage remove się nie uda
         if (rem.error) console.log('[Budzet] delete file warn:', rem.error);
       }
 
-      // 3) lokalny update + refresh
-      setWydatki(prev => prev.filter(w => w.id !== row.id));
+      setWydatki((prev) => prev.filter((w) => w.id !== row.id));
     } catch (e: any) {
       console.log('[Budzet] deleteExpense error:', e);
       alert(e?.message ?? 'Nie udało się usunąć wydatku.');
@@ -477,122 +362,138 @@ export default function BudzetScreen() {
     setFData(toYYYYMMDD(d));
   };
 
-  const onDonutsMomentumEnd = (e: any) => {
-    const x = e?.nativeEvent?.contentOffset?.x ?? 0;
-    const idx = Math.round(x / SNAP);
-
-    // if near edges, jump to middle block equivalent (seamless)
-    const baseLen = donutsBase.length;
-    if (idx < baseLen * 0.5) {
-      flatRef.current?.scrollToOffset({ offset: (idx + baseLen) * SNAP, animated: false });
-    } else if (idx > baseLen * 2.5) {
-      flatRef.current?.scrollToOffset({ offset: (idx - baseLen) * SNAP, animated: false });
+  // ===== KATEGORIE (słupki pionowe) =====
+  const categoryTotals = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const w of wydatki) {
+      if (normalize(w.status) !== STATUS_SPENT) continue;
+      const k = (w.kategoria ?? 'Inne').trim() || 'Inne';
+      out[k] = (out[k] ?? 0) + safeNumber(w.kwota);
     }
-  };
+    return out;
+  }, [wydatki]);
+
+  const topCats = useMemo(() => {
+    const entries = Object.entries(categoryTotals).map(([k, v]) => ({ k, v }));
+    entries.sort((a, b) => b.v - a.v);
+    // max 6 (żeby ładnie wyglądało w rzędzie)
+    const sliced = entries.slice(0, 6);
+    // jeśli pusto — pokaż placeholdery
+    if (sliced.length === 0) {
+      return [
+        { k: 'Inne', v: 0 },
+        { k: 'SSO', v: 0 },
+        { k: 'SSZ', v: 0 },
+        { k: 'Instal.', v: 0 },
+        { k: 'Dewel.', v: 0 },
+        { k: 'Zero', v: 0 },
+      ];
+    }
+    return sliced;
+  }, [categoryTotals]);
+
+  const maxCat = useMemo(() => Math.max(1, ...topCats.map((x) => x.v)), [topCats]);
 
   return (
     <ScrollView
       ref={scrollRef}
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
+      showsVerticalScrollIndicator={false}
     >
-      <BlurView intensity={80} tint="dark" style={styles.hero}>
+      {/* HEADER (wyśrodkowany, bez pulsowania) */}
+      <View style={styles.headerWrap}>
+        <Text style={styles.headerTitle}>Budżet</Text>
+      </View>
+
+      {/* BŁĘDY / LOADING */}
+      {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+
+      {/* DONUT (bez tła) */}
+      <View style={styles.donutOnlyWrap}>
         {loading ? (
-          <ActivityIndicator color={BRAND} />
+          <View style={{ paddingVertical: 26 }}>
+            <ActivityIndicator color={ACCENT} />
+          </View>
         ) : (
           <>
-            {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
-
-            {/* DONUTS CAROUSEL */}
-            <View style={styles.donutsCarouselWrap}>
-              <Animated.FlatList
-                ref={flatRef}
-                data={donutsLoop}
-                keyExtractor={(item) => item._loopId}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                snapToInterval={SNAP}
-                decelerationRate="fast"
-                bounces={false}
-                contentContainerStyle={{ paddingHorizontal: Math.max(0, Math.round((SCREEN_W - DONUT_CARD_W) / 2)) }}
-                onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
-                onMomentumScrollEnd={onDonutsMomentumEnd}
-                scrollEventThrottle={16}
-                renderItem={({ item, index }) => {
-                  const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP];
-
-                  const scale = scrollX.interpolate({
-                    inputRange,
-                    outputRange: [0.92, 1.06, 0.92],
-                    extrapolate: 'clamp',
-                  });
-
-                  const opacity = scrollX.interpolate({
-                    inputRange,
-                    outputRange: [0.6, 1, 0.6],
-                    extrapolate: 'clamp',
-                  });
-
-                  const glow = scrollX.interpolate({
-                    inputRange,
-                    outputRange: [0, 1, 0],
-                    extrapolate: 'clamp',
-                  });
-
-                  return (
-                    <Animated.View
-                      style={[
-                        styles.donutCard,
-                        { width: DONUT_CARD_W, marginRight: DONUT_SPACER, transform: [{ scale }], opacity },
-                      ]}
-                    >
-                      <Animated.View
-                        pointerEvents="none"
-                        style={[
-                          styles.donutGlowOverlay,
-                          {
-                            opacity: glow,
-                          },
-                        ]}
-                      />
-                      <Donut
-                        percentage={item.percentage}
-                        title={item.title}
-                        subtitle={item.subtitle}
-                        onPress={item.onPress}
-                        active={true}
-                      />
-                    </Animated.View>
-                  );
-                }}
-              />
-            </View>
-
-            <View style={styles.heroStats}>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Pozostało</Text>
-                <Text style={styles.statValue}>{formatPLN(remaining)}</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Planowane</Text>
-                <Text style={styles.statValue}>{formatPLN(upcomingTotal)}</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.addBtn} onPress={() => setAddOpen(true)}>
-              <Text style={styles.addBtnText}>+ DODAJ WYDATEK TEST</Text>
-            </TouchableOpacity>
+            <FuturisticDonutSvg
+              value={clamp01(budgetUtil)}
+              label="" // bez "Budżet"
+              onPressLabel={scrollToList}
+              isActive={true}
+              size={210}
+              stroke={16}
+            />
+            <Text style={styles.donutSubText}>
+              {`${formatPLN(spentTotal)} / ${formatPLN(plannedBudget || 0)}`}
+            </Text>
           </>
         )}
-      </BlurView>
+      </View>
 
+      {/* STATS (zostają) */}
+      {!loading && (
+        <View style={styles.heroStats}>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Pozostało</Text>
+            <Text style={styles.statValue}>{formatPLN(remaining)}</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Planowane</Text>
+            <Text style={styles.statValue}>{formatPLN(upcomingTotal)}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* BUTTON NAD WYKRESEM */}
+      {!loading && (
+        <TouchableOpacity style={styles.addBtn} onPress={() => setAddOpen(true)} activeOpacity={0.9}>
+          <Text style={styles.addBtnText}>+ DODAJ WYDATEK</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* WYKRES KATEGORII (pionowe słupki) */}
+      <View style={styles.chartOuter}>
+        <BlurView intensity={60} tint="dark" style={styles.chartCard}>
+          <View style={styles.chartHeaderRow}>
+            <Text style={styles.chartTitle}>Kategorie</Text>
+            <Text style={styles.chartSub}>wydatki poniesione</Text>
+          </View>
+
+          <View style={styles.vChartWrap}>
+            {topCats.map(({ k, v }) => {
+              const h = Math.max(6, Math.round((v / maxCat) * 120)); // max 120
+              return (
+                <View key={k} style={styles.vCol}>
+                  <View style={styles.vBarTrack}>
+                    <View style={[styles.vBarFill, { height: h }]} />
+                  </View>
+                  <Text style={styles.vLabel} numberOfLines={1}>
+                    {k}
+                  </Text>
+                  <Text style={styles.vValue} numberOfLines={1}>
+                    {formatPLN(v)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </BlurView>
+      </View>
+
+      {/* OSTATNIE WYDATKI (jak było) */}
       <BlurView intensity={70} tint="dark" style={styles.card}>
         <View style={styles.listHeaderRow}>
           <Text style={styles.listTitle}>Ostatnie wydatki</Text>
           <Text style={styles.listSub}>sortowanie: najnowsze</Text>
         </View>
 
-        {wydatki.length === 0 ? (
+        {loading ? (
+          <View style={{ paddingVertical: 14 }}>
+            <ActivityIndicator color={ACCENT} />
+          </View>
+        ) : wydatki.length === 0 ? (
           <Text style={styles.empty}>Brak wydatków. Dodaj pierwszy wydatek powyżej.</Text>
         ) : (
           wydatki.slice(0, 8).map((w) => (
@@ -621,10 +522,10 @@ export default function BudzetScreen() {
                   </Text>
                 </View>
 
-                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.itemAmount}>{formatPLN(safeNumber(w.kwota))}</Text>
                   {!!w.plik && (
-                    <TouchableOpacity onPress={() => openReceipt(w.plik!)}>
+                    <TouchableOpacity onPress={() => openReceipt(w.plik!)} style={{ marginTop: 6 }}>
                       <Text style={styles.fileLink}>paragon →</Text>
                     </TouchableOpacity>
                   )}
@@ -635,7 +536,7 @@ export default function BudzetScreen() {
         )}
       </BlurView>
 
-      {/* MODAL DODAWANIA */}
+      {/* MODAL DODAWANIA (bez zmian funkcjonalnych) */}
       <Modal visible={addOpen} animationType="slide" transparent onRequestClose={() => setAddOpen(false)}>
         <View style={styles.modalBackdrop}>
           <BlurView intensity={90} tint="dark" style={styles.modalCard}>
@@ -678,10 +579,16 @@ export default function BudzetScreen() {
             />
 
             <View style={styles.row2}>
-              <TouchableOpacity style={[styles.pill, fStatus === STATUS_UPCOMING && styles.pillOn]} onPress={() => setFStatus(STATUS_UPCOMING)}>
+              <TouchableOpacity
+                style={[styles.pill, fStatus === STATUS_UPCOMING && styles.pillOn]}
+                onPress={() => setFStatus(STATUS_UPCOMING)}
+              >
                 <Text style={[styles.pillText, fStatus === STATUS_UPCOMING && styles.pillTextOn]}>zaplanowany</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.pill, fStatus === STATUS_SPENT && styles.pillOn]} onPress={() => setFStatus(STATUS_SPENT)}>
+              <TouchableOpacity
+                style={[styles.pill, fStatus === STATUS_SPENT && styles.pillOn]}
+                onPress={() => setFStatus(STATUS_SPENT)}
+              >
                 <Text style={[styles.pillText, fStatus === STATUS_SPENT && styles.pillTextOn]}>poniesiony</Text>
               </TouchableOpacity>
             </View>
@@ -700,16 +607,10 @@ export default function BudzetScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* iOS inline via modal; Android shows native dialog */}
-            {datePickerOpen && (
-              Platform.OS === 'ios' ? (
+            {datePickerOpen &&
+              (Platform.OS === 'ios' ? (
                 <View style={styles.iosDateWrap}>
-                  <DateTimePicker
-                    value={datePickerValue}
-                    mode="date"
-                    display="spinner"
-                    onChange={onDatePicked}
-                  />
+                  <DateTimePicker value={datePickerValue} mode="date" display="spinner" onChange={onDatePicked} />
                   <TouchableOpacity
                     style={styles.iosDateOk}
                     onPress={() => {
@@ -722,14 +623,8 @@ export default function BudzetScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <DateTimePicker
-                  value={datePickerValue}
-                  mode="date"
-                  display="default"
-                  onChange={onDatePicked}
-                />
-              )
-            )}
+                <DateTimePicker value={datePickerValue} mode="date" display="default" onChange={onDatePicked} />
+              ))}
 
             <Text style={styles.lbl}>Opis (opcjonalnie)</Text>
             <TextInput
@@ -760,7 +655,11 @@ export default function BudzetScreen() {
                 <Text style={styles.btnGhostText}>Anuluj</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.btn, styles.btnMain, saving && { opacity: 0.7 }]} onPress={addExpense} disabled={saving}>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnMain, saving && { opacity: 0.7 }]}
+                onPress={addExpense}
+                disabled={saving}
+              >
                 <Text style={styles.btnMainText}>{saving ? 'Zapisywanie…' : 'Zapisz'}</Text>
               </TouchableOpacity>
             </View>
@@ -774,62 +673,34 @@ export default function BudzetScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050915', padding: 16 },
+  container: { flex: 1, backgroundColor: 'transparent', padding: 16 },
 
-  hero: { borderRadius: 24, padding: 16, marginBottom: 16, overflow: 'hidden' },
-  errorText: { color: '#FCA5A5', marginBottom: 10 },
+  headerWrap: { paddingHorizontal: 2, paddingTop: 6, paddingBottom: 10, alignItems: 'center' },
+  headerTitle: {
+    color: ACCENT,
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+    textShadowColor: 'rgba(37,240,200,0.22)',
+    textShadowRadius: 22,
+    textAlign: 'center',
+  },
 
-  donutsCarouselWrap: {
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  donutCard: {
-    paddingVertical: 2,
-  },
-  donutGlowOverlay: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    bottom: 10,
-    borderRadius: 999,
-    shadowColor: BRAND,
-    shadowOpacity: 0.9,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-    backgroundColor: 'rgba(25,112,92,0.10)',
+  errorText: { color: '#FCA5A5', marginBottom: 10, textAlign: 'center', fontWeight: '800' },
+
+  donutOnlyWrap: { alignItems: 'center', marginTop: 6, marginBottom: 10 },
+  donutSubText: { marginTop: 10, color: 'rgba(255,255,255,0.46)', fontSize: 12.5, fontWeight: '700' },
+
+  heroStats: { flexDirection: 'row', marginTop: 10, gap: 12 },
+  statBox: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.35)',
+    borderColor: 'rgba(255,255,255,0.10)',
   },
-
-  donutTap: { alignItems: 'center', justifyContent: 'center' },
-  donutTapActive: {
-    // subtle neon edge on active slide
-    borderRadius: 24,
-  },
-  donutWrapper: { alignItems: 'center', justifyContent: 'center' },
-  donutRing: { width: 122, height: 122, borderRadius: 61, borderWidth: 14, transform: [{ rotate: '-45deg' }] },
-  donutInner: { position: 'absolute', width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center' },
-  donutInnerActive: {
-    backgroundColor: 'rgba(25,112,92,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.25)',
-  },
-  donutValue: { color: '#F8FAFC', fontSize: 19, fontWeight: '900' },
-  donutValueActive: {
-    textShadowColor: BRAND,
-    textShadowRadius: 10,
-    textShadowOffset: { width: 0, height: 0 },
-  },
-  donutLabel: { color: '#E2E8F0', marginTop: 2, fontSize: 12, fontWeight: '800' },
-  donutLabelActive: {
-    color: '#E9FFF7',
-  },
-  donutSub: { color: '#94A3B8', marginTop: 2, fontSize: 10, textAlign: 'center', paddingHorizontal: 8 },
-
-  heroStats: { flexDirection: 'row', gap: 12, marginTop: 14 },
-  statBox: { flex: 1, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  statLabel: { color: '#94A3B8', fontSize: 12 },
+  statLabel: { color: '#94A3B8', fontSize: 12, fontWeight: '700' },
   statValue: { color: '#F8FAFC', fontSize: 16, fontWeight: '900', marginTop: 4 },
 
   addBtn: {
@@ -841,9 +712,59 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(25,112,92,0.55)',
   },
-  addBtnText: { color: 'rgba(220,255,245,0.95)', fontWeight: '900' },
+  addBtnText: { color: 'rgba(220,255,245,0.95)', fontWeight: '900', letterSpacing: 0.4 },
 
-  card: { borderRadius: 24, padding: 16, overflow: 'hidden' },
+  chartOuter: {
+    marginTop: 14,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  chartCard: {
+    borderRadius: 24,
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.026)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  chartHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  chartTitle: { color: '#F8FAFC', fontWeight: '900', fontSize: 16, letterSpacing: -0.2 },
+  chartSub: { color: '#94A3B8', fontSize: 12, fontWeight: '700' },
+
+  vChartWrap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 12 },
+  vCol: { width: 62, alignItems: 'center' },
+  vBarTrack: {
+    width: 18,
+    height: 120,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  vBarFill: {
+    width: '100%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(25,112,92,0.42)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+  },
+  vLabel: { marginTop: 8, color: 'rgba(255,255,255,0.78)', fontWeight: '900', fontSize: 11, textAlign: 'center' },
+  vValue: { marginTop: 2, color: 'rgba(220,255,245,0.95)', fontWeight: '900', fontSize: 10, textAlign: 'center' },
+
+  card: {
+    marginTop: 14,
+    borderRadius: 24,
+    padding: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.026)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
   listHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
   listTitle: { color: '#F8FAFC', fontWeight: '900', fontSize: 16 },
   listSub: { color: '#94A3B8', fontSize: 12 },
@@ -879,7 +800,15 @@ const styles = StyleSheet.create({
   modalCard: { padding: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
   modalTitle: { color: '#F8FAFC', fontWeight: '900', fontSize: 18, marginBottom: 12 },
   lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
-  input: { borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 12, paddingVertical: 10, color: '#F8FAFC' },
+  input: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#F8FAFC',
+  },
 
   catRow: { gap: 10, paddingVertical: 2, paddingRight: 10 },
   catPill: {
@@ -890,15 +819,20 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.12)',
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  catPillOn: {
-    borderColor: 'rgba(25,112,92,0.65)',
-    backgroundColor: 'rgba(25,112,92,0.14)',
-  },
+  catPillOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
   catText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
   catTextOn: { color: 'rgba(220,255,245,0.98)' },
 
   row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  pill: { flex: 1, borderRadius: 999, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)' },
+  pill: {
+    flex: 1,
+    borderRadius: 999,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
   pillOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
   pillText: { color: '#94A3B8', fontWeight: '800' },
   pillTextOn: { color: 'rgba(220,255,245,0.98)' },
@@ -933,7 +867,15 @@ const styles = StyleSheet.create({
   },
   iosDateOkText: { color: 'rgba(220,255,245,0.98)', fontWeight: '900' },
 
-  fileBtn: { marginTop: 12, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: 'rgba(25,112,92,0.40)', backgroundColor: 'rgba(25,112,92,0.08)' },
+  fileBtn: {
+    marginTop: 12,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.40)',
+    backgroundColor: 'rgba(25,112,92,0.08)',
+  },
   fileBtnText: { color: '#E2E8F0', fontWeight: '800', fontSize: 12 },
 
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
