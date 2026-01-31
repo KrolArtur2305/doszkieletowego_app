@@ -30,11 +30,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "EXPO_PUBLIC_SUPABASE_URL": "<<<WSTAW MOJE>>>",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "<<<WSTAW MOJE>>>"
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "<<<WSTAW MOJE>>>",
+      "router": {},
+      "eas": {
+        "projectId": "87a23fbe-15a3-4284-95fd-0fe9e0a344db"
+      }
     }
   }
 }
