@@ -10,12 +10,16 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
+  TextInput,
+  Platform,
   type ImageStyle,
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect, useRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 
@@ -93,6 +97,71 @@ function buildMonthGrid(base: Date) {
   return cells;
 }
 
+// ===== TASKS (CALENDAR) =====
+// U CIEBIE ISTNIEJE public.zadania: id, user_id, data(date), nazwa(text), opis(text), utworzone_at(timestamptz), godzina(time|null)
+const TASKS_TABLE = 'zadania';
+
+type TaskRow = {
+  id: string;
+  user_id: string | null;
+  data: string; // YYYY-MM-DD
+  godzina: string | null; // HH:MM:SS (time)
+  nazwa: string; // title
+  opis: string | null;
+  utworzone_at?: string | null;
+};
+
+function pad2(n: number) {
+  return String(n).padStart(2, '0');
+}
+
+function toYMD(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function endOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
+
+function addMonths(d: Date, delta: number) {
+  return new Date(d.getFullYear(), d.getMonth() + delta, 1);
+}
+
+function prettyTime(t?: string | null) {
+  if (!t) return '';
+  // t może być "HH:MM:SS" albo "HH:MM"
+  return t.slice(0, 5);
+}
+
+function sortByDateTime(a: TaskRow, b: TaskRow) {
+  const ta = `${a.data ?? '9999-12-31'} ${a.godzina ?? '99:99:99'}`;
+  const tb = `${b.data ?? '9999-12-31'} ${b.godzina ?? '99:99:99'}`;
+  return ta.localeCompare(tb);
+}
+
+function roundTo5Min(d: Date) {
+  const x = new Date(d);
+  const m = x.getMinutes();
+  const rounded = Math.round(m / 5) * 5;
+  x.setMinutes(rounded);
+  x.setSeconds(0);
+  x.setMilliseconds(0);
+  return x;
+}
+
+function toTimeHHMMSS(d: Date) {
+  const hh = pad2(d.getHours());
+  const mm = pad2(d.getMinutes());
+  return `${hh}:${mm}:00`;
+}
+
+function formatPLDateShort(d: Date) {
+  return d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 export default function DashboardScreen() {
   useMemo(() => supabase, []);
   const router = useRouter();
@@ -101,6 +170,9 @@ export default function DashboardScreen() {
   const [imie, setImie] = useState<string>('');
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const subtitleY = useRef(new Animated.Value(8)).current;
+
+  // animacja blasku na "Witaj"
+  const heroGlow = useRef(new Animated.Value(0)).current;
 
   // ===== DONUT CAROUSEL =====
   const CARD_W = Math.min(320, Math.round(W * 0.82));
@@ -115,6 +187,7 @@ export default function DashboardScreen() {
 
   // ===== STATUS =====
   const onPressPostepy = () => router.push('/(app)/(tabs)/postepy');
+  const onPressZdjecia = () => router.push('/(app)/(tabs)/zdjecia');
 
   const [statusLoading, setStatusLoading] = useState(true);
   const [plannedBudget, setPlannedBudget] = useState(0);
@@ -221,10 +294,188 @@ export default function DashboardScreen() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [photosError, setPhotosError] = useState<string>('');
 
-  // ===== CALENDAR =====
-  const [calBase] = useState(() => new Date());
+  // ===== CALENDAR + TASKS =====
+  const [calBase, setCalBase] = useState(() => new Date());
+  const [selectedYMD, setSelectedYMD] = useState(() => toYMD(new Date()));
+
   const calCells = useMemo(() => buildMonthGrid(calBase), [calBase]);
   const monthLabel = useMemo(() => calBase.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' }), [calBase]);
+
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [tasksError, setTasksError] = useState<string>('');
+  const [monthTasks, setMonthTasks] = useState<TaskRow[]>([]);
+  const [nearestTasks, setNearestTasks] = useState<TaskRow[]>([]);
+
+  const tasksByYMD = useMemo(() => {
+    const m = new Map<string, TaskRow[]>();
+    for (const t of monthTasks) {
+      const ymd = t.data;
+      if (!ymd) continue;
+      const arr = m.get(ymd) ?? [];
+      arr.push(t);
+      m.set(ymd, arr);
+    }
+    for (const [k, arr] of m.entries()) {
+      arr.sort(sortByDateTime);
+      m.set(k, arr);
+    }
+    return m;
+  }, [monthTasks]);
+
+  const daysWithTasks = useMemo(() => {
+    const s = new Set<number>();
+    for (const t of monthTasks) {
+      const d = new Date(t.data);
+      if (d.getFullYear() === calBase.getFullYear() && d.getMonth() === calBase.getMonth()) {
+        s.add(d.getDate());
+      }
+    }
+    return s;
+  }, [monthTasks, calBase]);
+
+  const selectedTasks = useMemo(() => {
+    return tasksByYMD.get(selectedYMD) ?? [];
+  }, [tasksByYMD, selectedYMD]);
+
+  const loadTasksForMonth = async () => {
+    try {
+      setTasksError('');
+      setTasksLoading(true);
+
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      const user = userData.user;
+      if (!user) {
+        setMonthTasks([]);
+        setNearestTasks([]);
+        return;
+      }
+
+      const from = toYMD(startOfMonth(calBase));
+      const to = toYMD(endOfMonth(calBase));
+
+      const monthRes = await supabase
+        .from(TASKS_TABLE)
+        .select('id,user_id,data,godzina,nazwa,opis,utworzone_at')
+        .eq('user_id', user.id)
+        .gte('data', from)
+        .lte('data', to);
+
+      if (monthRes.error) throw monthRes.error;
+
+      // Najbliższe 3: od dziś w górę (sortujemy po stronie klienta, bo godzina może być null)
+      const nowYMD = toYMD(new Date());
+      const nearestRes = await supabase
+        .from(TASKS_TABLE)
+        .select('id,user_id,data,godzina,nazwa,opis,utworzone_at')
+        .eq('user_id', user.id)
+        .gte('data', nowYMD)
+        .limit(25);
+
+      if (nearestRes.error) throw nearestRes.error;
+
+      const monthList = (monthRes.data ?? []) as any as TaskRow[];
+      const nearestList = (nearestRes.data ?? []) as any as TaskRow[];
+
+      monthList.sort(sortByDateTime);
+      nearestList.sort(sortByDateTime);
+
+      setMonthTasks(monthList);
+      setNearestTasks(nearestList.slice(0, 3));
+    } catch (e: any) {
+      setMonthTasks([]);
+      setNearestTasks([]);
+      setTasksError(e?.message ?? 'Nie udało się pobrać zadań.');
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTasksForMonth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calBase]);
+
+  // gdy zmieniasz miesiąc, ustaw selectedYMD na 1 dzień miesiąca (żeby nie “uciekł”)
+  useEffect(() => {
+    const ymd = toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), 1));
+    setSelectedYMD(ymd);
+  }, [calBase]);
+
+  const goPrevMonth = () => setCalBase((d) => addMonths(d, -1));
+  const goNextMonth = () => setCalBase((d) => addMonths(d, +1));
+
+  const onPressDay = (day: number) => {
+    const ymd = toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), day));
+    setSelectedYMD(ymd);
+  };
+
+  // ===== ADD TASK MODAL (PICKERS) =====
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [hasTime, setHasTime] = useState(false);
+  const [pickDate, setPickDate] = useState<Date>(() => new Date());
+  const [pickTime, setPickTime] = useState<Date>(() => roundTo5Min(new Date()));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const openAddTask = () => {
+    setNewTitle('');
+    setNewDesc('');
+    setHasTime(false);
+
+    const base = new Date(selectedYMD + 'T00:00:00');
+    // jeśli selectedYMD jest pusty/niepoprawny, fallback
+    const d = isNaN(base.getTime()) ? new Date() : base;
+    setPickDate(d);
+
+    setPickTime(roundTo5Min(new Date()));
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+    setTaskModalOpen(true);
+  };
+
+  const onChangeDate = (_: any, d?: Date) => {
+    if (Platform.OS !== 'ios') setShowDatePicker(false);
+    if (!d) return;
+    setPickDate(d);
+
+    // Synchronizuj selectedYMD od razu (premium UX)
+    const ymd = toYMD(d);
+    setSelectedYMD(ymd);
+  };
+
+  const onChangeTime = (_: any, d?: Date) => {
+    if (Platform.OS !== 'ios') setShowTimePicker(false);
+    if (!d) return;
+    setPickTime(d);
+    setHasTime(true);
+  };
+
+  const addTask = async () => {
+    const title = newTitle.trim();
+    if (!title) return;
+
+    try {
+      // ważne: user_id ustawiany triggerem set_user_id_default()
+      const payload: any = {
+        nazwa: title,
+        opis: newDesc.trim() ? newDesc.trim() : null,
+        data: selectedYMD,
+        godzina: hasTime ? toTimeHHMMSS(pickTime) : null,
+      };
+
+      const ins = await supabase.from(TASKS_TABLE).insert(payload);
+      if (ins.error) throw ins.error;
+
+      setTaskModalOpen(false);
+      await loadTasksForMonth();
+    } catch (e) {
+      // MVP: bez dodatkowych Alertów
+      setTaskModalOpen(false);
+    }
+  };
 
   // ===== LOAD: PROFILE NAME + HERO ANIM =====
   useEffect(() => {
@@ -247,13 +498,22 @@ export default function DashboardScreen() {
           Animated.timing(subtitleOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
           Animated.timing(subtitleY, { toValue: 0, duration: 420, useNativeDriver: true }),
         ]).start();
+
+        // glow loop na "Witaj"
+        heroGlow.setValue(0);
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(heroGlow, { toValue: 1, duration: 1100, useNativeDriver: true }),
+            Animated.timing(heroGlow, { toValue: 0, duration: 1100, useNativeDriver: true }),
+          ])
+        ).start();
       }
     })();
 
     return () => {
       alive = false;
     };
-  }, [subtitleOpacity, subtitleY]);
+  }, [subtitleOpacity, subtitleY, heroGlow]);
 
   // ===== LOAD: STATUS (budżet+czas) =====
   useEffect(() => {
@@ -283,11 +543,7 @@ export default function DashboardScreen() {
           end: (invRes.data as any)?.data_koniec ?? null,
         });
 
-        const expRes = await supabase
-          .from('wydatki')
-          .select('kwota, status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+        const expRes = await supabase.from('wydatki').select('kwota, status').eq('user_id', user.id).order('created_at', { ascending: false });
 
         if (expRes.error) throw expRes.error;
 
@@ -332,11 +588,7 @@ export default function DashboardScreen() {
           return;
         }
 
-        const res = await supabase
-          .from('etapy')
-          .select('id,user_id,nazwa,kolejnosc,status')
-          .eq('user_id', user.id)
-          .order('kolejnosc', { ascending: true });
+        const res = await supabase.from('etapy').select('id,user_id,nazwa,kolejnosc,status').eq('user_id', user.id).order('kolejnosc', { ascending: true });
 
         if (res.error) throw res.error;
 
@@ -399,9 +651,7 @@ export default function DashboardScreen() {
 
         for (const etap of etapFolders) {
           const prefix = `${user.id}/${etap}`;
-          const { data: files } = await supabase.storage
-            .from(PHOTOS_BUCKET)
-            .list(prefix, { limit: 40, sortBy: { column: 'created_at', order: 'desc' } });
+          const { data: files } = await supabase.storage.from(PHOTOS_BUCKET).list(prefix, { limit: 40, sortBy: { column: 'created_at', order: 'desc' } });
 
           for (const f of files ?? []) {
             if (!f?.name || f.name.endsWith('/')) continue;
@@ -453,7 +703,7 @@ export default function DashboardScreen() {
 
   const heroDateLine = useMemo(() => {
     const d = new Date();
-    return `Dziś ${formatPLDateLong(d)}, jesteś już w połowie budowy — przeprowadzka coraz bliżej.`;
+    return `Dziś jest ${formatPLDateLong(d)}, jesteś już w połowie budowy — przeprowadzka coraz bliżej.`;
   }, []);
 
   const handleMomentumEnd = (e: any) => {
@@ -468,6 +718,23 @@ export default function DashboardScreen() {
     index,
   });
 
+  // animacja scan/glow na module etapów
+  const scanX = useRef(new Animated.Value(-60)).current;
+  useEffect(() => {
+    scanX.setValue(-60);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanX, { toValue: W + 60, duration: 2400, useNativeDriver: true }),
+        Animated.timing(scanX, { toValue: -60, duration: 10, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [scanX]);
+
+  const glowOpacity = heroGlow.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.55] });
+  const glowScale = heroGlow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] });
+
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -476,22 +743,37 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Witaj {imie ? imie : ''}</Text>
+          <View style={styles.heroTitleWrap}>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.heroTitleGlow,
+                {
+                  opacity: glowOpacity,
+                  transform: [{ scale: glowScale }],
+                },
+              ]}
+            />
+            <Text style={styles.heroTitle}>Witaj {imie ? imie : ''}</Text>
+          </View>
 
           <Animated.View style={{ opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }}>
             <Text style={styles.heroSubtitle}>{heroDateLine}</Text>
           </Animated.View>
         </View>
 
-        <TouchableOpacity activeOpacity={0.88} onPress={onPressPostepy} style={styles.progressCardOuter}>
+        {/* ZMIANA: moduł etapów bez nagłówka i bez "kroki milowe" */}
+        <View style={styles.progressCardOuter}>
           <BlurView intensity={18} tint="dark" style={styles.progressCard}>
-            <View style={styles.progressTitleRow}>
-              <Text style={styles.progressTitle}>Postęp budowy</Text>
-
-              <TouchableOpacity onPress={onPressPostepy} activeOpacity={0.85} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.progressLink}>Sprawdź</Text>
-              </TouchableOpacity>
-            </View>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.progressScan,
+                {
+                  transform: [{ translateX: scanX }, { rotate: '-12deg' }],
+                },
+              ]}
+            />
 
             <View style={styles.progressRow}>
               <Text style={styles.progressLabel}>OBECNY ETAP</Text>
@@ -505,14 +787,13 @@ export default function DashboardScreen() {
               {progressLoading ? <Text style={styles.progressValue}>Ładowanie…</Text> : <Text style={styles.progressValue}>{kolejnyEtap}</Text>}
             </View>
 
-            <View style={styles.sep} />
-
-            <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>KROKI MILOWE</Text>
-              {progressLoading ? <Text style={styles.progressBig}>—</Text> : <Text style={styles.progressBig}>{milestonesText}</Text>}
-            </View>
+            <TouchableOpacity activeOpacity={0.88} onPress={onPressPostepy} style={styles.centerBtnWrap}>
+              <View style={styles.centerBtn}>
+                <Text style={styles.centerBtnText}>Sprawdź więcej</Text>
+              </View>
+            </TouchableOpacity>
           </BlurView>
-        </TouchableOpacity>
+        </View>
 
         <View style={{ marginTop: 16 }}>
           <Animated.FlatList
@@ -569,24 +850,13 @@ export default function DashboardScreen() {
                   <Animated.View pointerEvents="none" style={[styles.donutGlowWrap, { opacity: glow }]} />
 
                   <View style={styles.donutInnerWrap}>
-                    <FuturisticDonutSvg
-                      value={item.value}
-                      label={item.label}
-                      onPressLabel={item.onPress}
-                      isActive={isActiveSlide}
-                      size={210}
-                      stroke={16}
-                    />
+                    <FuturisticDonutSvg value={item.value} label={item.label} onPressLabel={item.onPress} isActive={isActiveSlide} size={210} stroke={16} />
 
-                    {item.key === 'budzet' && (
-                      <Text style={styles.donutSubText}>{statusLoading ? '—' : `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget)}`}</Text>
-                    )}
+                    {item.key === 'budzet' && <Text style={styles.donutSubText}>{statusLoading ? '—' : `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget)}`}</Text>}
 
                     {item.key === 'czas' && (
                       <Text style={styles.donutSubText}>
-                        {dates.start && dates.end
-                          ? `${new Date(dates.start).toLocaleDateString('pl-PL')} → ${new Date(dates.end).toLocaleDateString('pl-PL')}`
-                          : 'Uzupełnij daty inwestycji'}
+                        {dates.start && dates.end ? `${new Date(dates.start).toLocaleDateString('pl-PL')} → ${new Date(dates.end).toLocaleDateString('pl-PL')}` : 'Uzupełnij daty inwestycji'}
                       </Text>
                     )}
 
@@ -603,7 +873,8 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitle}>Ostatnio dodane zdjęcia</Text>
+          {/* ZMIANA: wyśrodkowany + zielony */}
+          <Text style={styles.sectionTitleCenterNeon}>Ostatnio dodane zdjęcia</Text>
 
           <View style={styles.sectionOuter}>
             <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
@@ -633,18 +904,75 @@ export default function DashboardScreen() {
                   )}
                 />
               )}
+
+              {/* ZMIANA: button pod zdjęciami */}
+              <TouchableOpacity activeOpacity={0.88} onPress={onPressZdjecia} style={styles.centerBtnWrap}>
+                <View style={styles.centerBtn}>
+                  <Text style={styles.centerBtnText}>Sprawdź więcej</Text>
+                </View>
+              </TouchableOpacity>
             </BlurView>
           </View>
         </View>
 
+        {/* ===================== KALENDARZ (POPRAWIONY) ===================== */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitle}>Kalendarz</Text>
+          <Text style={styles.sectionTitleCenterNeon}>Kalendarz</Text>
 
           <View style={styles.sectionOuter}>
             <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
+              {/* top bar: miesiąc + nawigacja */}
               <View style={styles.calendarTop}>
-                <Text style={styles.calendarMonth}>{monthLabel}</Text>
-                <Text style={styles.calendarHint}>Wkrótce zadania i wydarzenia</Text>
+                <TouchableOpacity activeOpacity={0.85} onPress={goPrevMonth} style={styles.calNavBtn}>
+                  <Text style={styles.calNavTxt}>‹</Text>
+                </TouchableOpacity>
+
+                <View style={{ alignItems: 'center', gap: 2 }}>
+                  <Text style={styles.calendarMonth}>{monthLabel}</Text>
+                  <Text style={styles.calendarHint}>
+                    {tasksLoading ? 'Ładowanie zadań…' : tasksError ? 'Błąd pobierania zadań' : 'Kliknij dzień, aby zobaczyć zadania'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity activeOpacity={0.85} onPress={goNextMonth} style={styles.calNavBtn}>
+                  <Text style={styles.calNavTxt}>›</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* nearest 3 */}
+              <View style={styles.nearestWrap}>
+                <View style={styles.nearestHeader}>
+                  <Text style={styles.nearestTitle}>Najbliższe zadania</Text>
+                  <TouchableOpacity activeOpacity={0.9} onPress={openAddTask} style={styles.addTaskBtn}>
+                    <Text style={styles.addTaskBtnText}>+ Dodaj</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {tasksLoading ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator />
+                    <Text style={styles.loadingText}>Ładowanie…</Text>
+                  </View>
+                ) : nearestTasks.length === 0 ? (
+                  <Text style={styles.emptyText}>Brak zadań — dodaj pierwsze.</Text>
+                ) : (
+                  <View style={{ gap: 8 }}>
+                    {nearestTasks.slice(0, 3).map((t) => (
+                      <View key={t.id} style={styles.taskRow}>
+                        <View style={styles.taskDot} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.taskTitle} numberOfLines={1}>
+                            {t.nazwa}
+                          </Text>
+                          <Text style={styles.taskMeta}>
+                            {t.data ?? '—'}
+                            {t.godzina ? ` • ${prettyTime(t.godzina)}` : ' • całodniowe'}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
 
               <View style={styles.weekRow}>
@@ -656,11 +984,60 @@ export default function DashboardScreen() {
               </View>
 
               <View style={styles.grid}>
-                {calCells.map((c, idx) => (
-                  <View key={idx} style={[styles.cell, c.isToday && styles.cellToday]}>
-                    <Text style={[styles.cellText, c.isToday && styles.cellTextToday]}>{c.day ? String(c.day) : ''}</Text>
+                {calCells.map((c, idx) => {
+                  const hasDay = !!c.day;
+                  const hasTasks = hasDay ? daysWithTasks.has(c.day as number) : false;
+                  const isSelected = hasDay && selectedYMD === toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), c.day as number));
+
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      activeOpacity={hasDay ? 0.85 : 1}
+                      disabled={!hasDay}
+                      onPress={() => hasDay && onPressDay(c.day as number)}
+                      style={[
+                        styles.cell,
+                        c.isToday && styles.cellToday,
+                        hasTasks && styles.cellHasTask,
+                        isSelected && styles.cellSelected,
+                      ]}
+                    >
+                      <Text style={[styles.cellText, c.isToday && styles.cellTextToday, isSelected && styles.cellTextSelected]}>{c.day ? String(c.day) : ''}</Text>
+                      {hasTasks ? <View pointerEvents="none" style={styles.cellDot} /> : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* lista zadań wybranego dnia */}
+              <View style={styles.dayTasksWrap}>
+                <View style={styles.dayTasksHeader}>
+                  <Text style={styles.dayTasksTitle}>Zadania: {selectedYMD}</Text>
+                  <TouchableOpacity activeOpacity={0.9} onPress={openAddTask} style={styles.addTaskMiniBtn}>
+                    <Text style={styles.addTaskMiniBtnText}>Dodaj</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {selectedTasks.length === 0 ? (
+                  <Text style={styles.emptyText}>Brak zadań na ten dzień.</Text>
+                ) : (
+                  <View style={{ gap: 8 }}>
+                    {selectedTasks.map((t) => (
+                      <View key={t.id} style={styles.taskRow}>
+                        <View style={styles.taskDot} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.taskTitle} numberOfLines={2}>
+                            {t.nazwa}
+                          </Text>
+                          <Text style={styles.taskMeta}>
+                            {t.godzina ? `${prettyTime(t.godzina)} • ` : 'całodniowe • '}
+                            {t.opis ? t.opis : '—'}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
                   </View>
-                ))}
+                )}
               </View>
             </BlurView>
           </View>
@@ -668,6 +1045,92 @@ export default function DashboardScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* MODAL: DODAJ ZADANIE (PICKERS) */}
+      <Modal visible={taskModalOpen} transparent animationType="fade" onRequestClose={() => setTaskModalOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Dodaj zadanie</Text>
+            <Text style={styles.modalSubtitle}>Wybrana data: {selectedYMD}</Text>
+
+            <TextInput
+              value={newTitle}
+              onChangeText={setNewTitle}
+              placeholder="Tytuł (np. Montaż okien)"
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              style={styles.modalInput}
+              maxLength={80}
+            />
+
+            <TextInput
+              value={newDesc}
+              onChangeText={setNewDesc}
+              placeholder="Opis (opcjonalnie)"
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              style={styles.modalInput}
+              maxLength={120}
+            />
+
+            {/* Pickers row */}
+            <View style={styles.pickerRow}>
+              <TouchableOpacity activeOpacity={0.9} onPress={() => setShowDatePicker(true)} style={styles.pickerBtn}>
+                <Text style={styles.pickerBtnLabel}>Data</Text>
+                <Text style={styles.pickerBtnValue}>{formatPLDateShort(pickDate)}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => {
+                  setHasTime(true);
+                  setShowTimePicker(true);
+                }}
+                style={[styles.pickerBtn, hasTime ? styles.pickerBtnActive : null]}
+              >
+                <Text style={styles.pickerBtnLabel}>Godzina</Text>
+                <Text style={styles.pickerBtnValue}>{hasTime ? prettyTime(toTimeHHMMSS(pickTime)) : 'całodniowe'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {hasTime ? (
+              <TouchableOpacity activeOpacity={0.9} onPress={() => setHasTime(false)} style={styles.removeTimeBtn}>
+                <Text style={styles.removeTimeTxt}>Usuń godzinę (ustaw całodniowe)</Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {/* DateTimePicker mounts */}
+            {showDatePicker ? (
+              <DateTimePicker
+                value={pickDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                onChange={onChangeDate}
+              />
+            ) : null}
+
+            {showTimePicker ? (
+              <DateTimePicker
+                value={pickTime}
+                mode="time"
+                is24Hour
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onChangeTime}
+              />
+            ) : null}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity activeOpacity={0.9} onPress={() => setTaskModalOpen(false)} style={styles.modalBtnGhost}>
+                <Text style={styles.modalBtnGhostTxt}>Anuluj</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity activeOpacity={0.9} onPress={addTask} style={styles.modalBtnPrimary}>
+                <Text style={styles.modalBtnPrimaryTxt}>Zapisz</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalHint}>Wybierz datę i opcjonalnie godzinę z pickerów. Jeśli nie ustawisz godziny — zadanie jest całodniowe.</Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -681,19 +1144,22 @@ type Styles = {
   logo: ImageStyle;
 
   hero: ViewStyle;
+  heroTitleWrap: ViewStyle;
+  heroTitleGlow: ViewStyle;
   heroTitle: TextStyle;
   heroSubtitle: TextStyle;
 
   progressCardOuter: ViewStyle;
   progressCard: ViewStyle;
-  progressTitleRow: ViewStyle;
-  progressTitle: TextStyle;
-  progressLink: TextStyle;
+  progressScan: ViewStyle;
   progressRow: ViewStyle;
   progressLabel: TextStyle;
   progressValue: TextStyle;
-  progressBig: TextStyle;
   sep: ViewStyle;
+
+  centerBtnWrap: ViewStyle;
+  centerBtn: ViewStyle;
+  centerBtnText: TextStyle;
 
   donutSlide: ViewStyle;
   donutGlowWrap: ViewStyle;
@@ -702,6 +1168,7 @@ type Styles = {
 
   sectionWrap: ViewStyle;
   sectionTitle: TextStyle;
+  sectionTitleCenterNeon: TextStyle;
   sectionOuter: ViewStyle;
   sectionGlass: ViewStyle;
 
@@ -715,13 +1182,57 @@ type Styles = {
   calendarTop: ViewStyle;
   calendarMonth: TextStyle;
   calendarHint: TextStyle;
+  calNavBtn: ViewStyle;
+  calNavTxt: TextStyle;
+
   weekRow: ViewStyle;
   weekDay: TextStyle;
   grid: ViewStyle;
   cell: ViewStyle;
   cellToday: ViewStyle;
+  cellHasTask: ViewStyle;
+  cellSelected: ViewStyle;
+  cellDot: ViewStyle;
   cellText: TextStyle;
   cellTextToday: TextStyle;
+  cellTextSelected: TextStyle;
+
+  nearestWrap: ViewStyle;
+  nearestHeader: ViewStyle;
+  nearestTitle: TextStyle;
+  addTaskBtn: ViewStyle;
+  addTaskBtnText: TextStyle;
+
+  taskRow: ViewStyle;
+  taskDot: ViewStyle;
+  taskTitle: TextStyle;
+  taskMeta: TextStyle;
+
+  dayTasksWrap: ViewStyle;
+  dayTasksHeader: ViewStyle;
+  dayTasksTitle: TextStyle;
+  addTaskMiniBtn: ViewStyle;
+  addTaskMiniBtnText: TextStyle;
+
+  modalBackdrop: ViewStyle;
+  modalCard: ViewStyle;
+  modalTitle: TextStyle;
+  modalSubtitle: TextStyle;
+  modalInput: ViewStyle;
+  modalActions: ViewStyle;
+  modalBtnGhost: ViewStyle;
+  modalBtnGhostTxt: TextStyle;
+  modalBtnPrimary: ViewStyle;
+  modalBtnPrimaryTxt: TextStyle;
+  modalHint: TextStyle;
+
+  pickerRow: ViewStyle;
+  pickerBtn: ViewStyle;
+  pickerBtnActive: ViewStyle;
+  pickerBtnLabel: TextStyle;
+  pickerBtnValue: TextStyle;
+  removeTimeBtn: ViewStyle;
+  removeTimeTxt: TextStyle;
 };
 
 const styles = StyleSheet.create<Styles>({
@@ -729,10 +1240,28 @@ const styles = StyleSheet.create<Styles>({
 
   content: { paddingTop: 16, paddingHorizontal: 18, paddingBottom: 140 },
 
+  // ZMIANA: większe logo
   logoRow: { alignItems: 'center', marginTop: 6, marginBottom: 10 },
-  logo: { width: 150, height: 44, opacity: 0.95 },
+  logo: { width: 176, height: 54, opacity: 0.98 },
 
   hero: { marginTop: 8, marginBottom: 8 },
+
+  // ZMIANA: glow pod "Witaj"
+  heroTitleWrap: { position: 'relative', alignSelf: 'flex-start' },
+  heroTitleGlow: {
+    position: 'absolute',
+    left: -12,
+    right: -12,
+    top: 10,
+    height: 26,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.22)',
+    shadowColor: NEON,
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+  },
+
   heroTitle: {
     color: ACCENT,
     fontSize: 34,
@@ -763,27 +1292,23 @@ const styles = StyleSheet.create<Styles>({
     padding: 18,
     backgroundColor: 'rgba(255,255,255,0.026)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(37,240,200,0.12)',
   },
-  progressTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  progressTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: -0.2,
-  },
-  progressLink: {
-    color: NEON,
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.2,
-    textShadowColor: 'rgba(37,240,200,0.22)',
-    textShadowRadius: 10,
+
+  // ZMIANA: animowany scan/glow
+  progressScan: {
+    position: 'absolute',
+    top: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.14)',
+    shadowColor: NEON,
+    shadowOpacity: 0.35,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 0 },
   },
 
   progressRow: { paddingVertical: 10 },
@@ -800,15 +1325,30 @@ const styles = StyleSheet.create<Styles>({
     fontWeight: '900',
     letterSpacing: -0.2,
   },
-  progressBig: {
-    marginTop: 8,
-    color: '#FFFFFF',
-    fontSize: 26,
-    fontWeight: '900',
-    textShadowColor: 'rgba(37,240,200,0.16)',
-    textShadowRadius: 14,
-  },
   sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
+
+  // ZMIANA: button center
+  centerBtnWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  centerBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.32)',
+    shadowColor: NEON,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  centerBtnText: {
+    color: NEON,
+    fontSize: 12.5,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(37,240,200,0.22)',
+    textShadowRadius: 10,
+  },
 
   donutSlide: {
     borderRadius: 24,
@@ -839,14 +1379,29 @@ const styles = StyleSheet.create<Styles>({
   },
 
   sectionWrap: { marginTop: 18 },
+
   sectionTitle: {
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '900',
-    letterSpacing: -0.2, // <-- tu ma być BEZ apostrofu
+    letterSpacing: -0.2,
     marginBottom: 12,
     paddingHorizontal: 2,
   },
+
+  // ZMIANA: wyśrodkowany + zielony tytuł sekcji
+  sectionTitleCenterNeon: {
+    textAlign: 'center',
+    color: NEON,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+    marginBottom: 12,
+    paddingHorizontal: 2,
+    textShadowColor: 'rgba(37,240,200,0.18)',
+    textShadowRadius: 16,
+  },
+
   sectionOuter: {
     borderRadius: 28,
     overflow: 'hidden',
@@ -876,9 +1431,49 @@ const styles = StyleSheet.create<Styles>({
   },
   photoImg: { width: '100%', height: '100%' },
 
-  calendarTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
-  calendarMonth: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
+  // ===== Calendar styles (premium light) =====
+  calendarTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  calendarMonth: { color: '#FFFFFF', fontSize: 16, fontWeight: '900', textTransform: 'capitalize' },
   calendarHint: { color: 'rgba(255,255,255,0.45)', fontSize: 12.5, fontWeight: '700' },
+
+  calNavBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  calNavTxt: { color: NEON, fontSize: 20, fontWeight: '900', marginTop: -2 },
+
+  nearestWrap: {
+    marginTop: 6,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.10)',
+  },
+  nearestHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  nearestTitle: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '900', letterSpacing: 0.2 },
+  addTaskBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.30)',
+  },
+  addTaskBtnText: { color: NEON, fontSize: 12, fontWeight: '900' },
 
   weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 4 },
   weekDay: {
@@ -899,6 +1494,7 @@ const styles = StyleSheet.create<Styles>({
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
+    position: 'relative',
   },
   cellToday: {
     backgroundColor: 'rgba(25,112,92,0.12)',
@@ -908,6 +1504,164 @@ const styles = StyleSheet.create<Styles>({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
   },
+  cellHasTask: {
+    borderColor: 'rgba(37,240,200,0.28)',
+    shadowColor: NEON,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  cellSelected: {
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderColor: 'rgba(37,240,200,0.45)',
+    shadowColor: NEON,
+    shadowOpacity: 0.32,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  cellDot: {
+    position: 'absolute',
+    bottom: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 99,
+    backgroundColor: NEON,
+    opacity: 0.95,
+  },
+
   cellText: { color: 'rgba(255,255,255,0.70)', fontWeight: '800', fontSize: 12.5 },
   cellTextToday: { color: '#E9FFF7' },
+  cellTextSelected: { color: '#E9FFF7' },
+
+  dayTasksWrap: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  dayTasksHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  dayTasksTitle: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '900' },
+  addTaskMiniBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.25)',
+  },
+  addTaskMiniBtnText: { color: NEON, fontSize: 11.5, fontWeight: '900' },
+
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  taskDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 99,
+    backgroundColor: NEON,
+    marginTop: 5,
+    shadowColor: NEON,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  taskTitle: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '900' },
+  taskMeta: { marginTop: 3, color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '700' },
+
+  // ===== Modal =====
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 16,
+    backgroundColor: 'rgba(12,12,12,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    shadowColor: '#000',
+    shadowOpacity: 0.55,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 14 },
+  },
+  modalTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
+  modalSubtitle: { marginTop: 4, color: 'rgba(255,255,255,0.55)', fontSize: 12.5, fontWeight: '700' },
+  modalInput: {
+    marginTop: 12,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    color: '#FFFFFF',
+    fontWeight: '800',
+  } as any,
+
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  modalBtnGhost: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 18,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modalBtnGhostTxt: { color: 'rgba(255,255,255,0.75)', fontSize: 12.5, fontWeight: '900' },
+  modalBtnPrimary: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 18,
+    alignItems: 'center',
+    backgroundColor: 'rgba(37,240,200,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.38)',
+  },
+  modalBtnPrimaryTxt: { color: NEON, fontSize: 12.5, fontWeight: '900' },
+  modalHint: { marginTop: 10, color: 'rgba(255,255,255,0.35)', fontSize: 11.5, fontWeight: '700', lineHeight: 16 },
+
+  // ===== Picker UI in modal =====
+  pickerRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  pickerBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  pickerBtnActive: {
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderColor: 'rgba(37,240,200,0.35)',
+  },
+  pickerBtnLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 11.5, fontWeight: '900' },
+  pickerBtnValue: { marginTop: 4, color: '#FFFFFF', fontSize: 13.5, fontWeight: '900' },
+
+  removeTimeBtn: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+  },
+  removeTimeTxt: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '900' },
 });
