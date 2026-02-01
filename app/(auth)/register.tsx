@@ -40,28 +40,26 @@ function buildStars(count: number): Star[] {
   return stars;
 }
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const router = useRouter();
   const stars = useMemo(() => buildStars(90), []);
   const floatY = useRef(new Animated.Value(0)).current;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [password2, setPassword2] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // jeśli user zalogowany -> dashboard
+    // jeśli user zalogowany -> dashboard (na wszelki wypadek)
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       if (data.session) router.replace('/(app)/(tabs)/dashboard');
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) router.replace('/(app)/(tabs)/dashboard');
     });
 
     const anim = Animated.loop(
@@ -74,39 +72,38 @@ export default function LoginScreen() {
 
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
       anim.stop();
     };
   }, [router, floatY]);
 
-  const onLogin = async () => {
+  const onRegister = async () => {
     setError(null);
+
+    const e = email.trim();
+    if (!e) return setError('Wpisz e-mail.');
+    if (password.length < 6) return setError('Hasło musi mieć min. 6 znaków.');
+    if (password !== password2) return setError('Hasła nie są takie same.');
+
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+    // Email verification: supabase wyśle maila, jeśli włączone "Confirm email" w panelu Auth
+    const { error } = await supabase.auth.signUp({
+      email: e,
       password,
     });
 
-    if (error) setError(mapError(error.message));
-    setLoading(false);
-  };
-
-  const onForgotPassword = async () => {
-    const e = email.trim();
-    if (!e) {
-      Alert.alert('Reset hasła', 'Wpisz e-mail w polu powyżej, a potem kliknij ponownie.');
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(e);
     setLoading(false);
 
     if (error) {
-      Alert.alert('Błąd', 'Nie udało się wysłać linku. Spróbuj ponownie.');
+      setError(mapRegisterError(error.message));
       return;
     }
-    Alert.alert('Gotowe', 'Wysłaliśmy link do resetu hasła na podany e-mail.');
+
+    Alert.alert(
+      'Sprawdź e-mail',
+      'Wysłaliśmy link potwierdzający. Po kliknięciu wróć do aplikacji i zaloguj się.',
+      [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+    );
   };
 
   const onGoogle = async () => {
@@ -114,7 +111,7 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     setTimeout(() => {
       setGoogleLoading(false);
-      Alert.alert('Wkrótce', 'Logowanie Google dodamy przy buildzie aplikacji.');
+      Alert.alert('Wkrótce', 'Rejestracja/logowanie Google dodamy przy buildzie aplikacji.');
     }, 450);
   };
 
@@ -148,7 +145,7 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       <View style={styles.content}>
-        {/* logo (pływa lekko) */}
+        {/* logo */}
         <Animated.View style={[styles.logoWrap, { transform: [{ translateY: floatY }] }]}>
           <Image
             source={require('../../assets/logo.png')}
@@ -166,8 +163,9 @@ export default function LoginScreen() {
           value={email}
           onChangeText={setEmail}
         />
+
         <TextInput
-          placeholder="Hasło"
+          placeholder="Hasło (min. 6 znaków)"
           placeholderTextColor="rgba(255,255,255,0.45)"
           style={styles.input}
           secureTextEntry
@@ -175,17 +173,31 @@ export default function LoginScreen() {
           onChangeText={setPassword}
         />
 
+        <TextInput
+          placeholder="Powtórz hasło"
+          placeholderTextColor="rgba(255,255,255,0.45)"
+          style={styles.input}
+          secureTextEntry
+          value={password2}
+          onChangeText={setPassword2}
+        />
+
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <TouchableOpacity
           disabled={loading}
-          onPress={onLogin}
+          onPress={onRegister}
           style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
           activeOpacity={0.9}
         >
-          {loading ? <ActivityIndicator /> : <Text style={styles.primaryText}>Zaloguj się</Text>}
+          {loading ? (
+            <ActivityIndicator />
+          ) : (
+            <Text style={styles.primaryText}>Załóż konto</Text>
+          )}
         </TouchableOpacity>
 
+        {/* Google (UI) */}
         <TouchableOpacity
           disabled={googleLoading}
           onPress={onGoogle}
@@ -203,17 +215,13 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={onForgotPassword} style={styles.forgotWrap} activeOpacity={0.85}>
-          <Text style={styles.forgotText}>Nie pamiętasz hasła?</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity
-          onPress={() => router.push('/(auth)/register')}
+          onPress={() => router.replace('/(auth)/login')}
           style={styles.bottomLinkWrap}
           activeOpacity={0.85}
         >
           <Text style={styles.bottomLink}>
-            Nie masz konta? <Text style={styles.bottomLinkStrong}>Załóż konto</Text>
+            Masz już konto? <Text style={styles.bottomLinkStrong}>Zaloguj się</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -221,11 +229,12 @@ export default function LoginScreen() {
   );
 }
 
-function mapError(msg: string) {
+function mapRegisterError(msg: string) {
   const l = msg.toLowerCase();
-  if (l.includes('invalid login credentials')) return 'Niepoprawny e-mail lub hasło.';
-  if (l.includes('email not confirmed')) return 'Potwierdź adres e-mail.';
-  return 'Coś poszło nie tak. Spróbuj ponownie.';
+  if (l.includes('user already registered')) return 'Konto z tym e-mailem już istnieje.';
+  if (l.includes('password')) return 'Hasło jest za słabe.';
+  if (l.includes('email')) return 'Podaj poprawny adres e-mail.';
+  return 'Nie udało się założyć konta. Spróbuj ponownie.';
 }
 
 const styles = StyleSheet.create({
@@ -255,7 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // logo WYŻEJ: tu sterujesz wysokością
+  // sterujesz wysokością logo:
   logoWrap: { alignItems: 'center', marginTop: -160, marginBottom: 26 },
   logoImg: { width: 96, height: 96 },
 
@@ -284,20 +293,18 @@ const styles = StyleSheet.create({
   },
   primaryText: { color: '#25F0C8', fontWeight: '900', fontSize: 18 },
 
+  // duży przycisk + sensowna ikona (bez walki z paddingiem png)
   googleBtn: {
     marginTop: 16,
     height: 56,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   googleLogo: { width: 160, height: 160 },
-
-  forgotWrap: { marginTop: 14, alignItems: 'center' },
-  forgotText: { color: 'rgba(255,255,255,0.75)', fontWeight: '800' },
 
   bottomLinkWrap: { marginTop: 18, alignItems: 'center' },
   bottomLink: { color: 'rgba(255,255,255,0.65)' },

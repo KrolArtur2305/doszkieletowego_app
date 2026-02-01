@@ -27,12 +27,16 @@ export default function AppLayout() {
   const router = useRouter();
 
   const [checking, setChecking] = useState(false);
+
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [investmentComplete, setInvestmentComplete] = useState<boolean | null>(null);
 
+  // ✅ NOWE: plan gate
+  const [planOk, setPlanOk] = useState<boolean | null>(null);
+
   const lastCheckKeyRef = useRef<string>('');
 
-  // 1) Pobierz status profilu/inwestycji
+  // 1) Pobierz status profilu/inwestycji + plan
   useEffect(() => {
     let alive = true;
 
@@ -45,6 +49,7 @@ export default function AppLayout() {
         setChecking(false);
         setProfileComplete(null);
         setInvestmentComplete(null);
+        setPlanOk(null);
         return;
       }
 
@@ -57,18 +62,42 @@ export default function AppLayout() {
 
       try {
         const [profileRes, invRes] = await Promise.all([
-          supabase.from('profiles').select('profil_wypelniony').eq('user_id', userId).maybeSingle(),
-          supabase.from('inwestycje').select('inwestycja_wypelniona').eq('user_id', userId).maybeSingle(),
+          supabase
+            .from('profiles')
+            .select('profil_wypelniony, plan, plan_expires_at')
+            .eq('user_id', userId)
+            .maybeSingle(),
+          supabase
+            .from('inwestycje')
+            .select('inwestycja_wypelniona')
+            .eq('user_id', userId)
+            .maybeSingle(),
         ]);
 
         if (!alive) return;
 
         setProfileComplete(Boolean(profileRes.data?.profil_wypelniony));
         setInvestmentComplete(Boolean(invRes.data?.inwestycja_wypelniona));
+
+        // ✅ Plan OK jeśli:
+        // - plan != null
+        // - oraz jeśli plan_expires_at jest ustawione, to nie jest w przeszłości
+        const plan = profileRes.data?.plan ?? null;
+        const expiresAt = profileRes.data?.plan_expires_at ?? null;
+
+        if (!plan) {
+          setPlanOk(false);
+        } else if (expiresAt) {
+          const exp = new Date(expiresAt).getTime();
+          setPlanOk(Number.isFinite(exp) ? exp > Date.now() : true);
+        } else {
+          setPlanOk(true); // bezterminowy
+        }
       } catch {
         if (!alive) return;
         setProfileComplete(false);
         setInvestmentComplete(false);
+        setPlanOk(false);
       } finally {
         if (alive) setChecking(false);
       }
@@ -80,13 +109,19 @@ export default function AppLayout() {
     };
   }, [authLoading, session?.user?.id, pathname]);
 
-  // 2) Gate
+  // 2) Gate (kolejność ma znaczenie!)
   const gateTarget = useMemo(() => {
     if (!session) return null;
+
+    // ✅ 1) najpierw plan (po pierwszym logowaniu)
+    if (planOk === false) return '/(app)/plan';
+
+    // ✅ 2) potem profil / inwestycja
     if (profileComplete === false) return '/(app)/profil';
     if (profileComplete === true && investmentComplete === false) return '/(app)/inwestycja';
+
     return null;
-  }, [session, profileComplete, investmentComplete]);
+  }, [session, planOk, profileComplete, investmentComplete]);
 
   // 3) Routing
   useEffect(() => {
@@ -95,13 +130,22 @@ export default function AppLayout() {
       return;
     }
 
-    if (session && profileComplete === true && investmentComplete === true && pathname === '/(app)') {
+    // Wejście na /(app) => dashboard, ale dopiero gdy wszystko OK
+    if (
+      session &&
+      planOk === true &&
+      profileComplete === true &&
+      investmentComplete === true &&
+      pathname === '/(app)'
+    ) {
       router.replace('/(app)/(tabs)/dashboard');
     }
-  }, [gateTarget, pathname, router, session, profileComplete, investmentComplete]);
+  }, [gateTarget, pathname, router, session, planOk, profileComplete, investmentComplete]);
 
   const showOverlay =
-    authLoading || checking || (session && (profileComplete === null || investmentComplete === null));
+    authLoading ||
+    checking ||
+    (session && (planOk === null || profileComplete === null || investmentComplete === null));
 
   return (
     <View style={styles.root}>
@@ -115,7 +159,6 @@ export default function AppLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            // ✅ nie nadpisuj tła, pozwól ekranom rysować co chcą
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
@@ -153,7 +196,7 @@ function StarsBackground({ count = 26 }: { count?: number }) {
 
         x: new Animated.Value(0),
         y: new Animated.Value(0),
-        o: new Animated.Value(0.10), // 🔧 trochę wyżej (było 0.08)
+        o: new Animated.Value(0.10),
         s: new Animated.Value(1),
       };
     });
@@ -171,7 +214,7 @@ function StarsBackground({ count = 26 }: { count?: number }) {
     const dyBiased = dyUnit + 0.35;
     const dyFinal = clamp(dyBiased, -0.35, 1.0);
 
-    const dist = rand(140, 260); // 🔧 trochę większy “ruch”
+    const dist = rand(140, 260);
     const dx = dxUnit * dist;
     const dy = dyFinal * dist;
 
@@ -184,7 +227,7 @@ function StarsBackground({ count = 26 }: { count?: number }) {
     p.x.setValue(startX);
     p.y.setValue(startY);
 
-    const baseO = rand(0.08, 0.26); // 🔧 mocniej (było 0.06..0.20)
+    const baseO = rand(0.08, 0.26);
     p.o.setValue(baseO * 0.60);
     p.s.setValue(1);
 
@@ -197,12 +240,28 @@ function StarsBackground({ count = 26 }: { count?: number }) {
 
         Animated.sequence([
           Animated.parallel([
-            Animated.timing(p.o, { toValue: baseO, duration: Math.floor(duration * 0.35), useNativeDriver: true }),
-            Animated.timing(p.s, { toValue: rand(1.03, 1.14), duration: Math.floor(duration * 0.35), useNativeDriver: true }),
+            Animated.timing(p.o, {
+              toValue: baseO,
+              duration: Math.floor(duration * 0.35),
+              useNativeDriver: true,
+            }),
+            Animated.timing(p.s, {
+              toValue: rand(1.03, 1.14),
+              duration: Math.floor(duration * 0.35),
+              useNativeDriver: true,
+            }),
           ]),
           Animated.parallel([
-            Animated.timing(p.o, { toValue: rand(0.05, 0.14), duration: Math.floor(duration * 0.55), useNativeDriver: true }),
-            Animated.timing(p.s, { toValue: 1, duration: Math.floor(duration * 0.55), useNativeDriver: true }),
+            Animated.timing(p.o, {
+              toValue: rand(0.05, 0.14),
+              duration: Math.floor(duration * 0.55),
+              useNativeDriver: true,
+            }),
+            Animated.timing(p.s, {
+              toValue: 1,
+              duration: Math.floor(duration * 0.55),
+              useNativeDriver: true,
+            }),
           ]),
         ]),
       ]),
@@ -218,7 +277,6 @@ function StarsBackground({ count = 26 }: { count?: number }) {
     particles.current.forEach((p) => startOne(p));
     return () => {
       running.current = false;
-      // best-effort stop
       particles.current.forEach((p) => {
         try {
           p.x.stopAnimation();
@@ -246,7 +304,6 @@ function StarsBackground({ count = 26 }: { count?: number }) {
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {/* ✅ czarne tło tła, ale już POD contentem */}
       <View style={styles.bg} />
 
       {particles.current.map((p) => (
@@ -254,7 +311,6 @@ function StarsBackground({ count = 26 }: { count?: number }) {
           key={p.id}
           style={[
             styles.star,
-            // ⚠️ shadow działa głównie na iOS, ale zostawiamy, bo nie szkodzi
             p.glow && {
               shadowColor: p.color,
               shadowOpacity: 0.55,
@@ -311,12 +367,28 @@ function PulseStar({
       Animated.sequence([
         Animated.delay(Math.floor(delay)),
         Animated.parallel([
-          Animated.timing(o, { toValue: 0.34, duration: Math.floor(duration * 0.45), useNativeDriver: true }),
-          Animated.timing(s, { toValue: 1.28, duration: Math.floor(duration * 0.45), useNativeDriver: true }),
+          Animated.timing(o, {
+            toValue: 0.34,
+            duration: Math.floor(duration * 0.45),
+            useNativeDriver: true,
+          }),
+          Animated.timing(s, {
+            toValue: 1.28,
+            duration: Math.floor(duration * 0.45),
+            useNativeDriver: true,
+          }),
         ]),
         Animated.parallel([
-          Animated.timing(o, { toValue: 0.12, duration: Math.floor(duration * 0.55), useNativeDriver: true }),
-          Animated.timing(s, { toValue: 1.0, duration: Math.floor(duration * 0.55), useNativeDriver: true }),
+          Animated.timing(o, {
+            toValue: 0.12,
+            duration: Math.floor(duration * 0.55),
+            useNativeDriver: true,
+          }),
+          Animated.timing(s, {
+            toValue: 1.0,
+            duration: Math.floor(duration * 0.55),
+            useNativeDriver: true,
+          }),
         ]),
       ])
     );
@@ -357,10 +429,8 @@ function PulseStar({
 /* =====================  STYLES ===================== */
 
 const styles = StyleSheet.create({
-  // 🔧 ROOT ma być transparent, bo tło jest osobną warstwą
   root: { flex: 1, backgroundColor: 'transparent' },
 
-  // warstwy
   bgLayer: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
   contentLayer: { flex: 1, zIndex: 1, backgroundColor: 'transparent' },
 
