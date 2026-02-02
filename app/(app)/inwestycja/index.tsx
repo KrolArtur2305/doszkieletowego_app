@@ -10,6 +10,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
@@ -17,8 +18,6 @@ import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { supabase } from '../../../lib/supabase';
-
-
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -76,8 +75,9 @@ export default function InwestycjaScreen() {
     return Number.isFinite(n) ? n : null;
   }, [budzet]);
 
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showKoniecPicker, setShowKoniecPicker] = useState(false);
+  // ✅ tylko UI pickera: modal + tymczasowa data
+  const [pickerOpen, setPickerOpen] = useState<null | 'start' | 'koniec'>(null);
+  const [tempDate, setTempDate] = useState<Date>(new Date());
 
   useEffect(() => {
     let alive = true;
@@ -136,17 +136,17 @@ export default function InwestycjaScreen() {
       const loc = lokalizacja.trim();
 
       if (!n) {
-        Alert.alert('UzupeĹ‚nij dane', 'Nazwa inwestycji jest wymagana, aby kontynuowaÄ‡.');
+        Alert.alert('Uzupełnij dane', 'Nazwa inwestycji jest wymagana, aby kontynuować.');
         return;
       }
 
       if (!loc) {
-        Alert.alert('UzupeĹ‚nij dane', 'Lokalizacja jest wymagana, aby kontynuowaÄ‡.');
+        Alert.alert('Uzupełnij dane', 'Lokalizacja jest wymagana, aby kontynuować.');
         return;
       }
 
       if (budgetNumber !== null && budgetNumber < 0) {
-        Alert.alert('NieprawidĹ‚owy budĹĽet', 'BudĹĽet nie moĹĽe byÄ‡ ujemny.');
+        Alert.alert('Nieprawidłowy budżet', 'Budżet nie może być ujemny.');
         return;
       }
 
@@ -156,13 +156,12 @@ export default function InwestycjaScreen() {
       console.log('[INV] getUser(save)', { hasUser: !!userRes?.user, userErr });
 
       if (userErr || !userRes?.user) {
-        Alert.alert('BĹ‚Ä…d', 'Brak uĹĽytkownika. Zaloguj siÄ™ ponownie.');
+        Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
         return;
       }
 
       const user = userRes.user;
 
-      // âś… waĹĽne: budzet ustawiamy na null gdy pole puste / niepoprawne
       const payload: {
         user_id: string;
         nazwa: string;
@@ -177,7 +176,7 @@ export default function InwestycjaScreen() {
         lokalizacja: loc,
         data_start: dataStartISO || null,
         data_koniec: dataKoniecISO || null,
-        budzet: budgetNumber, // <- null jeĹ›li puste / nie-number
+        budzet: budgetNumber,
         inwestycja_wypelniona: true,
       };
 
@@ -192,7 +191,7 @@ export default function InwestycjaScreen() {
       console.log('[INV] upsert result', { data, error });
 
       if (error) {
-        Alert.alert('BĹ‚Ä…d zapisu', error.message);
+        Alert.alert('Błąd zapisu', error.message);
         return;
       }
 
@@ -200,22 +199,27 @@ export default function InwestycjaScreen() {
       router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
       console.log('[INV] exception', e);
-      Alert.alert('BĹ‚Ä…d', e?.message ?? 'CoĹ› poszĹ‚o nie tak.');
+      Alert.alert('Błąd', e?.message ?? 'Coś poszło nie tak.');
     } finally {
       setSaving(false);
     }
   };
 
-  const onPickStart = (_event: any, selected?: Date) => {
-    setShowStartPicker(false);
-    if (!selected) return;
-    setDataStartISO(toISODate(selected));
+  const openPicker = (which: 'start' | 'koniec') => {
+    const initial =
+      which === 'start'
+        ? parseISODate(dataStartISO) ?? new Date()
+        : parseISODate(dataKoniecISO) ?? new Date();
+    setTempDate(initial);
+    setPickerOpen(which);
   };
 
-  const onPickKoniec = (_event: any, selected?: Date) => {
-    setShowKoniecPicker(false);
-    if (!selected) return;
-    setDataKoniecISO(toISODate(selected));
+  const closePicker = () => setPickerOpen(null);
+
+  const confirmPicker = () => {
+    if (pickerOpen === 'start') setDataStartISO(toISODate(tempDate));
+    if (pickerOpen === 'koniec') setDataKoniecISO(toISODate(tempDate));
+    closePicker();
   };
 
   return (
@@ -229,13 +233,12 @@ export default function InwestycjaScreen() {
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.logoWrap}>
-            <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
 
-          <Text style={styles.header}>INWESTYCJA</Text>
-          <Text style={styles.headerSub}>UzupeĹ‚nij dane inwestycji.</Text>
+          <Text style={styles.header}>Inwestycja</Text>
 
-          <BlurView intensity={85} tint="dark" style={styles.card}>
+          <BlurView intensity={70} tint="dark" style={styles.card}>
             <View style={styles.form}>
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Nazwa inwestycji *</Text>
@@ -273,7 +276,7 @@ export default function InwestycjaScreen() {
                   <View style={styles.inputWrap}>
                     <Text style={[styles.input, { paddingVertical: 0 }]}>{startDisplay || 'DD.MM.RRRR'}</Text>
                     <TouchableOpacity
-                      onPress={() => setShowStartPicker(true)}
+                      onPress={() => openPicker('start')}
                       disabled={loading || saving}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={styles.iconBtn}
@@ -281,25 +284,16 @@ export default function InwestycjaScreen() {
                       <Feather name="calendar" color="rgba(148,163,184,0.95)" size={18} />
                     </TouchableOpacity>
                   </View>
-
-                  {showStartPicker && (
-                    <DateTimePicker
-                      value={parseISODate(dataStartISO) ?? new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={onPickStart}
-                    />
-                  )}
                 </View>
 
                 <View style={{ width: 12 }} />
 
                 <View style={[styles.field, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Data zakoĹ„czenia</Text>
+                  <Text style={styles.fieldLabel}>Data zakończenia</Text>
                   <View style={styles.inputWrap}>
                     <Text style={[styles.input, { paddingVertical: 0 }]}>{koniecDisplay || 'DD.MM.RRRR'}</Text>
                     <TouchableOpacity
-                      onPress={() => setShowKoniecPicker(true)}
+                      onPress={() => openPicker('koniec')}
                       disabled={loading || saving}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={styles.iconBtn}
@@ -307,20 +301,11 @@ export default function InwestycjaScreen() {
                       <Feather name="calendar" color="rgba(148,163,184,0.95)" size={18} />
                     </TouchableOpacity>
                   </View>
-
-                  {showKoniecPicker && (
-                    <DateTimePicker
-                      value={parseISODate(dataKoniecISO) ?? new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={onPickKoniec}
-                    />
-                  )}
                 </View>
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Planowany budĹĽet (PLN)</Text>
+                <Text style={styles.fieldLabel}>Planowany budżet (PLN)</Text>
                 <View style={styles.inputWrap}>
                   <Text style={styles.prefix}>PLN</Text>
                   <TextInput
@@ -342,10 +327,44 @@ export default function InwestycjaScreen() {
               disabled={loading || saving}
               activeOpacity={0.85}
             >
-              <Text style={styles.ctaText}>{saving ? 'Zapisywanieâ€¦' : 'Zapisz i przejdĹş dalej'}</Text>
+              <Text style={styles.ctaText}>{saving ? 'Zapisywanie…' : 'Zapisz i przejdź dalej'}</Text>
             </TouchableOpacity>
           </BlurView>
         </ScrollView>
+
+        {/* ✅ KALENDARZ: modal ciemny + kalendarzowy picker */}
+        <Modal transparent visible={pickerOpen !== null} animationType="fade" onRequestClose={closePicker}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>
+                {pickerOpen === 'start' ? 'Wybierz datę startu' : 'Wybierz datę zakończenia'}
+              </Text>
+
+              <View style={styles.modalPickerWrap}>
+                <DateTimePicker
+                  value={tempDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+                  locale="pl-PL"
+                  themeVariant="dark"
+                  onChange={(_e, d) => {
+                    if (d) setTempDate(d);
+                  }}
+                />
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.modalBtnGhost} onPress={closePicker} activeOpacity={0.85}>
+                  <Text style={styles.modalBtnGhostText}>Anuluj</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.modalBtnPrimary} onPress={confirmPicker} activeOpacity={0.85}>
+                  <Text style={styles.modalBtnPrimaryText}>Zapisz</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </KeyboardAvoidingView>
   );
@@ -353,67 +372,37 @@ export default function InwestycjaScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: '#050915' },
+
+  screen: { flex: 1, backgroundColor: '#000000' },
 
   bg: { ...StyleSheet.absoluteFillObject },
-  glowA: {
-    position: 'absolute',
-    width: 520,
-    height: 520,
-    borderRadius: 9999,
-    backgroundColor: '#0EA5E9',
-    opacity: 0.12,
-    top: -120,
-    right: -220,
-  },
-  glowB: {
-    position: 'absolute',
-    width: 520,
-    height: 520,
-    borderRadius: 9999,
-    backgroundColor: '#5EEAD4',
-    opacity: 0.10,
-    bottom: -260,
-    left: -220,
-  },
-  glowC: {
-    position: 'absolute',
-    width: 360,
-    height: 360,
-    borderRadius: 9999,
-    backgroundColor: '#22C55E',
-    opacity: 0.06,
-    top: 240,
-    left: -160,
-  },
+  glowA: { position: 'absolute', width: 520, height: 520, borderRadius: 9999, backgroundColor: '#0EA5E9', opacity: 0, top: -120, right: -220 },
+  glowB: { position: 'absolute', width: 520, height: 520, borderRadius: 9999, backgroundColor: '#5EEAD4', opacity: 0, bottom: -260, left: -220 },
+  glowC: { position: 'absolute', width: 360, height: 360, borderRadius: 9999, backgroundColor: '#22C55E', opacity: 0, top: 240, left: -160 },
 
-  content: { paddingTop: 26, paddingHorizontal: 16, paddingBottom: 140 },
+  content: { paddingTop: 22, paddingHorizontal: 16, paddingBottom: 140 },
 
   logoWrap: { alignItems: 'center', marginBottom: 10, marginTop: 18 },
-  logo: { width: 140, height: 44, opacity: 0.95 },
+  logo: { width: 160, height: 64, opacity: 0.98 },
 
   header: {
     textAlign: 'center',
-    color: '#F8FAFC',
-    fontSize: 22,
+    color: '#5EEAD4',
+    fontSize: 26,
     fontWeight: '900',
-    letterSpacing: 2,
-    marginTop: 4,
-  },
-  headerSub: {
-    textAlign: 'center',
-    color: '#94A3B8',
-    marginTop: 8,
-    marginBottom: 14,
-    lineHeight: 20,
+    letterSpacing: 0.8,
+    marginTop: 2,
+    textShadowColor: 'rgba(94,234,212,0.65)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 14,
   },
 
   card: {
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
+    borderColor: 'rgba(255,255,255,0.08)',
     padding: 18,
-    backgroundColor: 'rgba(8,14,30,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.92)',
     overflow: 'hidden',
   },
 
@@ -421,7 +410,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start' },
 
   field: { gap: 8 },
-  fieldLabel: { color: '#94A3B8', fontSize: 13 },
+  fieldLabel: { color: 'rgba(156,163,175,0.95)', fontSize: 13 },
 
   inputWrap: {
     flexDirection: 'row',
@@ -429,8 +418,8 @@ const styles = StyleSheet.create({
     gap: 10,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: '#222',
+    backgroundColor: '#111',
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
@@ -451,15 +440,68 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(94,234,212,0.45)',
-    paddingVertical: 13,
+    paddingVertical: 16,
     alignItems: 'center',
     backgroundColor: 'rgba(94,234,212,0.12)',
   },
   ctaButtonDisabled: { opacity: 0.65 },
-  ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center' },
+  ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center', fontSize: 15 },
+
+  // ---- modal styles ----
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.78)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    borderRadius: 22,
+    backgroundColor: '#0B0F14', // ✅ ciemne tło (tylko UI)
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  modalTitle: {
+    color: '#F8FAFC', // ✅ biały tytuł
+    fontSize: 16,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  modalPickerWrap: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#0B0F14',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  modalBtnGhost: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  modalBtnGhostText: {
+    color: '#F8FAFC',
+    fontWeight: '900',
+  },
+  modalBtnPrimary: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#5EEAD4',
+  },
+  modalBtnPrimaryText: {
+    color: '#071818',
+    fontWeight: '900',
+  },
 });
-
-
-
-
-

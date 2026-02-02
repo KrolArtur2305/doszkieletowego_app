@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -102,75 +103,72 @@ export default function ProfilScreen() {
   }, []);
 
   const handleSaveAndContinue = async () => {
-  if (saving) return;
+    if (saving) return;
 
-  const first = imie.trim();
-  const last = nazwisko.trim();
-  const phoneRaw = telefon.trim();
-  const phone = phoneRaw ? normalizePhone(phoneRaw) : '';
+    const first = imie.trim();
+    const last = nazwisko.trim();
+    const phoneRaw = telefon.trim();
+    const phone = phoneRaw ? normalizePhone(phoneRaw) : '';
 
-  if (!first) {
-    Alert.alert('Uzupełnij dane', 'Imię jest wymagane, aby kontynuować.');
-    return;
-  }
-
-  if (phone && phone.replace(/\D/g, '').length < 7) {
-    Alert.alert('Nieprawidłowy numer', 'Podaj poprawny numer telefonu lub zostaw puste pole.');
-    return;
-  }
-
-  setSaving(true);
-  try {
-    // ✅ zawsze bierz usera "na świeżo" przy zapisie
-    const { data: userRes, error: userErr } = await supabase.auth.getUser();
-    const user = userRes?.user;
-
-    if (userErr || !user?.id) {
-      Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
+    if (!first) {
+      Alert.alert('Uzupełnij dane', 'Imię jest wymagane, aby kontynuować.');
       return;
     }
 
-    const payload = {
-      user_id: user.id,
-      imie: first,
-      nazwisko: last || null,
-      telefon: phone || null,
-      email: user.email ?? email ?? null,
-      profil_wypelniony: true,
-    };
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert(payload, { onConflict: 'user_id' })
-      .select('user_id, profil_wypelniony')
-      .maybeSingle();
-
-    if (error) {
-      Alert.alert('Błąd zapisu', error.message);
+    if (phone && phone.replace(/\D/g, '').length < 7) {
+      Alert.alert('Nieprawidłowy numer', 'Podaj poprawny numer telefonu lub zostaw puste pole.');
       return;
     }
 
-    if (!data?.profil_wypelniony) {
-      Alert.alert('Błąd', 'Profil nie został oznaczony jako wypełniony.');
-      return;
-    }
+    setSaving(true);
+    try {
+      // ✅ zawsze bierz usera "na świeżo" przy zapisie
+      const { data: userRes, error: userErr } = await supabase.auth.getUser();
+      const user = userRes?.user;
 
-    // ✅ od razu przejście dalej
-    router.replace('/(app)/inwestycja');
-  } catch (e: any) {
-    Alert.alert('Błąd', e?.message ?? 'Coś poszło nie tak.');
-  } finally {
-    setSaving(false);
-  }
-};
+      if (userErr || !user?.id) {
+        Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
+        return;
+      }
+
+      const payload = {
+        user_id: user.id,
+        imie: first,
+        nazwisko: last || null,
+        telefon: phone || null,
+        email: user.email ?? email ?? null,
+        profil_wypelniony: true,
+      };
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(payload, { onConflict: 'user_id' })
+        .select('user_id, profil_wypelniony')
+        .maybeSingle();
+
+      if (error) {
+        Alert.alert('Błąd zapisu', error.message);
+        return;
+      }
+
+      if (!data?.profil_wypelniony) {
+        Alert.alert('Błąd', 'Profil nie został oznaczony jako wypełniony.');
+        return;
+      }
+
+      // ✅ od razu przejście dalej
+      router.replace('/(app)/inwestycja');
+    } catch (e: any) {
+      Alert.alert('Błąd', e?.message ?? 'Coś poszło nie tak.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.screen}>
-        {/* tło + glowy */}
+        {/* tło + glowy (zostają, ale wyciszone — czarne tło) */}
         <View pointerEvents="none" style={styles.bg}>
           <View style={styles.glowA} />
           <View style={styles.glowB} />
@@ -178,23 +176,26 @@ export default function ProfilScreen() {
         </View>
 
         <View style={styles.container}>
-          <Text style={styles.kicker}>KONTO</Text>
-          <Text style={styles.title}>Mój profil</Text>
-          <Text style={styles.sub}>
-            Uzupełnij dane profilu, żeby przejść dalej.
-          </Text>
+          {/* ✅ LOGO większe jak w inwestycji/profilu */}
+          <View style={styles.logoWrap}>
+            <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          </View>
 
-          <BlurView intensity={85} tint="dark" style={styles.card}>
-            <View style={styles.headerRow}>
+          {/* ✅ usunięte "KONTO" */}
+          <Text style={styles.title}>Profil</Text>
+          {/* ✅ usunięte: "Uzupełnij dane profilu, żeby przejść dalej." */}
+
+          <BlurView intensity={70} tint="dark" style={styles.card}>
+            {/* ✅ header wyśrodkowany: badge + imię + mail */}
+            <View style={styles.headerCol}>
               <View style={styles.badge}>
                 <Feather name="user" size={16} color="#5EEAD4" />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.namePreview}>{fullNamePreview}</Text>
-                <Text style={styles.email} numberOfLines={1}>
-                  {email ? email : '—'}
-                </Text>
-              </View>
+
+              <Text style={styles.namePreview}>{fullNamePreview}</Text>
+              <Text style={styles.email} numberOfLines={1}>
+                {email ? email : '—'}
+              </Text>
             </View>
 
             <View style={styles.divider} />
@@ -205,53 +206,46 @@ export default function ProfilScreen() {
                 <Text style={styles.loadingText}>Ładowanie danych profilu…</Text>
               </View>
             ) : (
-              <View style={styles.form}>
-                <Field
-                  label="Imię"
-                  value={imie}
-                  onChangeText={setImie}
-                  placeholder="np. Artur"
-                  icon="edit-3"
-                  autoCapitalize="words"
-                />
-                <Field
-                  label="Nazwisko"
-                  value={nazwisko}
-                  onChangeText={setNazwisko}
-                  placeholder="np. Kowalski"
-                  icon="edit-3"
-                  autoCapitalize="words"
-                />
-                <Field
-                  label="Telefon"
-                  value={telefon}
-                  onChangeText={setTelefon}
-                  placeholder="np. +48 600 000 000"
-                  icon="phone"
-                  keyboardType="phone-pad"
-                />
+              // ✅ pola trochę niżej
+              <View style={styles.formWrap}>
+                <View style={styles.form}>
+                  <Field
+                    label="Imię"
+                    value={imie}
+                    onChangeText={setImie}
+                    placeholder="np. Artur"
+                    icon="edit-3"
+                    autoCapitalize="words"
+                  />
+                  <Field
+                    label="Nazwisko"
+                    value={nazwisko}
+                    onChangeText={setNazwisko}
+                    placeholder="np. Kowalski"
+                    icon="edit-3"
+                    autoCapitalize="words"
+                  />
+                  <Field
+                    label="Telefon"
+                    value={telefon}
+                    onChangeText={setTelefon}
+                    placeholder="np. +48 600 000 000"
+                    icon="phone"
+                    keyboardType="phone-pad"
+                  />
 
-                <TouchableOpacity
-                  style={[styles.cta, (saving || loading) && styles.ctaDisabled]}
-                  activeOpacity={0.85}
-                  onPress={handleSaveAndContinue}
-                  disabled={saving || loading}
-                >
-                  {saving ? (
-                    <ActivityIndicator />
-                  ) : (
-                    <>
-                      <Text style={styles.ctaText}>Zapisz i kontynuuj</Text>
-                      <Feather name="arrow-right" size={18} color="#071818" />
-                    </>
-                  )}
-                </TouchableOpacity>
+                  {/* ✅ CTA jak w inwestycji: outline + zielony tekst */}
+                  <TouchableOpacity
+                    style={[styles.ctaButton, (saving || loading) && styles.ctaButtonDisabled]}
+                    activeOpacity={0.85}
+                    onPress={handleSaveAndContinue}
+                    disabled={saving || loading}
+                  >
+                    <Text style={styles.ctaText}>{saving ? 'Zapisywanie…' : 'Zapisz i kontynuuj'}</Text>
+                  </TouchableOpacity>
 
-                <Text style={styles.hint}>
-                  Zapis ustawia w tabeli <Text style={styles.mono}>profiles</Text> pola:{' '}
-                  <Text style={styles.mono}>imie</Text>, <Text style={styles.mono}>nazwisko</Text>,{' '}
-                  <Text style={styles.mono}>telefon</Text>, <Text style={styles.mono}>profil_wypelniony</Text>.
-                </Text>
+                  {/* ✅ skasowane: wszystko pod przyciskiem (hint) */}
+                </View>
               </View>
             )}
           </BlurView>
@@ -304,7 +298,9 @@ function Field(props: {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
 
-  screen: { flex: 1, backgroundColor: '#050915' },
+  // ✅ tło czarne
+  screen: { flex: 1, backgroundColor: '#000000' },
+
   bg: { ...StyleSheet.absoluteFillObject },
   glowA: {
     position: 'absolute',
@@ -312,7 +308,7 @@ const styles = StyleSheet.create({
     height: 520,
     borderRadius: 9999,
     backgroundColor: '#0EA5E9',
-    opacity: 0.12,
+    opacity: 0, // wyciszone dla czarnego tła
     top: -140,
     right: -240,
   },
@@ -322,7 +318,7 @@ const styles = StyleSheet.create({
     height: 520,
     borderRadius: 9999,
     backgroundColor: '#5EEAD4',
-    opacity: 0.1,
+    opacity: 0, // wyciszone
     bottom: -260,
     left: -220,
   },
@@ -332,58 +328,53 @@ const styles = StyleSheet.create({
     height: 360,
     borderRadius: 9999,
     backgroundColor: '#22C55E',
-    opacity: 0.06,
+    opacity: 0, // wyciszone
     top: 240,
     left: -160,
   },
 
-  container: { paddingTop: 42, paddingHorizontal: 16, paddingBottom: 24 },
+  container: { paddingTop: 28, paddingHorizontal: 16, paddingBottom: 24 },
 
-  kicker: {
-    textAlign: 'center',
-    color: 'rgba(94,234,212,0.9)',
-    fontSize: 12,
-    letterSpacing: 2.8,
-    fontWeight: '900',
-    marginBottom: 8,
-  },
+  // ✅ logo większe
+  logoWrap: { alignItems: 'center', marginBottom: 10, marginTop: 10 },
+  logo: { width: 160, height: 64, opacity: 0.98 },
+
+  // ✅ tytuł zielony + glow
   title: {
     textAlign: 'center',
-    color: '#F8FAFC',
+    color: '#5EEAD4',
     fontSize: 26,
     fontWeight: '900',
     letterSpacing: 1,
-  },
-  sub: {
-    textAlign: 'center',
-    color: '#94A3B8',
-    marginTop: 8,
     marginBottom: 14,
-    lineHeight: 20,
+    textShadowColor: 'rgba(94,234,212,0.65)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 14,
   },
 
   card: {
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(8,14,30,0.35)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.92)',
     overflow: 'hidden',
     padding: 16,
   },
 
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // ✅ header wyśrodkowany
+  headerCol: { alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 2, paddingBottom: 2 },
   badge: {
     width: 42,
     height: 42,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: '#222',
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  namePreview: { color: '#F8FAFC', fontSize: 16, fontWeight: '900' },
-  email: { color: 'rgba(148,163,184,0.85)', marginTop: 2 },
+  namePreview: { color: '#F8FAFC', fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  email: { color: 'rgba(148,163,184,0.85)', marginTop: 0, textAlign: 'center' },
 
   divider: {
     height: 1,
@@ -394,17 +385,21 @@ const styles = StyleSheet.create({
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   loadingText: { color: '#94A3B8' },
 
+  // ✅ pola niżej
+  formWrap: { paddingTop: 10 },
   form: { gap: 12 },
 
   fieldWrap: { gap: 6 },
   label: { color: '#CBD5E1', fontSize: 12, fontWeight: '800', letterSpacing: 0.6 },
+
+  // ✅ tylko inputy lekko szare
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: '#222',
+    backgroundColor: '#111',
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -415,9 +410,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(94,234,212,0.08)',
+    backgroundColor: '#0B0B0B',
     borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.18)',
+    borderColor: '#222',
   },
   input: {
     flex: 1,
@@ -427,19 +422,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
 
-  cta: {
-    marginTop: 6,
-    height: 52,
+  // ✅ CTA identyczny jak w inwestycji
+  ctaButton: {
+    marginTop: 18,
     borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(94,234,212,0.45)',
+    paddingVertical: 13,
     alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: '#5EEAD4',
+    backgroundColor: 'rgba(94,234,212,0.12)',
   },
-  ctaDisabled: { opacity: 0.65 },
-  ctaText: { color: '#071818', fontSize: 15, fontWeight: '900', letterSpacing: 0.4 },
-
-  hint: { marginTop: 10, color: 'rgba(148,163,184,0.85)', fontSize: 12, lineHeight: 18 },
-  mono: { color: '#E2E8F0', fontWeight: '900' },
+  ctaButtonDisabled: { opacity: 0.65 },
+  ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center' },
 });
