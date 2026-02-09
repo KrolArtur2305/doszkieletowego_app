@@ -1025,16 +1025,16 @@ export default function DashboardScreen() {
                   <Text style={styles.emptyText}>{t('calendar.noTasksForDay')}</Text>
                 ) : (
                   <View style={{ gap: 8 }}>
-                    {selectedTasks.map((t) => (
-                      <View key={t.id} style={styles.taskRow}>
+                    {selectedTasks.map((task) => (
+                      <View key={task.id} style={styles.taskRow}>
                         <View style={styles.taskDot} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.taskTitle} numberOfLines={2}>
-                            {t.nazwa}
+                            {task.nazwa}
                           </Text>
                           <Text style={styles.taskMeta}>
-                            {t.godzina ? `${prettyTime(t.godzina)} • ` : `${t('calendar.allDay')} • `}
-                            {t.opis ? t.opis : t('common:dash')}
+                            {task.godzina ? `${prettyTime(task.godzina)} • ` : `${t('calendar.allDay')} • `}
+                            {task.opis ? task.opis : t('common:dash')}
                           </Text>
                         </View>
                       </View>

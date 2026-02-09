@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Image, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Image,
+  Dimensions,
+  Pressable,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import '../../lib/i18n';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -35,7 +46,7 @@ function buildStars(count: number): Star[] {
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { t } = useTranslation('auth');
+  const { t, i18n } = useTranslation('auth');
 
   const floatY = useRef(new Animated.Value(0)).current;
   const stars = useMemo(() => buildStars(90), []);
@@ -91,6 +102,31 @@ export default function WelcomeScreen() {
 
       {/* nazwa app */}
       <Text style={styles.brand}>doszkieletowego app</Text>
+
+      {/* wybór języka */}
+      <View style={styles.langRow}>
+        <Pressable
+          onPress={async () => {
+            await AsyncStorage.setItem('app_language', 'pl');
+            i18n.changeLanguage('pl');
+          }}
+
+          style={[styles.langBtn, i18n.language === 'pl' && styles.langBtnActive]}
+        >
+          <Text style={[styles.langText, i18n.language === 'pl' && styles.langTextActive]}>PL</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={async () => {
+            await AsyncStorage.setItem('app_language', 'en');
+            i18n.changeLanguage('en');
+         }}
+
+          style={[styles.langBtn, i18n.language === 'en' && styles.langBtnActive]}
+        >
+          <Text style={[styles.langText, i18n.language === 'en' && styles.langTextActive]}>EN</Text>
+        </Pressable>
+      </View>
 
       {/* tekst bez tła, wyżej */}
       <Text style={styles.copy}>{t(SALES_TEXT)}</Text>
@@ -151,8 +187,39 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#10B981', // zielony
     textAlign: 'center',
-    marginBottom: 50,
+    marginBottom: 18,
     letterSpacing: 0.2,
+  },
+
+  langRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 18,
+  },
+
+  langBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+
+  langBtnActive: {
+    borderColor: 'rgba(16,185,129,0.95)',
+    backgroundColor: 'rgba(16,185,129,0.16)',
+  },
+
+  langText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 0.4,
+  },
+
+  langTextActive: {
+    color: '#25F0C8',
   },
 
   copy: {
