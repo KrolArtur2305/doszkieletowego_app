@@ -1,0 +1,61 @@
+{
+  "errors": {
+    "tasksFetchFailed": "Could not fetch tasks.",
+    "photosFetchFailed": "Could not fetch photos."
+  },
+  "hero": {
+    "welcome": "Welcome",
+    "dateLine": "Today is {{date}}, you're already halfway through the build — moving day is getting closer."
+  },
+  "donuts": {
+    "budgetLabel": "Budget",
+    "timeLabel": "Time",
+    "progressLabel": "Progress",
+    "completeInvestmentDates": "Complete project dates"
+  },
+  "progress": {
+    "currentStageLabel": "CURRENT STAGE",
+    "nextStageLabel": "NEXT STAGE",
+    "allDone": "All stages completed",
+    "noStages": "No stages",
+    "loadingProgress": "Loading progress…",
+    "completed": "Completed: {{milestones}}"
+  },
+  "photos": {
+    "latestTitle": "Recently added photos",
+    "loading": "Loading photos…",
+    "empty": "No photos — add your first one in the Photos module."
+  },
+  "calendar": {
+    "title": "Calendar",
+    "loadingTasks": "Loading tasks…",
+    "fetchError": "Task fetch error",
+    "clickDayHint": "Click a day to see tasks",
+    "nearestTasks": "Nearest tasks",
+    "addTaskPlus": "+ Add",
+    "noTasks": "No tasks — add your first one.",
+    "tasksForDay": "Tasks: {{date}}",
+    "addTask": "Add",
+    "noTasksForDay": "No tasks for this day.",
+    "allDay": "all-day",
+    "weekdays": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
+  },
+  "modal": {
+    "addTaskTitle": "Add task",
+    "selectedDate": "Selected date: {{date}}",
+    "titlePlaceholder": "Title (e.g. Window installation)",
+    "descriptionPlaceholder": "Description (optional)",
+    "date": "Date",
+    "time": "Time",
+    "removeTime": "Remove time (set all-day)",
+    "hint": "Select a date and optionally a time from the pickers. If you don't set a time — the task is all-day."
+  }
+}

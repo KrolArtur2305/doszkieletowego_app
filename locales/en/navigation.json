@@ -1,0 +1,10 @@
+{
+  "tabs": {
+    "start": "Home",
+    "budget": "Budget",
+    "documents": "Documents",
+    "photos": "Photos",
+    "project": "Project",
+    "profile": "Profile"
+  }
+}
