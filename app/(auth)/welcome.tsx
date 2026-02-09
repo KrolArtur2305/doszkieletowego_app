@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Image, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import '../../lib/i18n';
+import { useTranslation } from 'react-i18next';
 
 const { width: W, height: H } = Dimensions.get('window');
 
 // Domyślny tekst (możesz podmienić na jeden z 5 wariantów, jak wybierzesz)
-const SALES_TEXT =
-  'W końcu budowa, którą da się ogarnąć.\nKontroluj budżet, dodawaj zdjęcia i śledź każdy etap swojego projektu.';
+const SALES_TEXT = 'welcome.salesText';
 
 type Star = { left: number; top: number; size: number; opacity: number };
 
@@ -34,6 +35,7 @@ function buildStars(count: number): Star[] {
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation('auth');
 
   const floatY = useRef(new Animated.Value(0)).current;
   const stars = useMemo(() => buildStars(90), []);
@@ -91,7 +93,7 @@ export default function WelcomeScreen() {
       <Text style={styles.brand}>doszkieletowego app</Text>
 
       {/* tekst bez tła, wyżej */}
-      <Text style={styles.copy}>{SALES_TEXT}</Text>
+      <Text style={styles.copy}>{t(SALES_TEXT)}</Text>
 
       {/* CTA */}
       <TouchableOpacity
@@ -99,7 +101,7 @@ export default function WelcomeScreen() {
         onPress={() => router.push('/(auth)/login')}
         style={styles.primaryBtn}
       >
-        <Text style={styles.primaryText}>Zaloguj się</Text>
+        <Text style={styles.primaryText}>{t('welcome.loginCta')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -107,7 +109,7 @@ export default function WelcomeScreen() {
         onPress={() => router.push('/(auth)/register')}
         style={styles.secondaryBtn}
       >
-        <Text style={styles.secondaryText}>Zarejestruj konto</Text>
+        <Text style={styles.secondaryText}>{t('welcome.registerCta')}</Text>
       </TouchableOpacity>
     </View>
   );
