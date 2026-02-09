@@ -1,8 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import '../../../lib/i18n';
+import { useTranslation } from 'react-i18next';
 
 export default function TabsLayout() {
+  const { t } = useTranslation('navigation');
   return (
     <Tabs
       screenOptions={{
@@ -26,7 +29,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="dashboard/index"
         options={{
-          title: 'Start',
+          title: t('tabs.start'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" color={color} size={size ?? 20} />
           ),
@@ -37,7 +40,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="budzet/index"
         options={{
-          title: 'Budżet',
+          title: t('tabs.budget'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="pie-chart" color={color} size={size ?? 20} />
           ),
@@ -48,7 +51,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="dokumenty/index"
         options={{
-          title: 'Dokumenty',
+          title: t('tabs.documents'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="file-text" color={color} size={size ?? 20} />
           ),
@@ -59,7 +62,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="zdjecia/index"
         options={{
-          title: 'Zdjęcia',
+          title: t('tabs.photos'),
           sceneStyle: { backgroundColor: 'transparent' },
           tabBarIcon: ({ color, size }) => (
             <Feather name="camera" color={color} size={size ?? 20} />
@@ -71,7 +74,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="projekt/index"
         options={{
-          title: 'Projekt',
+          title: t('tabs.project'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="layers" color={color} size={size ?? 20} />
           ),
@@ -82,7 +85,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ustawienia"
         options={{
-          title: 'Profil',
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" color={color} size={size ?? 20} />
           ),

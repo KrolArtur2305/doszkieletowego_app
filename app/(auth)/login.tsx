@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import '../../lib/i18n';
+import { useTranslation } from 'react-i18next';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -42,6 +44,7 @@ function buildStars(count: number): Star[] {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useTranslation('auth');
   const stars = useMemo(() => buildStars(90), []);
   const floatY = useRef(new Animated.Value(0)).current;
 
@@ -88,14 +91,14 @@ export default function LoginScreen() {
       password,
     });
 
-    if (error) setError(mapError(error.message));
+    if (error) setError(mapError(error.message, t));
     setLoading(false);
   };
 
   const onForgotPassword = async () => {
     const e = email.trim();
     if (!e) {
-      Alert.alert('Reset hasła', 'Wpisz e-mail w polu powyżej, a potem kliknij ponownie.');
+      Alert.alert(t('login.alerts.resetTitle'), t('login.alerts.resetMessage'));
       return;
     }
     setLoading(true);
@@ -103,10 +106,10 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Błąd', 'Nie udało się wysłać linku. Spróbuj ponownie.');
+      Alert.alert(t('login.alerts.errorTitle'), t('login.alerts.errorMessage'));
       return;
     }
-    Alert.alert('Gotowe', 'Wysłaliśmy link do resetu hasła na podany e-mail.');
+    Alert.alert(t('login.alerts.doneTitle'), t('login.alerts.doneMessage'));
   };
 
   const onGoogle = async () => {
@@ -114,7 +117,7 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     setTimeout(() => {
       setGoogleLoading(false);
-      Alert.alert('Wkrótce', 'Logowanie Google dodamy przy buildzie aplikacji.');
+      Alert.alert(t('login.alerts.soonTitle'), t('login.alerts.soonMessage'));
     }, 450);
   };
 
@@ -158,7 +161,7 @@ export default function LoginScreen() {
         </Animated.View>
 
         <TextInput
-          placeholder="E-mail"
+          placeholder={t('login.form.emailPlaceholder')}
           placeholderTextColor="rgba(255,255,255,0.45)"
           style={styles.input}
           autoCapitalize="none"
@@ -167,7 +170,7 @@ export default function LoginScreen() {
           onChangeText={setEmail}
         />
         <TextInput
-          placeholder="Hasło"
+          placeholder={t('login.form.passwordPlaceholder')}
           placeholderTextColor="rgba(255,255,255,0.45)"
           style={styles.input}
           secureTextEntry
@@ -183,7 +186,7 @@ export default function LoginScreen() {
           style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
           activeOpacity={0.9}
         >
-          {loading ? <ActivityIndicator /> : <Text style={styles.primaryText}>Zaloguj się</Text>}
+          {loading ? <ActivityIndicator /> : <Text style={styles.primaryText}>{t('login.form.submit')}</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -204,7 +207,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={onForgotPassword} style={styles.forgotWrap} activeOpacity={0.85}>
-          <Text style={styles.forgotText}>Nie pamiętasz hasła?</Text>
+          <Text style={styles.forgotText}>{t('login.form.forgotPassword')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -213,7 +216,7 @@ export default function LoginScreen() {
           activeOpacity={0.85}
         >
           <Text style={styles.bottomLink}>
-            Nie masz konta? <Text style={styles.bottomLinkStrong}>Załóż konto</Text>
+            {t('login.form.noAccount')} <Text style={styles.bottomLinkStrong}>{t('login.form.createAccount')}</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -221,11 +224,11 @@ export default function LoginScreen() {
   );
 }
 
-function mapError(msg: string) {
+function mapError(msg: string, t: any) {
   const l = msg.toLowerCase();
-  if (l.includes('invalid login credentials')) return 'Niepoprawny e-mail lub hasło.';
-  if (l.includes('email not confirmed')) return 'Potwierdź adres e-mail.';
-  return 'Coś poszło nie tak. Spróbuj ponownie.';
+  if (l.includes('invalid login credentials')) return t('login.errors.invalidCredentials');
+  if (l.includes('email not confirmed')) return t('login.errors.emailNotConfirmed');
+  return t('login.errors.generic');
 }
 
 const styles = StyleSheet.create({

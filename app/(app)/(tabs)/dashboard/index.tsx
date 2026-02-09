@@ -22,6 +22,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
+import '../../../../lib/i18n';
+import { useTranslation } from 'react-i18next';
 
 const { width: W } = Dimensions.get('window');
 
@@ -165,6 +167,7 @@ function formatPLDateShort(d: Date) {
 export default function DashboardScreen() {
   useMemo(() => supabase, []);
   const router = useRouter();
+  const { t } = useTranslation('dashboard');
 
   // ===== HERO =====
   const [imie, setImie] = useState<string>('');
@@ -222,13 +225,13 @@ export default function DashboardScreen() {
       {
         key: 'budzet',
         value: clamp01(budgetUtil),
-        label: 'Budżet',
+        label: t('donuts.budgetLabel'),
         onPress: () => router.push('/(app)/(tabs)/budzet'),
       },
-      { key: 'czas', value: clamp01(timeUtil), label: 'Czas' },
-      { key: 'postep', value: clamp01(progressValue), label: 'Postęp', onPress: onPressPostepy },
+      { key: 'czas', value: clamp01(timeUtil), label: t('donuts.timeLabel') },
+      { key: 'postep', value: clamp01(progressValue), label: t('donuts.progressLabel'), onPress: onPressPostepy },
     ],
-    [budgetUtil, timeUtil, progressValue, router]
+    [budgetUtil, timeUtil, progressValue, router, t]
   );
 
   // ===== PROSTA ANIMACJA WEJŚCIA (bez pętli) =====
@@ -385,7 +388,7 @@ export default function DashboardScreen() {
     } catch (e: any) {
       setMonthTasks([]);
       setNearestTasks([]);
-      setTasksError(e?.message ?? 'Nie udało się pobrać zadań.');
+      setTasksError(e?.message ?? t('errors.tasksFetchFailed'));
     } finally {
       setTasksLoading(false);
     }
@@ -581,9 +584,9 @@ export default function DashboardScreen() {
         const user = userData.user;
         if (!user) {
           if (!alive) return;
-          setObecnyEtap('—');
-          setKolejnyEtap('—');
-          setMilestonesText('—');
+          setObecnyEtap(t('common:dash'));
+          setKolejnyEtap(t('common:dash'));
+          setMilestonesText(t('common:dash'));
           setProgressValue(0);
           return;
         }
@@ -604,15 +607,15 @@ export default function DashboardScreen() {
 
         if (!alive) return;
 
-        setObecnyEtap(current?.nazwa ?? (total > 0 ? 'Wszystkie etapy zrealizowane' : 'Brak etapów'));
-        setKolejnyEtap(next?.nazwa ?? '—');
-        setMilestonesText(total > 0 ? `${doneCount} / ${total}` : '—');
+        setObecnyEtap(current?.nazwa ?? (total > 0 ? t('progress.allDone') : t('progress.noStages')));
+        setKolejnyEtap(next?.nazwa ?? t('common:dash'));
+        setMilestonesText(total > 0 ? `${doneCount} / ${total}` : t('common:dash'));
         setProgressValue(total > 0 ? clamp01(doneCount / total) : 0);
       } catch {
         if (!alive) return;
-        setObecnyEtap('—');
-        setKolejnyEtap('—');
-        setMilestonesText('—');
+        setObecnyEtap(t('common:dash'));
+        setKolejnyEtap(t('common:dash'));
+        setMilestonesText(t('common:dash'));
         setProgressValue(0);
       } finally {
         if (alive) setProgressLoading(false);
@@ -689,7 +692,7 @@ export default function DashboardScreen() {
         setPhotos(out);
       } catch (e: any) {
         if (!alive) return;
-        setPhotosError(e?.message ?? 'Nie udało się pobrać zdjęć.');
+        setPhotosError(e?.message ?? t('errors.photosFetchFailed'));
         setPhotos([]);
       } finally {
         if (alive) setPhotosLoading(false);
@@ -703,8 +706,8 @@ export default function DashboardScreen() {
 
   const heroDateLine = useMemo(() => {
     const d = new Date();
-    return `Dziś jest ${formatPLDateLong(d)}, jesteś już w połowie budowy — przeprowadzka coraz bliżej.`;
-  }, []);
+    return t('hero.dateLine', { date: formatPLDateLong(d) });
+  }, [t]);
 
   const handleMomentumEnd = (e: any) => {
     const x = e?.nativeEvent?.contentOffset?.x ?? 0;
@@ -754,7 +757,7 @@ export default function DashboardScreen() {
                 },
               ]}
             />
-            <Text style={styles.heroTitle}>Witaj {imie ? imie : ''}</Text>
+            <Text style={styles.heroTitle}>{t('hero.welcome')} {imie ? imie : ''}</Text>
           </View>
 
           <Animated.View style={{ opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }}>
@@ -776,20 +779,20 @@ export default function DashboardScreen() {
             />
 
             <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>OBECNY ETAP</Text>
-              {progressLoading ? <Text style={styles.progressValue}>Ładowanie…</Text> : <Text style={styles.progressValue}>{obecnyEtap}</Text>}
+              <Text style={styles.progressLabel}>{t('progress.currentStageLabel')}</Text>
+              {progressLoading ? <Text style={styles.progressValue}>{t('common:loading')}</Text> : <Text style={styles.progressValue}>{obecnyEtap}</Text>}
             </View>
 
             <View style={styles.sep} />
 
             <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>KOLEJNY ETAP</Text>
-              {progressLoading ? <Text style={styles.progressValue}>Ładowanie…</Text> : <Text style={styles.progressValue}>{kolejnyEtap}</Text>}
+              <Text style={styles.progressLabel}>{t('progress.nextStageLabel')}</Text>
+              {progressLoading ? <Text style={styles.progressValue}>{t('common:loading')}</Text> : <Text style={styles.progressValue}>{kolejnyEtap}</Text>}
             </View>
 
             <TouchableOpacity activeOpacity={0.88} onPress={onPressPostepy} style={styles.centerBtnWrap}>
               <View style={styles.centerBtn}>
-                <Text style={styles.centerBtnText}>Sprawdź więcej</Text>
+                <Text style={styles.centerBtnText}>{t('common:checkMore')}</Text>
               </View>
             </TouchableOpacity>
           </BlurView>
@@ -852,17 +855,17 @@ export default function DashboardScreen() {
                   <View style={styles.donutInnerWrap}>
                     <FuturisticDonutSvg value={item.value} label={item.label} onPressLabel={item.onPress} isActive={isActiveSlide} size={210} stroke={16} />
 
-                    {item.key === 'budzet' && <Text style={styles.donutSubText}>{statusLoading ? '—' : `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget)}`}</Text>}
+                    {item.key === 'budzet' && <Text style={styles.donutSubText}>{statusLoading ? t('common:dash') : `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget)}`}</Text>}
 
                     {item.key === 'czas' && (
                       <Text style={styles.donutSubText}>
-                        {dates.start && dates.end ? `${new Date(dates.start).toLocaleDateString('pl-PL')} → ${new Date(dates.end).toLocaleDateString('pl-PL')}` : 'Uzupełnij daty inwestycji'}
+                        {dates.start && dates.end ? `${new Date(dates.start).toLocaleDateString('pl-PL')} → ${new Date(dates.end).toLocaleDateString('pl-PL')}` : t('donuts.completeInvestmentDates')}
                       </Text>
                     )}
 
                     {item.key === 'postep' && (
                       <Text style={styles.donutSubText}>
-                        {progressLoading ? 'Ładowanie postępu…' : milestonesText !== '—' ? `Zrealizowane: ${milestonesText}` : 'Brak etapów'}
+                        {progressLoading ? t('progress.loadingProgress') : milestonesText !== t('common:dash') ? t('progress.completed', { milestones: milestonesText }) : t('progress.noStages')}
                       </Text>
                     )}
                   </View>
@@ -874,19 +877,19 @@ export default function DashboardScreen() {
 
         <View style={styles.sectionWrap}>
           {/* ZMIANA: wyśrodkowany + zielony */}
-          <Text style={styles.sectionTitleCenterNeon}>Ostatnio dodane zdjęcia</Text>
+          <Text style={styles.sectionTitleCenterNeon}>{t('photos.latestTitle')}</Text>
 
           <View style={styles.sectionOuter}>
             <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
               {photosLoading ? (
                 <View style={styles.loadingRow}>
                   <ActivityIndicator />
-                  <Text style={styles.loadingText}>Ładowanie zdjęć…</Text>
+                  <Text style={styles.loadingText}>{t('photos.loading')}</Text>
                 </View>
               ) : photosError ? (
                 <Text style={styles.emptyText}>{photosError}</Text>
               ) : photos.length === 0 ? (
-                <Text style={styles.emptyText}>Brak zdjęć — dodaj pierwsze w module Zdjęcia.</Text>
+                <Text style={styles.emptyText}>{t('photos.empty')}</Text>
               ) : (
                 <FlatList
                   data={photos}
@@ -908,7 +911,7 @@ export default function DashboardScreen() {
               {/* ZMIANA: button pod zdjęciami */}
               <TouchableOpacity activeOpacity={0.88} onPress={onPressZdjecia} style={styles.centerBtnWrap}>
                 <View style={styles.centerBtn}>
-                  <Text style={styles.centerBtnText}>Sprawdź więcej</Text>
+                  <Text style={styles.centerBtnText}>{t('common:checkMore')}</Text>
                 </View>
               </TouchableOpacity>
             </BlurView>
@@ -917,7 +920,7 @@ export default function DashboardScreen() {
 
         {/* ===================== KALENDARZ (POPRAWIONY) ===================== */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitleCenterNeon}>Kalendarz</Text>
+          <Text style={styles.sectionTitleCenterNeon}>{t('calendar.title')}</Text>
 
           <View style={styles.sectionOuter}>
             <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
@@ -930,7 +933,7 @@ export default function DashboardScreen() {
                 <View style={{ alignItems: 'center', gap: 2 }}>
                   <Text style={styles.calendarMonth}>{monthLabel}</Text>
                   <Text style={styles.calendarHint}>
-                    {tasksLoading ? 'Ładowanie zadań…' : tasksError ? 'Błąd pobierania zadań' : 'Kliknij dzień, aby zobaczyć zadania'}
+                    {tasksLoading ? t('calendar.loadingTasks') : tasksError ? t('calendar.fetchError') : t('calendar.clickDayHint')}
                   </Text>
                 </View>
 
@@ -942,19 +945,19 @@ export default function DashboardScreen() {
               {/* nearest 3 */}
               <View style={styles.nearestWrap}>
                 <View style={styles.nearestHeader}>
-                  <Text style={styles.nearestTitle}>Najbliższe zadania</Text>
+                  <Text style={styles.nearestTitle}>{t('calendar.nearestTasks')}</Text>
                   <TouchableOpacity activeOpacity={0.9} onPress={openAddTask} style={styles.addTaskBtn}>
-                    <Text style={styles.addTaskBtnText}>+ Dodaj</Text>
+                    <Text style={styles.addTaskBtnText}>{t('calendar.addTaskPlus')}</Text>
                   </TouchableOpacity>
                 </View>
 
                 {tasksLoading ? (
                   <View style={styles.loadingRow}>
                     <ActivityIndicator />
-                    <Text style={styles.loadingText}>Ładowanie…</Text>
+                    <Text style={styles.loadingText}>{t('common:loading')}</Text>
                   </View>
                 ) : nearestTasks.length === 0 ? (
-                  <Text style={styles.emptyText}>Brak zadań — dodaj pierwsze.</Text>
+                  <Text style={styles.emptyText}>{t('calendar.noTasks')}</Text>
                 ) : (
                   <View style={{ gap: 8 }}>
                     {nearestTasks.slice(0, 3).map((t) => (
@@ -976,7 +979,7 @@ export default function DashboardScreen() {
               </View>
 
               <View style={styles.weekRow}>
-                {['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'].map((d) => (
+                {[t('calendar.weekdays.mon'), t('calendar.weekdays.tue'), t('calendar.weekdays.wed'), t('calendar.weekdays.thu'), t('calendar.weekdays.fri'), t('calendar.weekdays.sat'), t('calendar.weekdays.sun')].map((d) => (
                   <Text key={d} style={styles.weekDay}>
                     {d}
                   </Text>
@@ -1012,14 +1015,14 @@ export default function DashboardScreen() {
               {/* lista zadań wybranego dnia */}
               <View style={styles.dayTasksWrap}>
                 <View style={styles.dayTasksHeader}>
-                  <Text style={styles.dayTasksTitle}>Zadania: {selectedYMD}</Text>
+                  <Text style={styles.dayTasksTitle}>{t('calendar.tasksForDay', { date: selectedYMD })}</Text>
                   <TouchableOpacity activeOpacity={0.9} onPress={openAddTask} style={styles.addTaskMiniBtn}>
-                    <Text style={styles.addTaskMiniBtnText}>Dodaj</Text>
+                    <Text style={styles.addTaskMiniBtnText}>{t('calendar.addTask')}</Text>
                   </TouchableOpacity>
                 </View>
 
                 {selectedTasks.length === 0 ? (
-                  <Text style={styles.emptyText}>Brak zadań na ten dzień.</Text>
+                  <Text style={styles.emptyText}>{t('calendar.noTasksForDay')}</Text>
                 ) : (
                   <View style={{ gap: 8 }}>
                     {selectedTasks.map((t) => (
@@ -1030,8 +1033,8 @@ export default function DashboardScreen() {
                             {t.nazwa}
                           </Text>
                           <Text style={styles.taskMeta}>
-                            {t.godzina ? `${prettyTime(t.godzina)} • ` : 'całodniowe • '}
-                            {t.opis ? t.opis : '—'}
+                            {t.godzina ? `${prettyTime(t.godzina)} • ` : `${t('calendar.allDay')} • `}
+                            {t.opis ? t.opis : t('common:dash')}
                           </Text>
                         </View>
                       </View>
@@ -1050,13 +1053,13 @@ export default function DashboardScreen() {
       <Modal visible={taskModalOpen} transparent animationType="fade" onRequestClose={() => setTaskModalOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Dodaj zadanie</Text>
-            <Text style={styles.modalSubtitle}>Wybrana data: {selectedYMD}</Text>
+            <Text style={styles.modalTitle}>{t('modal.addTaskTitle')}</Text>
+            <Text style={styles.modalSubtitle}>{t('modal.selectedDate', { date: selectedYMD })}</Text>
 
             <TextInput
               value={newTitle}
               onChangeText={setNewTitle}
-              placeholder="Tytuł (np. Montaż okien)"
+              placeholder={t('modal.titlePlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.35)"
               style={styles.modalInput}
               maxLength={80}
@@ -1065,7 +1068,7 @@ export default function DashboardScreen() {
             <TextInput
               value={newDesc}
               onChangeText={setNewDesc}
-              placeholder="Opis (opcjonalnie)"
+              placeholder={t('modal.descriptionPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.35)"
               style={styles.modalInput}
               maxLength={120}
@@ -1074,7 +1077,7 @@ export default function DashboardScreen() {
             {/* Pickers row */}
             <View style={styles.pickerRow}>
               <TouchableOpacity activeOpacity={0.9} onPress={() => setShowDatePicker(true)} style={styles.pickerBtn}>
-                <Text style={styles.pickerBtnLabel}>Data</Text>
+                <Text style={styles.pickerBtnLabel}>{t('modal.date')}</Text>
                 <Text style={styles.pickerBtnValue}>{formatPLDateShort(pickDate)}</Text>
               </TouchableOpacity>
 
@@ -1086,14 +1089,14 @@ export default function DashboardScreen() {
                 }}
                 style={[styles.pickerBtn, hasTime ? styles.pickerBtnActive : null]}
               >
-                <Text style={styles.pickerBtnLabel}>Godzina</Text>
-                <Text style={styles.pickerBtnValue}>{hasTime ? prettyTime(toTimeHHMMSS(pickTime)) : 'całodniowe'}</Text>
+                <Text style={styles.pickerBtnLabel}>{t('modal.time')}</Text>
+                <Text style={styles.pickerBtnValue}>{hasTime ? prettyTime(toTimeHHMMSS(pickTime)) : t('calendar.allDay')}</Text>
               </TouchableOpacity>
             </View>
 
             {hasTime ? (
               <TouchableOpacity activeOpacity={0.9} onPress={() => setHasTime(false)} style={styles.removeTimeBtn}>
-                <Text style={styles.removeTimeTxt}>Usuń godzinę (ustaw całodniowe)</Text>
+                <Text style={styles.removeTimeTxt}>{t('modal.removeTime')}</Text>
               </TouchableOpacity>
             ) : null}
 
@@ -1119,15 +1122,15 @@ export default function DashboardScreen() {
 
             <View style={styles.modalActions}>
               <TouchableOpacity activeOpacity={0.9} onPress={() => setTaskModalOpen(false)} style={styles.modalBtnGhost}>
-                <Text style={styles.modalBtnGhostTxt}>Anuluj</Text>
+                <Text style={styles.modalBtnGhostTxt}>{t('common:cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity activeOpacity={0.9} onPress={addTask} style={styles.modalBtnPrimary}>
-                <Text style={styles.modalBtnPrimaryTxt}>Zapisz</Text>
+                <Text style={styles.modalBtnPrimaryTxt}>{t('common:save')}</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalHint}>Wybierz datę i opcjonalnie godzinę z pickerów. Jeśli nie ustawisz godziny — zadanie jest całodniowe.</Text>
+            <Text style={styles.modalHint}>{t('modal.hint')}</Text>
           </View>
         </View>
       </Modal>

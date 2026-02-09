@@ -1,0 +1,61 @@
+{
+  "errors": {
+    "tasksFetchFailed": "Nie udało się pobrać zadań.",
+    "photosFetchFailed": "Nie udało się pobrać zdjęć."
+  },
+  "hero": {
+    "welcome": "Witaj",
+    "dateLine": "Dziś jest {{date}}, jesteś już w połowie budowy — przeprowadzka coraz bliżej."
+  },
+  "donuts": {
+    "budgetLabel": "Budżet",
+    "timeLabel": "Czas",
+    "progressLabel": "Postęp",
+    "completeInvestmentDates": "Uzupełnij daty inwestycji"
+  },
+  "progress": {
+    "currentStageLabel": "OBECNY ETAP",
+    "nextStageLabel": "KOLEJNY ETAP",
+    "allDone": "Wszystkie etapy zrealizowane",
+    "noStages": "Brak etapów",
+    "loadingProgress": "Ładowanie postępu…",
+    "completed": "Zrealizowane: {{milestones}}"
+  },
+  "photos": {
+    "latestTitle": "Ostatnio dodane zdjęcia",
+    "loading": "Ładowanie zdjęć…",
+    "empty": "Brak zdjęć — dodaj pierwsze w module Zdjęcia."
+  },
+  "calendar": {
+    "title": "Kalendarz",
+    "loadingTasks": "Ładowanie zadań…",
+    "fetchError": "Błąd pobierania zadań",
+    "clickDayHint": "Kliknij dzień, aby zobaczyć zadania",
+    "nearestTasks": "Najbliższe zadania",
+    "addTaskPlus": "+ Dodaj",
+    "noTasks": "Brak zadań — dodaj pierwsze.",
+    "tasksForDay": "Zadania: {{date}}",
+    "addTask": "Dodaj",
+    "noTasksForDay": "Brak zadań na ten dzień.",
+    "allDay": "całodniowe",
+    "weekdays": {
+      "mon": "Pn",
+      "tue": "Wt",
+      "wed": "Śr",
+      "thu": "Cz",
+      "fri": "Pt",
+      "sat": "So",
+      "sun": "Nd"
+    }
+  },
+  "modal": {
+    "addTaskTitle": "Dodaj zadanie",
+    "selectedDate": "Wybrana data: {{date}}",
+    "titlePlaceholder": "Tytuł (np. Montaż okien)",
+    "descriptionPlaceholder": "Opis (opcjonalnie)",
+    "date": "Data",
+    "time": "Godzina",
+    "removeTime": "Usuń godzinę (ustaw całodniowe)",
+    "hint": "Wybierz datę i opcjonalnie godzinę z pickerów. Jeśli nie ustawisz godziny — zadanie jest całodniowe."
+  }
+}

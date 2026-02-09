@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import '../../lib/i18n';
+import { useTranslation } from 'react-i18next';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -42,6 +44,7 @@ function buildStars(count: number): Star[] {
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { t } = useTranslation('auth');
   const stars = useMemo(() => buildStars(90), []);
   const floatY = useRef(new Animated.Value(0)).current;
 
@@ -80,9 +83,9 @@ export default function RegisterScreen() {
     setError(null);
 
     const e = email.trim();
-    if (!e) return setError('Wpisz e-mail.');
-    if (password.length < 6) return setError('Hasło musi mieć min. 6 znaków.');
-    if (password !== password2) return setError('Hasła nie są takie same.');
+    if (!e) return setError(t('register.errors.enterEmail'));
+    if (password.length < 6) return setError(t('register.errors.passwordTooShort'));
+    if (password !== password2) return setError(t('register.errors.passwordsMismatch'));
 
     setLoading(true);
 
@@ -95,14 +98,14 @@ export default function RegisterScreen() {
     setLoading(false);
 
     if (error) {
-      setError(mapRegisterError(error.message));
+      setError(mapRegisterError(error.message, t));
       return;
     }
 
     Alert.alert(
-      'Sprawdź e-mail',
-      'Wysłaliśmy link potwierdzający. Po kliknięciu wróć do aplikacji i zaloguj się.',
-      [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+      t('register.alerts.checkEmailTitle'),
+      t('register.alerts.checkEmailMessage'),
+      [{ text: t('common:ok'), onPress: () => router.replace('/(auth)/login') }]
     );
   };
 
@@ -111,7 +114,7 @@ export default function RegisterScreen() {
     setGoogleLoading(true);
     setTimeout(() => {
       setGoogleLoading(false);
-      Alert.alert('Wkrótce', 'Rejestracja/logowanie Google dodamy przy buildzie aplikacji.');
+      Alert.alert(t('register.alerts.soonTitle'), t('register.alerts.soonMessage'));
     }, 450);
   };
 
@@ -155,7 +158,7 @@ export default function RegisterScreen() {
         </Animated.View>
 
         <TextInput
-          placeholder="E-mail"
+          placeholder={t('register.form.emailPlaceholder')}
           placeholderTextColor="rgba(255,255,255,0.45)"
           style={styles.input}
           autoCapitalize="none"
@@ -165,7 +168,7 @@ export default function RegisterScreen() {
         />
 
         <TextInput
-          placeholder="Hasło (min. 6 znaków)"
+          placeholder={t('register.form.passwordPlaceholder')}
           placeholderTextColor="rgba(255,255,255,0.45)"
           style={styles.input}
           secureTextEntry
@@ -174,7 +177,7 @@ export default function RegisterScreen() {
         />
 
         <TextInput
-          placeholder="Powtórz hasło"
+          placeholder={t('register.form.repeatPasswordPlaceholder')}
           placeholderTextColor="rgba(255,255,255,0.45)"
           style={styles.input}
           secureTextEntry
@@ -193,7 +196,7 @@ export default function RegisterScreen() {
           {loading ? (
             <ActivityIndicator />
           ) : (
-            <Text style={styles.primaryText}>Załóż konto</Text>
+            <Text style={styles.primaryText}>{t('register.form.submit')}</Text>
           )}
         </TouchableOpacity>
 
@@ -221,7 +224,7 @@ export default function RegisterScreen() {
           activeOpacity={0.85}
         >
           <Text style={styles.bottomLink}>
-            Masz już konto? <Text style={styles.bottomLinkStrong}>Zaloguj się</Text>
+            {t('register.form.haveAccount')} <Text style={styles.bottomLinkStrong}>{t('register.form.login')}</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -229,12 +232,12 @@ export default function RegisterScreen() {
   );
 }
 
-function mapRegisterError(msg: string) {
+function mapRegisterError(msg: string, t: any) {
   const l = msg.toLowerCase();
-  if (l.includes('user already registered')) return 'Konto z tym e-mailem już istnieje.';
-  if (l.includes('password')) return 'Hasło jest za słabe.';
-  if (l.includes('email')) return 'Podaj poprawny adres e-mail.';
-  return 'Nie udało się założyć konta. Spróbuj ponownie.';
+  if (l.includes('user already registered')) return t('register.errors.userAlreadyRegistered');
+  if (l.includes('password')) return t('register.errors.weakPassword');
+  if (l.includes('email')) return t('register.errors.invalidEmail');
+  return t('register.errors.generic');
 }
 
 const styles = StyleSheet.create({
