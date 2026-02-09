@@ -6,13 +6,18 @@ import commonPl from '../locales/pl/common.json';
 import authPl from '../locales/pl/auth.json';
 import navigationPl from '../locales/pl/navigation.json';
 import dashboardPl from '../locales/pl/dashboard.json';
+import commonEn from '../locales/en/common.json';
+import authEn from '../locales/en/auth.json';
+import navigationEn from '../locales/en/navigation.json';
+import dashboardEn from '../locales/en/dashboard.json';
 
-const language = Localization.getLocales()[0]?.languageCode === 'pl' ? 'pl' : 'pl';
+// TEMP: set to 'pl' after verification
+const language = 'en';
 
 if (!i18n.isInitialized) {
   i18n.use(initReactI18next).init({
     lng: language,
-    fallbackLng: 'pl',
+    fallbackLng: 'en',
     ns: ['common', 'auth', 'navigation', 'dashboard'],
     defaultNS: 'common',
     resources: {
@@ -21,6 +26,12 @@ if (!i18n.isInitialized) {
         auth: authPl,
         navigation: navigationPl,
         dashboard: dashboardPl,
+      },
+      en: {
+        common: commonEn,
+        auth: authEn,
+        navigation: navigationEn,
+        dashboard: dashboardEn,
       },
     },
     interpolation: {
