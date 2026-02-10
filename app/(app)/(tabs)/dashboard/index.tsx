@@ -969,7 +969,7 @@ export default function DashboardScreen() {
                           </Text>
                           <Text style={styles.taskMeta}>
                             {t.data ?? '—'}
-                            {t.godzina ? ` • ${prettyTime(t.godzina)}` : ' • całodniowe'}
+                            {t.godzina ? ` • ${prettyTime(t.godzina)}` : ` • ${t('calendar.allDay')}`}
                           </Text>
                         </View>
                       </View>
