@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
@@ -30,6 +31,7 @@ const NEON = '#25F0C8';
 const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
 
+// TODO(i18n): Kategorie są również wartościami zapisywanymi w DB, więc pozostają stałe.
 const CATEGORIES = [
   'Stan zero',
   'Stan surowy otwarty',
@@ -101,13 +103,14 @@ function guessMime(name: string, fallback?: string) {
   return 'application/octet-stream';
 }
 
-async function uriToArrayBuffer(uri: string): Promise<ArrayBuffer> {
+async function uriToArrayBuffer(uri: string, readFileFailedText: string): Promise<ArrayBuffer> {
   const res = await fetch(uri);
-  if (!res.ok) throw new Error(`Nie udało się odczytać pliku: ${res.status} ${res.statusText}`);
+  if (!res.ok) throw new Error(`${readFileFailedText}: ${res.status} ${res.statusText}`);
   return await res.arrayBuffer();
 }
 
 export default function BudzetScreen() {
+  const { t } = useTranslation('budget');
   const router = useRouter();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
@@ -197,7 +200,7 @@ export default function BudzetScreen() {
 
       setWydatki((expRes.data ?? []) as any);
     } catch (e: any) {
-      setErrorMsg(e?.message ?? 'Nie udało się pobrać danych.');
+      setErrorMsg(e?.message ?? t('errors.fetchFailed'));
       console.log('[Budzet] loadBudget error:', e);
     } finally {
       setLoading(false);
@@ -240,7 +243,7 @@ export default function BudzetScreen() {
     const safeName = (picked.name || 'plik').replace(/[^a-zA-Z0-9._-]/g, '_');
     const key = `${userId}/wydatki/${Date.now()}_${safeName}`;
 
-    const ab = await uriToArrayBuffer(picked.uri);
+    const ab = await uriToArrayBuffer(picked.uri, t('errors.readFileFailed'));
 
     const up = await supabase.storage.from('paragony').upload(key, ab, {
       contentType: picked.mimeType,
@@ -259,8 +262,8 @@ export default function BudzetScreen() {
     const kategoria = fKategoria.trim() || 'Inne';
 
     const kw = safeNumber(fKwota);
-    if (!nazwa) return alert('Podaj nazwę wydatku.');
-    if (kw <= 0) return alert('Kwota musi być większa od 0.');
+    if (!nazwa) return alert(t('alerts.enterName'));
+    if (kw <= 0) return alert(t('alerts.amountGreaterThanZero'));
 
     setSaving(true);
     try {
@@ -294,7 +297,7 @@ export default function BudzetScreen() {
       await loadBudget();
     } catch (e: any) {
       console.log('[Budzet] addExpense error:', e);
-      alert(e?.message ?? 'Nie udało się dodać wydatku.');
+      alert(e?.message ?? t('errors.addFailed'));
     } finally {
       setSaving(false);
     }
@@ -310,10 +313,10 @@ export default function BudzetScreen() {
   };
 
   const confirmDeleteExpense = (row: WydatkiRow) => {
-    Alert.alert('Usunąć wydatek?', `${row.nazwa ?? 'Wydatek'}\n${formatPLN(safeNumber(row.kwota))}`, [
-      { text: 'Anuluj', style: 'cancel' },
+    Alert.alert(t('delete.confirmTitle'), `${row.nazwa ?? t('expense.defaultName')}\n${formatPLN(safeNumber(row.kwota))}`, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Usuń',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => deleteExpense(row),
       },
@@ -335,7 +338,7 @@ export default function BudzetScreen() {
       setWydatki((prev) => prev.filter((w) => w.id !== row.id));
     } catch (e: any) {
       console.log('[Budzet] deleteExpense error:', e);
-      alert(e?.message ?? 'Nie udało się usunąć wydatku.');
+      alert(e?.message ?? t('errors.deleteFailed'));
     }
   };
 
@@ -343,7 +346,7 @@ export default function BudzetScreen() {
     return (
       <TouchableOpacity style={styles.trashAction} onPress={() => confirmDeleteExpense(row)} activeOpacity={0.85}>
         <Text style={styles.trashIcon}>🗑️</Text>
-        <Text style={styles.trashText}>Usuń</Text>
+        <Text style={styles.trashText}>{t('common.delete')}</Text>
       </TouchableOpacity>
     );
   };
@@ -403,7 +406,7 @@ export default function BudzetScreen() {
     >
       {/* HEADER (wyśrodkowany, bez pulsowania) */}
       <View style={styles.headerWrap}>
-        <Text style={styles.headerTitle}>Budżet</Text>
+        <Text style={styles.headerTitle}>{t('header.title')}</Text>
       </View>
 
       {/* BŁĘDY / LOADING */}
@@ -436,11 +439,11 @@ export default function BudzetScreen() {
       {!loading && (
         <View style={styles.heroStats}>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Pozostało</Text>
+            <Text style={styles.statLabel}>{t('stats.remaining')}</Text>
             <Text style={styles.statValue}>{formatPLN(remaining)}</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Planowane</Text>
+            <Text style={styles.statLabel}>{t('stats.planned')}</Text>
             <Text style={styles.statValue}>{formatPLN(upcomingTotal)}</Text>
           </View>
         </View>
@@ -449,7 +452,7 @@ export default function BudzetScreen() {
       {/* BUTTON NAD WYKRESEM */}
       {!loading && (
         <TouchableOpacity style={styles.addBtn} onPress={() => setAddOpen(true)} activeOpacity={0.9}>
-          <Text style={styles.addBtnText}>+ DODAJ WYDATEK</Text>
+          <Text style={styles.addBtnText}>{t('actions.addExpense')}</Text>
         </TouchableOpacity>
       )}
 
@@ -457,8 +460,8 @@ export default function BudzetScreen() {
       <View style={styles.chartOuter}>
         <BlurView intensity={60} tint="dark" style={styles.chartCard}>
           <View style={styles.chartHeaderRow}>
-            <Text style={styles.chartTitle}>Kategorie</Text>
-            <Text style={styles.chartSub}>wydatki poniesione</Text>
+            <Text style={styles.chartTitle}>{t('chart.categoriesTitle')}</Text>
+            <Text style={styles.chartSub}>{t('chart.spentSubtitle')}</Text>
           </View>
 
           <View style={styles.vChartWrap}>
@@ -485,8 +488,8 @@ export default function BudzetScreen() {
       {/* OSTATNIE WYDATKI (jak było) */}
       <BlurView intensity={70} tint="dark" style={styles.card}>
         <View style={styles.listHeaderRow}>
-          <Text style={styles.listTitle}>Ostatnie wydatki</Text>
-          <Text style={styles.listSub}>sortowanie: najnowsze</Text>
+          <Text style={styles.listTitle}>{t('list.recentTitle')}</Text>
+          <Text style={styles.listSub}>{t('list.sortNewest')}</Text>
         </View>
 
         {loading ? (
@@ -494,7 +497,7 @@ export default function BudzetScreen() {
             <ActivityIndicator color={ACCENT} />
           </View>
         ) : wydatki.length === 0 ? (
-          <Text style={styles.empty}>Brak wydatków. Dodaj pierwszy wydatek powyżej.</Text>
+          <Text style={styles.empty}>{t('list.empty')}</Text>
         ) : (
           wydatki.slice(0, 8).map((w) => (
             <Swipeable
@@ -511,14 +514,14 @@ export default function BudzetScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemName} numberOfLines={1}>
-                    {w.nazwa ?? 'Wydatek'}
+                    {w.nazwa ?? t('expense.defaultName')}
                   </Text>
                   <Text style={styles.itemMeta}>
-                    {w.data ? formatPLDate(w.data) : w.created_at ? `Dodano: ${formatPLDate(w.created_at)}` : '—'}
+                    {w.data ? formatPLDate(w.data) : w.created_at ? t('expense.addedOn', { date: formatPLDate(w.created_at) }) : '—'}
                     {'  •  '}
                     {w.kategoria ?? 'Inne'}
                     {'  •  '}
-                    {normalize(w.status) === STATUS_SPENT ? 'poniesiony' : 'zaplanowany'}
+                    {normalize(w.status) === STATUS_SPENT ? t('status.spent') : t('status.planned')}
                   </Text>
                 </View>
 
@@ -526,7 +529,7 @@ export default function BudzetScreen() {
                   <Text style={styles.itemAmount}>{formatPLN(safeNumber(w.kwota))}</Text>
                   {!!w.plik && (
                     <TouchableOpacity onPress={() => openReceipt(w.plik!)} style={{ marginTop: 6 }}>
-                      <Text style={styles.fileLink}>paragon →</Text>
+                      <Text style={styles.fileLink}>{t('expense.receiptLink')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -540,18 +543,18 @@ export default function BudzetScreen() {
       <Modal visible={addOpen} animationType="slide" transparent onRequestClose={() => setAddOpen(false)}>
         <View style={styles.modalBackdrop}>
           <BlurView intensity={90} tint="dark" style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Dodaj wydatek</Text>
+            <Text style={styles.modalTitle}>{t('modal.title')}</Text>
 
-            <Text style={styles.lbl}>Nazwa *</Text>
+            <Text style={styles.lbl}>{t('modal.nameLabel')}</Text>
             <TextInput
               value={fNazwa}
               onChangeText={setFNazwa}
               style={styles.input}
-              placeholder="np. Okna"
+              placeholder={t('modal.namePlaceholder')}
               placeholderTextColor="rgba(148,163,184,0.7)"
             />
 
-            <Text style={styles.lbl}>Kategoria</Text>
+            <Text style={styles.lbl}>{t('modal.categoryLabel')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
               {CATEGORIES.map((c) => {
                 const on = normalize(fKategoria) === normalize(c);
@@ -568,13 +571,13 @@ export default function BudzetScreen() {
               })}
             </ScrollView>
 
-            <Text style={styles.lbl}>Kwota (PLN) *</Text>
+            <Text style={styles.lbl}>{t('modal.amountLabel')}</Text>
             <TextInput
               value={fKwota}
               onChangeText={setFKwota}
               style={styles.input}
               keyboardType="numeric"
-              placeholder="np. 12500"
+              placeholder={t('modal.amountPlaceholder')}
               placeholderTextColor="rgba(148,163,184,0.7)"
             />
 
@@ -583,17 +586,17 @@ export default function BudzetScreen() {
                 style={[styles.pill, fStatus === STATUS_UPCOMING && styles.pillOn]}
                 onPress={() => setFStatus(STATUS_UPCOMING)}
               >
-                <Text style={[styles.pillText, fStatus === STATUS_UPCOMING && styles.pillTextOn]}>zaplanowany</Text>
+                <Text style={[styles.pillText, fStatus === STATUS_UPCOMING && styles.pillTextOn]}>{t('status.planned')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.pill, fStatus === STATUS_SPENT && styles.pillOn]}
                 onPress={() => setFStatus(STATUS_SPENT)}
               >
-                <Text style={[styles.pillText, fStatus === STATUS_SPENT && styles.pillTextOn]}>poniesiony</Text>
+                <Text style={[styles.pillText, fStatus === STATUS_SPENT && styles.pillTextOn]}>{t('status.spent')}</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.lbl}>Data — opcjonalnie</Text>
+            <Text style={styles.lbl}>{t('modal.dateOptional')}</Text>
             <View style={styles.dateRow}>
               <TextInput
                 value={fData}
@@ -619,40 +622,40 @@ export default function BudzetScreen() {
                     }}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.iosDateOkText}>Ustaw datę</Text>
+                    <Text style={styles.iosDateOkText}>{t('modal.setDate')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <DateTimePicker value={datePickerValue} mode="date" display="default" onChange={onDatePicked} />
               ))}
 
-            <Text style={styles.lbl}>Opis (opcjonalnie)</Text>
+            <Text style={styles.lbl}>{t('modal.descriptionOptional')}</Text>
             <TextInput
               value={fOpis}
               onChangeText={setFOpis}
               style={styles.input}
-              placeholder="np. zaliczka"
+              placeholder={t('modal.descriptionPlaceholder')}
               placeholderTextColor="rgba(148,163,184,0.7)"
             />
 
-            <Text style={styles.lbl}>Sklep (opcjonalnie)</Text>
+            <Text style={styles.lbl}>{t('modal.storeOptional')}</Text>
             <TextInput
               value={fSklep}
               onChangeText={setFSklep}
               style={styles.input}
-              placeholder="np. Castorama"
+              placeholder={t('modal.storePlaceholder')}
               placeholderTextColor="rgba(148,163,184,0.7)"
             />
 
             <TouchableOpacity style={styles.fileBtn} onPress={pickFile}>
               <Text style={styles.fileBtnText}>
-                {picked ? `Wybrano: ${picked.name}` : 'Dodaj paragon (PDF/JPG/PNG) — opcjonalnie'}
+                {picked ? t('modal.fileSelected', { name: picked.name }) : t('modal.fileOptional')}
               </Text>
             </TouchableOpacity>
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={() => setAddOpen(false)} disabled={saving}>
-                <Text style={styles.btnGhostText}>Anuluj</Text>
+                <Text style={styles.btnGhostText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -660,7 +663,7 @@ export default function BudzetScreen() {
                 onPress={addExpense}
                 disabled={saving}
               >
-                <Text style={styles.btnMainText}>{saving ? 'Zapisywanie…' : 'Zapisz'}</Text>
+                <Text style={styles.btnMainText}>{saving ? t('common.saving') : t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </BlurView>

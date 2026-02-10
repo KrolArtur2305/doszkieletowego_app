@@ -1,0 +1,53 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save"
+  },
+  "alerts": {
+    "errorTitle": "Error",
+    "titleAndAttachmentRequired": "Title and attachment are required."
+  },
+  "errors": {
+    "fetchFailed": "Could not load documents.",
+    "noUser": "No user",
+    "addFailed": "Could not add the document."
+  },
+  "loading": {
+    "documents": "Loading documents…"
+  },
+  "header": {
+    "title": "Documents",
+    "subtitle": "Only your files (PRIVATE) — opened via signed URL."
+  },
+  "actions": {
+    "add": "Add",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…"
+  },
+  "empty": {
+    "noDocsInCategory": "No documents in this category."
+  },
+  "card": {
+    "hint": "Tap: open • Hold: delete"
+  },
+  "category": {
+    "contracts": "Contracts",
+    "invoicesReceipts": "Invoices/Receipts",
+    "other": "Other"
+  },
+  "delete": {
+    "confirmTitle": "Delete document",
+    "confirmMessage": "Are you sure you want to delete: \"{{title}}\"?"
+  },
+  "modal": {
+    "title": "New document",
+    "titleLabel": "Title (required)",
+    "titlePlaceholder": "e.g. Contractor agreement",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Additional information…",
+    "categoryLabel": "Category",
+    "attachmentRequired": "Attachment (required)",
+    "pickFile": "Choose file (PDF / photo)"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "common": {
+    "loading": "Ładowanie…",
+    "none": "Brak"
+  },
+  "errors": {
+    "fetchFailed": "Nie udało się pobrać etapów.",
+    "updateFailed": "Nie udało się zaktualizować etapu.",
+    "noteSaveFailed": "Nie udało się zapisać notatki."
+  },
+  "progress": {
+    "cardLabel": "Postęp budowy",
+    "noStages": "Brak etapów.",
+    "progressPercent": "Budowa w {{percent}}%"
+  },
+  "stages": {
+    "cardLabel": "Etapy",
+    "currentStageLabel": "OBECNY ETAP",
+    "nextStageLabel": "KOLEJNY ETAP",
+    "allDone": "Wszystkie etapy są zrealizowane.",
+    "checkAll": "Sprawdź wszystkie etapy"
+  },
+  "history": {
+    "cardLabel": "Historia",
+    "completedTitle": "Zrealizowane etapy",
+    "noCompleted": "Brak zrealizowanych etapów."
+  },
+  "all": {
+    "back": "Wróć",
+    "title": "Wszystkie etapy budowy",
+    "noStagesHint": "Brak etapów. (Sprawdź seed w Supabase.)",
+    "showPrevious": "Pokaż poprzednie ({{count}})",
+    "notePlaceholder": "Dodaj notatkę do etapu…"
+  }
+}

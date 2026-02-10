@@ -1,0 +1,35 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "none": "None"
+  },
+  "errors": {
+    "fetchFailed": "Could not load stages.",
+    "updateFailed": "Could not update the stage.",
+    "noteSaveFailed": "Could not save the note."
+  },
+  "progress": {
+    "cardLabel": "Construction progress",
+    "noStages": "No stages.",
+    "progressPercent": "Construction at {{percent}}%"
+  },
+  "stages": {
+    "cardLabel": "Stages",
+    "currentStageLabel": "CURRENT STAGE",
+    "nextStageLabel": "NEXT STAGE",
+    "allDone": "All stages are completed.",
+    "checkAll": "Check all stages"
+  },
+  "history": {
+    "cardLabel": "History",
+    "completedTitle": "Completed stages",
+    "noCompleted": "No completed stages."
+  },
+  "all": {
+    "back": "Back",
+    "title": "All construction stages",
+    "noStagesHint": "No stages. (Check Supabase seed.)",
+    "showPrevious": "Show previous ({{count}})",
+    "notePlaceholder": "Add a note to the stage…"
+  }
+}

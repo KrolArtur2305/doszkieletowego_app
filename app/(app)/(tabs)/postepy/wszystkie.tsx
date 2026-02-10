@@ -11,6 +11,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 
@@ -41,6 +42,7 @@ function safeOrder(n: number | null | undefined) {
 }
 
 export default function WszystkieEtapyScreen() {
+  const { t } = useTranslation('stages');
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,7 @@ export default function WszystkieEtapyScreen() {
         setShowPrevCount(0);
       } catch (e: any) {
         if (!alive) return;
-        setError(e?.message ?? 'Nie udało się pobrać etapów.');
+        setError(e?.message ?? t('errors.fetchFailed'));
         setEtapy([]);
       } finally {
         if (!alive) return;
@@ -160,7 +162,7 @@ export default function WszystkieEtapyScreen() {
     } catch (e: any) {
       // rollback
       setEtapy((prev) => prev.map((e) => (e.id === row.id ? { ...e, status: row.status } : e)));
-      setError(e?.message ?? 'Nie udało się zaktualizować etapu.');
+      setError(e?.message ?? t('errors.updateFailed'));
     } finally {
       setSaving(row.id, false);
     }
@@ -175,7 +177,7 @@ export default function WszystkieEtapyScreen() {
         const { error } = await supabase.from('etapy').update({ notatka: value }).eq('id', rowId);
         if (error) throw error;
       } catch (e: any) {
-        setError(e?.message ?? 'Nie udało się zapisać notatki.');
+        setError(e?.message ?? t('errors.noteSaveFailed'));
       } finally {
         setSaving(rowId, false);
       }
@@ -196,10 +198,10 @@ export default function WszystkieEtapyScreen() {
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
             <Feather name="arrow-left" size={18} color="#EAFBF6" />
-            <Text style={styles.backText}>Wróć</Text>
+            <Text style={styles.backText}>{t('all.back')}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.title}>Wszystkie etapy budowy</Text>
+          <Text style={styles.title}>{t('all.title')}</Text>
 
           <View style={{ width: 62 }} />
         </View>
@@ -209,10 +211,10 @@ export default function WszystkieEtapyScreen() {
           {loading ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator color={NEON} />
-              <Text style={styles.loadingText}>Ładowanie…</Text>
+              <Text style={styles.loadingText}>{t('common.loading')}</Text>
             </View>
           ) : sorted.length === 0 ? (
-            <Text style={styles.muted}>Brak etapów. (Sprawdź seed w Supabase.)</Text>
+            <Text style={styles.muted}>{t('all.noStagesHint')}</Text>
           ) : (
             <View>
               {!!error && <Text style={styles.error}>{error}</Text>}
@@ -225,7 +227,7 @@ export default function WszystkieEtapyScreen() {
                 >
                   <Feather name="chevron-up" size={16} color="#EAFBF6" />
                   <Text style={styles.showPrevText}>
-                    Pokaż poprzednie ({Math.min(PREV_STEP, listView.hiddenPrevDone.length)})
+                    {t('all.showPrevious', { count: Math.min(PREV_STEP, listView.hiddenPrevDone.length) })}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -256,8 +258,8 @@ export default function WszystkieEtapyScreen() {
 
                       <TextInput
                         value={noteDraft[row.id] ?? ''}
-                        onChangeText={(t) => onChangeNote(row.id, t)}
-                        placeholder="Dodaj notatkę do etapu…"
+                        onChangeText={(text) => onChangeNote(row.id, text)}
+                        placeholder={t('all.notePlaceholder')}
                         placeholderTextColor="rgba(255,255,255,0.35)"
                         style={styles.note}
                         multiline

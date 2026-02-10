@@ -1,0 +1,65 @@
+{
+  "common": {
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "save": "Zapisz",
+    "saving": "Zapisywanie…"
+  },
+  "header": {
+    "title": "Budżet"
+  },
+  "errors": {
+    "fetchFailed": "Nie udało się pobrać danych.",
+    "addFailed": "Nie udało się dodać wydatku.",
+    "deleteFailed": "Nie udało się usunąć wydatku.",
+    "readFileFailed": "Nie udało się odczytać pliku"
+  },
+  "alerts": {
+    "enterName": "Podaj nazwę wydatku.",
+    "amountGreaterThanZero": "Kwota musi być większa od 0."
+  },
+  "delete": {
+    "confirmTitle": "Usunąć wydatek?"
+  },
+  "stats": {
+    "remaining": "Pozostało",
+    "planned": "Planowane"
+  },
+  "actions": {
+    "addExpense": "+ DODAJ WYDATEK"
+  },
+  "chart": {
+    "categoriesTitle": "Kategorie",
+    "spentSubtitle": "wydatki poniesione"
+  },
+  "list": {
+    "recentTitle": "Ostatnie wydatki",
+    "sortNewest": "sortowanie: najnowsze",
+    "empty": "Brak wydatków. Dodaj pierwszy wydatek powyżej."
+  },
+  "expense": {
+    "defaultName": "Wydatek",
+    "addedOn": "Dodano: {{date}}",
+    "receiptLink": "paragon →"
+  },
+  "status": {
+    "spent": "poniesiony",
+    "planned": "zaplanowany"
+  },
+  "modal": {
+    "title": "Dodaj wydatek",
+    "nameLabel": "Nazwa *",
+    "namePlaceholder": "np. Okna",
+    "categoryLabel": "Kategoria",
+    "amountLabel": "Kwota (PLN) *",
+    "amountPlaceholder": "np. 12500",
+    "dateOptional": "Data — opcjonalnie",
+    "setDate": "Ustaw datę",
+    "descriptionOptional": "Opis (opcjonalnie)",
+    "descriptionPlaceholder": "np. zaliczka",
+    "storeOptional": "Sklep (opcjonalnie)",
+    "storePlaceholder": "np. Castorama",
+    "fileOptional": "Dodaj paragon (PDF/JPG/PNG) — opcjonalnie",
+    "fileSelected": "Wybrano: {{name}}"
+  }
+}
