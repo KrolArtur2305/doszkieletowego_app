@@ -196,7 +196,7 @@ export default function ProfilScreen() {
 
               <Text style={styles.namePreview}>{fullNamePreview}</Text>
               <Text style={styles.email} numberOfLines={1}>
-                {email ? email : t('common.dash')}
+                {email ? email : t('common:dash')}
               </Text>
             </View>
 
