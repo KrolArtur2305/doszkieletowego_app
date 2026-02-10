@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
 
@@ -22,6 +23,7 @@ let __profilInitOnce = false;
 let __profilInitUserId: string | null = null;
 
 export default function ProfilScreen() {
+  const { t } = useTranslation('profile');
   const router = useRouter();
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -37,8 +39,8 @@ export default function ProfilScreen() {
 
   const fullNamePreview = useMemo(() => {
     const v = [imie.trim(), nazwisko.trim()].filter(Boolean).join(' ');
-    return v || 'Uzupełnij dane profilu';
-  }, [imie, nazwisko]);
+    return v || t('header.completeProfile');
+  }, [imie, nazwisko, t]);
 
   const normalizePhone = (v: string) => v.replace(/[^\d+]/g, '');
 
@@ -111,12 +113,12 @@ export default function ProfilScreen() {
     const phone = phoneRaw ? normalizePhone(phoneRaw) : '';
 
     if (!first) {
-      Alert.alert('Uzupełnij dane', 'Imię jest wymagane, aby kontynuować.');
+      Alert.alert(t('alerts.completeDataTitle'), t('alerts.firstNameRequired'));
       return;
     }
 
     if (phone && phone.replace(/\D/g, '').length < 7) {
-      Alert.alert('Nieprawidłowy numer', 'Podaj poprawny numer telefonu lub zostaw puste pole.');
+      Alert.alert(t('alerts.invalidPhoneTitle'), t('alerts.invalidPhoneMessage'));
       return;
     }
 
@@ -127,7 +129,7 @@ export default function ProfilScreen() {
       const user = userRes?.user;
 
       if (userErr || !user?.id) {
-        Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
+        Alert.alert(t('alerts.errorTitle'), t('errors.noUser'));
         return;
       }
 
@@ -147,19 +149,19 @@ export default function ProfilScreen() {
         .maybeSingle();
 
       if (error) {
-        Alert.alert('Błąd zapisu', error.message);
+        Alert.alert(t('alerts.saveErrorTitle'), error.message);
         return;
       }
 
       if (!data?.profil_wypelniony) {
-        Alert.alert('Błąd', 'Profil nie został oznaczony jako wypełniony.');
+        Alert.alert(t('alerts.errorTitle'), t('errors.profileNotMarked'));
         return;
       }
 
       // ✅ od razu przejście dalej
       router.replace('/(app)/inwestycja');
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Coś poszło nie tak.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('errors.generic'));
     } finally {
       setSaving(false);
     }
@@ -182,7 +184,7 @@ export default function ProfilScreen() {
           </View>
 
           {/* ✅ usunięte "KONTO" */}
-          <Text style={styles.title}>Profil</Text>
+          <Text style={styles.title}>{t('header.title')}</Text>
           {/* ✅ usunięte: "Uzupełnij dane profilu, żeby przejść dalej." */}
 
           <BlurView intensity={70} tint="dark" style={styles.card}>
@@ -194,7 +196,7 @@ export default function ProfilScreen() {
 
               <Text style={styles.namePreview}>{fullNamePreview}</Text>
               <Text style={styles.email} numberOfLines={1}>
-                {email ? email : '—'}
+                {email ? email : t('common.dash')}
               </Text>
             </View>
 
@@ -203,33 +205,33 @@ export default function ProfilScreen() {
             {loading ? (
               <View style={styles.loadingRow}>
                 <ActivityIndicator />
-                <Text style={styles.loadingText}>Ładowanie danych profilu…</Text>
+                <Text style={styles.loadingText}>{t('loading.profileData')}</Text>
               </View>
             ) : (
               // ✅ pola trochę niżej
               <View style={styles.formWrap}>
                 <View style={styles.form}>
                   <Field
-                    label="Imię"
+                    label={t('form.firstNameLabel')}
                     value={imie}
                     onChangeText={setImie}
-                    placeholder="np. Artur"
+                    placeholder={t('form.firstNamePlaceholder')}
                     icon="edit-3"
                     autoCapitalize="words"
                   />
                   <Field
-                    label="Nazwisko"
+                    label={t('form.lastNameLabel')}
                     value={nazwisko}
                     onChangeText={setNazwisko}
-                    placeholder="np. Kowalski"
+                    placeholder={t('form.lastNamePlaceholder')}
                     icon="edit-3"
                     autoCapitalize="words"
                   />
                   <Field
-                    label="Telefon"
+                    label={t('form.phoneLabel')}
                     value={telefon}
                     onChangeText={setTelefon}
-                    placeholder="np. +48 600 000 000"
+                    placeholder={t('form.phonePlaceholder')}
                     icon="phone"
                     keyboardType="phone-pad"
                   />
@@ -241,7 +243,7 @@ export default function ProfilScreen() {
                     onPress={handleSaveAndContinue}
                     disabled={saving || loading}
                   >
-                    <Text style={styles.ctaText}>{saving ? 'Zapisywanie…' : 'Zapisz i kontynuuj'}</Text>
+                    <Text style={styles.ctaText}>{saving ? t('common.saving') : t('form.saveAndContinue')}</Text>
                   </TouchableOpacity>
 
                   {/* ✅ skasowane: wszystko pod przyciskiem (hint) */}

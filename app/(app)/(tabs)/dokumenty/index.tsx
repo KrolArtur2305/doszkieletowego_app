@@ -16,14 +16,15 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 
 type CategoryKey = 'UMOWY' | 'FAKTURY_PARAGONY' | 'INNE';
 
-const CATEGORIES: { key: CategoryKey; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { key: 'UMOWY', label: 'Umowy', icon: 'file-text' },
-  { key: 'FAKTURY_PARAGONY', label: 'Faktury/Paragony', icon: 'credit-card' },
-  { key: 'INNE', label: 'Inne', icon: 'archive' },
+const CATEGORIES: { key: CategoryKey; icon: keyof typeof Feather.glyphMap }[] = [
+  { key: 'UMOWY', icon: 'file-text' },
+  { key: 'FAKTURY_PARAGONY', icon: 'credit-card' },
+  { key: 'INNE', icon: 'archive' },
 ];
 
 type DbDoc = {
@@ -57,6 +58,7 @@ function normalizeCategory(cat?: string | null): CategoryKey {
 }
 
 export default function DokumentyScreen() {
+  const { t } = useTranslation('documents');
   const [activeCat, setActiveCat] = useState<CategoryKey>('UMOWY');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,6 +75,12 @@ export default function DokumentyScreen() {
     size?: number;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const getCategoryLabel = (key: CategoryKey) => {
+    if (key === 'UMOWY') return t('category.contracts');
+    if (key === 'FAKTURY_PARAGONY') return t('category.invoicesReceipts');
+    return t('category.other');
+  };
 
   const fetchDocs = useCallback(async () => {
     setRefreshing(true);
@@ -95,7 +103,7 @@ export default function DokumentyScreen() {
       setDocs((data || []) as DbDoc[]);
     } catch (e: any) {
       console.error('[Dokumenty] fetch error:', e?.message || e);
-      Alert.alert('Błąd', 'Nie udało się pobrać dokumentów.');
+      Alert.alert(t('alerts.errorTitle'), t('errors.fetchFailed'));
     } finally {
       setRefreshing(false);
       setLoading(false);
@@ -154,9 +162,9 @@ export default function DokumentyScreen() {
   const addDoc = async () => {
     if (saving) return;
 
-    const t = title.trim();
-    if (!t || !file?.uri) {
-      Alert.alert('Błąd', 'Tytuł i załącznik są wymagane.');
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle || !file?.uri) {
+      Alert.alert(t('alerts.errorTitle'), t('alerts.titleAndAttachmentRequired'));
       return;
     }
 
@@ -164,7 +172,7 @@ export default function DokumentyScreen() {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData?.user;
-      if (!user?.id) throw new Error('Brak użytkownika');
+      if (!user?.id) throw new Error(t('errors.noUser'));
 
       const ext = (() => {
         const parts = (file.name || '').split('.');
@@ -181,7 +189,7 @@ export default function DokumentyScreen() {
       if (upErr) throw upErr;
       const { error } = await supabase.from('dokumenty').insert({
         user_id: user.id,
-        tytul: t, // ✅ KLUCZOWE
+        tytul: trimmedTitle, // ✅ KLUCZOWE
         notatki: desc || null,
         kategoria: activeCat,
         plik_url: filePath,
@@ -194,17 +202,17 @@ export default function DokumentyScreen() {
       fetchDocs();
     } catch (e: any) {
       console.error('[Dokumenty] addDoc error:', e?.message || e);
-      Alert.alert('Błąd', 'Nie udało się dodać dokumentu.');
+      Alert.alert(t('alerts.errorTitle'), t('errors.addFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   const deleteDoc = async (doc: DbDoc) => {
-    Alert.alert('Usuń dokument', `Na pewno usunąć: "${doc.tytul}"?`, [
-      { text: 'Anuluj', style: 'cancel' },
+    Alert.alert(t('delete.confirmTitle'), t('delete.confirmMessage', { title: doc.tytul }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Usuń',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await supabase.from('dokumenty').delete().eq('id', doc.id);
@@ -219,8 +227,8 @@ export default function DokumentyScreen() {
     return (
       <View style={[styles.root, styles.center]}>
         <ActivityIndicator />
-        <Text style={{ color: 'rgba(148,163,184,0.9)', marginTop: 10, fontWeight: '700' }}>
-          Ładowanie dokumentów…
+          <Text style={{ color: 'rgba(148,163,184,0.9)', marginTop: 10, fontWeight: '700' }}>
+          {t('loading.documents')}
         </Text>
       </View>
     );
@@ -229,8 +237,8 @@ export default function DokumentyScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.title}>Dokumenty</Text>
-        <Text style={styles.subtitle}>Tylko Twoje pliki (PRIVATE) — otwierane przez signed URL.</Text>
+        <Text style={styles.title}>{t('header.title')}</Text>
+        <Text style={styles.subtitle}>{t('header.subtitle')}</Text>
 
         <View style={styles.tabsRow}>
           {CATEGORIES.map((c) => {
@@ -244,7 +252,7 @@ export default function DokumentyScreen() {
               >
                 <Feather name={c.icon} size={14} color={active ? '#061015' : 'rgba(94,234,212,0.9)'} />
                 <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                  {c.label} ({counts[c.key]})
+                  {getCategoryLabel(c.key)} ({counts[c.key]})
                 </Text>
               </TouchableOpacity>
             );
@@ -258,7 +266,7 @@ export default function DokumentyScreen() {
             style={styles.addBtn}
           >
             <Feather name="plus" size={18} color="#061015" />
-            <Text style={styles.addBtnText}>Dodaj</Text>
+            <Text style={styles.addBtnText}>{t('actions.add')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -267,7 +275,7 @@ export default function DokumentyScreen() {
             style={styles.refreshBtn}
           >
             <Feather name="refresh-cw" size={16} color="rgba(148,163,184,0.95)" />
-            <Text style={styles.refreshText}>{refreshing ? 'Odświeżam…' : 'Odśwież'}</Text>
+            <Text style={styles.refreshText}>{refreshing ? t('actions.refreshing') : t('actions.refresh')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -275,7 +283,7 @@ export default function DokumentyScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
         {filteredDocs.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>Brak dokumentów w tej kategorii.</Text>
+            <Text style={styles.emptyText}>{t('empty.noDocsInCategory')}</Text>
           </View>
         ) : (
           filteredDocs.map((d) => (
@@ -296,7 +304,7 @@ export default function DokumentyScreen() {
                       {d.tytul}
                     </Text>
                     <Text style={styles.cardMeta}>
-                      {formatDate(d.created_at)} • {CATEGORIES.find((x) => x.key === normalizeCategory(d.kategoria))?.label ?? 'Inne'}
+                      {formatDate(d.created_at)} • {getCategoryLabel(normalizeCategory(d.kategoria))}
                     </Text>
                   </View>
 
@@ -310,7 +318,7 @@ export default function DokumentyScreen() {
                 )}
 
                 <View style={styles.cardHintRow}>
-                  <Text style={styles.cardHint}>Tap: otwórz • Hold: usuń</Text>
+                  <Text style={styles.cardHint}>{t('card.hint')}</Text>
                   <View style={styles.privatePill}>
                     <Feather name="lock" size={12} color="rgba(94,234,212,0.95)" />
                     <Text style={styles.privateText}>PRIVATE</Text>
@@ -327,7 +335,7 @@ export default function DokumentyScreen() {
         <View style={styles.modalOverlay}>
           <BlurView intensity={18} tint="dark" style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nowy dokument</Text>
+              <Text style={styles.modalTitle}>{t('modal.title')}</Text>
               <TouchableOpacity onPress={() => { setModalOpen(false); }} style={styles.modalClose}>
                 <Feather name="x" size={18} color="rgba(148,163,184,0.95)" />
               </TouchableOpacity>
@@ -335,22 +343,22 @@ export default function DokumentyScreen() {
 
             <View style={{ gap: 10 }}>
               <View style={styles.inputWrap}>
-                <Text style={styles.inputLabel}>Tytuł (wymagany)</Text>
+                <Text style={styles.inputLabel}>{t('modal.titleLabel')}</Text>
                 <TextInput
                   value={title}
                   onChangeText={setTitle}
-                  placeholder="Np. Umowa z wykonawcą"
+                  placeholder={t('modal.titlePlaceholder')}
                   placeholderTextColor="rgba(148,163,184,0.55)"
                   style={styles.input}
                 />
               </View>
 
               <View style={styles.inputWrap}>
-                <Text style={styles.inputLabel}>Opis</Text>
+                <Text style={styles.inputLabel}>{t('modal.descriptionLabel')}</Text>
                 <TextInput
                   value={desc}
                   onChangeText={setDesc}
-                  placeholder="Dodatkowe informacje…"
+                  placeholder={t('modal.descriptionPlaceholder')}
                   placeholderTextColor="rgba(148,163,184,0.55)"
                   style={[styles.input, styles.textarea]}
                   multiline
@@ -358,7 +366,7 @@ export default function DokumentyScreen() {
               </View>
 
               <View style={styles.inputWrap}>
-                <Text style={styles.inputLabel}>Kategoria</Text>
+                <Text style={styles.inputLabel}>{t('modal.categoryLabel')}</Text>
                 <View style={styles.catRow}>
                   {CATEGORIES.map((c) => {
                     const on = c.key === activeCat;
@@ -369,7 +377,7 @@ export default function DokumentyScreen() {
                         onPress={() => setActiveCat(c.key)}
                         style={[styles.catBtn, on && styles.catBtnOn]}
                       >
-                        <Text style={[styles.catBtnText, on && styles.catBtnTextOn]}>{c.label}</Text>
+                        <Text style={[styles.catBtnText, on && styles.catBtnTextOn]}>{getCategoryLabel(c.key)}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -377,10 +385,10 @@ export default function DokumentyScreen() {
               </View>
 
               <View style={styles.inputWrap}>
-                <Text style={styles.inputLabel}>Załącznik (wymagany)</Text>
+                <Text style={styles.inputLabel}>{t('modal.attachmentRequired')}</Text>
                 <TouchableOpacity activeOpacity={0.9} onPress={pickFile} style={styles.fileBtn}>
                   <Feather name="paperclip" size={16} color="#061015" />
-                  <Text style={styles.fileBtnText}>{file ? file.name : 'Wybierz plik (PDF / zdjęcie)'}</Text>
+                  <Text style={styles.fileBtnText}>{file ? file.name : t('modal.pickFile')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -391,7 +399,7 @@ export default function DokumentyScreen() {
                   style={styles.cancelBtn}
                   disabled={saving}
                 >
-                  <Text style={styles.cancelText}>Anuluj</Text>
+                  <Text style={styles.cancelText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -405,7 +413,7 @@ export default function DokumentyScreen() {
                   ) : (
                     <>
                       <Feather name="check" size={16} color="#061015" />
-                      <Text style={styles.saveText}>Zapisz</Text>
+                      <Text style={styles.saveText}>{t('common.save')}</Text>
                     </>
                   )}
                 </TouchableOpacity>

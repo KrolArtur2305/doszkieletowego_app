@@ -1,0 +1,53 @@
+{
+  "common": {
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "save": "Zapisz"
+  },
+  "alerts": {
+    "errorTitle": "Błąd",
+    "titleAndAttachmentRequired": "Tytuł i załącznik są wymagane."
+  },
+  "errors": {
+    "fetchFailed": "Nie udało się pobrać dokumentów.",
+    "noUser": "Brak użytkownika",
+    "addFailed": "Nie udało się dodać dokumentu."
+  },
+  "loading": {
+    "documents": "Ładowanie dokumentów…"
+  },
+  "header": {
+    "title": "Dokumenty",
+    "subtitle": "Tylko Twoje pliki (PRIVATE) — otwierane przez signed URL."
+  },
+  "actions": {
+    "add": "Dodaj",
+    "refresh": "Odśwież",
+    "refreshing": "Odświeżam…"
+  },
+  "empty": {
+    "noDocsInCategory": "Brak dokumentów w tej kategorii."
+  },
+  "card": {
+    "hint": "Tap: otwórz • Hold: usuń"
+  },
+  "category": {
+    "contracts": "Umowy",
+    "invoicesReceipts": "Faktury/Paragony",
+    "other": "Inne"
+  },
+  "delete": {
+    "confirmTitle": "Usuń dokument",
+    "confirmMessage": "Na pewno usunąć: \"{{title}}\"?"
+  },
+  "modal": {
+    "title": "Nowy dokument",
+    "titleLabel": "Tytuł (wymagany)",
+    "titlePlaceholder": "Np. Umowa z wykonawcą",
+    "descriptionLabel": "Opis",
+    "descriptionPlaceholder": "Dodatkowe informacje…",
+    "categoryLabel": "Kategoria",
+    "attachmentRequired": "Załącznik (wymagany)",
+    "pickFile": "Wybierz plik (PDF / zdjęcie)"
+  }
+}

@@ -10,6 +10,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
@@ -41,6 +42,7 @@ function safeOrder(n: number | null | undefined) {
 }
 
 export default function PostepyScreen() {
+  const { t } = useTranslation('stages');
   const router = useRouter();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
@@ -75,7 +77,7 @@ export default function PostepyScreen() {
         if (!cancelled) setEtapy((data ?? []) as EtapRow[]);
       } catch (e: any) {
         if (!cancelled) {
-          setError(e?.message ?? 'Nie udało się pobrać etapów.');
+          setError(e?.message ?? t('errors.fetchFailed'));
           setEtapy([]);
         }
       } finally {
@@ -167,18 +169,18 @@ export default function PostepyScreen() {
     >
       {/* POSTĘP */}
       <BlurView intensity={16} tint="dark" style={styles.card}>
-        <Text style={styles.cardLabel}>Postęp budowy</Text>
+        <Text style={styles.cardLabel}>{t('progress.cardLabel')}</Text>
 
         {loading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={NEON} />
-            <Text style={styles.loadingText}>Ładowanie…</Text>
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
         ) : !hasAnyStages ? (
-          <Text style={styles.muted}>Brak etapów.</Text>
+          <Text style={styles.muted}>{t('progress.noStages')}</Text>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>Budowa w {progressPercent}%</Text>
+            <Text style={styles.sectionTitle}>{t('progress.progressPercent', { percent: progressPercent })}</Text>
 
             <View style={styles.batteryWrapper}>
               <View style={styles.batteryBody}>
@@ -203,16 +205,16 @@ export default function PostepyScreen() {
 
       {/* OBECNY + KOLEJNY */}
       <BlurView intensity={16} tint="dark" style={styles.card}>
-        <Text style={styles.cardLabel}>Etapy</Text>
+        <Text style={styles.cardLabel}>{t('stages.cardLabel')}</Text>
 
         {loading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={NEON} />
-            <Text style={styles.loadingText}>Ładowanie…</Text>
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
         ) : obecny ? (
           <>
-            <Text style={styles.smallLabel}>OBECNY ETAP</Text>
+            <Text style={styles.smallLabel}>{t('stages.currentStageLabel')}</Text>
             <Text style={styles.sectionTitle}>{obecny.title}</Text>
 
             {!!obecny.date && <Text style={styles.stageDate}>{obecny.date}</Text>}
@@ -220,12 +222,12 @@ export default function PostepyScreen() {
 
             <View style={styles.sep} />
 
-            <Text style={styles.smallLabel}>KOLEJNY ETAP</Text>
-            <Text style={styles.nextTitle}>{nastepny?.title ?? 'Brak'}</Text>
+            <Text style={styles.smallLabel}>{t('stages.nextStageLabel')}</Text>
+            <Text style={styles.nextTitle}>{nastepny?.title ?? t('common.none')}</Text>
             {!!nastepny?.date && <Text style={styles.stageDate}>{nastepny.date}</Text>}
           </>
         ) : (
-          <Text style={styles.muted}>Wszystkie etapy są zrealizowane.</Text>
+          <Text style={styles.muted}>{t('stages.allDone')}</Text>
         )}
 
         <TouchableOpacity
@@ -233,20 +235,20 @@ export default function PostepyScreen() {
           onPress={() => router.push('/(app)/(tabs)/postepy/wszystkie')}
           activeOpacity={0.9}
         >
-          <Text style={styles.primaryButtonText}>Sprawdź wszystkie etapy</Text>
+          <Text style={styles.primaryButtonText}>{t('stages.checkAll')}</Text>
           <Feather name="arrow-right" size={18} color="#022C22" />
         </TouchableOpacity>
       </BlurView>
 
       {/* HISTORIA */}
       <BlurView intensity={16} tint="dark" style={styles.card}>
-        <Text style={styles.cardLabel}>Historia</Text>
-        <Text style={styles.sectionTitle}>Zrealizowane etapy</Text>
+        <Text style={styles.cardLabel}>{t('history.cardLabel')}</Text>
+        <Text style={styles.sectionTitle}>{t('history.completedTitle')}</Text>
 
         {loading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={NEON} />
-            <Text style={styles.loadingText}>Ładowanie…</Text>
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
         ) : completedMilestones.length > 0 ? (
           completedMilestones.map((m) => (
@@ -262,7 +264,7 @@ export default function PostepyScreen() {
             </View>
           ))
         ) : (
-          <Text style={styles.muted}>Brak zrealizowanych etapów.</Text>
+          <Text style={styles.muted}>{t('history.noCompleted')}</Text>
         )}
       </BlurView>
 

@@ -1,0 +1,65 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save",
+    "saving": "Saving…"
+  },
+  "header": {
+    "title": "Budget"
+  },
+  "errors": {
+    "fetchFailed": "Could not load data.",
+    "addFailed": "Could not add the expense.",
+    "deleteFailed": "Could not delete the expense.",
+    "readFileFailed": "Could not read file"
+  },
+  "alerts": {
+    "enterName": "Enter the expense name.",
+    "amountGreaterThanZero": "Amount must be greater than 0."
+  },
+  "delete": {
+    "confirmTitle": "Delete this expense?"
+  },
+  "stats": {
+    "remaining": "Remaining",
+    "planned": "Planned"
+  },
+  "actions": {
+    "addExpense": "+ ADD EXPENSE"
+  },
+  "chart": {
+    "categoriesTitle": "Categories",
+    "spentSubtitle": "spent expenses"
+  },
+  "list": {
+    "recentTitle": "Recent expenses",
+    "sortNewest": "sorting: newest",
+    "empty": "No expenses. Add your first expense above."
+  },
+  "expense": {
+    "defaultName": "Expense",
+    "addedOn": "Added: {{date}}",
+    "receiptLink": "receipt →"
+  },
+  "status": {
+    "spent": "spent",
+    "planned": "planned"
+  },
+  "modal": {
+    "title": "Add expense",
+    "nameLabel": "Name *",
+    "namePlaceholder": "e.g. Windows",
+    "categoryLabel": "Category",
+    "amountLabel": "Amount (PLN) *",
+    "amountPlaceholder": "e.g. 12500",
+    "dateOptional": "Date — optional",
+    "setDate": "Set date",
+    "descriptionOptional": "Description (optional)",
+    "descriptionPlaceholder": "e.g. advance payment",
+    "storeOptional": "Store (optional)",
+    "storePlaceholder": "e.g. Castorama",
+    "fileOptional": "Add receipt (PDF/JPG/PNG) — optional",
+    "fileSelected": "Selected: {{name}}"
+  }
+}

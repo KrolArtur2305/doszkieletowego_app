@@ -1,0 +1,35 @@
+{
+  "common": {
+    "dash": "—",
+    "saving": "Saving…"
+  },
+  "header": {
+    "title": "Profile",
+    "completeProfile": "Complete your profile"
+  },
+  "loading": {
+    "profileData": "Loading profile data…"
+  },
+  "alerts": {
+    "completeDataTitle": "Complete your data",
+    "firstNameRequired": "First name is required to continue.",
+    "invalidPhoneTitle": "Invalid number",
+    "invalidPhoneMessage": "Enter a valid phone number or leave the field empty.",
+    "errorTitle": "Error",
+    "saveErrorTitle": "Save error"
+  },
+  "errors": {
+    "noUser": "No user found. Please sign in again.",
+    "profileNotMarked": "Profile was not marked as completed.",
+    "generic": "Something went wrong."
+  },
+  "form": {
+    "firstNameLabel": "First name",
+    "firstNamePlaceholder": "e.g. Arthur",
+    "lastNameLabel": "Last name",
+    "lastNamePlaceholder": "e.g. Smith",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "e.g. +48 600 000 000",
+    "saveAndContinue": "Save and continue"
+  }
+}

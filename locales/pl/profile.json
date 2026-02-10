@@ -1,0 +1,35 @@
+{
+  "common": {
+    "dash": "—",
+    "saving": "Zapisywanie…"
+  },
+  "header": {
+    "title": "Profil",
+    "completeProfile": "Uzupełnij dane profilu"
+  },
+  "loading": {
+    "profileData": "Ładowanie danych profilu…"
+  },
+  "alerts": {
+    "completeDataTitle": "Uzupełnij dane",
+    "firstNameRequired": "Imię jest wymagane, aby kontynuować.",
+    "invalidPhoneTitle": "Nieprawidłowy numer",
+    "invalidPhoneMessage": "Podaj poprawny numer telefonu lub zostaw puste pole.",
+    "errorTitle": "Błąd",
+    "saveErrorTitle": "Błąd zapisu"
+  },
+  "errors": {
+    "noUser": "Brak użytkownika. Zaloguj się ponownie.",
+    "profileNotMarked": "Profil nie został oznaczony jako wypełniony.",
+    "generic": "Coś poszło nie tak."
+  },
+  "form": {
+    "firstNameLabel": "Imię",
+    "firstNamePlaceholder": "np. Artur",
+    "lastNameLabel": "Nazwisko",
+    "lastNamePlaceholder": "np. Kowalski",
+    "phoneLabel": "Telefon",
+    "phonePlaceholder": "np. +48 600 000 000",
+    "saveAndContinue": "Zapisz i kontynuuj"
+  }
+}
