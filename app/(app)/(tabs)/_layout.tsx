@@ -1,7 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import '../../../lib/i18n';
 import { useTranslation } from 'react-i18next';
 
 export default function TabsLayout() {

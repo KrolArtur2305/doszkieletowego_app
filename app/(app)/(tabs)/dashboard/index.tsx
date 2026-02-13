@@ -22,7 +22,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
-import '../../../../lib/i18n';
 import { useTranslation } from 'react-i18next';
 
 const { width: W } = Dimensions.get('window');
