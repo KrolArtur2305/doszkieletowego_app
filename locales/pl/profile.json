@@ -1,8 +1,5 @@
 {
-  "common": {
-    "dash": "—",
-    "saving": "Zapisywanie…"
-  },
+  
   "header": {
     "title": "Profil",
     "completeProfile": "Uzupełnij dane profilu"

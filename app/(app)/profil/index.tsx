@@ -23,7 +23,11 @@ let __profilInitOnce = false;
 let __profilInitUserId: string | null = null;
 
 export default function ProfilScreen() {
+  // ✅ trzymamy jeden namespace jako bazę
   const { t } = useTranslation('profile');
+  // ✅ i bierzemy też common jako "fallback" na proste teksty (dash/saving)
+  const { t: tc } = useTranslation('common');
+
   const router = useRouter();
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -39,6 +43,7 @@ export default function ProfilScreen() {
 
   const fullNamePreview = useMemo(() => {
     const v = [imie.trim(), nazwisko.trim()].filter(Boolean).join(' ');
+    // ✅ jeśli brak imienia/nazwiska, pokazujemy tekst z profilu
     return v || t('header.completeProfile');
   }, [imie, nazwisko, t]);
 
@@ -183,9 +188,7 @@ export default function ProfilScreen() {
             <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
 
-          {/* ✅ usunięte "KONTO" */}
           <Text style={styles.title}>{t('header.title')}</Text>
-          {/* ✅ usunięte: "Uzupełnij dane profilu, żeby przejść dalej." */}
 
           <BlurView intensity={70} tint="dark" style={styles.card}>
             {/* ✅ header wyśrodkowany: badge + imię + mail */}
@@ -196,7 +199,7 @@ export default function ProfilScreen() {
 
               <Text style={styles.namePreview}>{fullNamePreview}</Text>
               <Text style={styles.email} numberOfLines={1}>
-                {email ? email : t('common:dash')}
+                {email ? email : tc('dash')}
               </Text>
             </View>
 
@@ -208,7 +211,6 @@ export default function ProfilScreen() {
                 <Text style={styles.loadingText}>{t('loading.profileData')}</Text>
               </View>
             ) : (
-              // ✅ pola trochę niżej
               <View style={styles.formWrap}>
                 <View style={styles.form}>
                   <Field
@@ -236,17 +238,16 @@ export default function ProfilScreen() {
                     keyboardType="phone-pad"
                   />
 
-                  {/* ✅ CTA jak w inwestycji: outline + zielony tekst */}
                   <TouchableOpacity
                     style={[styles.ctaButton, (saving || loading) && styles.ctaButtonDisabled]}
                     activeOpacity={0.85}
                     onPress={handleSaveAndContinue}
                     disabled={saving || loading}
                   >
-                    <Text style={styles.ctaText}>{saving ? t('common.saving') : t('form.saveAndContinue')}</Text>
+                    <Text style={styles.ctaText}>
+                      {saving ? tc('saving') : t('form.saveAndContinue')}
+                    </Text>
                   </TouchableOpacity>
-
-                  {/* ✅ skasowane: wszystko pod przyciskiem (hint) */}
                 </View>
               </View>
             )}
@@ -300,7 +301,6 @@ function Field(props: {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
 
-  // ✅ tło czarne
   screen: { flex: 1, backgroundColor: '#000000' },
 
   bg: { ...StyleSheet.absoluteFillObject },
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     height: 520,
     borderRadius: 9999,
     backgroundColor: '#0EA5E9',
-    opacity: 0, // wyciszone dla czarnego tła
+    opacity: 0,
     top: -140,
     right: -240,
   },
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     height: 520,
     borderRadius: 9999,
     backgroundColor: '#5EEAD4',
-    opacity: 0, // wyciszone
+    opacity: 0,
     bottom: -260,
     left: -220,
   },
@@ -330,18 +330,16 @@ const styles = StyleSheet.create({
     height: 360,
     borderRadius: 9999,
     backgroundColor: '#22C55E',
-    opacity: 0, // wyciszone
+    opacity: 0,
     top: 240,
     left: -160,
   },
 
   container: { paddingTop: 28, paddingHorizontal: 16, paddingBottom: 24 },
 
-  // ✅ logo większe
   logoWrap: { alignItems: 'center', marginBottom: 10, marginTop: 10 },
   logo: { width: 160, height: 64, opacity: 0.98 },
 
-  // ✅ tytuł zielony + glow
   title: {
     textAlign: 'center',
     color: '#5EEAD4',
@@ -363,7 +361,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
-  // ✅ header wyśrodkowany
   headerCol: { alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 2, paddingBottom: 2 },
   badge: {
     width: 42,
@@ -387,14 +384,12 @@ const styles = StyleSheet.create({
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   loadingText: { color: '#94A3B8' },
 
-  // ✅ pola niżej
   formWrap: { paddingTop: 10 },
   form: { gap: 12 },
 
   fieldWrap: { gap: 6 },
   label: { color: '#CBD5E1', fontSize: 12, fontWeight: '800', letterSpacing: 0.6 },
 
-  // ✅ tylko inputy lekko szare
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -424,7 +419,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
 
-  // ✅ CTA identyczny jak w inwestycji
   ctaButton: {
     marginTop: 18,
     borderRadius: 18,
