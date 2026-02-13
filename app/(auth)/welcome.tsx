@@ -11,9 +11,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import '../../lib/i18n';
 import { useTranslation } from 'react-i18next';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setAppLanguage } from '../../lib/i18n';
 
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -107,8 +106,7 @@ export default function WelcomeScreen() {
       <View style={styles.langRow}>
         <Pressable
           onPress={async () => {
-            await AsyncStorage.setItem('app_language', 'pl');
-            i18n.changeLanguage('pl');
+            await setAppLanguage('pl');
           }}
 
           style={[styles.langBtn, i18n.language === 'pl' && styles.langBtnActive]}
@@ -118,8 +116,7 @@ export default function WelcomeScreen() {
 
         <Pressable
           onPress={async () => {
-            await AsyncStorage.setItem('app_language', 'en');
-            i18n.changeLanguage('en');
+            await setAppLanguage('en');
          }}
 
           style={[styles.langBtn, i18n.language === 'en' && styles.langBtnActive]}

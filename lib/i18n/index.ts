@@ -40,6 +40,12 @@ export async function initI18n(): Promise<void> {
     const saved = await getStoredLanguage();
     const lng = resolveInitialLanguage(saved);
 
+    console.log('[i18n] init:start', {
+      savedLanguage: saved,
+      resolvedInitialLanguage: lng,
+      isInitialized: i18n.isInitialized,
+    });
+
     await i18n.use(initReactI18next).init({
       resources,
       lng,
@@ -53,6 +59,12 @@ export async function initI18n(): Promise<void> {
       returnEmptyString: false,
       compatibilityJSON: 'v4',
       react: { useSuspense: false },
+    });
+
+    console.log('[i18n] init:done', {
+      language: i18n.language,
+      resolvedLanguage: i18n.resolvedLanguage,
+      isInitialized: i18n.isInitialized,
     });
   })();
 

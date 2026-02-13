@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import '../../lib/i18n';
 import { useTranslation } from 'react-i18next';
 
 const { width: W, height: H } = Dimensions.get('window');

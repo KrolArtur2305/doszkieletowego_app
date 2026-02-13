@@ -24,7 +24,7 @@ let __profilInitUserId: string | null = null;
 
 export default function ProfilScreen() {
   // ✅ trzymamy jeden namespace jako bazę
-  const { t } = useTranslation('profile');
+  const { t, i18n } = useTranslation('profile');
   // ✅ i bierzemy też common jako "fallback" na proste teksty (dash/saving)
   const { t: tc } = useTranslation('common');
 
@@ -48,6 +48,15 @@ export default function ProfilScreen() {
   }, [imie, nazwisko, t]);
 
   const normalizePhone = (v: string) => v.replace(/[^\d+]/g, '');
+
+
+  useEffect(() => {
+    console.log('[Profil][i18n] render', {
+      language: i18n.language,
+      resolvedLanguage: i18n.resolvedLanguage,
+      isInitialized: i18n.isInitialized,
+    });
+  }, [i18n, i18n.language, i18n.resolvedLanguage, i18n.isInitialized]);
 
   useEffect(() => {
     let alive = true;
