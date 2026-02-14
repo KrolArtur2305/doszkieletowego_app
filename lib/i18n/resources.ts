@@ -50,6 +50,6 @@ export const resources = {
     profile: pl_profile,
     settings: pl_settings,
     photos: pl_photos,
-    project: en_project,
+    project: pl_project,
   },
 } as const;
