@@ -1,81 +1,13 @@
 {
-  "titleFallback": "—",
-  "locationPlaceholder": "—",
-
-  "hero": {
-    "title": "Model 3D",
-    "cta": "Dodaj / zamień model 3D",
-    "todoAlertTitle": "Model 3D",
-    "todoAlertMessage": "Zrobimy w następnym kroku: upload .glb/.gltf + update projekty.model_url."
-  },
-
-  "params": {
-    "title": "Parametry budynku",
-    "edit": "Edytuj",
-    "editTitle": "Edytuj parametry",
-    "save": "Zapisz",
-    "cancel": "Anuluj",
-    "loginMissingTitle": "Brak logowania",
-    "loginMissingMessage": "Zaloguj się ponownie.",
-    "saveErrorTitle": "Błąd zapisu"
-  },
-
-  "tiles": {
-    "pow_u": "Pow. użytkowa",
-    "kond": "Kondygnacje",
-    "pom": "Pomieszczenia",
-    "pow_z": "Pow. zabudowy",
-    "wys": "Wysokość budynku",
-    "kat": "Kąt dachu",
-    "pow_d": "Pow. dachu",
-    "szer": "Szer. elewacji",
-    "dl": "Dł. elewacji"
-  },
-
-  "rzuty": {
-    "title": "Rzuty projektu",
-    "add": "Dodaj rzut",
-    "emptyTitle": "Brak rzutów",
-    "emptySubtitle": "Dodaj pierwszy rzut (jpg/png/webp).",
-    "hint": "Kliknij: podgląd • Przytrzymaj: usuń",
-    "deleteTitle": "Usunąć rzut?",
-    "deleteConfirm": "To usunie zdjęcie ze Storage i rekord z bazy.",
-    "deleteCancel": "Anuluj",
-    "deleteAction": "Usuń",
-    "deleteFailed": "Nie udało się usunąć rzutu.",
-    "uploadNoLoginTitle": "Brak logowania",
-    "uploadNoLoginMessage": "Zaloguj się ponownie.",
-    "noGalleryTitle": "Brak dostępu",
-    "noGalleryMessage": "Nadaj dostęp do galerii, aby dodać rzut.",
-    "uploadFailedTitle": "Upload nieudany",
-    "urlFailedTitle": "Błąd",
-    "urlFailedMessage": "Nie udało się uzyskać URL pliku.",
-    "saveFailedTitle": "Błąd zapisu",
-    "addFailedTitle": "Błąd",
-    "addFailedMessage": "Nie udało się dodać rzutu.",
-    "defaultNamePrefix": "Rzut"
-  },
-
-  "fields": {
-    "name": "Nazwa projektu",
-    "pow_u": "Pow. użytkowa (m²)",
-    "kond": "Kondygnacje",
-    "pom": "Pomieszczenia",
-    "pow_z": "Pow. zabudowy (m²)",
-    "wys": "Wysokość (m)",
-    "kat": "Kąt dachu (°)",
-    "pow_d": "Pow. dachu (m²)",
-    "szer": "Szer. elewacji (m)",
-    "dl": "Dł. elewacji (m)"
-  },
-
-  "preview": {
-    "fallbackName": "Rzut"
-  },
-
-  "errors": {
-    "loadTitle": "Błąd",
-    "loadMessage": "Nie udało się pobrać danych projektu z Supabase.",
-    "createProjectMessage": "Nie udało się utworzyć projektu w Supabase."
-  }
+  "myProject": "Mój projekt",
+  "buildingParams": "Parametry budynku",
+  "projectPlans": "Rzuty projektu",
+  "change3dModel": "Dodaj / zamień model 3D",
+  "noPlansTitle": "Brak rzutów",
+  "noPlansSubtitle": "Dodaj pierwszy rzut (jpg/png/webp).",
+  "loadError": "Nie udało się pobrać danych projektu z Supabase.",
+  "createProjectError": "Nie udało się utworzyć projektu w Supabase.",
+  "addPlanError": "Nie udało się dodać rzutu.",
+  "deletePlanTitle": "Usunąć rzut?",
+  "deletePlanDesc": "To usunie plik ze Storage i rekord z bazy."
 }

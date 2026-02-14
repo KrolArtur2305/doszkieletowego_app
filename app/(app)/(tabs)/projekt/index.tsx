@@ -21,9 +21,10 @@ import { supabase } from '../../../../lib/supabase'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import * as FileSystem from 'expo-file-system/legacy'
-import Model3DView from '../../../../components/Model3DView'
-const logo = require('../../../assets/logo.png');
+import { useTranslation } from 'react-i18next'
 
+import Model3DView from '../../../../components/Model3DView'
+const logo = require('../../../assets/logo.png')
 
 type Projekt = {
   id: string
@@ -111,6 +112,8 @@ function base64ToUint8Array(base64: string) {
 }
 
 export default function ProjektScreen() {
+  const { t } = useTranslation('project')
+
   const [loading, setLoading] = useState(true)
   const [projekt, setProjekt] = useState<Projekt | null>(null)
   const [rzuty, setRzuty] = useState<Rzut[]>([])
@@ -187,7 +190,7 @@ export default function ProjektScreen() {
         console.log('[Projekt] load error:', e?.message || e)
         if (!alive) return
         setLoading(false)
-        Alert.alert('Błąd', 'Nie udało się pobrać danych projektu z Supabase.')
+        Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('loadError'))
       }
     }
 
@@ -195,25 +198,25 @@ export default function ProjektScreen() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [t])
 
   const modelUrl = useMemo(() => projekt?.model_url || DEFAULT_MODEL_URL, [projekt?.model_url])
 
   const tiles = useMemo(() => {
     return [
-      { id: 'pow_u', label: 'Pow. użytkowa', value: fmtNum(projekt?.powierzchnia_uzytkowa, ' m²') },
-      { id: 'kond', label: 'Kondygnacje', value: projekt?.kondygnacje ?? '—' },
-      { id: 'pom', label: 'Pomieszczenia', value: projekt?.pomieszczenia ?? '—' },
+      { id: 'pow_u', label: t('tilePowU', { defaultValue: 'Pow. użytkowa' }), value: fmtNum(projekt?.powierzchnia_uzytkowa, ' m²') },
+      { id: 'kond', label: t('tileFloors', { defaultValue: 'Kondygnacje' }), value: projekt?.kondygnacje ?? '—' },
+      { id: 'pom', label: t('tileRooms', { defaultValue: 'Pomieszczenia' }), value: projekt?.pomieszczenia ?? '—' },
 
-      { id: 'pow_z', label: 'Pow. zabudowy', value: fmtNum(projekt?.powierzchnia_zabudowy, ' m²') },
-      { id: 'wys', label: 'Wysokość budynku', value: fmtNum(projekt?.wysokosc_budynku, ' m') },
-      { id: 'kat', label: 'Kąt dachu', value: fmtNum(projekt?.kat_dachu, '°') },
+      { id: 'pow_z', label: t('tilePowZ', { defaultValue: 'Pow. zabudowy' }), value: fmtNum(projekt?.powierzchnia_zabudowy, ' m²') },
+      { id: 'wys', label: t('tileHeight', { defaultValue: 'Wysokość budynku' }), value: fmtNum(projekt?.wysokosc_budynku, ' m') },
+      { id: 'kat', label: t('tileRoofAngle', { defaultValue: 'Kąt dachu' }), value: fmtNum(projekt?.kat_dachu, '°') },
 
-      { id: 'pow_d', label: 'Pow. dachu', value: fmtNum(projekt?.powierzchnia_dachu, ' m²') },
-      { id: 'szer', label: 'Szer. elewacji', value: fmtNum(projekt?.szerokosc_elewacji, ' m') },
-      { id: 'dl', label: 'Dł. elewacji', value: fmtNum(projekt?.dlugosc_elewacji, ' m') },
+      { id: 'pow_d', label: t('tileRoofArea', { defaultValue: 'Pow. dachu' }), value: fmtNum(projekt?.powierzchnia_dachu, ' m²') },
+      { id: 'szer', label: t('tileFacadeWidth', { defaultValue: 'Szer. elewacji' }), value: fmtNum(projekt?.szerokosc_elewacji, ' m') },
+      { id: 'dl', label: t('tileFacadeLength', { defaultValue: 'Dł. elewacji' }), value: fmtNum(projekt?.dlugosc_elewacji, ' m') },
     ]
-  }, [projekt])
+  }, [projekt, t])
 
   const ensureProjektExists = async (): Promise<Projekt | null> => {
     if (!userId) return null
@@ -223,7 +226,7 @@ export default function ProjektScreen() {
       .from('projekty')
       .insert({
         user_id: userId,
-        nazwa: 'Mój projekt',
+        nazwa: t('myProject'),
         model_url: DEFAULT_MODEL_URL,
       })
       .select('*')
@@ -231,7 +234,7 @@ export default function ProjektScreen() {
 
     if (error) {
       console.log('[Projekt] ensureProjektExists error:', error.message)
-      Alert.alert('Błąd', 'Nie udało się utworzyć projektu w Supabase.')
+      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('createProjectError'))
       return null
     }
     setProjekt(inserted as any)
@@ -239,13 +242,13 @@ export default function ProjektScreen() {
   }
 
   const handleChangeModel = () => {
-    Alert.alert('Model 3D', 'Zrobimy w następnym kroku: upload .glb/.gltf + update projekty.model_url.')
+    Alert.alert(t('model3dTitle', { defaultValue: 'Model 3D' }), t('model3dNextStep', { defaultValue: 'Zrobimy w następnym kroku: upload .glb/.gltf + update projekty.model_url.' }))
   }
 
   const uploadRzutAndSave = async () => {
     try {
       if (!userId) {
-        Alert.alert('Brak logowania', 'Zaloguj się ponownie.')
+        Alert.alert(t('notLoggedTitle', { defaultValue: 'Brak logowania' }), t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' }))
         return
       }
 
@@ -254,7 +257,7 @@ export default function ProjektScreen() {
 
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
       if (!perm.granted) {
-        Alert.alert('Brak dostępu', 'Nadaj dostęp do galerii, aby dodać rzut.')
+        Alert.alert(t('noAccessTitle', { defaultValue: 'Brak dostępu' }), t('noAccessPhotosDesc', { defaultValue: 'Nadaj dostęp do galerii, aby dodać rzut.' }))
         return
       }
 
@@ -291,18 +294,18 @@ export default function ProjektScreen() {
         .upload(path, bytes, { contentType: 'image/jpeg', upsert: false })
 
       if (upErr) {
-        Alert.alert('Upload nieudany', upErr.message)
+        Alert.alert(t('uploadFailedTitle', { defaultValue: 'Upload nieudany' }), upErr.message)
         return
       }
 
       const { data: pub } = supabase.storage.from(BUCKET_RZUTY).getPublicUrl(path)
       const publicUrl = pub?.publicUrl
       if (!publicUrl) {
-        Alert.alert('Błąd', 'Nie udało się uzyskać URL pliku.')
+        Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('urlError', { defaultValue: 'Nie udało się uzyskać URL pliku.' }))
         return
       }
 
-      const defaultName = `Rzut ${new Date().toLocaleDateString('pl-PL')}`
+      const defaultName = `${t('planDefaultName', { defaultValue: 'Rzut' })} ${new Date().toLocaleDateString('pl-PL')}`
       const { data: row, error: insErr } = await supabase
         .from('rzuty_projektu')
         .insert({
@@ -315,14 +318,14 @@ export default function ProjektScreen() {
         .single()
 
       if (insErr) {
-        Alert.alert('Błąd zapisu', insErr.message)
+        Alert.alert(t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }), insErr.message)
         return
       }
 
       setRzuty((prev) => [row as any, ...prev])
     } catch (e: any) {
       console.log('[Projekt] uploadRzutAndSave error:', e?.message || e)
-      Alert.alert('Błąd', 'Nie udało się dodać rzutu.')
+      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('addPlanError'))
     }
   }
 
@@ -332,10 +335,10 @@ export default function ProjektScreen() {
   }
 
   const deleteRzut = async (r: Rzut) => {
-    Alert.alert('Usunąć rzut?', 'To usunie zdjęcie ze Storage i rekord z bazy.', [
-      { text: 'Anuluj', style: 'cancel' },
+    Alert.alert(t('deletePlanTitle'), t('deletePlanDesc'), [
+      { text: t('cancel', { defaultValue: 'Anuluj' }), style: 'cancel' },
       {
-        text: 'Usuń',
+        text: t('delete', { defaultValue: 'Usuń' }),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -348,7 +351,7 @@ export default function ProjektScreen() {
               .eq('user_id', userId)
 
             if (delDbErr) {
-              Alert.alert('Błąd', delDbErr.message)
+              Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), delDbErr.message)
               return
             }
 
@@ -363,7 +366,7 @@ export default function ProjektScreen() {
               setPreviewRzut(null)
             }
           } catch {
-            Alert.alert('Błąd', 'Nie udało się usunąć rzutu.')
+            Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('deletePlanError', { defaultValue: 'Nie udało się usunąć rzutu.' }))
           }
         },
       },
@@ -390,7 +393,7 @@ export default function ProjektScreen() {
     try {
       setSaving(true)
       if (!userId) {
-        Alert.alert('Brak logowania', 'Zaloguj się ponownie.')
+        Alert.alert(t('notLoggedTitle', { defaultValue: 'Brak logowania' }), t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' }))
         return
       }
       const proj = await ensureProjektExists()
@@ -417,7 +420,7 @@ export default function ProjektScreen() {
         .single()
 
       if (error) {
-        Alert.alert('Błąd zapisu', error.message)
+        Alert.alert(t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }), error.message)
         return
       }
 
@@ -439,7 +442,7 @@ export default function ProjektScreen() {
         <View style={styles.logoWrap}>
           <Image source={logo} style={styles.logoImg} resizeMode="contain" />
         </View>
-        <View style={{ width: 30, height: 30 }} />{/* balans bez pogody */}
+        <View style={{ width: 30, height: 30 }} />
       </View>
 
       {/* Nagłówek: nazwa projektu */}
@@ -448,49 +451,41 @@ export default function ProjektScreen() {
           {projekt?.nazwa || '—'}
         </Text>
         <Text style={styles.projectLocation} numberOfLines={1}>
-          {/* lokalizacja podepniemy później z inwestycji */}
           —
         </Text>
       </View>
 
-      {/* HERO MODEL 3D */}
+      {/* HERO MODEL 3D (bez linka i bez nagłówka "Model 3D") */}
       <View style={styles.modelHeroWrap}>
         <View style={styles.modelGlowA} />
         <View style={styles.modelGlowB} />
 
         <View style={styles.modelHero}>
-          <View style={styles.modelHeroTop}>
-            <Text style={styles.modelHeroTitle}>Model 3D</Text>
-            <Text style={styles.modelHeroSub} numberOfLines={1}>
-              {modelUrl}
-            </Text>
-          </View>
-
           <View style={styles.modelStage}>
             <Model3DView url={modelUrl} />
           </View>
 
           <TouchableOpacity style={styles.modelCta} onPress={handleChangeModel} activeOpacity={0.9}>
             <Feather name="refresh-cw" size={16} color="#0B1120" />
-            <Text style={styles.modelCtaText}>Dodaj / zamień model 3D</Text>
+            <Text style={styles.modelCtaText}>{t('change3dModel')}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* PARAMETRY */}
       <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitleCenter}>Parametry budynku</Text>
+        <Text style={styles.sectionTitleCenter}>{t('buildingParams')}</Text>
 
         <TouchableOpacity onPress={openEditParams} style={styles.secondaryBtn}>
           <Feather name="edit-3" size={16} color="#0B1120" />
-          <Text style={styles.secondaryBtnText}>Edytuj</Text>
+          <Text style={styles.secondaryBtnText}>{t('edit', { defaultValue: 'Edytuj' })}</Text>
         </TouchableOpacity>
 
         <View style={styles.tilesGrid}>
-          {tiles.map((t) => (
-            <View key={t.id} style={styles.tile}>
-              <Text style={styles.tileLabel}>{t.label}</Text>
-              <Text style={styles.tileValue}>{String(t.value)}</Text>
+          {tiles.map((tt) => (
+            <View key={tt.id} style={styles.tile}>
+              <Text style={styles.tileLabel}>{tt.label}</Text>
+              <Text style={styles.tileValue}>{String(tt.value)}</Text>
             </View>
           ))}
         </View>
@@ -498,11 +493,11 @@ export default function ProjektScreen() {
 
       {/* RZUTY */}
       <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitleCenter}>Rzuty projektu</Text>
+        <Text style={styles.sectionTitleCenter}>{t('projectPlans')}</Text>
 
         <TouchableOpacity onPress={uploadRzutAndSave} style={styles.secondaryBtn}>
           <Feather name="plus" size={16} color="#0B1120" />
-          <Text style={styles.secondaryBtnText}>Dodaj rzut</Text>
+          <Text style={styles.secondaryBtnText}>{t('addPlan', { defaultValue: 'Dodaj rzut' })}</Text>
         </TouchableOpacity>
 
         {loading ? (
@@ -512,8 +507,8 @@ export default function ProjektScreen() {
         ) : rzuty.length === 0 ? (
           <View style={styles.emptyBox}>
             <Feather name="image" size={22} color="#5EEAD4" />
-            <Text style={styles.emptyTitle}>Brak rzutów</Text>
-            <Text style={styles.emptySubtitle}>Dodaj pierwszy rzut (jpg/png/webp).</Text>
+            <Text style={styles.emptyTitle}>{t('noPlansTitle')}</Text>
+            <Text style={styles.emptySubtitle}>{t('noPlansSubtitle')}</Text>
           </View>
         ) : (
           <View style={{ marginTop: 12 }}>
@@ -528,9 +523,9 @@ export default function ProjektScreen() {
                 <View style={styles.rzutFooter}>
                   <View style={{ flex: 1, paddingRight: 10 }}>
                     <Text style={styles.rzutName} numberOfLines={1}>
-                      {r.nazwa || 'Rzut'}
+                      {r.nazwa || t('planDefaultName', { defaultValue: 'Rzut' })}
                     </Text>
-                    <Text style={styles.rzutHint}>Kliknij: podgląd • Przytrzymaj: usuń</Text>
+                    <Text style={styles.rzutHint}>{t('planHint', { defaultValue: 'Kliknij: podgląd • Przytrzymaj: usuń' })}</Text>
                   </View>
 
                   <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10}>
@@ -552,7 +547,7 @@ export default function ProjektScreen() {
             </TouchableOpacity>
 
             <Text style={styles.previewTitle} numberOfLines={1}>
-              {previewRzut?.nazwa || 'Rzut'}
+              {previewRzut?.nazwa || t('planDefaultName', { defaultValue: 'Rzut' })}
             </Text>
 
             <TouchableOpacity
@@ -579,75 +574,87 @@ export default function ProjektScreen() {
         <View style={styles.modalBackdrop}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
             <BlurView intensity={90} tint="dark" style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Edytuj parametry</Text>
+              <Text style={styles.modalTitle}>{t('editParamsTitle', { defaultValue: 'Edytuj parametry' })}</Text>
 
-              <FieldText label="Nazwa projektu" value={form.nazwa} onChange={(t) => setForm((p) => ({ ...p, nazwa: t }))} />
+              <FieldText
+                label={t('fieldProjectName', { defaultValue: 'Nazwa projektu' })}
+                value={form.nazwa}
+                onChange={(txt) => setForm((p) => ({ ...p, nazwa: txt }))}
+              />
 
               <View style={styles.row2}>
                 <FieldNum
-                  label="Pow. użytkowa (m²)"
+                  label={t('fieldPowU', { defaultValue: 'Pow. użytkowa (m²)' })}
                   value={form.powierzchnia_uzytkowa}
-                  onChange={(t) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: t }))}
+                  onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: txt }))}
                 />
                 <FieldNum
-                  label="Kondygnacje"
+                  label={t('fieldFloors', { defaultValue: 'Kondygnacje' })}
                   value={form.kondygnacje}
-                  onChange={(t) => setForm((p) => ({ ...p, kondygnacje: t }))}
+                  onChange={(txt) => setForm((p) => ({ ...p, kondygnacje: txt }))}
                 />
               </View>
 
               <View style={styles.row2}>
                 <FieldNum
-                  label="Pomieszczenia"
+                  label={t('fieldRooms', { defaultValue: 'Pomieszczenia' })}
                   value={form.pomieszczenia}
-                  onChange={(t) => setForm((p) => ({ ...p, pomieszczenia: t }))}
+                  onChange={(txt) => setForm((p) => ({ ...p, pomieszczenia: txt }))}
                 />
                 <FieldNum
-                  label="Pow. zabudowy (m²)"
+                  label={t('fieldPowZ', { defaultValue: 'Pow. zabudowy (m²)' })}
                   value={form.powierzchnia_zabudowy}
-                  onChange={(t) => setForm((p) => ({ ...p, powierzchnia_zabudowy: t }))}
+                  onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_zabudowy: txt }))}
                 />
               </View>
 
               <View style={styles.row2}>
                 <FieldNum
-                  label="Wysokość (m)"
+                  label={t('fieldHeight', { defaultValue: 'Wysokość (m)' })}
                   value={form.wysokosc_budynku}
-                  onChange={(t) => setForm((p) => ({ ...p, wysokosc_budynku: t }))}
+                  onChange={(txt) => setForm((p) => ({ ...p, wysokosc_budynku: txt }))}
                 />
                 <FieldNum
-                  label="Kąt dachu (°)"
+                  label={t('fieldRoofAngle', { defaultValue: 'Kąt dachu (°)' })}
                   value={form.kat_dachu}
-                  onChange={(t) => setForm((p) => ({ ...p, kat_dachu: t }))}
+                  onChange={(txt) => setForm((p) => ({ ...p, kat_dachu: txt }))}
                 />
               </View>
 
               <View style={styles.row2}>
                 <FieldNum
-                  label="Pow. dachu (m²)"
+                  label={t('fieldRoofArea', { defaultValue: 'Pow. dachu (m²)' })}
                   value={form.powierzchnia_dachu}
-                  onChange={(t) => setForm((p) => ({ ...p, powierzchnia_dachu: t }))}
+                  onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_dachu: txt }))}
                 />
                 <FieldNum
-                  label="Szer. elewacji (m)"
+                  label={t('fieldFacadeWidth', { defaultValue: 'Szer. elewacji (m)' })}
                   value={form.szerokosc_elewacji}
-                  onChange={(t) => setForm((p) => ({ ...p, szerokosc_elewacji: t }))}
+                  onChange={(txt) => setForm((p) => ({ ...p, szerokosc_elewacji: txt }))}
                 />
               </View>
 
               <FieldNum
-                label="Dł. elewacji (m)"
+                label={t('fieldFacadeLength', { defaultValue: 'Dł. elewacji (m)' })}
                 value={form.dlugosc_elewacji}
-                onChange={(t) => setForm((p) => ({ ...p, dlugosc_elewacji: t }))}
+                onChange={(txt) => setForm((p) => ({ ...p, dlugosc_elewacji: txt }))}
               />
 
               <View style={styles.modalActions}>
-                <TouchableOpacity onPress={() => setEditOpen(false)} style={[styles.modalBtn, styles.modalBtnGhost]} disabled={saving}>
-                  <Text style={styles.modalBtnGhostText}>Anuluj</Text>
+                <TouchableOpacity
+                  onPress={() => setEditOpen(false)}
+                  style={[styles.modalBtn, styles.modalBtnGhost]}
+                  disabled={saving}
+                >
+                  <Text style={styles.modalBtnGhostText}>{t('cancel', { defaultValue: 'Anuluj' })}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={saveParams} style={[styles.modalBtn, styles.modalBtnPrimary]} disabled={saving}>
-                  {saving ? <ActivityIndicator /> : <Text style={styles.modalBtnPrimaryText}>Zapisz</Text>}
+                <TouchableOpacity
+                  onPress={saveParams}
+                  style={[styles.modalBtn, styles.modalBtnPrimary]}
+                  disabled={saving}
+                >
+                  {saving ? <ActivityIndicator /> : <Text style={styles.modalBtnPrimaryText}>{t('save', { defaultValue: 'Zapisz' })}</Text>}
                 </TouchableOpacity>
               </View>
             </BlurView>
@@ -723,20 +730,23 @@ const styles = StyleSheet.create({
     right: -90,
   },
 
+  // ✅ bez "szarej karty" pod 3D - tło jak reszta
   modelHero: {
     borderRadius: 28,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    padding: 16,
+    backgroundColor: 'transparent',
+    padding: 0,
   },
-  modelHeroTop: { alignItems: 'center' },
-  modelHeroTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '900' },
-  modelHeroSub: { marginTop: 6, color: 'rgba(148,163,184,0.85)', fontSize: 11, textAlign: 'center' },
 
+  // ✅ scena w czerni + obramowanie jak karty
   modelStage: {
     height: 260,
-    marginTop: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: '#050915',
   },
 
   modelCta: {

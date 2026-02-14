@@ -1,19 +1,13 @@
 {
-  "title": "Account settings",
-  "fallbackUser": "User",
-  "placeholderMessage": "This feature will be added later.",
-  "logout": "Log out",
-  "logoutError": "Could not log out.",
-  "items": {
-    "profileTitle": "Profile",
-    "profileSubtitle": "Account owner details",
-    "investmentTitle": "Investment",
-    "investmentSubtitle": "Project / build details",
-    "appTitle": "App",
-    "appSubtitle": "App settings (later)",
-    "subscriptionTitle": "Manage subscription",
-    "subscriptionSubtitle": "Later",
-    "reportTitle": "Report an issue",
-    "reportSubtitle": "Send a bug description"
-  }
+  "myProject": "My project",
+  "buildingParams": "Building parameters",
+  "projectPlans": "Project plans",
+  "change3dModel": "Add / replace 3D model",
+  "noPlansTitle": "No plans yet",
+  "noPlansSubtitle": "Add your first plan (jpg/png/webp).",
+  "loadError": "Couldn't load project data from Supabase.",
+  "createProjectError": "Couldn't create project in Supabase.",
+  "addPlanError": "Couldn't add the plan.",
+  "deletePlanTitle": "Delete plan?",
+  "deletePlanDesc": "This will remove the file from Storage and delete the database record."
 }
