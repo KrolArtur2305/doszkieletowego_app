@@ -13,6 +13,8 @@ import {
   ScrollView,
   Platform,
   TextInput,
+  Pressable,
+  StatusBar,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,6 +23,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -43,7 +46,6 @@ type Zdjecie = {
   taken_at?: string | null;
   komentarz?: string | null;
   tags?: string[] | null;
-  // UI-only:
   url?: string;
 };
 
@@ -62,6 +64,9 @@ const COLORS = {
 
 const bucketName = 'zdjecia';
 
+// Metro-friendly (Windows) + pewne w RN:
+const logo = require('../../../assets/logo.png');
+
 function sanitizeFolderName(input: string) {
   return input
     .normalize('NFD')
@@ -73,7 +78,18 @@ function sanitizeFolderName(input: string) {
     .replace(/(^-|-$)/g, '');
 }
 
+function localeFromLng(lng?: string) {
+  const base = (lng || 'en').split('-')[0];
+  return base === 'pl' ? 'pl-PL' : 'en-US';
+}
+
 export default function ZdjeciaScreen() {
+  const { t, i18n } = useTranslation(['photos', 'common']);
+  const dateLocale = useMemo(
+    () => localeFromLng(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
+
   const [zdjecia, setZdjecia] = useState<Zdjecie[]>([]);
   const [etapy, setEtapy] = useState<EtapZdjecia[]>([]);
   const [selectedEtap, setSelectedEtap] = useState<string>('all');
@@ -110,10 +126,10 @@ export default function ZdjeciaScreen() {
 
   const getEtapName = useCallback(
     (etapId: string | null | undefined) => {
-      if (!etapId) return 'Etap';
-      return etapNameMap[etapId] ?? 'Etap';
+      if (!etapId) return t('photos:misc.stageFallback');
+      return etapNameMap[etapId] ?? t('photos:misc.stageFallback');
     },
-    [etapNameMap],
+    [etapNameMap, t],
   );
 
   const getPublicUrlForPath = useCallback((filePath: string) => {
@@ -144,7 +160,7 @@ export default function ZdjeciaScreen() {
       setEtapy((data || []) as EtapZdjecia[]);
     } catch (e) {
       console.error('Błąd ładowania etapów zdjęć:', e);
-      Alert.alert('Błąd', 'Nie udało się załadować etapów do zdjęć');
+      Alert.alert(t('common:errorTitle'), t('photos:alerts.loadStagesError'));
     }
   };
 
@@ -185,7 +201,7 @@ export default function ZdjeciaScreen() {
       setZdjecia(withUrls);
     } catch (e) {
       console.error('Błąd ładowania zdjęć:', e);
-      Alert.alert('Błąd', 'Nie udało się załadować zdjęć');
+      Alert.alert(t('common:errorTitle'), t('photos:alerts.loadPhotosError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -201,13 +217,13 @@ export default function ZdjeciaScreen() {
 
   const handlePickAndUpload = async () => {
     if (!selectedEtapForUpload) {
-      Alert.alert('Uwaga', 'Wybierz etap dla zdjęcia');
+      Alert.alert(t('photos:alerts.pickStageTitle'), t('photos:alerts.pickStageMessage'));
       return;
     }
 
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Brak uprawnień', 'Potrzebujemy dostępu do galerii');
+      Alert.alert(t('photos:alerts.noPermissionsTitle'), t('photos:alerts.noPermissionsMessage'));
       return;
     }
 
@@ -231,13 +247,13 @@ export default function ZdjeciaScreen() {
       } = await supabase.auth.getSession();
 
       if (!session?.user?.id) {
-        Alert.alert('Błąd', 'Musisz być zalogowany');
+        Alert.alert(t('common:errorTitle'), t('photos:alerts.loginRequired'));
         return;
       }
 
       const etap = etapy.find((e) => e.id === selectedEtapForUpload);
       if (!etap) {
-        Alert.alert('Błąd', 'Nie znaleziono etapu');
+        Alert.alert(t('common:errorTitle'), t('photos:alerts.stageNotFound'));
         return;
       }
 
@@ -260,11 +276,10 @@ export default function ZdjeciaScreen() {
       });
       if (uploadError) throw uploadError;
 
-      const tags =
-        tagsInput
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean);
+      const tags = tagsInput
+        .split(',')
+        .map((tt) => tt.trim())
+        .filter(Boolean);
 
       const { error: insertError } = await supabase.from('zdjecia').insert({
         user_id: session.user.id,
@@ -285,20 +300,20 @@ export default function ZdjeciaScreen() {
       setUploadDropdownOpen(false);
 
       await loadZdjecia(false);
-      Alert.alert('Sukces', 'Zdjęcie zostało dodane');
+      Alert.alert(t('photos:alerts.successTitle'), t('photos:alerts.photoAdded'));
     } catch (e: any) {
       console.error('Błąd uploadu:', e);
-      Alert.alert('Błąd', e?.message ? String(e.message) : 'Nie udało się dodać zdjęcia');
+      Alert.alert(t('common:errorTitle'), e?.message ? String(e.message) : t('photos:alerts.uploadErrorFallback'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeletePhoto = async (z: Zdjecie) => {
-    Alert.alert('Usuń zdjęcie', 'Czy na pewno chcesz usunąć to zdjęcie?', [
-      { text: 'Anuluj', style: 'cancel' },
+    Alert.alert(t('photos:alerts.deleteTitle'), t('photos:alerts.deleteConfirm'), [
+      { text: t('photos:alerts.deleteCancel'), style: 'cancel' },
       {
-        text: 'Usuń',
+        text: t('photos:alerts.deleteAction'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -311,10 +326,10 @@ export default function ZdjeciaScreen() {
             setPreviewModalVisible(false);
             setSelectedZdjecie(null);
             await loadZdjecia(false);
-            Alert.alert('Sukces', 'Zdjęcie zostało usunięte');
+            Alert.alert(t('photos:alerts.successTitle'), t('photos:alerts.photoDeleted'));
           } catch (e) {
             console.error('Błąd usuwania:', e);
-            Alert.alert('Błąd', 'Nie udało się usunąć zdjęcia');
+            Alert.alert(t('common:errorTitle'), t('photos:alerts.deleteError'));
           }
         },
       },
@@ -328,7 +343,7 @@ export default function ZdjeciaScreen() {
 
   const getDisplayDate = (z: Zdjecie) => {
     const base = z.taken_at ? new Date(z.taken_at) : new Date(z.created_at);
-    return base.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return base.toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const renderGridItem = ({ item }: { item: Zdjecie }) => {
@@ -365,46 +380,64 @@ export default function ZdjeciaScreen() {
     <View style={styles.emptyContainer}>
       <BlurView intensity={15} tint="dark" style={styles.emptyCard}>
         <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.25)" />
-        <Text style={styles.emptyTitle}>Brak zdjęć</Text>
+        <Text style={styles.emptyTitle}>{t('photos:empty.title')}</Text>
         <Text style={styles.emptySubtitle}>
-          {selectedEtap === 'all' ? 'Dodaj swoje pierwsze zdjęcie z budowy.' : 'Brak zdjęć dla wybranego etapu.'}
+          {selectedEtap === 'all' ? t('photos:empty.subtitleAll') : t('photos:empty.subtitleStage')}
         </Text>
         <TouchableOpacity style={styles.emptyButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color={COLORS.bg} />
-          <Text style={styles.emptyButtonText}>Dodaj zdjęcie</Text>
+          <Text style={styles.emptyButtonText}>{t('photos:empty.addButton')}</Text>
         </TouchableOpacity>
       </BlurView>
     </View>
   );
 
   const selectedFilterLabel = useMemo(() => {
-    if (selectedEtap === 'all') return 'Wszystkie etapy';
+    if (selectedEtap === 'all') return t('photos:filter.allStages');
     return getEtapName(selectedEtap);
-  }, [selectedEtap, getEtapName]);
+  }, [selectedEtap, getEtapName, t]);
 
   const selectedUploadEtapLabel = useMemo(() => {
-    if (!selectedEtapForUpload) return 'Wybierz etap';
+    if (!selectedEtapForUpload) return t('photos:addModal.pickStage');
     return getEtapName(selectedEtapForUpload);
-  }, [selectedEtapForUpload, getEtapName]);
+  }, [selectedEtapForUpload, getEtapName, t]);
+
+  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.brand} />
-        <Text style={styles.loadingText}>Ładowanie zdjęć…</Text>
+        <Text style={styles.loadingText}>{t('photos:loading')}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* ✅ te glowy powodowały “wzór”/podbijanie tła — mocno wyciszone */}
+      {/* Tap poza dropdownami -> zamknij */}
+      {(filterDropdownOpen || uploadDropdownOpen) && (
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => {
+            setFilterDropdownOpen(false);
+            setUploadDropdownOpen(false);
+          }}
+        />
+      )}
+
       <View pointerEvents="none" style={styles.glowOne} />
       <View pointerEvents="none" style={styles.glowTwo} />
 
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Zdjęcia</Text>
+      {/* TOP BAR: logo + tytuł */}
+      <View style={[styles.topBar, { paddingTop: topPad }]}>
+        <View style={styles.logoWrap}>
+          <Image source={logo} style={styles.logoImg} contentFit="contain" />
+        </View>
+
+        <View style={styles.topTitleWrap}>
+          <Text style={styles.title}>{t('photos:title')}</Text>
+        </View>
 
         <View style={styles.headerRight}>
           <TouchableOpacity
@@ -418,20 +451,26 @@ export default function ZdjeciaScreen() {
             style={[styles.toggleButton, viewMode === 'carousel' && styles.toggleButtonActive]}
             onPress={() => setViewMode('carousel')}
           >
-            <Ionicons name="albums" size={20} color={viewMode === 'carousel' ? COLORS.brand : 'rgba(255,255,255,0.45)'} />
+            <Ionicons
+              name="albums"
+              size={20}
+              color={viewMode === 'carousel' ? COLORS.brand : 'rgba(255,255,255,0.45)'}
+            />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* FILTER BAR */}
       <View style={styles.filterBar}>
-        <Text style={styles.headerLabel}>Filtr etapu</Text>
+        <Text style={styles.headerLabel}>{t('photos:filter.label')}</Text>
 
         <View style={styles.dropdownWrap}>
           <TouchableOpacity
             style={styles.dropdownButton}
             activeOpacity={0.85}
-            onPress={() => setFilterDropdownOpen((v) => !v)}
+            onPress={() => {
+              setUploadDropdownOpen(false);
+              setFilterDropdownOpen((v) => !v);
+            }}
           >
             <Ionicons name="filter" size={16} color={COLORS.brand} />
             <Text style={styles.dropdownButtonText} numberOfLines={1}>
@@ -455,7 +494,7 @@ export default function ZdjeciaScreen() {
                   }}
                 >
                   <Text style={[styles.dropdownItemText, selectedEtap === 'all' && styles.dropdownItemTextActive]}>
-                    Wszystkie etapy
+                    {t('photos:filter.allStages')}
                   </Text>
                   {selectedEtap === 'all' && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
                 </TouchableOpacity>
@@ -482,7 +521,6 @@ export default function ZdjeciaScreen() {
         </View>
       </View>
 
-      {/* LIST */}
       {zdjecia.length === 0 ? (
         renderEmptyState()
       ) : viewMode === 'grid' ? (
@@ -510,7 +548,6 @@ export default function ZdjeciaScreen() {
         />
       )}
 
-      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)} activeOpacity={0.9}>
         <BlurView intensity={90} tint="dark" style={styles.fabBlur}>
           <View style={styles.fabRing} />
@@ -518,18 +555,20 @@ export default function ZdjeciaScreen() {
         </BlurView>
       </TouchableOpacity>
 
-      {/* ADD MODAL */}
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
         <BlurView intensity={90} tint="dark" style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Dodaj zdjęcie</Text>
+            <Text style={styles.modalTitle}>{t('photos:addModal.title')}</Text>
 
-            <Text style={styles.modalLabel}>ETAP ZDJĘCIA</Text>
+            <Text style={styles.modalLabel}>{t('photos:addModal.stageLabel')}</Text>
 
             <TouchableOpacity
               style={styles.dropdownButton}
               activeOpacity={0.85}
-              onPress={() => setUploadDropdownOpen((v) => !v)}
+              onPress={() => {
+                setFilterDropdownOpen(false);
+                setUploadDropdownOpen((v) => !v);
+              }}
             >
               <Ionicons name="layers-outline" size={16} color={COLORS.brand} />
               <Text style={styles.dropdownButtonText} numberOfLines={1}>
@@ -565,10 +604,12 @@ export default function ZdjeciaScreen() {
               </View>
             )}
 
-            <Text style={styles.modalLabel}>DATA ZDJĘCIA (opcjonalnie)</Text>
+            <Text style={styles.modalLabel}>{t('photos:addModal.dateLabel')}</Text>
             <TouchableOpacity style={styles.dateButton} activeOpacity={0.85} onPress={() => setShowDatePicker(true)}>
               <Ionicons name="calendar-outline" size={18} color={COLORS.brand} />
-              <Text style={styles.dateButtonText}>{takenAt ? takenAt.toLocaleDateString('pl-PL') : 'Wybierz datę'}</Text>
+              <Text style={styles.dateButtonText}>
+                {takenAt ? takenAt.toLocaleDateString(dateLocale) : t('photos:addModal.pickDate')}
+              </Text>
               {takenAt && (
                 <TouchableOpacity onPress={() => setTakenAt(null)} style={styles.dateClear} activeOpacity={0.85}>
                   <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.55)" />
@@ -588,21 +629,21 @@ export default function ZdjeciaScreen() {
               />
             )}
 
-            <Text style={styles.modalLabel}>OPIS (opcjonalnie)</Text>
+            <Text style={styles.modalLabel}>{t('photos:addModal.descLabel')}</Text>
             <TextInput
               value={opis}
               onChangeText={setOpis}
-              placeholder="Np. montaż okien od południa"
+              placeholder={t('photos:addModal.descPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.4)"
               style={styles.textArea}
               multiline
             />
 
-            <Text style={styles.modalLabel}>TAGI (opcjonalnie)</Text>
+            <Text style={styles.modalLabel}>{t('photos:addModal.tagsLabel')}</Text>
             <TextInput
               value={tagsInput}
               onChangeText={setTagsInput}
-              placeholder="np. dach, okna, elektryka"
+              placeholder={t('photos:addModal.tagsPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.4)"
               style={styles.input}
             />
@@ -621,7 +662,7 @@ export default function ZdjeciaScreen() {
                 disabled={uploading}
                 activeOpacity={0.85}
               >
-                <Text style={styles.modalButtonTextSecondary}>Anuluj</Text>
+                <Text style={styles.modalButtonTextSecondary}>{t('photos:addModal.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -630,17 +671,21 @@ export default function ZdjeciaScreen() {
                 disabled={uploading || !canPick}
                 activeOpacity={0.85}
               >
-                {uploading ? <ActivityIndicator color={COLORS.bg} /> : <Text style={styles.modalButtonTextPrimary}>Wybierz zdjęcie</Text>}
+                {uploading ? <ActivityIndicator color={COLORS.bg} /> : <Text style={styles.modalButtonTextPrimary}>{t('photos:addModal.pickPhoto')}</Text>}
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalHint}>Zapis do Storage ({bucketName}) + etap + opcjonalne pola.</Text>
+            <Text style={styles.modalHint}>{t('photos:addModal.hint', { bucket: bucketName })}</Text>
           </View>
         </BlurView>
       </Modal>
 
-      {/* PREVIEW MODAL */}
-      <Modal visible={previewModalVisible} transparent animationType="fade" onRequestClose={() => setPreviewModalVisible(false)}>
+      <Modal
+        visible={previewModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewModalVisible(false)}
+      >
         <BlurView intensity={95} tint="dark" style={styles.previewOverlay}>
           <TouchableOpacity style={styles.closeButton} onPress={() => setPreviewModalVisible(false)} activeOpacity={0.85}>
             <Ionicons name="close" size={28} color={COLORS.text} />
@@ -655,8 +700,10 @@ export default function ZdjeciaScreen() {
                   <Text style={styles.previewEtap}>{getEtapName(selectedZdjecie.etap_zdjecia_id).toUpperCase()}</Text>
                   <Text style={styles.previewDate}>
                     {(() => {
-                      const dt = selectedZdjecie.taken_at ? new Date(selectedZdjecie.taken_at) : new Date(selectedZdjecie.created_at);
-                      return dt.toLocaleString('pl-PL', {
+                      const dt = selectedZdjecie.taken_at
+                        ? new Date(selectedZdjecie.taken_at)
+                        : new Date(selectedZdjecie.created_at);
+                      return dt.toLocaleString(dateLocale, {
                         day: '2-digit',
                         month: 'long',
                         year: 'numeric',
@@ -674,17 +721,21 @@ export default function ZdjeciaScreen() {
 
                   {selectedZdjecie.tags?.length ? (
                     <View style={styles.tagsRow}>
-                      {selectedZdjecie.tags.slice(0, 6).map((t, idx) => (
-                        <View key={`${t}-${idx}`} style={styles.tagPill}>
-                          <Text style={styles.tagText}>{t}</Text>
+                      {selectedZdjecie.tags.slice(0, 6).map((tt, idx) => (
+                        <View key={`${tt}-${idx}`} style={styles.tagPill}>
+                          <Text style={styles.tagText}>{tt}</Text>
                         </View>
                       ))}
                     </View>
                   ) : null}
 
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePhoto(selectedZdjecie)} activeOpacity={0.85}>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeletePhoto(selectedZdjecie)}
+                    activeOpacity={0.85}
+                  >
                     <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
-                    <Text style={styles.deleteButtonText}>Usuń zdjęcie</Text>
+                    <Text style={styles.deleteButtonText}>{t('photos:preview.delete')}</Text>
                   </TouchableOpacity>
                 </BlurView>
               </View>
@@ -697,17 +748,15 @@ export default function ZdjeciaScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ✅ klucz: kompletnie przezroczyste (globalny starfield z (app)/_layout ma być widoczny)
   container: { flex: 1, backgroundColor: 'transparent' },
 
-  // ✅ te plamy robiły “wzór” — mocno wyciszone (premium, ale nie psuje czerni)
   glowOne: {
     position: 'absolute',
     width: 320,
     height: 320,
     borderRadius: 999,
     backgroundColor: COLORS.brand,
-    opacity: 0.04, // ✅ było 0.18 (za dużo)
+    opacity: 0.04,
     top: -40,
     right: -120,
   },
@@ -717,32 +766,32 @@ const styles = StyleSheet.create({
     height: 360,
     borderRadius: 999,
     backgroundColor: COLORS.brand,
-    opacity: 0.025, // ✅ było 0.10 (za dużo)
+    opacity: 0.025,
     bottom: 120,
     left: -170,
   },
 
-  // ✅ loading też ma być transparentny — inaczej zasłania globalne tło
   loadingContainer: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
 
-  header: {
+  topBar: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 58 : 38,
     paddingBottom: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerRight: {
-    position: 'absolute',
-    right: 16,
-    bottom: 6,
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
   },
+
+  logoWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  logoImg: { width: 30, height: 30 },
+
+  topTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  headerRight: { flexDirection: 'row', gap: 8 },
+
   headerLabel: { color: COLORS.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontSize: 12, marginBottom: 8 },
+
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
     color: COLORS.brand,
     textAlign: 'center',
@@ -752,7 +801,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
 
-  viewToggle: { flexDirection: 'row', gap: 8 },
   toggleButton: {
     width: 44,
     height: 44,
@@ -773,13 +821,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
-  filterBar: {
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  },
-  dropdownWrap: {
-    position: 'relative',
-  },
+  filterBar: { paddingHorizontal: 16, paddingBottom: 10 },
+  dropdownWrap: { position: 'relative' },
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -791,11 +834,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(25,112,92,0.35)',
   },
-  dropdownButtonText: {
-    flex: 1,
-    color: COLORS.text,
-    fontWeight: '800',
-  },
+  dropdownButtonText: { flex: 1, color: COLORS.text, fontWeight: '800' },
   dropdownPanel: {
     marginTop: 10,
     borderRadius: 16,
@@ -813,16 +852,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.06)',
   },
-  dropdownItemActive: {
-    backgroundColor: 'rgba(25,112,92,0.14)',
-  },
-  dropdownItemText: {
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: '800',
-  },
-  dropdownItemTextActive: {
-    color: COLORS.brand,
-  },
+  dropdownItemActive: { backgroundColor: 'rgba(25,112,92,0.14)' },
+  dropdownItemText: { color: 'rgba(255,255,255,0.75)', fontWeight: '800' },
+  dropdownItemTextActive: { color: COLORS.brand },
 
   gridContainer: { paddingHorizontal: 8, paddingBottom: 110 },
   gridRow: { gap: 16, paddingHorizontal: 8, marginBottom: 16 },
@@ -853,15 +885,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginTop: 18, marginBottom: 8 },
   emptySubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginBottom: 22, lineHeight: 20 },
-  emptyButton: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: COLORS.brand,
-  },
+  emptyButton: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.brand },
   emptyButtonText: { fontSize: 14, fontWeight: '900', color: '#03110C', letterSpacing: 0.5 },
 
   fab: {
@@ -878,22 +902,8 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 14,
   },
-  fabBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(25,112,92,0.55)',
-  },
-  fabRing: {
-    position: 'absolute',
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.35)',
-    backgroundColor: 'rgba(25,112,92,0.06)',
-  },
+  fabBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(25,112,92,0.55)' },
+  fabRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(25,112,92,0.35)', backgroundColor: 'rgba(25,112,92,0.06)' },
 
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 22 },
   modalContent: {
@@ -908,38 +918,12 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text, marginBottom: 18, textAlign: 'center' },
   modalLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.6, marginTop: 12, marginBottom: 10 },
 
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.28)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
+  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(25,112,92,0.28)', backgroundColor: 'rgba(255,255,255,0.03)' },
   dateButtonText: { color: COLORS.text, fontWeight: '800', flex: 1 },
   dateClear: { paddingHorizontal: 6, paddingVertical: 2 },
 
-  textArea: {
-    minHeight: 78,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    padding: 14,
-    color: COLORS.text,
-    fontWeight: '700',
-  },
-  input: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    padding: 14,
-    color: COLORS.text,
-    fontWeight: '700',
-  },
+  textArea: { minHeight: 78, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, color: COLORS.text, fontWeight: '700' },
+  input: { borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, color: COLORS.text, fontWeight: '700' },
 
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 16 },
   modalButton: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
@@ -970,26 +954,9 @@ const styles = StyleSheet.create({
   previewOpis: { color: 'rgba(255,255,255,0.78)', fontWeight: '700', marginBottom: 12, lineHeight: 18 },
 
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  tagPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(25,112,92,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.25)',
-  },
+  tagPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(25,112,92,0.14)', borderWidth: 1, borderColor: 'rgba(25,112,92,0.25)' },
   tagText: { color: COLORS.brand, fontWeight: '900', fontSize: 12 },
 
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,59,48,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,59,48,0.28)',
-  },
+  deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, borderRadius: 14, backgroundColor: 'rgba(255,59,48,0.14)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.28)' },
   deleteButtonText: { fontSize: 15, fontWeight: '900', color: COLORS.danger },
 });

@@ -25,8 +25,8 @@ function resolveInitialLanguage(saved: string | null): AppLanguage {
   const fromStorage = normalizeToSupported(saved);
   if (fromStorage) return fromStorage;
 
-  const sys = Localization.getLocales?.()[0];
-  const sysCode = normalizeToSupported(sys?.languageTag || sys?.languageCode);
+  const sys = Localization.getLocales()?.[0];
+  const sysCode = normalizeToSupported(sys?.languageTag) || normalizeToSupported(sys?.languageCode);
   if (sysCode) return sysCode;
 
   return FALLBACK_LANGUAGE;

@@ -1,0 +1,19 @@
+{
+  "title": "Ustawienia konta",
+  "fallbackUser": "Użytkownik",
+  "placeholderMessage": "Ta funkcja będzie dodana później.",
+  "logout": "Wyloguj",
+  "logoutError": "Nie udało się wylogować.",
+  "items": {
+    "profileTitle": "Profil",
+    "profileSubtitle": "Dane właściciela konta",
+    "investmentTitle": "Inwestycja",
+    "investmentSubtitle": "Dane projektu / budowy",
+    "appTitle": "Aplikacja",
+    "appSubtitle": "Ustawienia aplikacji (później)",
+    "subscriptionTitle": "Zarządzaj subskrypcją",
+    "subscriptionSubtitle": "Później",
+    "reportTitle": "Zgłoś problem",
+    "reportSubtitle": "Wyślij opis błędu"
+  }
+}

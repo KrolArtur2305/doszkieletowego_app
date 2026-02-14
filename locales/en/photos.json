@@ -1,0 +1,71 @@
+{
+  "header": {
+    "title": "Photos"
+  },
+  "title": "Photos",
+
+  "loading": {
+    "title": "Loading photos…"
+  },
+
+  "misc": {
+    "stageFallback": "Stage"
+  },
+
+  "filter": {
+    "label": "Stage filter",
+    "allStages": "All stages"
+  },
+
+  "empty": {
+    "title": "No photos",
+    "subtitleAll": "Add your first construction photo.",
+    "subtitleStage": "No photos for the selected stage.",
+    "addButton": "Add photo"
+  },
+
+  "addModal": {
+    "title": "Add photo",
+    "stageLabel": "PHOTO STAGE",
+    "pickStage": "Select stage",
+    "dateLabel": "PHOTO DATE (optional)",
+    "pickDate": "Pick a date",
+    "descLabel": "DESCRIPTION (optional)",
+    "descPlaceholder": "e.g. window installation from the south",
+    "tagsLabel": "TAGS (optional)",
+    "tagsPlaceholder": "e.g. roof, windows, wiring",
+    "cancel": "Cancel",
+    "pickPhoto": "Choose photo",
+    "hint": "Saved to Storage ({bucket}) + stage + optional fields."
+  },
+
+  "preview": {
+    "delete": "Delete photo"
+  },
+
+  "alerts": {
+    "successTitle": "Success",
+    "photoAdded": "Photo added",
+    "photoDeleted": "Photo deleted",
+
+    "loadStagesError": "Could not load photo stages",
+    "loadPhotosError": "Could not load photos",
+
+    "loginRequired": "You must be signed in",
+    "stageNotFound": "Stage not found",
+
+    "pickStageTitle": "Attention",
+    "pickStageMessage": "Select a stage for the photo",
+
+    "noPermissionsTitle": "No permission",
+    "noPermissionsMessage": "We need access to your gallery",
+
+    "uploadFailed": "Could not add photo",
+
+    "deleteTitle": "Delete photo",
+    "deleteConfirm": "Are you sure you want to delete this photo?",
+    "deleteCancel": "Cancel",
+    "deleteAction": "Delete",
+    "deleteError": "Could not delete photo"
+  }
+}

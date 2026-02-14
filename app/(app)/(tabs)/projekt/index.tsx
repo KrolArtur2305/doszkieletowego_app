@@ -22,7 +22,8 @@ import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import * as FileSystem from 'expo-file-system/legacy'
 import Model3DView from '../../../../components/Model3DView'
-import logo from '../../../../assets/logo.png'
+const logo = require('../../../assets/logo.png');
+
 
 type Projekt = {
   id: string

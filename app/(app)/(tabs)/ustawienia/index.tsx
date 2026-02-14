@@ -11,13 +11,15 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 
 function safeEmailPrefix(email?: string | null) {
-  if (!email) return 'Użytkownik';
+  // fallback, gdyby t() jeszcze nie było gotowe w jakimś edge-case
+  if (!email) return 'User';
   const [p] = email.split('@');
-  return p ? p : 'Użytkownik';
+  return p ? p : 'User';
 }
 
 type MenuItem = {
@@ -32,8 +34,11 @@ type MenuItem = {
 export default function UstawieniaScreen() {
   const router = useRouter();
 
+  // ✅ Wariant B: settings osobny namespace
+  const { t } = useTranslation(['settings', 'common']);
+
   const [loading, setLoading] = useState(true);
-  const [displayName, setDisplayName] = useState('Ustawienia');
+  const [displayName, setDisplayName] = useState(t('settings:fallbackUser'));
   const [email, setEmail] = useState('');
 
   useEffect(() => {
@@ -48,7 +53,7 @@ export default function UstawieniaScreen() {
         const user = userData.user;
         if (!user) {
           if (!alive) return;
-          setDisplayName('Ustawienia');
+          setDisplayName(t('settings:fallbackUser'));
           setEmail('');
           return;
         }
@@ -70,7 +75,7 @@ export default function UstawieniaScreen() {
         if (name) setDisplayName(name);
         else setDisplayName(safeEmailPrefix(user.email));
       } catch (e: any) {
-        Alert.alert('Błąd', e?.message ?? 'Nie udało się pobrać danych.');
+        Alert.alert(t('common:errorTitle'), e?.message ?? t('common:errors.generic'));
       } finally {
         if (alive) setLoading(false);
       }
@@ -79,10 +84,10 @@ export default function UstawieniaScreen() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [t]);
 
   const handlePlaceholder = (label: string) => {
-    Alert.alert(label, 'Ta funkcja będzie dodana później.');
+    Alert.alert(label, t('settings:placeholderMessage'));
   };
 
   const handleLogout = async () => {
@@ -90,7 +95,7 @@ export default function UstawieniaScreen() {
       await supabase.auth.signOut();
       router.replace('/login');
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się wylogować.');
+      Alert.alert(t('common:errorTitle'), e?.message ?? t('settings:logoutError'));
     }
   };
 
@@ -98,49 +103,47 @@ export default function UstawieniaScreen() {
     () => [
       {
         key: 'profil',
-        title: 'Profil',
-        subtitle: 'Dane właściciela konta',
+        title: t('settings:items.profileTitle'),
+        subtitle: t('settings:items.profileSubtitle'),
         icon: 'user',
         onPress: () => router.push('/(app)/profil'),
       },
       {
         key: 'inwestycja',
-        title: 'Inwestycja',
-        subtitle: 'Dane projektu / budowy',
+        title: t('settings:items.investmentTitle'),
+        subtitle: t('settings:items.investmentSubtitle'),
         icon: 'home',
         onPress: () => router.push('/(app)/inwestycja'),
       },
       {
         key: 'aplikacja',
-        title: 'Aplikacja',
-        subtitle: 'Ustawienia aplikacji (później)',
+        title: t('settings:items.appTitle'),
+        subtitle: t('settings:items.appSubtitle'),
         icon: 'sliders',
-        onPress: () => handlePlaceholder('Aplikacja'),
+        onPress: () => handlePlaceholder(t('settings:items.appTitle')),
       },
       {
         key: 'sub',
-        title: 'Zarządzaj subskrypcją',
-        subtitle: 'Później',
+        title: t('settings:items.subscriptionTitle'),
+        subtitle: t('settings:items.subscriptionSubtitle'),
         icon: 'credit-card',
-        onPress: () => handlePlaceholder('Subskrypcja'),
+        onPress: () => handlePlaceholder(t('settings:items.subscriptionTitle')),
       },
       {
         key: 'report',
-        title: 'Zgłoś problem',
-        subtitle: 'Wyślij opis błędu',
+        title: t('settings:items.reportTitle'),
+        subtitle: t('settings:items.reportSubtitle'),
         icon: 'alert-triangle',
         onPress: () => router.push('/(app)/(tabs)/ustawienia/zglos_problem'),
       },
     ],
-    [router]
+    [router, t]
   );
 
   return (
     <View style={styles.screen}>
-      {/* ✅ TWARDY CZARNY FULLSCREEN – to eliminuje “szarą bazę” raz na zawsze */}
       <View pointerEvents="none" style={styles.blackBase} />
 
-      {/* delikatne orby na wierzchu */}
       <View pointerEvents="none" style={styles.orbTop} />
       <View pointerEvents="none" style={styles.orbMid} />
 
@@ -151,7 +154,7 @@ export default function UstawieniaScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.headerMainTitle}>
-            {loading ? 'Ładowanie…' : 'Ustawienia konta'}
+            {loading ? t('common:loading') : t('settings:title')}
           </Text>
           <Text style={styles.headerName}>{displayName}</Text>
         </View>
@@ -164,7 +167,6 @@ export default function UstawieniaScreen() {
               style={({ pressed }) => [styles.tileOuter, pressed && styles.tileOuterPressed]}
             >
               <View style={styles.tileFrame}>
-                {/* czarny underlay pod blur */}
                 <View pointerEvents="none" style={styles.tileUnderlay} />
 
                 <BlurView intensity={18} tint="dark" style={styles.tile}>
@@ -192,7 +194,7 @@ export default function UstawieniaScreen() {
           <View style={styles.logoutIcon}>
             <Feather name="log-out" size={19} color={COLORS.danger} />
           </View>
-          <Text style={styles.logoutText}>Wyloguj</Text>
+          <Text style={styles.logoutText}>{t('settings:logout')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -215,7 +217,6 @@ const COLORS = {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
 
-  // ✅ tu wymuszamy absolutnie czarne tło
   blackBase: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000000',

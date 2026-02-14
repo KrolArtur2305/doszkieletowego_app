@@ -5,7 +5,9 @@ import en_dashboard from '../../locales/en/dashboard.json';
 import en_documents from '../../locales/en/documents.json';
 import en_navigation from '../../locales/en/navigation.json';
 import en_profile from '../../locales/en/profile.json';
+import en_settings from '../../locales/en/settings.json';
 import en_stages from '../../locales/en/stages.json';
+import en_photos from '../../locales/en/photos.json';
 
 import pl_auth from '../../locales/pl/auth.json';
 import pl_budget from '../../locales/pl/budget.json';
@@ -14,7 +16,9 @@ import pl_dashboard from '../../locales/pl/dashboard.json';
 import pl_documents from '../../locales/pl/documents.json';
 import pl_navigation from '../../locales/pl/navigation.json';
 import pl_profile from '../../locales/pl/profile.json';
+import pl_settings from '../../locales/pl/settings.json';
 import pl_stages from '../../locales/pl/stages.json';
+import pl_photos from '../../locales/pl/photos.json';
 
 export const resources = {
   en: {
@@ -26,6 +30,8 @@ export const resources = {
     budget: en_budget,
     documents: en_documents,
     profile: en_profile,
+    settings: en_settings,
+    photos: en_photos,
   },
   pl: {
     common: pl_common,
@@ -36,5 +42,7 @@ export const resources = {
     budget: pl_budget,
     documents: pl_documents,
     profile: pl_profile,
+    settings: pl_settings,
+    photos: pl_photos,
   },
 } as const;

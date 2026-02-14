@@ -1,0 +1,71 @@
+{
+  "header": {
+    "title": "Zdjęcia"
+  },
+  "title": "Zdjęcia",
+
+  "loading": {
+    "title": "Ładowanie zdjęć…"
+  },
+
+  "misc": {
+    "stageFallback": "Etap"
+  },
+
+  "filter": {
+    "label": "Filtr etapu",
+    "allStages": "Wszystkie etapy"
+  },
+
+  "empty": {
+    "title": "Brak zdjęć",
+    "subtitleAll": "Dodaj swoje pierwsze zdjęcie z budowy.",
+    "subtitleStage": "Brak zdjęć dla wybranego etapu.",
+    "addButton": "Dodaj zdjęcie"
+  },
+
+  "addModal": {
+    "title": "Dodaj zdjęcie",
+    "stageLabel": "ETAP ZDJĘCIA",
+    "pickStage": "Wybierz etap",
+    "dateLabel": "DATA ZDJĘCIA (opcjonalnie)",
+    "pickDate": "Wybierz datę",
+    "descLabel": "OPIS (opcjonalnie)",
+    "descPlaceholder": "Np. montaż okien od południa",
+    "tagsLabel": "TAGI (opcjonalnie)",
+    "tagsPlaceholder": "np. dach, okna, elektryka",
+    "cancel": "Anuluj",
+    "pickPhoto": "Wybierz zdjęcie",
+    "hint": "Zapis do Storage ({bucket}) + etap + opcjonalne pola."
+  },
+
+  "preview": {
+    "delete": "Usuń zdjęcie"
+  },
+
+  "alerts": {
+    "successTitle": "Sukces",
+    "photoAdded": "Zdjęcie zostało dodane",
+    "photoDeleted": "Zdjęcie zostało usunięte",
+
+    "loadStagesError": "Nie udało się załadować etapów do zdjęć",
+    "loadPhotosError": "Nie udało się załadować zdjęć",
+
+    "loginRequired": "Musisz być zalogowany",
+    "stageNotFound": "Nie znaleziono etapu",
+
+    "pickStageTitle": "Uwaga",
+    "pickStageMessage": "Wybierz etap dla zdjęcia",
+
+    "noPermissionsTitle": "Brak uprawnień",
+    "noPermissionsMessage": "Potrzebujemy dostępu do galerii",
+
+    "uploadFailed": "Nie udało się dodać zdjęcia",
+
+    "deleteTitle": "Usuń zdjęcie",
+    "deleteConfirm": "Czy na pewno chcesz usunąć to zdjęcie?",
+    "deleteCancel": "Anuluj",
+    "deleteAction": "Usuń",
+    "deleteError": "Nie udało się usunąć zdjęcia"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Account settings",
+  "fallbackUser": "User",
+  "placeholderMessage": "This feature will be added later.",
+  "logout": "Log out",
+  "logoutError": "Could not log out.",
+  "items": {
+    "profileTitle": "Profile",
+    "profileSubtitle": "Account owner details",
+    "investmentTitle": "Investment",
+    "investmentSubtitle": "Project / build details",
+    "appTitle": "App",
+    "appSubtitle": "App settings (later)",
+    "subscriptionTitle": "Manage subscription",
+    "subscriptionSubtitle": "Later",
+    "reportTitle": "Report an issue",
+    "reportSubtitle": "Send a bug description"
+  }
+}
