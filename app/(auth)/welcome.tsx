@@ -164,6 +164,7 @@ export default function WelcomeScreen() {
       <View style={styles.langRow}>
         {renderLangButton('pl', 'PL')}
         {renderLangButton('en', 'EN')}
+        {renderLangButton('de', 'DE')}
       </View>
 
       {/* ✅ klucz na języku: ScrollView przebuduje się po zmianie języka */}

@@ -1,0 +1,71 @@
+{
+  "header": {
+    "title": "Fotos"
+  },
+  "title": "Fotos",
+
+  "loading": {
+    "title": "Fotos werden geladen…"
+  },
+
+  "misc": {
+    "stageFallback": "Phase"
+  },
+
+  "filter": {
+    "label": "Phasenfilter",
+    "allStages": "Alle Phasen"
+  },
+
+  "empty": {
+    "title": "Keine Fotos",
+    "subtitleAll": "Füge dein erstes Baufoto hinzu.",
+    "subtitleStage": "Keine Fotos für die ausgewählte Phase.",
+    "addButton": "Foto hinzufügen"
+  },
+
+  "addModal": {
+    "title": "Foto hinzufügen",
+    "stageLabel": "FOTOPHASE",
+    "pickStage": "Phase auswählen",
+    "dateLabel": "FOTODATUM (optional)",
+    "pickDate": "Datum wählen",
+    "descLabel": "BESCHREIBUNG (optional)",
+    "descPlaceholder": "z. B. Fenstermontage von Süden",
+    "tagsLabel": "TAGS (optional)",
+    "tagsPlaceholder": "z. B. Dach, Fenster, Verkabelung",
+    "cancel": "Abbrechen",
+    "pickPhoto": "Foto auswählen",
+    "hint": "Gespeichert in Storage ({bucket}) + Phase + optionale Felder."
+  },
+
+  "preview": {
+    "delete": "Foto löschen"
+  },
+
+  "alerts": {
+    "successTitle": "Erfolg",
+    "photoAdded": "Foto hinzugefügt",
+    "photoDeleted": "Foto gelöscht",
+
+    "loadStagesError": "Fotophasen konnten nicht geladen werden",
+    "loadPhotosError": "Fotos konnten nicht geladen werden",
+
+    "loginRequired": "Du musst angemeldet sein",
+    "stageNotFound": "Phase nicht gefunden",
+
+    "pickStageTitle": "Hinweis",
+    "pickStageMessage": "Wähle eine Phase für das Foto",
+
+    "noPermissionsTitle": "Keine Berechtigung",
+    "noPermissionsMessage": "Wir benötigen Zugriff auf deine Galerie",
+
+    "uploadFailed": "Foto konnte nicht hinzugefügt werden",
+
+    "deleteTitle": "Foto löschen",
+    "deleteConfirm": "Möchtest du dieses Foto wirklich löschen?",
+    "deleteCancel": "Abbrechen",
+    "deleteAction": "Löschen",
+    "deleteError": "Foto konnte nicht gelöscht werden"
+  }
+}

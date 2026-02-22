@@ -1,0 +1,19 @@
+{
+  "title": "Kontoeinstellungen",
+  "fallbackUser": "Benutzer",
+  "placeholderMessage": "Diese Funktion wird später hinzugefügt.",
+  "logout": "Abmelden",
+  "logoutError": "Abmeldung fehlgeschlagen.",
+  "items": {
+    "profileTitle": "Profil",
+    "profileSubtitle": "Kontoinhaber-Daten",
+    "investmentTitle": "Investition",
+    "investmentSubtitle": "Projekt-/Baudetails",
+    "appTitle": "App",
+    "appSubtitle": "App-Einstellungen (später)",
+    "subscriptionTitle": "Abo verwalten",
+    "subscriptionSubtitle": "Später",
+    "reportTitle": "Problem melden",
+    "reportSubtitle": "Fehlerbeschreibung senden"
+  }
+}

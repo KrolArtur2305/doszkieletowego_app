@@ -1,0 +1,31 @@
+{
+  "header": {
+    "title": "Profil",
+    "completeProfile": "Vervollständige dein Profil"
+  },
+  "loading": {
+    "profileData": "Profildaten werden geladen�"
+  },
+  "alerts": {
+    "completeDataTitle": "Daten vervollständigen",
+    "firstNameRequired": "Vorname ist erforderlich, um fortzufahren.",
+    "invalidPhoneTitle": "Ungültige Nummer",
+    "invalidPhoneMessage": "Gib eine gültige Telefonnummer ein oder lass das Feld leer.",
+    "errorTitle": "Fehler",
+    "saveErrorTitle": "Fehler beim Speichern"
+  },
+  "errors": {
+    "noUser": "Kein Benutzer gefunden. Bitte melde dich erneut an.",
+    "profileNotMarked": "Profil wurde nicht als abgeschlossen markiert.",
+    "generic": "Etwas ist schiefgelaufen."
+  },
+  "form": {
+    "firstNameLabel": "Vorname",
+    "firstNamePlaceholder": "z. B. Arthur",
+    "lastNameLabel": "Nachname",
+    "lastNamePlaceholder": "z. B. Schmidt",
+    "phoneLabel": "Telefon",
+    "phonePlaceholder": "z. B. +48 600 000 000",
+    "saveAndContinue": "Speichern und fortfahren"
+  }
+}

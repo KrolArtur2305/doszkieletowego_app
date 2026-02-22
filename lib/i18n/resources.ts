@@ -12,6 +12,19 @@ import en_settings from '../../locales/en/settings.json';
 import en_stages from '../../locales/en/stages.json';
 import en_photos from '../../locales/en/photos.json';
 
+import de_auth from '../../locales/de/auth.json';
+import de_project from '../../locales/de/project.json';
+
+import de_budget from '../../locales/de/budget.json';
+import de_common from '../../locales/de/common.json';
+import de_dashboard from '../../locales/de/dashboard.json';
+import de_documents from '../../locales/de/documents.json';
+import de_navigation from '../../locales/de/navigation.json';
+import de_profile from '../../locales/de/profile.json';
+import de_settings from '../../locales/de/settings.json';
+import de_stages from '../../locales/de/stages.json';
+import de_photos from '../../locales/de/photos.json';
+
 import pl_auth from '../../locales/pl/auth.json';
 import pl_project from '../../locales/pl/project.json';
 
@@ -51,5 +64,18 @@ export const resources = {
     settings: pl_settings,
     photos: pl_photos,
     project: pl_project,
+  },
+  de: {
+    common: de_common,
+    auth: de_auth,
+    navigation: de_navigation,
+    dashboard: de_dashboard,
+    stages: de_stages,
+    budget: de_budget,
+    documents: de_documents,
+    profile: de_profile,
+    settings: de_settings,
+    photos: de_photos,
+    project: de_project,
   },
 } as const;

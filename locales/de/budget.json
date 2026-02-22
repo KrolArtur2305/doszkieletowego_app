@@ -1,0 +1,65 @@
+{
+  "common": {
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "save": "Speichern",
+    "saving": "Speichert…"
+  },
+  "header": {
+    "title": "Budget"
+  },
+  "errors": {
+    "fetchFailed": "Daten konnten nicht geladen werden.",
+    "addFailed": "Ausgabe konnte nicht hinzugefügt werden.",
+    "deleteFailed": "Ausgabe konnte nicht gelöscht werden.",
+    "readFileFailed": "Datei konnte nicht gelesen werden"
+  },
+  "alerts": {
+    "enterName": "Gib den Namen der Ausgabe ein.",
+    "amountGreaterThanZero": "Der Betrag muss größer als 0 sein."
+  },
+  "delete": {
+    "confirmTitle": "Diese Ausgabe löschen?"
+  },
+  "stats": {
+    "remaining": "Verbleibend",
+    "planned": "Geplant"
+  },
+  "actions": {
+    "addExpense": "+ AUSGABE HINZUFÜGEN"
+  },
+  "chart": {
+    "categoriesTitle": "Kategorien",
+    "spentSubtitle": "ausgegebene Kosten"
+  },
+  "list": {
+    "recentTitle": "Letzte Ausgaben",
+    "sortNewest": "Sortierung: neueste",
+    "empty": "Keine Ausgaben. Füge oben deine erste Ausgabe hinzu."
+  },
+  "expense": {
+    "defaultName": "Ausgabe",
+    "addedOn": "Hinzugefügt: {{date}}",
+    "receiptLink": "Beleg →"
+  },
+  "status": {
+    "spent": "ausgegeben",
+    "planned": "geplant"
+  },
+  "modal": {
+    "title": "Ausgabe hinzufügen",
+    "nameLabel": "Name *",
+    "namePlaceholder": "z. B. Fenster",
+    "categoryLabel": "Kategorie",
+    "amountLabel": "Betrag (PLN) *",
+    "amountPlaceholder": "z. B. 12500",
+    "dateOptional": "Datum — optional",
+    "setDate": "Datum festlegen",
+    "descriptionOptional": "Beschreibung (optional)",
+    "descriptionPlaceholder": "z. B. Anzahlung",
+    "storeOptional": "Geschäft (optional)",
+    "storePlaceholder": "z. B. Castorama",
+    "fileOptional": "Beleg hinzufügen (PDF/JPG/PNG) — optional",
+    "fileSelected": "Ausgewählt: {{name}}"
+  }
+}

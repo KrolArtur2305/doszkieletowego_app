@@ -1,0 +1,61 @@
+{
+  "errors": {
+    "tasksFetchFailed": "Aufgaben konnten nicht geladen werden.",
+    "photosFetchFailed": "Fotos konnten nicht geladen werden."
+  },
+  "hero": {
+    "welcome": "Willkommen",
+    "dateLine": "Heute ist {{date}}, du bist schon auf halbem Weg beim Bau — der Umzug rückt näher."
+  },
+  "donuts": {
+    "budgetLabel": "Budget",
+    "timeLabel": "Zeit",
+    "progressLabel": "Fortschritt",
+    "completeInvestmentDates": "Projekttermine ergänzen"
+  },
+  "progress": {
+    "currentStageLabel": "AKTUELLE PHASE",
+    "nextStageLabel": "NÄCHSTE PHASE",
+    "allDone": "Alle Phasen abgeschlossen",
+    "noStages": "Keine Phasen",
+    "loadingProgress": "Fortschritt wird geladen…",
+    "completed": "Abgeschlossen: {{milestones}}"
+  },
+  "photos": {
+    "latestTitle": "Zuletzt hinzugefügte Fotos",
+    "loading": "Fotos werden geladen…",
+    "empty": "Keine Fotos — füge dein erstes Foto im Modul „Fotos“ hinzu."
+  },
+  "calendar": {
+    "title": "Kalender",
+    "loadingTasks": "Aufgaben werden geladen…",
+    "fetchError": "Fehler beim Laden der Aufgaben",
+    "clickDayHint": "Tippe auf einen Tag, um Aufgaben zu sehen",
+    "nearestTasks": "Nächste Aufgaben",
+    "addTaskPlus": "+ Hinzufügen",
+    "noTasks": "Keine Aufgaben — füge deine erste Aufgabe hinzu.",
+    "tasksForDay": "Aufgaben: {{date}}",
+    "addTask": "Hinzufügen",
+    "noTasksForDay": "Keine Aufgaben für diesen Tag.",
+    "allDay": "ganztägig",
+    "weekdays": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    }
+  },
+  "modal": {
+    "addTaskTitle": "Aufgabe hinzufügen",
+    "selectedDate": "Ausgewähltes Datum: {{date}}",
+    "titlePlaceholder": "Titel (z. B. Fenstermontage)",
+    "descriptionPlaceholder": "Beschreibung (optional)",
+    "date": "Datum",
+    "time": "Uhrzeit",
+    "removeTime": "Zeit entfernen (ganztägig)",
+    "hint": "Wähle ein Datum und optional eine Uhrzeit in den Pickern. Wenn keine Zeit gesetzt wird — ist die Aufgabe ganztägig."
+  }
+}
