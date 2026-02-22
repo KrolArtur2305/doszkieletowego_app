@@ -1,53 +1,54 @@
 {
-  "common": {
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "save": "Save"
+  "screen": { "title": "Documents" },
+  "loading": "Loading…",
+
+  "types": {
+    "all": "All types",
+    "umowa": "Contract",
+    "faktura": "Invoice",
+    "paragon": "Receipt",
+    "oferta": "Offer",
+    "projekt": "Project",
+    "pozwolenia": "Permits",
+    "inne": "Other"
   },
-  "alerts": {
-    "errorTitle": "Error",
-    "titleAndAttachmentRequired": "Title and attachment are required."
+
+  "sort": {
+    "newest": "Newest",
+    "oldest": "Oldest"
   },
-  "errors": {
-    "fetchFailed": "Could not load documents.",
-    "noUser": "No user",
-    "addFailed": "Could not add the document."
-  },
-  "loading": {
-    "documents": "Loading documents…"
-  },
-  "header": {
-    "title": "Documents",
-    "subtitle": "Only your files (PRIVATE) — opened via signed URL."
-  },
-  "actions": {
-    "add": "Add",
-    "refresh": "Refresh",
-    "refreshing": "Refreshing…"
-  },
+
   "empty": {
-    "noDocsInCategory": "No documents in this category."
+    "title": "No documents",
+    "subtitle": "Add your first documents to the project.",
+    "cta": "Add document"
   },
-  "card": {
-    "hint": "Tap: open • Hold: delete"
+
+  "addModal": {
+    "title": "Add document",
+    "labels": {
+      "type": "TYPE",
+      "titleOptional": "TITLE (OPTIONAL)",
+      "descriptionOptional": "DESCRIPTION (OPTIONAL)",
+      "file": "FILE / IMAGE"
+    },
+    "placeholders": {
+      "title": "e.g. Contract",
+      "description": "Add description (optional)",
+      "file": "Attach file or image"
+    },
+    "saving": "Saving…"
   },
-  "category": {
-    "contracts": "Contracts",
-    "invoicesReceipts": "Invoices/Receipts",
-    "other": "Other"
-  },
-  "delete": {
-    "confirmTitle": "Delete document",
-    "confirmMessage": "Are you sure you want to delete: \"{{title}}\"?"
-  },
-  "modal": {
-    "title": "New document",
-    "titleLabel": "Title (required)",
-    "titlePlaceholder": "e.g. Contractor agreement",
-    "descriptionLabel": "Description",
-    "descriptionPlaceholder": "Additional information…",
-    "categoryLabel": "Category",
-    "attachmentRequired": "Attachment (required)",
-    "pickFile": "Choose file (PDF / photo)"
+
+  "alerts": {
+    "loadDocsError": "Failed to load documents.",
+    "openError": "Failed to open the document.",
+    "deleteTitle": "Delete document?",
+    "deleteDesc": "Are you sure you want to delete this document?",
+    "deleteError": "Failed to delete the document.",
+    "fileRequired": "Attach a file or image.",
+    "addError": "Failed to add the document.",
+    "successTitle": "Success",
+    "docAdded": "Document added."
   }
 }

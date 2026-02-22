@@ -1,71 +1,63 @@
 {
-  "header": {
-    "title": "Zdjęcia"
-  },
   "title": "Zdjęcia",
-
-  "loading": {
-    "title": "Ładowanie zdjęć…"
-  },
+  "loading": "Ładowanie…",
 
   "misc": {
     "stageFallback": "Etap"
   },
 
   "filter": {
-    "label": "Filtr etapu",
     "allStages": "Wszystkie etapy"
+  },
+
+  "sort": {
+    "newest": "Najnowsze",
+    "oldest": "Najstarsze"
   },
 
   "empty": {
     "title": "Brak zdjęć",
-    "subtitleAll": "Dodaj swoje pierwsze zdjęcie z budowy.",
-    "subtitleStage": "Brak zdjęć dla wybranego etapu.",
-    "addButton": "Dodaj zdjęcie"
+    "subtitleAll": "Dodaj pierwsze zdjęcia do projektu.",
+    "subtitleStage": "W tym etapie nie ma jeszcze zdjęć.",
+    "addButton": "Dodaj zdjęcia"
   },
 
   "addModal": {
-    "title": "Dodaj zdjęcie",
-    "stageLabel": "ETAP ZDJĘCIA",
+    "title": "Dodaj zdjęcia",
+    "stageLabel": "Etap",
     "pickStage": "Wybierz etap",
-    "dateLabel": "DATA ZDJĘCIA (opcjonalnie)",
+    "dateLabel": "Data",
     "pickDate": "Wybierz datę",
-    "descLabel": "OPIS (opcjonalnie)",
-    "descPlaceholder": "Np. montaż okien od południa",
-    "tagsLabel": "TAGI (opcjonalnie)",
-    "tagsPlaceholder": "np. dach, okna, elektryka",
+    "descLabel": "Opis",
+    "descPlaceholder": "Dodaj opis (opcjonalnie)",
+    "tagsLabel": "Tagi",
+    "tagsPlaceholder": "np. okna, elewacja, dach",
+    "uploading": "Wysyłanie",
     "cancel": "Anuluj",
-    "pickPhoto": "Wybierz zdjęcie",
-    "hint": "Zapis do Storage ({bucket}) + etap + opcjonalne pola."
+    "pickPhoto": "Wybierz zdjęcia"
   },
 
   "preview": {
-    "delete": "Usuń zdjęcie"
+    "delete": "Usuń"
   },
 
   "alerts": {
     "successTitle": "Sukces",
-    "photoAdded": "Zdjęcie zostało dodane",
-    "photoDeleted": "Zdjęcie zostało usunięte",
-
-    "loadStagesError": "Nie udało się załadować etapów do zdjęć",
-    "loadPhotosError": "Nie udało się załadować zdjęć",
-
-    "loginRequired": "Musisz być zalogowany",
-    "stageNotFound": "Nie znaleziono etapu",
-
-    "pickStageTitle": "Uwaga",
-    "pickStageMessage": "Wybierz etap dla zdjęcia",
-
+    "loadStagesError": "Nie udało się wczytać etapów.",
+    "loadPhotosError": "Nie udało się wczytać zdjęć.",
+    "pickStageTitle": "Wybierz etap",
+    "pickStageMessage": "Najpierw wybierz etap zdjęcia.",
     "noPermissionsTitle": "Brak uprawnień",
-    "noPermissionsMessage": "Potrzebujemy dostępu do galerii",
-
-    "uploadFailed": "Nie udało się dodać zdjęcia",
-
-    "deleteTitle": "Usuń zdjęcie",
-    "deleteConfirm": "Czy na pewno chcesz usunąć to zdjęcie?",
+    "noPermissionsMessage": "Nadaj dostęp do galerii.",
+    "uploadErrorFallback": "Nie udało się dodać zdjęć.",
+    "photoAdded": "Dodano zdjęcia.",
+    "loginRequired": "Zaloguj się ponownie.",
+    "stageNotFound": "Nie znaleziono etapu.",
+    "deleteTitle": "Usuń zdjęcie?",
+    "deleteConfirm": "Na pewno chcesz usunąć to zdjęcie?",
     "deleteCancel": "Anuluj",
     "deleteAction": "Usuń",
-    "deleteError": "Nie udało się usunąć zdjęcia"
+    "deleteError": "Nie udało się usunąć zdjęcia.",
+    "photoDeleted": "Usunięto zdjęcie."
   }
 }

@@ -1,0 +1,37 @@
+{
+  "screen": {
+    "title": "Investment"
+  },
+  "alerts": {
+    "completeDataTitle": "Complete the details",
+    "nameRequired": "Project name is required to continue.",
+    "locationRequired": "Location is required to continue.",
+    "invalidBudgetTitle": "Invalid budget",
+    "invalidBudgetMsg": "Budget cannot be negative.",
+    "errorTitle": "Error",
+    "noSession": "No user. Please sign in again.",
+    "saveFailed": "Couldn’t save the data. Please try again.",
+    "saveErrorTitle": "Save error"
+  },
+  "form": {
+    "nameLabel": "Project name",
+    "namePlaceholder": "e.g. House in the woods",
+    "locationLabel": "Location",
+    "locationPlaceholder": "e.g. Warsaw",
+    "startLabel": "Start date",
+    "endLabel": "End date",
+    "datePlaceholder": "DD.MM.YYYY",
+    "plannedBudgetLabel": "Planned budget (PLN)",
+    "plannedBudgetPlaceholder": "e.g. 400000"
+  },
+  "modal": {
+    "pickStartTitle": "Select start date",
+    "pickEndTitle": "Select end date"
+  },
+  "actions": {
+    "saving": "Saving…",
+    "saveAndContinue": "Save & continue",
+    "save": "Save",
+    "cancel": "Cancel"
+  }
+}

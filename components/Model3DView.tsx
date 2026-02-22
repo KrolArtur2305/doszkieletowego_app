@@ -1,13 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { useTranslation } from 'react-i18next';
 
 export default function Model3DView({ url }: { url: string }) {
+  const { t } = useTranslation('project');
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  const hint = t('model.hintRotateZoom');
+  const fallbackLoadFailed = t('model.loadFailed');
+  const fallbackTitle = t('model.errorTitle');
+
   const html = useMemo(() => {
     if (!url) return '<html><body></body></html>';
+
+    // prosta ucieczka, żeby nie rozwalić HTML gdyby tłumaczenie miało cudzysłowy
+    const safeHint = String(hint).replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     return `<!doctype html>
 <html>
@@ -38,7 +48,7 @@ export default function Model3DView({ url }: { url: string }) {
         reveal="auto"
         crossorigin="anonymous"
       ></model-viewer>
-      <div class="msg">Przeciągnij aby obrócić • Szczypnij aby przybliżyć</div>
+      <div class="msg">${safeHint}</div>
     </div>
     <script>
       const mv = document.getElementById('mv');
@@ -56,7 +66,7 @@ export default function Model3DView({ url }: { url: string }) {
     </script>
   </body>
 </html>`;
-  }, [url]);
+  }, [url, hint]);
 
   return (
     <View style={styles.wrap}>
@@ -73,7 +83,7 @@ export default function Model3DView({ url }: { url: string }) {
             }
             if (data.type === 'error') {
               setLoading(false);
-              setErr(String(data.payload || 'Nie udało się załadować modelu.'));
+              setErr(String(data.payload || fallbackLoadFailed));
             }
           } catch {}
         }}
@@ -96,8 +106,10 @@ export default function Model3DView({ url }: { url: string }) {
 
       {err ? (
         <View style={styles.err}>
-          <Text style={styles.errTitle}>Błąd modelu 3D</Text>
-          <Text style={styles.errMsg} numberOfLines={4}>{err}</Text>
+          <Text style={styles.errTitle}>{fallbackTitle}</Text>
+          <Text style={styles.errMsg} numberOfLines={4}>
+            {err}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -105,10 +117,34 @@ export default function Model3DView({ url }: { url: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { height: 260, width: '100%', borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.03)' },
+  wrap: {
+    height: 260,
+    width: '100%',
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
   web: { backgroundColor: 'transparent' },
-  overlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  err: { position: 'absolute', left: 10, right: 10, bottom: 10, padding: 10, borderRadius: 12, backgroundColor: 'rgba(239,68,68,0.18)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)' },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  err: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 10,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(239,68,68,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.35)',
+  },
   errTitle: { color: '#F8FAFC', fontWeight: '900', marginBottom: 4 },
   errMsg: { color: 'rgba(248,250,252,0.8)', fontSize: 12 },
 });

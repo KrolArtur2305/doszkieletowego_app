@@ -62,7 +62,8 @@ const logo = require('../../../assets/logo.png');
 
 function localeFromLng(lng?: string) {
   const base = (lng || 'en').split('-')[0];
-  return base === 'pl' ? 'pl-PL' : 'en-US';
+  const map: Record<string, string> = { pl: 'pl-PL', en: 'en-US', de: 'de-DE' };
+  return map[base] || 'en-US';
 }
 
 function formatDateLocale(iso: string | null | undefined, locale: string) {
@@ -112,17 +113,6 @@ export default function DokumentyScreen() {
     [i18n.language, i18n.resolvedLanguage],
   );
 
-  const lngBase = useMemo(() => (i18n.resolvedLanguage || i18n.language || 'en').split('-')[0], [
-    i18n.language,
-    i18n.resolvedLanguage,
-  ]);
-
-  // ✅ nagłówek identycznie jak w zdjęciach (PL/EN bez ryzyka braku kluczy)
-  const headerTitle = useMemo(() => {
-    if (lngBase === 'pl') return 'Dokumenty';
-    return 'Documents';
-  }, [lngBase]);
-
   const [docs, setDocs] = useState<DbDoc[]>([]);
   const [selectedType, setSelectedType] = useState<DocTypeKey>('all');
 
@@ -157,28 +147,14 @@ export default function DokumentyScreen() {
 
   const getTypeLabel = useCallback(
     (key: DocTypeKey) => {
-      // Możesz potem podpiąć i18n w documents.json, ale to działa od razu jak w zdjęciach
-      if (key === 'all') return lngBase === 'pl' ? 'Wszystkie rodzaje' : 'All types';
-      if (key === 'umowa') return lngBase === 'pl' ? 'Umowa' : 'Contract';
-      if (key === 'faktura') return lngBase === 'pl' ? 'Faktura' : 'Invoice';
-      if (key === 'paragon') return lngBase === 'pl' ? 'Paragon' : 'Receipt';
-      if (key === 'oferta') return lngBase === 'pl' ? 'Oferta' : 'Offer';
-      if (key === 'projekt') return lngBase === 'pl' ? 'Projekt' : 'Project';
-      if (key === 'pozwolenia') return lngBase === 'pl' ? 'Pozwolenia' : 'Permits';
-      return lngBase === 'pl' ? 'Inne' : 'Other';
+      return tt(`documents:types.${key}`);
     },
-    [lngBase],
+    [tt],
   );
 
   const sortLabel = useMemo(() => {
-    return sortOrder === 'newest'
-      ? lngBase === 'pl'
-        ? 'Najnowsze'
-        : 'Newest'
-      : lngBase === 'pl'
-        ? 'Najstarsze'
-        : 'Oldest';
-  }, [sortOrder, lngBase]);
+    return sortOrder === 'newest' ? tt('documents:sort.newest') : tt('documents:sort.oldest');
+  }, [sortOrder, tt]);
 
   const selectedFilterLabel = useMemo(() => getTypeLabel(selectedType), [selectedType, getTypeLabel]);
 
@@ -211,8 +187,8 @@ export default function DokumentyScreen() {
       } catch (e: any) {
         console.error('Błąd ładowania dokumentów:', e);
         Alert.alert(
-          tt('common:errorTitle', { defaultValue: 'Błąd' }),
-          tt('documents:alerts.loadDocsError', { defaultValue: 'Nie udało się wczytać dokumentów.' }),
+          tt('common:errorTitle', { defaultValue: 'Error' }),
+          tt('documents:alerts.loadDocsError'),
         );
       } finally {
         setLoading(false);
@@ -289,20 +265,20 @@ export default function DokumentyScreen() {
     } catch (e: any) {
       console.error('Błąd otwierania dokumentu:', e);
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Błąd' }),
-        tt('documents:alerts.openError', { defaultValue: 'Nie udało się otworzyć dokumentu.' }),
+        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('documents:alerts.openError'),
       );
     }
   };
 
   const deleteDoc = async (doc: DbDoc) => {
     Alert.alert(
-      lngBase === 'pl' ? 'Usunąć dokument?' : 'Delete document?',
-      lngBase === 'pl' ? 'Na pewno chcesz usunąć ten dokument?' : 'Are you sure you want to delete this document?',
+      tt('documents:alerts.deleteTitle'),
+      tt('documents:alerts.deleteDesc'),
       [
-        { text: tt('common:cancel', { defaultValue: 'Anuluj' }), style: 'cancel' },
+        { text: tt('common:cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
         {
-          text: tt('common:delete', { defaultValue: 'Usuń' }),
+          text: tt('common:delete', { defaultValue: 'Delete' }),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -312,8 +288,8 @@ export default function DokumentyScreen() {
             } catch (e: any) {
               console.error('Błąd usuwania dokumentu:', e);
               Alert.alert(
-                tt('common:errorTitle', { defaultValue: 'Błąd' }),
-                tt('documents:alerts.deleteError', { defaultValue: 'Nie udało się usunąć dokumentu.' }),
+                tt('common:errorTitle', { defaultValue: 'Error' }),
+                tt('documents:alerts.deleteError'),
               );
             }
           },
@@ -335,8 +311,8 @@ export default function DokumentyScreen() {
 
     if (!file?.uri) {
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Błąd' }),
-        lngBase === 'pl' ? 'Dodaj plik lub zdjęcie.' : 'Attach a file or image.',
+        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('documents:alerts.fileRequired'),
       );
       return;
     }
@@ -379,14 +355,14 @@ export default function DokumentyScreen() {
       resetAddForm();
       onRefresh();
       Alert.alert(
-        tt('documents:alerts.successTitle', { defaultValue: 'Sukces' }),
-        tt('documents:alerts.docAdded', { defaultValue: 'Dodano dokument.' }),
+        tt('documents:alerts.successTitle'),
+        tt('documents:alerts.docAdded'),
       );
     } catch (e: any) {
       console.error('Błąd dodawania dokumentu:', e);
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Błąd' }),
-        tt('documents:alerts.addError', { defaultValue: 'Nie udało się dodać dokumentu.' }),
+        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('documents:alerts.addError'),
       );
     } finally {
       setSaving(false);
@@ -397,13 +373,11 @@ export default function DokumentyScreen() {
     <View style={styles.emptyContainer}>
       <BlurView intensity={15} tint="dark" style={styles.emptyCard}>
         <Ionicons name="document-text-outline" size={64} color="rgba(255,255,255,0.25)" />
-        <Text style={styles.emptyTitle}>{lngBase === 'pl' ? 'Brak dokumentów' : 'No documents'}</Text>
-        <Text style={styles.emptySubtitle}>
-          {lngBase === 'pl' ? 'Dodaj pierwsze dokumenty do projektu.' : 'Add your first documents to the project.'}
-        </Text>
+        <Text style={styles.emptyTitle}>{tt('documents:empty.title')}</Text>
+        <Text style={styles.emptySubtitle}>{tt('documents:empty.subtitle')}</Text>
         <TouchableOpacity style={styles.emptyButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color={COLORS.bg} />
-          <Text style={styles.emptyButtonText}>{lngBase === 'pl' ? 'Dodaj dokument' : 'Add document'}</Text>
+          <Text style={styles.emptyButtonText}>{tt('documents:empty.cta')}</Text>
         </TouchableOpacity>
       </BlurView>
     </View>
@@ -488,7 +462,7 @@ export default function DokumentyScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.brand} />
-        <Text style={styles.loadingText}>{lngBase === 'pl' ? 'Ładowanie…' : 'Loading…'}</Text>
+        <Text style={styles.loadingText}>{tt('documents:loading')}</Text>
       </View>
     );
   }
@@ -515,7 +489,7 @@ export default function DokumentyScreen() {
         </View>
 
         <View style={styles.topTitleWrap}>
-          <Text style={styles.title}>{headerTitle}</Text>
+          <Text style={styles.title}>{tt('documents:screen.title')}</Text>
         </View>
 
         <View style={styles.headerRight}>
@@ -541,7 +515,7 @@ export default function DokumentyScreen() {
         </View>
       </View>
 
-      {/* FILTER + SORT (identyczny układ jak Zdjęcia) */}
+      {/* FILTER + SORT */}
       <View style={styles.filterBar}>
         <View style={styles.filtersRow}>
           <View style={[styles.dropdownWrap, { flex: 1 }]}>
@@ -622,7 +596,7 @@ export default function DokumentyScreen() {
                   activeOpacity={0.85}
                 >
                   <Text style={[styles.dropdownItemText, sortOrder === 'newest' && styles.dropdownItemTextActive]}>
-                    {lngBase === 'pl' ? 'Najnowsze' : 'Newest'}
+                    {tt('documents:sort.newest')}
                   </Text>
                   {sortOrder === 'newest' && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
                 </TouchableOpacity>
@@ -636,7 +610,7 @@ export default function DokumentyScreen() {
                   activeOpacity={0.85}
                 >
                   <Text style={[styles.dropdownItemText, sortOrder === 'oldest' && styles.dropdownItemTextActive]}>
-                    {lngBase === 'pl' ? 'Najstarsze' : 'Oldest'}
+                    {tt('documents:sort.oldest')}
                   </Text>
                   {sortOrder === 'oldest' && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
                 </TouchableOpacity>
@@ -670,7 +644,7 @@ export default function DokumentyScreen() {
         />
       )}
 
-      {/* FAB (identyczny jak w Zdjęcia) */}
+      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)} activeOpacity={0.9}>
         <BlurView intensity={90} tint="dark" style={styles.fabBlur}>
           <View style={styles.fabRing} />
@@ -678,7 +652,7 @@ export default function DokumentyScreen() {
         </BlurView>
       </TouchableOpacity>
 
-      {/* ADD MODAL (wizual jak Zdjęcia + klawiatura chowa się po tapie w tło) */}
+      {/* ADD MODAL */}
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
         <Pressable
           style={styles.modalBlackOverlay}
@@ -687,19 +661,16 @@ export default function DokumentyScreen() {
             closeAllDropdowns();
           }}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={{ width: '100%' }}
-          >
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
             <Pressable
               style={styles.modalContent}
               onPress={() => {
                 // blokuje zamykanie po kliknięciu w kartę
               }}
             >
-              <Text style={styles.modalTitle}>{lngBase === 'pl' ? 'Dodaj dokument' : 'Add document'}</Text>
+              <Text style={styles.modalTitle}>{tt('documents:addModal.title')}</Text>
 
-              <Text style={styles.modalLabel}>{lngBase === 'pl' ? 'RODZAJ' : 'TYPE'}</Text>
+              <Text style={styles.modalLabel}>{tt('documents:addModal.labels.type')}</Text>
 
               <TouchableOpacity
                 style={styles.dropdownButton}
@@ -747,32 +718,32 @@ export default function DokumentyScreen() {
                 </View>
               )}
 
-              <Text style={styles.modalLabel}>{lngBase === 'pl' ? 'TYTUŁ (OPCJONALNIE)' : 'TITLE (OPTIONAL)'}</Text>
+              <Text style={styles.modalLabel}>{tt('documents:addModal.labels.titleOptional')}</Text>
               <TextInput
                 value={title}
                 onChangeText={setTitle}
-                placeholder={lngBase === 'pl' ? 'np. Umowa wykonawcza' : 'e.g. Contract'}
+                placeholder={tt('documents:addModal.placeholders.title')}
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 style={styles.input}
                 returnKeyType="done"
                 onSubmitEditing={Keyboard.dismiss}
               />
 
-              <Text style={styles.modalLabel}>{lngBase === 'pl' ? 'OPIS (OPCJONALNIE)' : 'DESCRIPTION (OPTIONAL)'}</Text>
+              <Text style={styles.modalLabel}>{tt('documents:addModal.labels.descriptionOptional')}</Text>
               <TextInput
                 value={desc}
                 onChangeText={setDesc}
-                placeholder={lngBase === 'pl' ? 'Dodaj opis (opcjonalnie)' : 'Add description (optional)'}
+                placeholder={tt('documents:addModal.placeholders.description')}
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 style={styles.textArea}
                 multiline
               />
 
-              <Text style={styles.modalLabel}>{lngBase === 'pl' ? 'PLIK / ZDJĘCIE' : 'FILE / IMAGE'}</Text>
+              <Text style={styles.modalLabel}>{tt('documents:addModal.labels.file')}</Text>
               <TouchableOpacity style={styles.filePickButton} activeOpacity={0.85} onPress={pickFile}>
                 <Ionicons name="attach-outline" size={18} color={COLORS.brand} />
                 <Text style={styles.filePickText} numberOfLines={1}>
-                  {file?.name ? file.name : lngBase === 'pl' ? 'Dodaj plik lub zdjęcie' : 'Attach file or image'}
+                  {file?.name ? file.name : tt('documents:addModal.placeholders.file')}
                 </Text>
                 <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.45)" />
               </TouchableOpacity>
@@ -780,7 +751,7 @@ export default function DokumentyScreen() {
               {saving && (
                 <View style={styles.uploadProgressRow}>
                   <ActivityIndicator color={COLORS.brand} />
-                  <Text style={styles.uploadProgressText}>{lngBase === 'pl' ? 'Zapisywanie…' : 'Saving…'}</Text>
+                  <Text style={styles.uploadProgressText}>{tt('documents:addModal.saving')}</Text>
                 </View>
               )}
 
@@ -796,7 +767,7 @@ export default function DokumentyScreen() {
                   disabled={saving}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.modalButtonTextSecondary}>{lngBase === 'pl' ? 'Anuluj' : 'Cancel'}</Text>
+                  <Text style={styles.modalButtonTextSecondary}>{tt('common:cancel', { defaultValue: 'Cancel' })}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -808,7 +779,7 @@ export default function DokumentyScreen() {
                   {saving ? (
                     <ActivityIndicator color={COLORS.bg} />
                   ) : (
-                    <Text style={styles.modalButtonTextPrimary}>{lngBase === 'pl' ? 'Zapisz' : 'Save'}</Text>
+                    <Text style={styles.modalButtonTextPrimary}>{tt('common:save', { defaultValue: 'Save' })}</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -999,7 +970,7 @@ const styles = StyleSheet.create({
   emptyButton: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.brand },
   emptyButtonText: { fontSize: 14, fontWeight: '900', color: '#03110C', letterSpacing: 0.5 },
 
-  // FAB (jak zdjęcia)
+  // FAB
   fab: {
     position: 'absolute',
     bottom: 28,
@@ -1017,7 +988,7 @@ const styles = StyleSheet.create({
   fabBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(25,112,92,0.55)' },
   fabRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(25,112,92,0.35)', backgroundColor: 'rgba(25,112,92,0.06)' },
 
-  // MODAL (jak zdjęcia)
+  // MODAL
   modalBlackOverlay: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 22 },
 
   modalContent: {

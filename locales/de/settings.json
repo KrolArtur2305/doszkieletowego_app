@@ -3,17 +3,40 @@
   "fallbackUser": "Benutzer",
   "placeholderMessage": "Diese Funktion wird später hinzugefügt.",
   "logout": "Abmelden",
-  "logoutError": "Abmeldung fehlgeschlagen.",
+  "logoutError": "Abmelden fehlgeschlagen.",
   "items": {
     "profileTitle": "Profil",
     "profileSubtitle": "Kontoinhaber-Daten",
-    "investmentTitle": "Investition",
-    "investmentSubtitle": "Projekt-/Baudetails",
+    "investmentTitle": "Projekt",
+    "investmentSubtitle": "Projekt- / Bau-Daten",
     "appTitle": "App",
     "appSubtitle": "App-Einstellungen (später)",
-    "subscriptionTitle": "Abo verwalten",
+    "subscriptionTitle": "Abonnement verwalten",
     "subscriptionSubtitle": "Später",
     "reportTitle": "Problem melden",
     "reportSubtitle": "Fehlerbeschreibung senden"
+  },
+  "report": {
+    "title": "Problem melden",
+    "categoryTitle": "Kategorie",
+    "descriptionTitle": "Beschreibung",
+    "descriptionPlaceholder": "Was genau ist passiert? Was hast du angeklickt? Was war das Ergebnis?",
+    "categories": {
+      "loginSession": "Login / Sitzung",
+      "supabaseData": "Supabase / Daten",
+      "uiScreen": "UI / Bildschirm",
+      "crash": "Crash",
+      "other": "Sonstiges"
+    },
+    "alerts": {
+      "warningTitle": "Hinweis",
+      "minLength": "Bitte beschreibe das Problem mit mindestens 10 Zeichen.",
+      "thanksTitle": "Danke!",
+      "savedLocalDemo": "Deine Meldung wurde lokal gespeichert (Demo)."
+    },
+    "actions": {
+      "send": "Senden"
+    },
+    "hintDemo": "Das ist eine Demo-Version. Später verbinden wir Supabase-Speicherung oder einen Webhook."
   }
 }

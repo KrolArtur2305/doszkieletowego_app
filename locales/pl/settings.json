@@ -15,5 +15,28 @@
     "subscriptionSubtitle": "Później",
     "reportTitle": "Zgłoś problem",
     "reportSubtitle": "Wyślij opis błędu"
+  },
+  "report": {
+    "title": "Zgłoś problem",
+    "categoryTitle": "Kategoria",
+    "descriptionTitle": "Opis",
+    "descriptionPlaceholder": "Co dokładnie się stało? Co kliknąłeś? Jaki był efekt?",
+    "categories": {
+      "loginSession": "Logowanie / sesja",
+      "supabaseData": "Supabase / dane",
+      "uiScreen": "UI / ekran",
+      "crash": "Crash",
+      "other": "Inne"
+    },
+    "alerts": {
+      "warningTitle": "Uwaga",
+      "minLength": "Opisz problem przynajmniej w 10 znakach.",
+      "thanksTitle": "Dzięki!",
+      "savedLocalDemo": "Zgłoszenie zostało zapisane lokalnie (demo)."
+    },
+    "actions": {
+      "send": "Wyślij"
+    },
+    "hintDemo": "To jest wersja demo. Później podepniemy zapis do Supabase lub webhook."
   }
 }

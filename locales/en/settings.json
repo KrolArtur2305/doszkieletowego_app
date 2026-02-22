@@ -3,7 +3,7 @@
   "fallbackUser": "User",
   "placeholderMessage": "This feature will be added later.",
   "logout": "Log out",
-  "logoutError": "Couldn't log out.",
+  "logoutError": "Failed to log out.",
   "items": {
     "profileTitle": "Profile",
     "profileSubtitle": "Account owner details",
@@ -13,7 +13,30 @@
     "appSubtitle": "App settings (later)",
     "subscriptionTitle": "Manage subscription",
     "subscriptionSubtitle": "Later",
-    "reportTitle": "Report an issue",
+    "reportTitle": "Report a problem",
     "reportSubtitle": "Send a bug description"
+  },
+  "report": {
+    "title": "Report a problem",
+    "categoryTitle": "Category",
+    "descriptionTitle": "Description",
+    "descriptionPlaceholder": "What exactly happened? What did you tap? What was the result?",
+    "categories": {
+      "loginSession": "Login / session",
+      "supabaseData": "Supabase / data",
+      "uiScreen": "UI / screen",
+      "crash": "Crash",
+      "other": "Other"
+    },
+    "alerts": {
+      "warningTitle": "Notice",
+      "minLength": "Please describe the issue using at least 10 characters.",
+      "thanksTitle": "Thanks!",
+      "savedLocalDemo": "Your report was saved locally (demo)."
+    },
+    "actions": {
+      "send": "Send"
+    },
+    "hintDemo": "This is a demo version. Later we’ll connect Supabase storage or a webhook."
   }
 }

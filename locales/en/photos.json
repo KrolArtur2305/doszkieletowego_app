@@ -1,71 +1,63 @@
 {
-  "header": {
-    "title": "Photos"
-  },
   "title": "Photos",
-
-  "loading": {
-    "title": "Loading photos…"
-  },
+  "loading": "Loading…",
 
   "misc": {
     "stageFallback": "Stage"
   },
 
   "filter": {
-    "label": "Stage filter",
     "allStages": "All stages"
+  },
+
+  "sort": {
+    "newest": "Newest",
+    "oldest": "Oldest"
   },
 
   "empty": {
     "title": "No photos",
-    "subtitleAll": "Add your first construction photo.",
-    "subtitleStage": "No photos for the selected stage.",
-    "addButton": "Add photo"
+    "subtitleAll": "Add your first photos to the project.",
+    "subtitleStage": "There are no photos in this stage yet.",
+    "addButton": "Add photos"
   },
 
   "addModal": {
-    "title": "Add photo",
-    "stageLabel": "PHOTO STAGE",
+    "title": "Add photos",
+    "stageLabel": "Stage",
     "pickStage": "Select stage",
-    "dateLabel": "PHOTO DATE (optional)",
+    "dateLabel": "Date",
     "pickDate": "Pick a date",
-    "descLabel": "DESCRIPTION (optional)",
-    "descPlaceholder": "e.g. window installation from the south",
-    "tagsLabel": "TAGS (optional)",
-    "tagsPlaceholder": "e.g. roof, windows, wiring",
+    "descLabel": "Description",
+    "descPlaceholder": "Add a description (optional)",
+    "tagsLabel": "Tags",
+    "tagsPlaceholder": "e.g. windows, facade, roof",
+    "uploading": "Uploading",
     "cancel": "Cancel",
-    "pickPhoto": "Choose photo",
-    "hint": "Saved to Storage ({bucket}) + stage + optional fields."
+    "pickPhoto": "Choose photos"
   },
 
   "preview": {
-    "delete": "Delete photo"
+    "delete": "Delete"
   },
 
   "alerts": {
     "successTitle": "Success",
-    "photoAdded": "Photo added",
-    "photoDeleted": "Photo deleted",
-
-    "loadStagesError": "Could not load photo stages",
-    "loadPhotosError": "Could not load photos",
-
-    "loginRequired": "You must be signed in",
-    "stageNotFound": "Stage not found",
-
-    "pickStageTitle": "Attention",
-    "pickStageMessage": "Select a stage for the photo",
-
-    "noPermissionsTitle": "No permission",
-    "noPermissionsMessage": "We need access to your gallery",
-
-    "uploadFailed": "Could not add photo",
-
-    "deleteTitle": "Delete photo",
+    "loadStagesError": "Could not load stages.",
+    "loadPhotosError": "Could not load photos.",
+    "pickStageTitle": "Select stage",
+    "pickStageMessage": "Select a stage first.",
+    "noPermissionsTitle": "Permission needed",
+    "noPermissionsMessage": "Allow access to your photo library.",
+    "uploadErrorFallback": "Could not upload photos.",
+    "photoAdded": "Photos added.",
+    "loginRequired": "Please sign in again.",
+    "stageNotFound": "Stage not found.",
+    "deleteTitle": "Delete photo?",
     "deleteConfirm": "Are you sure you want to delete this photo?",
     "deleteCancel": "Cancel",
     "deleteAction": "Delete",
-    "deleteError": "Could not delete photo"
+    "deleteError": "Could not delete the photo.",
+    "photoDeleted": "Photo deleted."
   }
 }

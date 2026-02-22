@@ -1,53 +1,54 @@
 {
-  "common": {
-    "cancel": "Abbrechen",
-    "delete": "Löschen",
-    "save": "Speichern"
+  "screen": { "title": "Dokumente" },
+  "loading": "Laden…",
+
+  "types": {
+    "all": "Alle Typen",
+    "umowa": "Vertrag",
+    "faktura": "Rechnung",
+    "paragon": "Beleg",
+    "oferta": "Angebot",
+    "projekt": "Projekt",
+    "pozwolenia": "Genehmigungen",
+    "inne": "Sonstiges"
   },
-  "alerts": {
-    "errorTitle": "Fehler",
-    "titleAndAttachmentRequired": "Titel und Anhang sind erforderlich."
+
+  "sort": {
+    "newest": "Neueste",
+    "oldest": "Älteste"
   },
-  "errors": {
-    "fetchFailed": "Dokumente konnten nicht geladen werden.",
-    "noUser": "Kein Benutzer",
-    "addFailed": "Dokument konnte nicht hinzugefügt werden."
-  },
-  "loading": {
-    "documents": "Dokumente werden geladen…"
-  },
-  "header": {
-    "title": "Dokumente",
-    "subtitle": "Nur deine Dateien (PRIVAT) — geöffnet über signierte URL."
-  },
-  "actions": {
-    "add": "Hinzufügen",
-    "refresh": "Aktualisieren",
-    "refreshing": "Aktualisiere…"
-  },
+
   "empty": {
-    "noDocsInCategory": "Keine Dokumente in dieser Kategorie."
+    "title": "Keine Dokumente",
+    "subtitle": "Füge die ersten Dokumente zum Projekt hinzu.",
+    "cta": "Dokument hinzufügen"
   },
-  "card": {
-    "hint": "Tippen: öffnen • Halten: löschen"
+
+  "addModal": {
+    "title": "Dokument hinzufügen",
+    "labels": {
+      "type": "TYP",
+      "titleOptional": "TITEL (OPTIONAL)",
+      "descriptionOptional": "BESCHREIBUNG (OPTIONAL)",
+      "file": "DATEI / BILD"
+    },
+    "placeholders": {
+      "title": "z. B. Vertrag",
+      "description": "Beschreibung hinzufügen (optional)",
+      "file": "Datei oder Bild anhängen"
+    },
+    "saving": "Speichern…"
   },
-  "category": {
-    "contracts": "Verträge",
-    "invoicesReceipts": "Rechnungen/Belege",
-    "other": "Sonstiges"
-  },
-  "delete": {
-    "confirmTitle": "Dokument löschen",
-    "confirmMessage": "Möchtest du \"{{title}}\" wirklich löschen?"
-  },
-  "modal": {
-    "title": "Neues Dokument",
-    "titleLabel": "Titel (erforderlich)",
-    "titlePlaceholder": "z. B. Vertrag mit Auftragnehmer",
-    "descriptionLabel": "Beschreibung",
-    "descriptionPlaceholder": "Zusätzliche Informationen…",
-    "categoryLabel": "Kategorie",
-    "attachmentRequired": "Anhang (erforderlich)",
-    "pickFile": "Datei wählen (PDF / Foto)"
+
+  "alerts": {
+    "loadDocsError": "Dokumente konnten nicht geladen werden.",
+    "openError": "Dokument konnte nicht geöffnet werden.",
+    "deleteTitle": "Dokument löschen?",
+    "deleteDesc": "Möchtest du dieses Dokument wirklich löschen?",
+    "deleteError": "Dokument konnte nicht gelöscht werden.",
+    "fileRequired": "Bitte eine Datei oder ein Bild anhängen.",
+    "addError": "Dokument konnte nicht hinzugefügt werden.",
+    "successTitle": "Erfolg",
+    "docAdded": "Dokument hinzugefügt."
   }
 }

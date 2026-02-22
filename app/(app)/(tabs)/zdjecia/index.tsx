@@ -79,7 +79,9 @@ function sanitizeFolderName(input: string) {
 
 function localeFromLng(lng?: string) {
   const base = (lng || 'en').split('-')[0];
-  return base === 'pl' ? 'pl-PL' : 'en-US';
+  if (base === 'pl') return 'pl-PL';
+  if (base === 'de') return 'de-DE';
+  return 'en-US';
 }
 
 export default function ZdjeciaScreen() {
@@ -92,17 +94,6 @@ export default function ZdjeciaScreen() {
     () => localeFromLng(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage],
   );
-
-  const lngBase = useMemo(() => (i18n.resolvedLanguage || i18n.language || 'en').split('-')[0], [
-    i18n.language,
-    i18n.resolvedLanguage,
-  ]);
-
-  // ✅ nagłówek dopasowany językowo (PL: Zdjęcia; EN: Photos)
-  const headerTitle = useMemo(() => {
-    if (lngBase === 'pl') return 'Zdjęcia';
-    return 'Photos';
-  }, [lngBase]);
 
   const [zdjecia, setZdjecia] = useState<Zdjecie[]>([]);
   const [etapy, setEtapy] = useState<EtapZdjecia[]>([]);
@@ -189,7 +180,10 @@ export default function ZdjeciaScreen() {
       setEtapy((data || []) as EtapZdjecia[]);
     } catch (e) {
       console.error('Błąd ładowania etapów zdjęć:', e);
-      Alert.alert(tt('common:errorTitle', { defaultValue: 'Błąd' }), tt('photos:alerts.loadStagesError', { defaultValue: 'Nie udało się wczytać etapów.' }));
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        tt('photos:alerts.loadStagesError', { defaultValue: 'Nie udało się wczytać etapów.' }),
+      );
     }
   };
 
@@ -214,6 +208,11 @@ export default function ZdjeciaScreen() {
 
       if (!isInitial && selectedEtap !== 'all' && !s.has(selectedEtap)) {
         setSelectedEtap('all');
+      }
+
+      // ✅ jeśli wybrany etap do uploadu przestał istnieć w użyciu – wyczyść
+      if (!isInitial && selectedEtapForUpload && !s.has(selectedEtapForUpload)) {
+        setSelectedEtapForUpload('');
       }
     } catch (e) {
       console.error('Błąd ładowania etapUsage:', e);
@@ -255,7 +254,10 @@ export default function ZdjeciaScreen() {
       setZdjecia(withUrls);
     } catch (e) {
       console.error('Błąd ładowania zdjęć:', e);
-      Alert.alert(tt('common:errorTitle', { defaultValue: 'Błąd' }), tt('photos:alerts.loadPhotosError', { defaultValue: 'Nie udało się wczytać zdjęć.' }));
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        tt('photos:alerts.loadPhotosError', { defaultValue: 'Nie udało się wczytać zdjęć.' }),
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -265,6 +267,7 @@ export default function ZdjeciaScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     Promise.all([loadEtapUsage(false), loadZdjecia(false)]).finally(() => setRefreshing(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortOrder, selectedEtap]);
 
   const canPick = useMemo(() => Boolean(selectedEtapForUpload), [selectedEtapForUpload]);
@@ -275,15 +278,28 @@ export default function ZdjeciaScreen() {
     return etapy.filter((e) => etapUsageSet.has(e.id));
   }, [etapy, etapUsageSet]);
 
+  // ✅ etapy w MODALU DODAWANIA: tylko te, które realnie mają zdjęcia
+  //    (fallback: jeśli user ma 0 zdjęć, pokaż wszystkie żeby dało się dodać pierwsze)
+  const uploadEtapy = useMemo(() => {
+    if (!etapUsageSet.size) return etapy; // fallback, bo inaczej nie dodasz pierwszych zdjęć
+    return etapy.filter((e) => etapUsageSet.has(e.id));
+  }, [etapy, etapUsageSet]);
+
   const handlePickAndUpload = async () => {
     if (!selectedEtapForUpload) {
-      Alert.alert(tt('photos:alerts.pickStageTitle', { defaultValue: 'Wybierz etap' }), tt('photos:alerts.pickStageMessage', { defaultValue: 'Najpierw wybierz etap zdjęcia.' }));
+      Alert.alert(
+        tt('photos:alerts.pickStageTitle', { defaultValue: 'Wybierz etap' }),
+        tt('photos:alerts.pickStageMessage', { defaultValue: 'Najpierw wybierz etap zdjęcia.' }),
+      );
       return;
     }
 
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert(tt('photos:alerts.noPermissionsTitle', { defaultValue: 'Brak uprawnień' }), tt('photos:alerts.noPermissionsMessage', { defaultValue: 'Nadaj dostęp do galerii.' }));
+      Alert.alert(
+        tt('photos:alerts.noPermissionsTitle', { defaultValue: 'Brak uprawnień' }),
+        tt('photos:alerts.noPermissionsMessage', { defaultValue: 'Nadaj dostęp do galerii.' }),
+      );
       return;
     }
 
@@ -323,10 +339,16 @@ export default function ZdjeciaScreen() {
 
       await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
 
-      Alert.alert(tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }), tt('photos:alerts.photoAdded', { defaultValue: 'Dodano zdjęcia.' }));
+      Alert.alert(
+        tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
+        tt('photos:alerts.photoAdded', { defaultValue: 'Dodano zdjęcia.' }),
+      );
     } catch (e: any) {
       console.error('Błąd batch uploadu:', e);
-      Alert.alert(tt('common:errorTitle', { defaultValue: 'Błąd' }), e?.message ? String(e.message) : tt('photos:alerts.uploadErrorFallback', { defaultValue: 'Nie udało się dodać zdjęć.' }));
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        e?.message ? String(e.message) : tt('photos:alerts.uploadErrorFallback', { defaultValue: 'Nie udało się dodać zdjęć.' }),
+      );
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -381,31 +403,42 @@ export default function ZdjeciaScreen() {
   };
 
   const handleDeletePhoto = async (z: Zdjecie) => {
-    Alert.alert(tt('photos:alerts.deleteTitle', { defaultValue: 'Usuń zdjęcie?' }), tt('photos:alerts.deleteConfirm', { defaultValue: 'Na pewno chcesz usunąć to zdjęcie?' }), [
-      { text: tt('photos:alerts.deleteCancel', { defaultValue: 'Anuluj' }), style: 'cancel' },
-      {
-        text: tt('photos:alerts.deleteAction', { defaultValue: 'Usuń' }),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const { error: delError } = await supabase.from('zdjecia').delete().eq('id', z.id);
-            if (delError) throw delError;
+    Alert.alert(
+      tt('photos:alerts.deleteTitle', { defaultValue: 'Usuń zdjęcie?' }),
+      tt('photos:alerts.deleteConfirm', { defaultValue: 'Na pewno chcesz usunąć to zdjęcie?' }),
+      [
+        { text: tt('photos:alerts.deleteCancel', { defaultValue: 'Anuluj' }), style: 'cancel' },
+        {
+          text: tt('photos:alerts.deleteAction', { defaultValue: 'Usuń' }),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error: delError } = await supabase.from('zdjecia').delete().eq('id', z.id);
+              if (delError) throw delError;
 
-            const { error: rmError } = await supabase.storage.from(bucketName).remove([z.file_path]);
-            if (rmError) console.warn('Nie udało się usunąć pliku ze storage:', rmError);
+              const { error: rmError } = await supabase.storage.from(bucketName).remove([z.file_path]);
+              if (rmError) console.warn('Nie udało się usunąć pliku ze storage:', rmError);
 
-            setPreviewModalVisible(false);
-            setSelectedZdjecie(null);
+              setPreviewModalVisible(false);
+              setSelectedZdjecie(null);
 
-            await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
-            Alert.alert(tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }), tt('photos:alerts.photoDeleted', { defaultValue: 'Usunięto zdjęcie.' }));
-          } catch (e) {
-            console.error('Błąd usuwania:', e);
-            Alert.alert(tt('common:errorTitle', { defaultValue: 'Błąd' }), tt('photos:alerts.deleteError', { defaultValue: 'Nie udało się usunąć zdjęcia.' }));
-          }
+              await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
+
+              Alert.alert(
+                tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
+                tt('photos:alerts.photoDeleted', { defaultValue: 'Usunięto zdjęcie.' }),
+              );
+            } catch (e) {
+              console.error('Błąd usuwania:', e);
+              Alert.alert(
+                tt('common:errorTitle', { defaultValue: 'Błąd' }),
+                tt('photos:alerts.deleteError', { defaultValue: 'Nie udało się usunąć zdjęcia.' }),
+              );
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const openPreview = (item: Zdjecie) => {
@@ -516,14 +549,14 @@ export default function ZdjeciaScreen() {
         </View>
 
         <View style={styles.topTitleWrap}>
-          {/* ✅ nagłówek większy */}
-          <Text style={styles.title}>{headerTitle}</Text>
+          <Text style={styles.title}>{tt('photos:title', { defaultValue: 'Zdjęcia' })}</Text>
         </View>
 
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={[styles.toggleButton, viewMode === 'grid' && styles.toggleButtonActive]}
             onPress={() => setViewMode('grid')}
+            activeOpacity={0.85}
           >
             <Ionicons name="grid" size={20} color={viewMode === 'grid' ? COLORS.brand : 'rgba(255,255,255,0.45)'} />
           </TouchableOpacity>
@@ -531,6 +564,7 @@ export default function ZdjeciaScreen() {
           <TouchableOpacity
             style={[styles.toggleButton, viewMode === 'carousel' && styles.toggleButtonActive]}
             onPress={() => setViewMode('carousel')}
+            activeOpacity={0.85}
           >
             <Ionicons
               name="albums"
@@ -541,7 +575,7 @@ export default function ZdjeciaScreen() {
         </View>
       </View>
 
-      {/* FILTER + SORT (bez etykiet) */}
+      {/* FILTER + SORT */}
       <View style={styles.filterBar}>
         <View style={styles.filtersRow}>
           <View style={[styles.dropdownWrap, { flex: 1 }]}>
@@ -574,6 +608,7 @@ export default function ZdjeciaScreen() {
                       setSelectedEtap('all');
                       setFilterDropdownOpen(false);
                     }}
+                    activeOpacity={0.85}
                   >
                     <Text style={[styles.dropdownItemText, selectedEtap === 'all' && styles.dropdownItemTextActive]}>
                       {tt('photos:filter.allStages', { defaultValue: 'Wszystkie etapy' })}
@@ -591,6 +626,7 @@ export default function ZdjeciaScreen() {
                           setSelectedEtap(etap.id);
                           setFilterDropdownOpen(false);
                         }}
+                        activeOpacity={0.85}
                       >
                         <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>{etap.nazwa}</Text>
                         {active && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
@@ -631,6 +667,7 @@ export default function ZdjeciaScreen() {
                     setSortOrder('newest');
                     setSortDropdownOpen(false);
                   }}
+                  activeOpacity={0.85}
                 >
                   <Text style={[styles.dropdownItemText, sortOrder === 'newest' && styles.dropdownItemTextActive]}>
                     {tt('photos:sort.newest', { defaultValue: 'Najnowsze' })}
@@ -644,6 +681,7 @@ export default function ZdjeciaScreen() {
                     setSortOrder('oldest');
                     setSortDropdownOpen(false);
                   }}
+                  activeOpacity={0.85}
                 >
                   <Text style={[styles.dropdownItemText, sortOrder === 'oldest' && styles.dropdownItemTextActive]}>
                     {tt('photos:sort.oldest', { defaultValue: 'Najstarsze' })}
@@ -694,15 +732,9 @@ export default function ZdjeciaScreen() {
 
       {/* ADD MODAL */}
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
-        {/* ✅ tło czarne */}
         <View style={styles.modalBlackOverlay}>
           <View style={styles.modalContent}>
-            {/* ✅ PL: Dodaj zdjęcia */}
-            <Text style={styles.modalTitle}>
-              {lngBase === 'pl'
-                ? 'Dodaj zdjęcia'
-                : tt('photos:addModal.title', { defaultValue: 'Add photos' })}
-            </Text>
+            <Text style={styles.modalTitle}>{tt('photos:addModal.title', { defaultValue: 'Dodaj zdjęcia' })}</Text>
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.stageLabel', { defaultValue: 'Etap' })}</Text>
 
@@ -729,7 +761,7 @@ export default function ZdjeciaScreen() {
             {uploadDropdownOpen && (
               <View style={styles.dropdownPanel}>
                 <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
-                  {etapy.map((etap) => {
+                  {uploadEtapy.map((etap) => {
                     const active = selectedEtapForUpload === etap.id;
                     return (
                       <TouchableOpacity
@@ -739,6 +771,7 @@ export default function ZdjeciaScreen() {
                           setSelectedEtapForUpload(etap.id);
                           setUploadDropdownOpen(false);
                         }}
+                        activeOpacity={0.85}
                       >
                         <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>{etap.nazwa}</Text>
                         {active && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
@@ -829,24 +862,17 @@ export default function ZdjeciaScreen() {
                   <ActivityIndicator color={COLORS.bg} />
                 ) : (
                   <Text style={styles.modalButtonTextPrimary}>
-                    {tt('photos:addModal.pickPhoto', { defaultValue: lngBase === 'pl' ? 'Wybierz zdjęcia' : 'Choose photos' })}
+                    {tt('photos:addModal.pickPhoto', { defaultValue: 'Wybierz zdjęcia' })}
                   </Text>
                 )}
               </TouchableOpacity>
             </View>
-
-            {/* ✅ usunięty hint o bucket */}
           </View>
         </View>
       </Modal>
 
       {/* PREVIEW MODAL */}
-      <Modal
-        visible={previewModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPreviewModalVisible(false)}
-      >
+      <Modal visible={previewModalVisible} transparent animationType="fade" onRequestClose={() => setPreviewModalVisible(false)}>
         <BlurView intensity={95} tint="dark" style={styles.previewOverlay}>
           <TouchableOpacity style={styles.closeButton} onPress={() => setPreviewModalVisible(false)} activeOpacity={0.85}>
             <Ionicons name="close" size={28} color={COLORS.text} />
@@ -890,11 +916,7 @@ export default function ZdjeciaScreen() {
                     </View>
                   ) : null}
 
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeletePhoto(selectedZdjecie)}
-                    activeOpacity={0.85}
-                  >
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePhoto(selectedZdjecie)} activeOpacity={0.85}>
                     <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
                     <Text style={styles.deleteButtonText}>{tt('photos:preview.delete', { defaultValue: 'Usuń' })}</Text>
                   </TouchableOpacity>
@@ -950,7 +972,7 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', gap: 8 },
 
   title: {
-    fontSize: 32, // ✅ trochę większy
+    fontSize: 32,
     fontWeight: '900',
     color: COLORS.brand,
     textAlign: 'center',
@@ -1066,7 +1088,6 @@ const styles = StyleSheet.create({
   fabBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(25,112,92,0.55)' },
   fabRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(25,112,92,0.35)', backgroundColor: 'rgba(25,112,92,0.06)' },
 
-  // ✅ tło modala czarne
   modalBlackOverlay: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 22 },
 
   modalContent: {

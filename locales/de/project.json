@@ -2,47 +2,47 @@
   "myProject": "Mein Projekt",
   "projectLocationPlaceholder": "—",
   "buildingParams": "Gebäudeparameter",
-  "projectPlans": "Projektpläne",
+  "projectPlans": "Projektgrundrisse",
   "change3dModel": "3D-Modell hinzufügen / ersetzen",
 
   "tilePowU": "Nutzfläche",
   "tileFloors": "Etagen",
-  "tileRooms": "Zimmer",
-  "tilePowZ": "Bebauungsfläche",
+  "tileRooms": "Räume",
+  "tilePowZ": "Bebaute Fläche",
   "tileHeight": "Gebäudehöhe",
   "tileRoofAngle": "Dachneigung",
   "tileRoofArea": "Dachfläche",
   "tileFacadeWidth": "Fassadenbreite",
   "tileFacadeLength": "Fassadenlänge",
 
-  "addPlan": "Plan hinzufügen",
-  "planDefaultName": "Plan",
-  "planHint": "Tippen: Vorschau • Halten: löschen",
+  "addPlan": "Grundriss hinzufügen",
+  "planDefaultName": "Grundriss",
+  "planHint": "Tippen: Vorschau • Gedrückt halten: löschen",
 
-  "noPlansTitle": "Noch keine Pläne",
-  "noPlansSubtitle": "Füge deinen ersten Plan hinzu (jpg/png/webp).",
+  "noPlansTitle": "Keine Grundrisse",
+  "noPlansSubtitle": "Füge deinen ersten Grundriss hinzu (jpg/png/webp).",
 
   "errorTitle": "Fehler",
   "loadError": "Projektdaten konnten nicht aus Supabase geladen werden.",
   "createProjectError": "Projekt konnte in Supabase nicht erstellt werden.",
-  "addPlanError": "Plan konnte nicht hinzugefügt werden.",
-  "deletePlanError": "Plan konnte nicht gelöscht werden.",
+  "addPlanError": "Grundriss konnte nicht hinzugefügt werden.",
+  "deletePlanError": "Grundriss konnte nicht gelöscht werden.",
 
-  "deletePlanTitle": "Plan löschen?",
-  "deletePlanDesc": "Dadurch wird die Datei aus dem Storage entfernt und der Datenbankeintrag gelöscht.",
+  "deletePlanTitle": "Grundriss löschen?",
+  "deletePlanDesc": "Die Datei wird aus dem Storage und der Datenbank entfernt.",
 
   "cancel": "Abbrechen",
   "delete": "Löschen",
   "save": "Speichern",
 
   "editParamsTitle": "Parameter bearbeiten",
-  "saveErrorTitle": "Fehler beim Speichern",
+  "saveErrorTitle": "Speicherfehler",
 
   "fieldProjectName": "Projektname",
   "fieldPowU": "Nutzfläche (m²)",
   "fieldFloors": "Etagen",
-  "fieldRooms": "Zimmer",
-  "fieldPowZ": "Bebauungsfläche (m²)",
+  "fieldRooms": "Räume",
+  "fieldPowZ": "Bebaute Fläche (m²)",
   "fieldHeight": "Höhe (m)",
   "fieldRoofAngle": "Dachneigung (°)",
   "fieldRoofArea": "Dachfläche (m²)",
@@ -52,10 +52,16 @@
   "model3dTitle": "3D-Modell",
   "model3dNextStep": "Nächster Schritt: .glb/.gltf hochladen und projekty.model_url aktualisieren.",
 
+  "model": {
+    "hintRotateZoom": "Ziehen zum Drehen • Zum Zoomen ziehen",
+    "errorTitle": "3D-Modellfehler",
+    "loadFailed": "Modell konnte nicht geladen werden."
+  },
+
   "notLoggedTitle": "Nicht angemeldet",
-  "notLoggedDesc": "Bitte melde dich erneut an.",
+  "notLoggedDesc": "Bitte erneut anmelden.",
   "noAccessTitle": "Kein Zugriff",
-  "noAccessPhotosDesc": "Erlaube den Zugriff auf die Fotobibliothek, um einen Plan hinzuzufügen.",
+  "noAccessPhotosDesc": "Galeriezugriff gewähren, um einen Grundriss hinzuzufügen.",
   "uploadFailedTitle": "Upload fehlgeschlagen",
   "urlError": "Datei-URL konnte nicht abgerufen werden."
 }

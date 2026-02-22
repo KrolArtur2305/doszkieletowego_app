@@ -1,0 +1,32 @@
+{
+  "header": {
+    "title": "Choose a plan",
+    "subtitle": "This is a one-time step. You can change your plan later in settings."
+  },
+  "alerts": {
+    "errorTitle": "Error",
+    "noSession": "No session. Please sign in again.",
+    "saveFailed": "Couldn’t save the plan. Please try again."
+  },
+  "cards": {
+    "free": { "title": "Free", "tagline": "To get started and test your project" },
+    "pro": { "title": "Pro", "tagline": "For investors who want full control" },
+    "pro_plus": { "title": "Pro+", "tagline": "For maximum order and a full build archive" }
+  },
+  "bullets": {
+    "photos": "Photos",
+    "documents": "Documents",
+    "expenses": "Expenses",
+    "edit3d": "3D editing",
+    "tasks": "Tasks"
+  },
+  "labels": {
+    "yes": "yes",
+    "no": "no",
+    "unlimited": "unlimited",
+    "priceTbd": "—"
+  },
+  "actions": {
+    "choose": "Choose"
+  }
+}

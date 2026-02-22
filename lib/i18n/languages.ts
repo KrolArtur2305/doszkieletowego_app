@@ -16,6 +16,9 @@ export const NAMESPACES = [
   'profile',
   'settings',
   'photos',
+  'investment',
+  'plan',
+  'project',
 ] as const;
 
 export type AppNamespace = (typeof NAMESPACES)[number];

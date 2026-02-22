@@ -1,0 +1,37 @@
+{
+  "screen": {
+    "title": "Inwestycja"
+  },
+  "alerts": {
+    "completeDataTitle": "Uzupełnij dane",
+    "nameRequired": "Nazwa inwestycji jest wymagana, aby kontynuować.",
+    "locationRequired": "Lokalizacja jest wymagana, aby kontynuować.",
+    "invalidBudgetTitle": "Nieprawidłowy budżet",
+    "invalidBudgetMsg": "Budżet nie może być ujemny.",
+    "errorTitle": "Błąd",
+    "noSession": "Brak użytkownika. Zaloguj się ponownie.",
+    "saveFailed": "Nie udało się zapisać danych. Spróbuj ponownie.",
+    "saveErrorTitle": "Błąd zapisu"
+  },
+  "form": {
+    "nameLabel": "Nazwa inwestycji",
+    "namePlaceholder": "np. Dom w lesie",
+    "locationLabel": "Lokalizacja",
+    "locationPlaceholder": "np. Kluczewsko",
+    "startLabel": "Data startu",
+    "endLabel": "Data zakończenia",
+    "datePlaceholder": "DD.MM.RRRR",
+    "plannedBudgetLabel": "Planowany budżet (PLN)",
+    "plannedBudgetPlaceholder": "np. 400000"
+  },
+  "modal": {
+    "pickStartTitle": "Wybierz datę startu",
+    "pickEndTitle": "Wybierz datę zakończenia"
+  },
+  "actions": {
+    "saving": "Zapisywanie…",
+    "saveAndContinue": "Zapisz i przejdź dalej",
+    "save": "Zapisz",
+    "cancel": "Anuluj"
+  }
+}

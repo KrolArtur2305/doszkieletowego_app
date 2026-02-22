@@ -2,7 +2,7 @@
   "myProject": "My project",
   "projectLocationPlaceholder": "—",
   "buildingParams": "Building parameters",
-  "projectPlans": "Project plans",
+  "projectPlans": "Project floor plans",
   "change3dModel": "Add / replace 3D model",
 
   "tilePowU": "Usable area",
@@ -10,26 +10,26 @@
   "tileRooms": "Rooms",
   "tilePowZ": "Building footprint",
   "tileHeight": "Building height",
-  "tileRoofAngle": "Roof pitch",
+  "tileRoofAngle": "Roof angle",
   "tileRoofArea": "Roof area",
   "tileFacadeWidth": "Facade width",
   "tileFacadeLength": "Facade length",
 
-  "addPlan": "Add plan",
-  "planDefaultName": "Plan",
+  "addPlan": "Add floor plan",
+  "planDefaultName": "Floor plan",
   "planHint": "Tap: preview • Hold: delete",
 
-  "noPlansTitle": "No plans yet",
-  "noPlansSubtitle": "Add your first plan (jpg/png/webp).",
+  "noPlansTitle": "No floor plans",
+  "noPlansSubtitle": "Add your first floor plan (jpg/png/webp).",
 
   "errorTitle": "Error",
-  "loadError": "Couldn't load project data from Supabase.",
-  "createProjectError": "Couldn't create project in Supabase.",
-  "addPlanError": "Couldn't add the plan.",
-  "deletePlanError": "Couldn't delete the plan.",
+  "loadError": "Failed to load project data from Supabase.",
+  "createProjectError": "Failed to create project in Supabase.",
+  "addPlanError": "Failed to add floor plan.",
+  "deletePlanError": "Failed to delete floor plan.",
 
-  "deletePlanTitle": "Delete plan?",
-  "deletePlanDesc": "This will remove the file from Storage and delete the database record.",
+  "deletePlanTitle": "Delete floor plan?",
+  "deletePlanDesc": "This will remove the file from Storage and the database record.",
 
   "cancel": "Cancel",
   "delete": "Delete",
@@ -44,7 +44,7 @@
   "fieldRooms": "Rooms",
   "fieldPowZ": "Building footprint (m²)",
   "fieldHeight": "Height (m)",
-  "fieldRoofAngle": "Roof pitch (°)",
+  "fieldRoofAngle": "Roof angle (°)",
   "fieldRoofArea": "Roof area (m²)",
   "fieldFacadeWidth": "Facade width (m)",
   "fieldFacadeLength": "Facade length (m)",
@@ -52,10 +52,16 @@
   "model3dTitle": "3D model",
   "model3dNextStep": "Next step: upload .glb/.gltf and update projekty.model_url.",
 
+  "model": {
+    "hintRotateZoom": "Drag to rotate • Pinch to zoom",
+    "errorTitle": "3D model error",
+    "loadFailed": "Failed to load the model."
+  },
+
   "notLoggedTitle": "Not logged in",
   "notLoggedDesc": "Please log in again.",
   "noAccessTitle": "No access",
-  "noAccessPhotosDesc": "Allow photo library access to add a plan.",
+  "noAccessPhotosDesc": "Grant gallery access to add a floor plan.",
   "uploadFailedTitle": "Upload failed",
-  "urlError": "Couldn't get file URL."
+  "urlError": "Failed to retrieve file URL."
 }

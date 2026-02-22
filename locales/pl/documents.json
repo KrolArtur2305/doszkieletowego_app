@@ -1,53 +1,54 @@
 {
-  "common": {
-    "cancel": "Anuluj",
-    "delete": "Usuń",
-    "save": "Zapisz"
+  "screen": { "title": "Dokumenty" },
+  "loading": "Ładowanie…",
+
+  "types": {
+    "all": "Wszystkie rodzaje",
+    "umowa": "Umowa",
+    "faktura": "Faktura",
+    "paragon": "Paragon",
+    "oferta": "Oferta",
+    "projekt": "Projekt",
+    "pozwolenia": "Pozwolenia",
+    "inne": "Inne"
   },
-  "alerts": {
-    "errorTitle": "Błąd",
-    "titleAndAttachmentRequired": "Tytuł i załącznik są wymagane."
+
+  "sort": {
+    "newest": "Najnowsze",
+    "oldest": "Najstarsze"
   },
-  "errors": {
-    "fetchFailed": "Nie udało się pobrać dokumentów.",
-    "noUser": "Brak użytkownika",
-    "addFailed": "Nie udało się dodać dokumentu."
-  },
-  "loading": {
-    "documents": "Ładowanie dokumentów…"
-  },
-  "header": {
-    "title": "Dokumenty",
-    "subtitle": "Tylko Twoje pliki (PRIVATE) — otwierane przez signed URL."
-  },
-  "actions": {
-    "add": "Dodaj",
-    "refresh": "Odśwież",
-    "refreshing": "Odświeżam…"
-  },
+
   "empty": {
-    "noDocsInCategory": "Brak dokumentów w tej kategorii."
+    "title": "Brak dokumentów",
+    "subtitle": "Dodaj pierwsze dokumenty do projektu.",
+    "cta": "Dodaj dokument"
   },
-  "card": {
-    "hint": "Tap: otwórz • Hold: usuń"
+
+  "addModal": {
+    "title": "Dodaj dokument",
+    "labels": {
+      "type": "RODZAJ",
+      "titleOptional": "TYTUŁ (OPCJONALNIE)",
+      "descriptionOptional": "OPIS (OPCJONALNIE)",
+      "file": "PLIK / ZDJĘCIE"
+    },
+    "placeholders": {
+      "title": "np. Umowa wykonawcza",
+      "description": "Dodaj opis (opcjonalnie)",
+      "file": "Dodaj plik lub zdjęcie"
+    },
+    "saving": "Zapisywanie…"
   },
-  "category": {
-    "contracts": "Umowy",
-    "invoicesReceipts": "Faktury/Paragony",
-    "other": "Inne"
-  },
-  "delete": {
-    "confirmTitle": "Usuń dokument",
-    "confirmMessage": "Na pewno usunąć: \"{{title}}\"?"
-  },
-  "modal": {
-    "title": "Nowy dokument",
-    "titleLabel": "Tytuł (wymagany)",
-    "titlePlaceholder": "Np. Umowa z wykonawcą",
-    "descriptionLabel": "Opis",
-    "descriptionPlaceholder": "Dodatkowe informacje…",
-    "categoryLabel": "Kategoria",
-    "attachmentRequired": "Załącznik (wymagany)",
-    "pickFile": "Wybierz plik (PDF / zdjęcie)"
+
+  "alerts": {
+    "loadDocsError": "Nie udało się wczytać dokumentów.",
+    "openError": "Nie udało się otworzyć dokumentu.",
+    "deleteTitle": "Usunąć dokument?",
+    "deleteDesc": "Na pewno chcesz usunąć ten dokument?",
+    "deleteError": "Nie udało się usunąć dokumentu.",
+    "fileRequired": "Dodaj plik lub zdjęcie.",
+    "addError": "Nie udało się dodać dokumentu.",
+    "successTitle": "Sukces",
+    "docAdded": "Dodano dokument."
   }
 }

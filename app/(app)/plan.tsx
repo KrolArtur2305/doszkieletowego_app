@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -45,9 +46,31 @@ type PlanLimits = {
   can_tasks: boolean | null;
 };
 
+function uiLocaleFromLang(lang?: string) {
+  const base = (lang || 'en').split('-')[0];
+  const map: Record<string, string> = { pl: 'pl-PL', en: 'en-US', de: 'de-DE' };
+  return map[base] || 'en-US';
+}
+
 export default function PlanScreen() {
   const router = useRouter();
   const stars = useMemo(() => buildStars(90), []);
+
+  const { t, i18n } = useTranslation('plan');
+  const locale = useMemo(
+    () => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  );
+
+  const fmtMoney = (amount: number, currency: string) => {
+    try {
+      return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+    } catch {
+      return `${amount} ${currency}`;
+    }
+  };
+
+  const currency = 'PLN';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<PlanKey | null>(null);
@@ -76,7 +99,7 @@ export default function PlanScreen() {
 
         if (alive) setLimits(map);
       } catch {
-        // nawet jak się nie pobierze, ekrany i tak działają (pokażemy teksty)
+        // nawet jak się nie pobierze, ekrany i tak działają
       } finally {
         if (alive) setLoading(false);
       }
@@ -93,7 +116,7 @@ export default function PlanScreen() {
       const { data: sess } = await supabase.auth.getSession();
       const user = sess.session?.user;
       if (!user) {
-        Alert.alert('Błąd', 'Brak sesji. Zaloguj się ponownie.');
+        Alert.alert(t('alerts.errorTitle'), t('alerts.noSession'));
         return;
       }
 
@@ -111,15 +134,33 @@ export default function PlanScreen() {
       if (error) throw error;
 
       router.replace('/(app)/(tabs)/dashboard');
-    } catch (e) {
-      Alert.alert('Błąd', 'Nie udało się zapisać planu. Spróbuj ponownie.');
+    } catch {
+      Alert.alert(t('alerts.errorTitle'), t('alerts.saveFailed'));
     } finally {
       setSaving(null);
     }
   };
 
-  const renderCard = (plan: PlanKey, title: string, price: string, tagline: string) => {
+  const yesNo = (v: boolean) => (v ? t('labels.yes') : t('labels.no'));
+
+  const unlimitedLabel = t('labels.unlimited');
+
+  const renderCard = (plan: PlanKey) => {
     const l = limits[plan];
+
+    const photos = l?.max_photos ?? (plan === 'free' ? 5 : plan === 'pro' ? 500 : 5000);
+    const docs = l?.max_docs ?? (plan === 'free' ? 3 : plan === 'pro' ? 200 : 1000);
+    const expenses = l?.max_expenses ?? (plan === 'free' ? 5 : null);
+    const canEdit3d = (l?.can_edit_3d ?? plan !== 'free') ? true : false;
+    const canTasks = (l?.can_tasks ?? plan !== 'free') ? true : false;
+
+    const title = t(`cards.${plan}.title`);
+    const tagline = t(`cards.${plan}.tagline`);
+
+    const price =
+      plan === 'free'
+        ? fmtMoney(0, currency)
+        : t('labels.priceTbd');
 
     return (
       <View style={styles.card} key={plan}>
@@ -127,14 +168,15 @@ export default function PlanScreen() {
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.cardPrice}>{price}</Text>
         </View>
+
         <Text style={styles.cardTagline}>{tagline}</Text>
 
         <View style={styles.bullets}>
-          <Text style={styles.bullet}>• Zdjęcia: {l?.max_photos ?? (plan === 'free' ? 5 : plan === 'pro' ? 500 : 5000)}</Text>
-          <Text style={styles.bullet}>• Dokumenty: {l?.max_docs ?? (plan === 'free' ? 3 : plan === 'pro' ? 200 : 1000)}</Text>
-          <Text style={styles.bullet}>• Wydatki: {l?.max_expenses ?? (plan === 'free' ? 5 : 'bez limitu')}</Text>
-          <Text style={styles.bullet}>• Edycja 3D: {(l?.can_edit_3d ?? plan !== 'free') ? 'tak' : 'nie'}</Text>
-          <Text style={styles.bullet}>• Zadania: {(l?.can_tasks ?? plan !== 'free') ? 'tak' : 'nie'}</Text>
+          <Text style={styles.bullet}>• {t('bullets.photos')}: {photos}</Text>
+          <Text style={styles.bullet}>• {t('bullets.documents')}: {docs}</Text>
+          <Text style={styles.bullet}>• {t('bullets.expenses')}: {expenses ?? unlimitedLabel}</Text>
+          <Text style={styles.bullet}>• {t('bullets.edit3d')}: {yesNo(canEdit3d)}</Text>
+          <Text style={styles.bullet}>• {t('bullets.tasks')}: {yesNo(canTasks)}</Text>
         </View>
 
         <TouchableOpacity
@@ -147,7 +189,7 @@ export default function PlanScreen() {
             <ActivityIndicator />
           ) : (
             <Text style={[styles.ctaText, plan !== 'free' && styles.ctaTextStrong]}>
-              Wybieram
+              {t('actions.choose')}
             </Text>
           )}
         </TouchableOpacity>
@@ -170,10 +212,8 @@ export default function PlanScreen() {
       </View>
 
       <View style={styles.header}>
-        <Text style={styles.hTitle}>Wybierz plan</Text>
-        <Text style={styles.hSub}>
-          To jednorazowy krok. Zawsze możesz później zmienić plan w ustawieniach.
-        </Text>
+        <Text style={styles.hTitle}>{t('header.title')}</Text>
+        <Text style={styles.hSub}>{t('header.subtitle')}</Text>
       </View>
 
       {loading ? (
@@ -182,9 +222,9 @@ export default function PlanScreen() {
         </View>
       ) : (
         <View style={styles.list}>
-          {renderCard('free', 'Free', '0 zł', 'Na start i test projektu')}
-          {renderCard('pro', 'Pro', '—', 'Dla inwestora, który chce mieć pełną kontrolę')}
-          {renderCard('pro_plus', 'Pro+', '—', 'Dla maksymalnego porządku i archiwum budowy')}
+          {renderCard('free')}
+          {renderCard('pro')}
+          {renderCard('pro_plus')}
         </View>
       )}
     </View>

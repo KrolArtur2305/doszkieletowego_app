@@ -11,21 +11,23 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 type Category = { key: string; label: string; icon: keyof typeof Feather.glyphMap };
 
 export default function ZglosProblemScreen() {
   const router = useRouter();
+  const { t } = useTranslation('settings');
 
   const categories: Category[] = useMemo(
     () => [
-      { key: 'logowanie', label: 'Logowanie / sesja', icon: 'key' },
-      { key: 'supabase', label: 'Supabase / dane', icon: 'database' },
-      { key: 'ui', label: 'UI / ekran', icon: 'layout' },
-      { key: 'crash', label: 'Crash', icon: 'alert-octagon' },
-      { key: 'inne', label: 'Inne', icon: 'more-horizontal' },
+      { key: 'logowanie', label: t('report.categories.loginSession'), icon: 'key' },
+      { key: 'supabase', label: t('report.categories.supabaseData'), icon: 'database' },
+      { key: 'ui', label: t('report.categories.uiScreen'), icon: 'layout' },
+      { key: 'crash', label: t('report.categories.crash'), icon: 'alert-octagon' },
+      { key: 'inne', label: t('report.categories.other'), icon: 'more-horizontal' },
     ],
-    []
+    [t]
   );
 
   const [category, setCategory] = useState<Category>(categories[0]);
@@ -34,11 +36,11 @@ export default function ZglosProblemScreen() {
   const handleSubmit = async () => {
     const trimmed = (message || '').trim();
     if (trimmed.length < 10) {
-      Alert.alert('Uwaga', 'Opisz problem przynajmniej w 10 znakach.');
+      Alert.alert(t('report.alerts.warningTitle'), t('report.alerts.minLength'));
       return;
     }
 
-    Alert.alert('Dzięki!', 'Zgłoszenie zostało zapisane lokalnie (demo).');
+    Alert.alert(t('report.alerts.thanksTitle'), t('report.alerts.savedLocalDemo'));
     setMessage('');
     router.back();
   };
@@ -51,12 +53,12 @@ export default function ZglosProblemScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
           <Feather name="chevron-left" size={22} color="#E2E8F0" />
         </TouchableOpacity>
-        <Text style={styles.title}>Zgłoś problem</Text>
+        <Text style={styles.title}>{t('report.title')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
       <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitle}>Kategoria</Text>
+        <Text style={styles.sectionTitle}>{t('report.categoryTitle')}</Text>
 
         <View style={styles.chips}>
           {categories.map((c) => {
@@ -75,11 +77,11 @@ export default function ZglosProblemScreen() {
           })}
         </View>
 
-        <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Opis</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 16 }]}>{t('report.descriptionTitle')}</Text>
         <TextInput
           value={message}
           onChangeText={setMessage}
-          placeholder="Co dokładnie się stało? Co kliknąłeś? Jaki był efekt?"
+          placeholder={t('report.descriptionPlaceholder')}
           placeholderTextColor="rgba(226,232,240,0.45)"
           style={styles.textarea}
           multiline
@@ -87,12 +89,10 @@ export default function ZglosProblemScreen() {
         />
 
         <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit} activeOpacity={0.9}>
-          <Text style={styles.primaryButtonText}>Wyślij</Text>
+          <Text style={styles.primaryButtonText}>{t('report.actions.send')}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.hint}>
-          To jest wersja demo. Później podepniemy zapis do Supabase lub webhook.
-        </Text>
+        <Text style={styles.hint}>{t('report.hintDemo')}</Text>
       </BlurView>
     </ScrollView>
   );

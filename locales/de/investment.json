@@ -1,0 +1,37 @@
+{
+  "screen": {
+    "title": "Projekt"
+  },
+  "alerts": {
+    "completeDataTitle": "Bitte ausfüllen",
+    "nameRequired": "Der Projektname ist erforderlich, um fortzufahren.",
+    "locationRequired": "Der Ort ist erforderlich, um fortzufahren.",
+    "invalidBudgetTitle": "Ungültiges Budget",
+    "invalidBudgetMsg": "Das Budget darf nicht negativ sein.",
+    "errorTitle": "Fehler",
+    "noSession": "Kein Benutzer. Bitte erneut anmelden.",
+    "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "saveErrorTitle": "Speicherfehler"
+  },
+  "form": {
+    "nameLabel": "Projektname",
+    "namePlaceholder": "z.B. Haus im Wald",
+    "locationLabel": "Ort",
+    "locationPlaceholder": "z.B. Warschau",
+    "startLabel": "Startdatum",
+    "endLabel": "Enddatum",
+    "datePlaceholder": "TT.MM.JJJJ",
+    "plannedBudgetLabel": "Geplantes Budget (PLN)",
+    "plannedBudgetPlaceholder": "z.B. 400000"
+  },
+  "modal": {
+    "pickStartTitle": "Startdatum wählen",
+    "pickEndTitle": "Enddatum wählen"
+  },
+  "actions": {
+    "saving": "Wird gespeichert…",
+    "saveAndContinue": "Speichern & weiter",
+    "save": "Speichern",
+    "cancel": "Abbrechen"
+  }
+}

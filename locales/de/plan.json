@@ -1,0 +1,32 @@
+{
+  "header": {
+    "title": "Plan wählen",
+    "subtitle": "Dies ist ein einmaliger Schritt. Du kannst deinen Plan später in den Einstellungen ändern."
+  },
+  "alerts": {
+    "errorTitle": "Fehler",
+    "noSession": "Keine Sitzung. Bitte erneut anmelden.",
+    "saveFailed": "Plan konnte nicht gespeichert werden. Bitte erneut versuchen."
+  },
+  "cards": {
+    "free": { "title": "Free", "tagline": "Zum Start und zum Testen des Projekts" },
+    "pro": { "title": "Pro", "tagline": "Für Nutzer, die volle Kontrolle wollen" },
+    "pro_plus": { "title": "Pro+", "tagline": "Für maximale Ordnung und ein vollständiges Bauarchiv" }
+  },
+  "bullets": {
+    "photos": "Fotos",
+    "documents": "Dokumente",
+    "expenses": "Ausgaben",
+    "edit3d": "3D-Bearbeitung",
+    "tasks": "Aufgaben"
+  },
+  "labels": {
+    "yes": "ja",
+    "no": "nein",
+    "unlimited": "unbegrenzt",
+    "priceTbd": "—"
+  },
+  "actions": {
+    "choose": "Auswählen"
+  }
+}

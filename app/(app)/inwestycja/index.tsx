@@ -16,6 +16,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
 
@@ -45,8 +46,17 @@ function parseISODate(value: string) {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
+function uiLocaleFromLang(lang?: string) {
+  const base = (lang || 'en').split('-')[0];
+  const map: Record<string, string> = { pl: 'pl-PL', en: 'en-US', de: 'de-DE' };
+  return map[base] || 'en-US';
+}
+
 export default function InwestycjaScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('investment');
+
+  const locale = useMemo(() => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language), [i18n.language, i18n.resolvedLanguage]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -136,17 +146,17 @@ export default function InwestycjaScreen() {
       const loc = lokalizacja.trim();
 
       if (!n) {
-        Alert.alert('Uzupełnij dane', 'Nazwa inwestycji jest wymagana, aby kontynuować.');
+        Alert.alert(t('alerts.completeDataTitle'), t('alerts.nameRequired'));
         return;
       }
 
       if (!loc) {
-        Alert.alert('Uzupełnij dane', 'Lokalizacja jest wymagana, aby kontynuować.');
+        Alert.alert(t('alerts.completeDataTitle'), t('alerts.locationRequired', { defaultValue: 'Location is required to continue.' }));
         return;
       }
 
       if (budgetNumber !== null && budgetNumber < 0) {
-        Alert.alert('Nieprawidłowy budżet', 'Budżet nie może być ujemny.');
+        Alert.alert(t('alerts.invalidBudgetTitle', { defaultValue: 'Invalid budget' }), t('alerts.invalidBudgetMsg', { defaultValue: 'Budget cannot be negative.' }));
         return;
       }
 
@@ -156,7 +166,7 @@ export default function InwestycjaScreen() {
       console.log('[INV] getUser(save)', { hasUser: !!userRes?.user, userErr });
 
       if (userErr || !userRes?.user) {
-        Alert.alert('Błąd', 'Brak użytkownika. Zaloguj się ponownie.');
+        Alert.alert(t('alerts.errorTitle'), t('alerts.noSession'));
         return;
       }
 
@@ -191,7 +201,7 @@ export default function InwestycjaScreen() {
       console.log('[INV] upsert result', { data, error });
 
       if (error) {
-        Alert.alert('Błąd zapisu', error.message);
+        Alert.alert(t('alerts.saveErrorTitle', { defaultValue: 'Save error' }), error.message);
         return;
       }
 
@@ -199,7 +209,7 @@ export default function InwestycjaScreen() {
       router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
       console.log('[INV] exception', e);
-      Alert.alert('Błąd', e?.message ?? 'Coś poszło nie tak.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -236,18 +246,18 @@ export default function InwestycjaScreen() {
             <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
 
-          <Text style={styles.header}>Inwestycja</Text>
+          <Text style={styles.header}>{t('screen.title')}</Text>
 
           <BlurView intensity={70} tint="dark" style={styles.card}>
             <View style={styles.form}>
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Nazwa inwestycji *</Text>
+                <Text style={styles.fieldLabel}>{t('form.nameLabel')} *</Text>
                 <View style={styles.inputWrap}>
                   <Feather name="home" color="rgba(148,163,184,0.95)" size={16} />
                   <TextInput
                     value={nazwa}
                     onChangeText={setNazwa}
-                    placeholder="np. Dom w lesie"
+                    placeholder={t('form.namePlaceholder')}
                     placeholderTextColor="rgba(148,163,184,0.7)"
                     style={styles.input}
                     editable={!loading && !saving}
@@ -256,13 +266,13 @@ export default function InwestycjaScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Lokalizacja *</Text>
+                <Text style={styles.fieldLabel}>{t('form.locationLabel')} *</Text>
                 <View style={styles.inputWrap}>
                   <Feather name="map-pin" color="rgba(148,163,184,0.95)" size={16} />
                   <TextInput
                     value={lokalizacja}
                     onChangeText={setLokalizacja}
-                    placeholder="np. Kluczewsko"
+                    placeholder={t('form.locationPlaceholder')}
                     placeholderTextColor="rgba(148,163,184,0.7)"
                     style={styles.input}
                     editable={!loading && !saving}
@@ -272,9 +282,11 @@ export default function InwestycjaScreen() {
 
               <View style={styles.row}>
                 <View style={[styles.field, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Data startu</Text>
+                  <Text style={styles.fieldLabel}>{t('form.startLabel')}</Text>
                   <View style={styles.inputWrap}>
-                    <Text style={[styles.input, { paddingVertical: 0 }]}>{startDisplay || 'DD.MM.RRRR'}</Text>
+                    <Text style={[styles.input, { paddingVertical: 0 }]}>
+                      {startDisplay || t('form.datePlaceholder', { defaultValue: 'DD.MM.YYYY' })}
+                    </Text>
                     <TouchableOpacity
                       onPress={() => openPicker('start')}
                       disabled={loading || saving}
@@ -289,9 +301,11 @@ export default function InwestycjaScreen() {
                 <View style={{ width: 12 }} />
 
                 <View style={[styles.field, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Data zakończenia</Text>
+                  <Text style={styles.fieldLabel}>{t('form.endLabel')}</Text>
                   <View style={styles.inputWrap}>
-                    <Text style={[styles.input, { paddingVertical: 0 }]}>{koniecDisplay || 'DD.MM.RRRR'}</Text>
+                    <Text style={[styles.input, { paddingVertical: 0 }]}>
+                      {koniecDisplay || t('form.datePlaceholder', { defaultValue: 'DD.MM.YYYY' })}
+                    </Text>
                     <TouchableOpacity
                       onPress={() => openPicker('koniec')}
                       disabled={loading || saving}
@@ -305,13 +319,13 @@ export default function InwestycjaScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Planowany budżet (PLN)</Text>
+                <Text style={styles.fieldLabel}>{t('form.plannedBudgetLabel')}</Text>
                 <View style={styles.inputWrap}>
                   <Text style={styles.prefix}>PLN</Text>
                   <TextInput
                     value={budzet}
                     onChangeText={setBudzet}
-                    placeholder="np. 400000"
+                    placeholder={t('form.plannedBudgetPlaceholder')}
                     placeholderTextColor="rgba(148,163,184,0.7)"
                     style={[styles.input, { fontWeight: '800' }]}
                     editable={!loading && !saving}
@@ -327,7 +341,9 @@ export default function InwestycjaScreen() {
               disabled={loading || saving}
               activeOpacity={0.85}
             >
-              <Text style={styles.ctaText}>{saving ? 'Zapisywanie…' : 'Zapisz i przejdź dalej'}</Text>
+              <Text style={styles.ctaText}>
+                {saving ? t('actions.saving') : t('actions.saveAndContinue')}
+              </Text>
             </TouchableOpacity>
           </BlurView>
         </ScrollView>
@@ -337,7 +353,7 @@ export default function InwestycjaScreen() {
           <View style={styles.modalBackdrop}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>
-                {pickerOpen === 'start' ? 'Wybierz datę startu' : 'Wybierz datę zakończenia'}
+                {pickerOpen === 'start' ? t('modal.pickStartTitle', { defaultValue: 'Select start date' }) : t('modal.pickEndTitle', { defaultValue: 'Select end date' })}
               </Text>
 
               <View style={styles.modalPickerWrap}>
@@ -345,7 +361,7 @@ export default function InwestycjaScreen() {
                   value={tempDate}
                   mode="date"
                   display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
-                  locale="pl-PL"
+                  locale={locale}
                   themeVariant="dark"
                   onChange={(_e, d) => {
                     if (d) setTempDate(d);
@@ -355,11 +371,11 @@ export default function InwestycjaScreen() {
 
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.modalBtnGhost} onPress={closePicker} activeOpacity={0.85}>
-                  <Text style={styles.modalBtnGhostText}>Anuluj</Text>
+                  <Text style={styles.modalBtnGhostText}>{t('actions.cancel', { defaultValue: 'Cancel' })}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.modalBtnPrimary} onPress={confirmPicker} activeOpacity={0.85}>
-                  <Text style={styles.modalBtnPrimaryText}>Zapisz</Text>
+                  <Text style={styles.modalBtnPrimaryText}>{t('actions.save')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -456,13 +472,13 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     borderRadius: 22,
-    backgroundColor: '#0B0F14', // ✅ ciemne tło (tylko UI)
+    backgroundColor: '#0B0F14',
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
   },
   modalTitle: {
-    color: '#F8FAFC', // ✅ biały tytuł
+    color: '#F8FAFC',
     fontSize: 16,
     fontWeight: '900',
     textAlign: 'center',
