@@ -1,13 +1,61 @@
 {
   "myProject": "Mój projekt",
+  "projectLocationPlaceholder": "—",
   "buildingParams": "Parametry budynku",
   "projectPlans": "Rzuty projektu",
-  "change3dModel": "Dodaj / zamień model 3D",
+  "change3dModel": "Dodaj / podmień model 3D",
+
+  "tilePowU": "Pow. użytkowa",
+  "tileFloors": "Kondygnacje",
+  "tileRooms": "Pomieszczenia",
+  "tilePowZ": "Pow. zabudowy",
+  "tileHeight": "Wysokość budynku",
+  "tileRoofAngle": "Kąt dachu",
+  "tileRoofArea": "Pow. dachu",
+  "tileFacadeWidth": "Szer. elewacji",
+  "tileFacadeLength": "Dł. elewacji",
+
+  "addPlan": "Dodaj rzut",
+  "planDefaultName": "Rzut",
+  "planHint": "Kliknij: podgląd • Przytrzymaj: usuń",
+
   "noPlansTitle": "Brak rzutów",
   "noPlansSubtitle": "Dodaj pierwszy rzut (jpg/png/webp).",
-  "loadError": "Nie udało się pobrać danych projektu z Supabase.",
+
+  "errorTitle": "Błąd",
+  "loadError": "Nie udało się wczytać danych projektu z Supabase.",
   "createProjectError": "Nie udało się utworzyć projektu w Supabase.",
   "addPlanError": "Nie udało się dodać rzutu.",
+  "deletePlanError": "Nie udało się usunąć rzutu.",
+
   "deletePlanTitle": "Usunąć rzut?",
-  "deletePlanDesc": "To usunie plik ze Storage i rekord z bazy."
+  "deletePlanDesc": "To usunie plik ze Storage oraz rekord z bazy danych.",
+
+  "cancel": "Anuluj",
+  "delete": "Usuń",
+  "save": "Zapisz",
+
+  "editParamsTitle": "Edytuj parametry",
+  "saveErrorTitle": "Błąd zapisu",
+
+  "fieldProjectName": "Nazwa projektu",
+  "fieldPowU": "Pow. użytkowa (m²)",
+  "fieldFloors": "Kondygnacje",
+  "fieldRooms": "Pomieszczenia",
+  "fieldPowZ": "Pow. zabudowy (m²)",
+  "fieldHeight": "Wysokość (m)",
+  "fieldRoofAngle": "Kąt dachu (°)",
+  "fieldRoofArea": "Pow. dachu (m²)",
+  "fieldFacadeWidth": "Szer. elewacji (m)",
+  "fieldFacadeLength": "Dł. elewacji (m)",
+
+  "model3dTitle": "Model 3D",
+  "model3dNextStep": "Następny krok: upload .glb/.gltf + aktualizacja projekty.model_url.",
+
+  "notLoggedTitle": "Brak logowania",
+  "notLoggedDesc": "Zaloguj się ponownie.",
+  "noAccessTitle": "Brak dostępu",
+  "noAccessPhotosDesc": "Nadaj dostęp do galerii, aby dodać rzut.",
+  "uploadFailedTitle": "Upload nieudany",
+  "urlError": "Nie udało się uzyskać URL pliku."
 }

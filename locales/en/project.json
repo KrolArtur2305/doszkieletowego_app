@@ -1,81 +1,61 @@
 {
-  "titleFallback": "—",
-  "locationPlaceholder": "—",
+  "myProject": "My project",
+  "projectLocationPlaceholder": "—",
+  "buildingParams": "Building parameters",
+  "projectPlans": "Project plans",
+  "change3dModel": "Add / replace 3D model",
 
-  "hero": {
-    "title": "3D Model",
-    "cta": "Add / replace 3D model",
-    "todoAlertTitle": "3D Model",
-    "todoAlertMessage": "Next step: upload .glb/.gltf + update projekty.model_url."
-  },
+  "tilePowU": "Usable area",
+  "tileFloors": "Floors",
+  "tileRooms": "Rooms",
+  "tilePowZ": "Building footprint",
+  "tileHeight": "Building height",
+  "tileRoofAngle": "Roof pitch",
+  "tileRoofArea": "Roof area",
+  "tileFacadeWidth": "Facade width",
+  "tileFacadeLength": "Facade length",
 
-  "params": {
-    "title": "Building parameters",
-    "edit": "Edit",
-    "editTitle": "Edit parameters",
-    "save": "Save",
-    "cancel": "Cancel",
-    "loginMissingTitle": "Not signed in",
-    "loginMissingMessage": "Please sign in again.",
-    "saveErrorTitle": "Save error"
-  },
+  "addPlan": "Add plan",
+  "planDefaultName": "Plan",
+  "planHint": "Tap: preview • Hold: delete",
 
-  "tiles": {
-    "pow_u": "Usable area",
-    "kond": "Floors",
-    "pom": "Rooms",
-    "pow_z": "Building footprint",
-    "wys": "Building height",
-    "kat": "Roof angle",
-    "pow_d": "Roof area",
-    "szer": "Facade width",
-    "dl": "Facade length"
-  },
+  "noPlansTitle": "No plans yet",
+  "noPlansSubtitle": "Add your first plan (jpg/png/webp).",
 
-  "rzuty": {
-    "title": "Project drawings",
-    "add": "Add drawing",
-    "emptyTitle": "No drawings",
-    "emptySubtitle": "Add the first drawing (jpg/png/webp).",
-    "hint": "Tap: preview • Long press: delete",
-    "deleteTitle": "Delete drawing?",
-    "deleteConfirm": "This will remove the file from Storage and delete the DB row.",
-    "deleteCancel": "Cancel",
-    "deleteAction": "Delete",
-    "deleteFailed": "Could not delete the drawing.",
-    "uploadNoLoginTitle": "Not signed in",
-    "uploadNoLoginMessage": "Please sign in again.",
-    "noGalleryTitle": "No access",
-    "noGalleryMessage": "Allow gallery access to add a drawing.",
-    "uploadFailedTitle": "Upload failed",
-    "urlFailedTitle": "Error",
-    "urlFailedMessage": "Could not get public URL.",
-    "saveFailedTitle": "Save error",
-    "addFailedTitle": "Error",
-    "addFailedMessage": "Could not add the drawing.",
-    "defaultNamePrefix": "Drawing"
-  },
+  "errorTitle": "Error",
+  "loadError": "Couldn't load project data from Supabase.",
+  "createProjectError": "Couldn't create project in Supabase.",
+  "addPlanError": "Couldn't add the plan.",
+  "deletePlanError": "Couldn't delete the plan.",
 
-  "fields": {
-    "name": "Project name",
-    "pow_u": "Usable area (m²)",
-    "kond": "Floors",
-    "pom": "Rooms",
-    "pow_z": "Footprint (m²)",
-    "wys": "Height (m)",
-    "kat": "Roof angle (°)",
-    "pow_d": "Roof area (m²)",
-    "szer": "Facade width (m)",
-    "dl": "Facade length (m)"
-  },
+  "deletePlanTitle": "Delete plan?",
+  "deletePlanDesc": "This will remove the file from Storage and delete the database record.",
 
-  "preview": {
-    "fallbackName": "Drawing"
-  },
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "save": "Save",
 
-  "errors": {
-    "loadTitle": "Error",
-    "loadMessage": "Could not load project data from Supabase.",
-    "createProjectMessage": "Could not create project in Supabase."
-  }
+  "editParamsTitle": "Edit parameters",
+  "saveErrorTitle": "Save error",
+
+  "fieldProjectName": "Project name",
+  "fieldPowU": "Usable area (m²)",
+  "fieldFloors": "Floors",
+  "fieldRooms": "Rooms",
+  "fieldPowZ": "Building footprint (m²)",
+  "fieldHeight": "Height (m)",
+  "fieldRoofAngle": "Roof pitch (°)",
+  "fieldRoofArea": "Roof area (m²)",
+  "fieldFacadeWidth": "Facade width (m)",
+  "fieldFacadeLength": "Facade length (m)",
+
+  "model3dTitle": "3D model",
+  "model3dNextStep": "Next step: upload .glb/.gltf and update projekty.model_url.",
+
+  "notLoggedTitle": "Not logged in",
+  "notLoggedDesc": "Please log in again.",
+  "noAccessTitle": "No access",
+  "noAccessPhotosDesc": "Allow photo library access to add a plan.",
+  "uploadFailedTitle": "Upload failed",
+  "urlError": "Couldn't get file URL."
 }

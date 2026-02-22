@@ -112,7 +112,7 @@ function base64ToUint8Array(base64: string) {
 }
 
 export default function ProjektScreen() {
-  const { t } = useTranslation('project')
+  const { t, i18n } = useTranslation('project')
 
   const [loading, setLoading] = useState(true)
   const [projekt, setProjekt] = useState<Projekt | null>(null)
@@ -167,14 +167,14 @@ export default function ProjektScreen() {
 
         if (projErr) throw projErr
         if (!alive) return
-        setProjekt(projData ?? null)
+        setProjekt((projData as any) ?? null)
 
-        if (projData?.id) {
+        if ((projData as any)?.id) {
           const { data: rzutyData, error: rzutyErr } = await supabase
             .from('rzuty_projektu')
             .select('id,user_id,projekt_id,url,nazwa,created_at')
             .eq('user_id', user.id)
-            .eq('projekt_id', projData.id)
+            .eq('projekt_id', (projData as any).id)
             .order('created_at', { ascending: false })
 
           if (rzutyErr) throw rzutyErr
@@ -242,13 +242,19 @@ export default function ProjektScreen() {
   }
 
   const handleChangeModel = () => {
-    Alert.alert(t('model3dTitle', { defaultValue: 'Model 3D' }), t('model3dNextStep', { defaultValue: 'Zrobimy w następnym kroku: upload .glb/.gltf + update projekty.model_url.' }))
+    Alert.alert(
+      t('model3dTitle', { defaultValue: 'Model 3D' }),
+      t('model3dNextStep', { defaultValue: 'Zrobimy w następnym kroku: upload .glb/.gltf + update projekty.model_url.' })
+    )
   }
 
   const uploadRzutAndSave = async () => {
     try {
       if (!userId) {
-        Alert.alert(t('notLoggedTitle', { defaultValue: 'Brak logowania' }), t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' }))
+        Alert.alert(
+          t('notLoggedTitle', { defaultValue: 'Brak logowania' }),
+          t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' })
+        )
         return
       }
 
@@ -257,7 +263,10 @@ export default function ProjektScreen() {
 
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
       if (!perm.granted) {
-        Alert.alert(t('noAccessTitle', { defaultValue: 'Brak dostępu' }), t('noAccessPhotosDesc', { defaultValue: 'Nadaj dostęp do galerii, aby dodać rzut.' }))
+        Alert.alert(
+          t('noAccessTitle', { defaultValue: 'Brak dostępu' }),
+          t('noAccessPhotosDesc', { defaultValue: 'Nadaj dostęp do galerii, aby dodać rzut.' })
+        )
         return
       }
 
@@ -301,11 +310,17 @@ export default function ProjektScreen() {
       const { data: pub } = supabase.storage.from(BUCKET_RZUTY).getPublicUrl(path)
       const publicUrl = pub?.publicUrl
       if (!publicUrl) {
-        Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('urlError', { defaultValue: 'Nie udało się uzyskać URL pliku.' }))
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('urlError', { defaultValue: 'Nie udało się uzyskać URL pliku.' })
+        )
         return
       }
 
-      const defaultName = `${t('planDefaultName', { defaultValue: 'Rzut' })} ${new Date().toLocaleDateString('pl-PL')}`
+      // locale wg języka aplikacji (nie na sztywno pl-PL)
+      const locale = i18n.language?.startsWith('pl') ? 'pl-PL' : 'en-US'
+      const defaultName = `${t('planDefaultName', { defaultValue: 'Rzut' })} ${new Date().toLocaleDateString(locale)}`
+
       const { data: row, error: insErr } = await supabase
         .from('rzuty_projektu')
         .insert({
@@ -366,7 +381,10 @@ export default function ProjektScreen() {
               setPreviewRzut(null)
             }
           } catch {
-            Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('deletePlanError', { defaultValue: 'Nie udało się usunąć rzutu.' }))
+            Alert.alert(
+              t('errorTitle', { defaultValue: 'Błąd' }),
+              t('deletePlanError', { defaultValue: 'Nie udało się usunąć rzutu.' })
+            )
           }
         },
       },
@@ -393,7 +411,10 @@ export default function ProjektScreen() {
     try {
       setSaving(true)
       if (!userId) {
-        Alert.alert(t('notLoggedTitle', { defaultValue: 'Brak logowania' }), t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' }))
+        Alert.alert(
+          t('notLoggedTitle', { defaultValue: 'Brak logowania' }),
+          t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' })
+        )
         return
       }
       const proj = await ensureProjektExists()
@@ -434,234 +455,261 @@ export default function ProjektScreen() {
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
-      <View style={[styles.safeTop, { height: topPad }]} />
+    <View style={styles.screen}>
+      {/* czarna baza pod całą stroną */}
+      <View pointerEvents="none" style={styles.blackBase} />
 
-      {/* TOP BAR: tylko logo */}
-      <View style={styles.topBar}>
-        <View style={styles.logoWrap}>
-          <Image source={logo} style={styles.logoImg} resizeMode="contain" />
-        </View>
-        <View style={{ width: 30, height: 30 }} />
-      </View>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
+        <View style={[styles.safeTop, { height: topPad }]} />
 
-      {/* Nagłówek: nazwa projektu */}
-      <View style={styles.headerBlock}>
-        <Text style={styles.projectTitle} numberOfLines={2}>
-          {projekt?.nazwa || '—'}
-        </Text>
-        <Text style={styles.projectLocation} numberOfLines={1}>
-          —
-        </Text>
-      </View>
-
-      {/* HERO MODEL 3D (bez linka i bez nagłówka "Model 3D") */}
-      <View style={styles.modelHeroWrap}>
-        <View style={styles.modelGlowA} />
-        <View style={styles.modelGlowB} />
-
-        <View style={styles.modelHero}>
-          <View style={styles.modelStage}>
-            <Model3DView url={modelUrl} />
+        {/* TOP BAR: tylko logo */}
+        <View style={styles.topBar}>
+          <View style={styles.logoWrap}>
+            <Image source={logo} style={styles.logoImg} resizeMode="contain" />
           </View>
-
-          <TouchableOpacity style={styles.modelCta} onPress={handleChangeModel} activeOpacity={0.9}>
-            <Feather name="refresh-cw" size={16} color="#0B1120" />
-            <Text style={styles.modelCtaText}>{t('change3dModel')}</Text>
-          </TouchableOpacity>
+          <View style={{ width: 30, height: 30 }} />
         </View>
-      </View>
 
-      {/* PARAMETRY */}
-      <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitleCenter}>{t('buildingParams')}</Text>
+        {/* Nagłówek: tytuł ekranu + nazwa projektu */}
+        <View style={styles.headerBlock}>
+          <Text style={styles.screenTitle}>
+            {t('screenTitle', { defaultValue: i18n.language?.startsWith('pl') ? 'Projekt' : 'Project' })}
+          </Text>
 
-        <TouchableOpacity onPress={openEditParams} style={styles.secondaryBtn}>
-          <Feather name="edit-3" size={16} color="#0B1120" />
-          <Text style={styles.secondaryBtnText}>{t('edit', { defaultValue: 'Edytuj' })}</Text>
-        </TouchableOpacity>
+          <Text style={styles.projectTitle} numberOfLines={2}>
+            {projekt?.nazwa || '—'}
+          </Text>
 
-        <View style={styles.tilesGrid}>
-          {tiles.map((tt) => (
-            <View key={tt.id} style={styles.tile}>
-              <Text style={styles.tileLabel}>{tt.label}</Text>
-              <Text style={styles.tileValue}>{String(tt.value)}</Text>
+          <Text style={styles.projectLocation} numberOfLines={1}>
+            —
+          </Text>
+        </View>
+
+        {/* HERO MODEL 3D */}
+        <View style={styles.modelHeroWrap}>
+          <View style={styles.modelGlowA} />
+          <View style={styles.modelGlowB} />
+
+          <View style={styles.modelHero}>
+            <View style={styles.modelStage}>
+              <Model3DView url={modelUrl} />
             </View>
-          ))}
+
+            <TouchableOpacity style={styles.modelCta} onPress={handleChangeModel} activeOpacity={0.9}>
+              <Feather name="refresh-cw" size={16} color="#0B1120" />
+              <Text style={styles.modelCtaText}>{t('change3dModel')}</Text>
+            </TouchableOpacity>
+
+            {/* zawsze widoczna podpowiedź */}
+            <Text style={styles.modelHint}>
+              {t('modelHint', {
+                defaultValue: i18n.language?.startsWith('pl')
+                  
+              })}
+            </Text>
+          </View>
         </View>
-      </BlurView>
 
-      {/* RZUTY */}
-      <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.sectionTitleCenter}>{t('projectPlans')}</Text>
+        {/* PARAMETRY */}
+        <BlurView intensity={80} tint="dark" style={styles.card}>
+          <Text style={styles.sectionTitleCenter}>{t('buildingParams')}</Text>
 
-        <TouchableOpacity onPress={uploadRzutAndSave} style={styles.secondaryBtn}>
-          <Feather name="plus" size={16} color="#0B1120" />
-          <Text style={styles.secondaryBtnText}>{t('addPlan', { defaultValue: 'Dodaj rzut' })}</Text>
-        </TouchableOpacity>
+          {/* zamiast "Edytuj" tylko ołówek pod nagłówkiem */}
+          <TouchableOpacity onPress={openEditParams} style={styles.pencilBtn} hitSlop={12} activeOpacity={0.85}>
+            <Feather name="edit-3" size={18} color="#0B1120" />
+          </TouchableOpacity>
 
-        {loading ? (
-          <View style={{ paddingVertical: 18 }}>
-            <ActivityIndicator color="#5EEAD4" />
-          </View>
-        ) : rzuty.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Feather name="image" size={22} color="#5EEAD4" />
-            <Text style={styles.emptyTitle}>{t('noPlansTitle')}</Text>
-            <Text style={styles.emptySubtitle}>{t('noPlansSubtitle')}</Text>
-          </View>
-        ) : (
-          <View style={{ marginTop: 12 }}>
-            {rzuty.map((r) => (
-              <Pressable
-                key={r.id}
-                onPress={() => openPreview(r)}
-                onLongPress={() => deleteRzut(r)}
-                style={styles.rzutCard}
-              >
-                <Image source={{ uri: r.url }} style={styles.rzutImg} resizeMode="cover" />
-                <View style={styles.rzutFooter}>
-                  <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.rzutName} numberOfLines={1}>
-                      {r.nazwa || t('planDefaultName', { defaultValue: 'Rzut' })}
-                    </Text>
-                    <Text style={styles.rzutHint}>{t('planHint', { defaultValue: 'Kliknij: podgląd • Przytrzymaj: usuń' })}</Text>
-                  </View>
-
-                  <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10}>
-                    <Feather name="trash-2" size={16} color="#F8FAFC" />
-                  </TouchableOpacity>
-                </View>
-              </Pressable>
+          <View style={styles.tilesGrid}>
+            {tiles.map((tt) => (
+              <View key={tt.id} style={styles.tile}>
+                <Text style={styles.tileLabel}>{tt.label}</Text>
+                <Text style={styles.tileValue}>{String(tt.value)}</Text>
+              </View>
             ))}
           </View>
-        )}
-      </BlurView>
+        </BlurView>
 
-      {/* MODAL PODGLĄDU RZUTU */}
-      <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
-        <View style={styles.previewBackdrop}>
-          <View style={styles.previewTopBar}>
-            <TouchableOpacity onPress={() => setPreviewOpen(false)} style={styles.previewIconBtn}>
-              <Feather name="x" size={22} color="#F8FAFC" />
-            </TouchableOpacity>
+        {/* RZUTY */}
+        <BlurView intensity={80} tint="dark" style={styles.card}>
+          <Text style={styles.sectionTitleCenter}>{t('projectPlans')}</Text>
 
-            <Text style={styles.previewTitle} numberOfLines={1}>
-              {previewRzut?.nazwa || t('planDefaultName', { defaultValue: 'Rzut' })}
-            </Text>
+          <TouchableOpacity onPress={uploadRzutAndSave} style={styles.secondaryBtn} activeOpacity={0.9}>
+            <Feather name="plus" size={16} color="#0B1120" />
+            <Text style={styles.secondaryBtnText}>{t('addPlan', { defaultValue: 'Dodaj rzut' })}</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => previewRzut && deleteRzut(previewRzut)}
-              style={[
-                styles.previewIconBtn,
-                { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.45)' },
-              ]}
-            >
-              <Feather name="trash-2" size={18} color="#F8FAFC" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.previewImgWrap}>
-            {previewRzut?.url ? (
-              <Image source={{ uri: previewRzut.url }} style={styles.previewImg} resizeMode="contain" />
-            ) : null}
-          </View>
-        </View>
-      </Modal>
-
-      {/* MODAL EDYCJI PARAMETRÓW */}
-      <Modal visible={editOpen} transparent animationType="fade" onRequestClose={() => setEditOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
-            <BlurView intensity={90} tint="dark" style={styles.modalCard}>
-              <Text style={styles.modalTitle}>{t('editParamsTitle', { defaultValue: 'Edytuj parametry' })}</Text>
-
-              <FieldText
-                label={t('fieldProjectName', { defaultValue: 'Nazwa projektu' })}
-                value={form.nazwa}
-                onChange={(txt) => setForm((p) => ({ ...p, nazwa: txt }))}
-              />
-
-              <View style={styles.row2}>
-                <FieldNum
-                  label={t('fieldPowU', { defaultValue: 'Pow. użytkowa (m²)' })}
-                  value={form.powierzchnia_uzytkowa}
-                  onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: txt }))}
-                />
-                <FieldNum
-                  label={t('fieldFloors', { defaultValue: 'Kondygnacje' })}
-                  value={form.kondygnacje}
-                  onChange={(txt) => setForm((p) => ({ ...p, kondygnacje: txt }))}
-                />
-              </View>
-
-              <View style={styles.row2}>
-                <FieldNum
-                  label={t('fieldRooms', { defaultValue: 'Pomieszczenia' })}
-                  value={form.pomieszczenia}
-                  onChange={(txt) => setForm((p) => ({ ...p, pomieszczenia: txt }))}
-                />
-                <FieldNum
-                  label={t('fieldPowZ', { defaultValue: 'Pow. zabudowy (m²)' })}
-                  value={form.powierzchnia_zabudowy}
-                  onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_zabudowy: txt }))}
-                />
-              </View>
-
-              <View style={styles.row2}>
-                <FieldNum
-                  label={t('fieldHeight', { defaultValue: 'Wysokość (m)' })}
-                  value={form.wysokosc_budynku}
-                  onChange={(txt) => setForm((p) => ({ ...p, wysokosc_budynku: txt }))}
-                />
-                <FieldNum
-                  label={t('fieldRoofAngle', { defaultValue: 'Kąt dachu (°)' })}
-                  value={form.kat_dachu}
-                  onChange={(txt) => setForm((p) => ({ ...p, kat_dachu: txt }))}
-                />
-              </View>
-
-              <View style={styles.row2}>
-                <FieldNum
-                  label={t('fieldRoofArea', { defaultValue: 'Pow. dachu (m²)' })}
-                  value={form.powierzchnia_dachu}
-                  onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_dachu: txt }))}
-                />
-                <FieldNum
-                  label={t('fieldFacadeWidth', { defaultValue: 'Szer. elewacji (m)' })}
-                  value={form.szerokosc_elewacji}
-                  onChange={(txt) => setForm((p) => ({ ...p, szerokosc_elewacji: txt }))}
-                />
-              </View>
-
-              <FieldNum
-                label={t('fieldFacadeLength', { defaultValue: 'Dł. elewacji (m)' })}
-                value={form.dlugosc_elewacji}
-                onChange={(txt) => setForm((p) => ({ ...p, dlugosc_elewacji: txt }))}
-              />
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  onPress={() => setEditOpen(false)}
-                  style={[styles.modalBtn, styles.modalBtnGhost]}
-                  disabled={saving}
+          {loading ? (
+            <View style={{ paddingVertical: 18 }}>
+              <ActivityIndicator color="#5EEAD4" />
+            </View>
+          ) : rzuty.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Feather name="image" size={22} color="#5EEAD4" />
+              <Text style={styles.emptyTitle}>{t('noPlansTitle')}</Text>
+              <Text style={styles.emptySubtitle}>{t('noPlansSubtitle')}</Text>
+            </View>
+          ) : (
+            <View style={{ marginTop: 12 }}>
+              {rzuty.map((r) => (
+                <Pressable
+                  key={r.id}
+                  onPress={() => openPreview(r)}
+                  onLongPress={() => deleteRzut(r)}
+                  style={styles.rzutCard}
                 >
-                  <Text style={styles.modalBtnGhostText}>{t('cancel', { defaultValue: 'Anuluj' })}</Text>
-                </TouchableOpacity>
+                  <Image source={{ uri: r.url }} style={styles.rzutImg} resizeMode="cover" />
+                  <View style={styles.rzutFooter}>
+                    <View style={{ flex: 1, paddingRight: 10 }}>
+                      <Text style={styles.rzutName} numberOfLines={1}>
+                        {r.nazwa || t('planDefaultName', { defaultValue: 'Rzut' })}
+                      </Text>
+                      <Text style={styles.rzutHint}>
+                        {t('planHint', { defaultValue: 'Kliknij: podgląd • Przytrzymaj: usuń' })}
+                      </Text>
+                    </View>
 
-                <TouchableOpacity
-                  onPress={saveParams}
-                  style={[styles.modalBtn, styles.modalBtnPrimary]}
-                  disabled={saving}
-                >
-                  {saving ? <ActivityIndicator /> : <Text style={styles.modalBtnPrimaryText}>{t('save', { defaultValue: 'Zapisz' })}</Text>}
-                </TouchableOpacity>
-              </View>
-            </BlurView>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-    </ScrollView>
+                    <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10} activeOpacity={0.85}>
+                      <Feather name="trash-2" size={16} color="#F8FAFC" />
+                    </TouchableOpacity>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </BlurView>
+
+        {/* MODAL PODGLĄDU RZUTU */}
+        <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
+          <View style={styles.previewBackdrop}>
+            <View style={styles.previewTopBar}>
+              <TouchableOpacity onPress={() => setPreviewOpen(false)} style={styles.previewIconBtn} activeOpacity={0.85}>
+                <Feather name="x" size={22} color="#F8FAFC" />
+              </TouchableOpacity>
+
+              <Text style={styles.previewTitle} numberOfLines={1}>
+                {previewRzut?.nazwa || t('planDefaultName', { defaultValue: 'Rzut' })}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => previewRzut && deleteRzut(previewRzut)}
+                style={[
+                  styles.previewIconBtn,
+                  { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.45)' },
+                ]}
+                activeOpacity={0.85}
+              >
+                <Feather name="trash-2" size={18} color="#F8FAFC" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.previewImgWrap}>
+              {previewRzut?.url ? (
+                <Image source={{ uri: previewRzut.url }} style={styles.previewImg} resizeMode="contain" />
+              ) : null}
+            </View>
+          </View>
+        </Modal>
+
+        {/* MODAL EDYCJI PARAMETRÓW */}
+        <Modal visible={editOpen} transparent animationType="fade" onRequestClose={() => setEditOpen(false)}>
+          <View style={styles.modalBackdrop}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
+              <BlurView intensity={90} tint="dark" style={styles.modalCard}>
+                <Text style={styles.modalTitle}>{t('editParamsTitle', { defaultValue: 'Edytuj parametry' })}</Text>
+
+                <FieldText
+                  label={t('fieldProjectName', { defaultValue: 'Nazwa projektu' })}
+                  value={form.nazwa}
+                  onChange={(txt) => setForm((p) => ({ ...p, nazwa: txt }))}
+                />
+
+                <View style={styles.row2}>
+                  <FieldNum
+                    label={t('fieldPowU', { defaultValue: 'Pow. użytkowa (m²)' })}
+                    value={form.powierzchnia_uzytkowa}
+                    onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: txt }))}
+                  />
+                  <FieldNum
+                    label={t('fieldFloors', { defaultValue: 'Kondygnacje' })}
+                    value={form.kondygnacje}
+                    onChange={(txt) => setForm((p) => ({ ...p, kondygnacje: txt }))}
+                  />
+                </View>
+
+                <View style={styles.row2}>
+                  <FieldNum
+                    label={t('fieldRooms', { defaultValue: 'Pomieszczenia' })}
+                    value={form.pomieszczenia}
+                    onChange={(txt) => setForm((p) => ({ ...p, pomieszczenia: txt }))}
+                  />
+                  <FieldNum
+                    label={t('fieldPowZ', { defaultValue: 'Pow. zabudowy (m²)' })}
+                    value={form.powierzchnia_zabudowy}
+                    onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_zabudowy: txt }))}
+                  />
+                </View>
+
+                <View style={styles.row2}>
+                  <FieldNum
+                    label={t('fieldHeight', { defaultValue: 'Wysokość (m)' })}
+                    value={form.wysokosc_budynku}
+                    onChange={(txt) => setForm((p) => ({ ...p, wysokosc_budynku: txt }))}
+                  />
+                  <FieldNum
+                    label={t('fieldRoofAngle', { defaultValue: 'Kąt dachu (°)' })}
+                    value={form.kat_dachu}
+                    onChange={(txt) => setForm((p) => ({ ...p, kat_dachu: txt }))}
+                  />
+                </View>
+
+                <View style={styles.row2}>
+                  <FieldNum
+                    label={t('fieldRoofArea', { defaultValue: 'Pow. dachu (m²)' })}
+                    value={form.powierzchnia_dachu}
+                    onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_dachu: txt }))}
+                  />
+                  <FieldNum
+                    label={t('fieldFacadeWidth', { defaultValue: 'Szer. elewacji (m)' })}
+                    value={form.szerokosc_elewacji}
+                    onChange={(txt) => setForm((p) => ({ ...p, szerokosc_elewacji: txt }))}
+                  />
+                </View>
+
+                <FieldNum
+                  label={t('fieldFacadeLength', { defaultValue: 'Dł. elewacji (m)' })}
+                  value={form.dlugosc_elewacji}
+                  onChange={(txt) => setForm((p) => ({ ...p, dlugosc_elewacji: txt }))}
+                />
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    onPress={() => setEditOpen(false)}
+                    style={[styles.modalBtn, styles.modalBtnGhost]}
+                    disabled={saving}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.modalBtnGhostText}>{t('cancel', { defaultValue: 'Anuluj' })}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={saveParams}
+                    style={[styles.modalBtn, styles.modalBtnPrimary]}
+                    disabled={saving}
+                    activeOpacity={0.9}
+                  >
+                    {saving ? (
+                      <ActivityIndicator />
+                    ) : (
+                      <Text style={styles.modalBtnPrimaryText}>{t('save', { defaultValue: 'Zapisz' })}</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </BlurView>
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -691,7 +739,13 @@ function FieldNum({ label, value, onChange }: { label: string; value: string; on
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050915', paddingHorizontal: 16 },
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  blackBase: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+  },
+
+  container: { flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 },
 
   safeTop: { width: '100%' },
 
@@ -704,7 +758,20 @@ const styles = StyleSheet.create({
   logoWrap: { alignItems: 'flex-start', justifyContent: 'center' },
   logoImg: { width: 30, height: 30 },
 
-  headerBlock: { alignItems: 'center', paddingVertical: 6 },
+  headerBlock: { alignItems: 'center', paddingVertical: 10 },
+
+  // zielony tytuł ekranu "Projekt / Project"
+  screenTitle: {
+    color: '#5EEAD4',
+    fontSize: 35,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: -0.2,
+    textShadowColor: 'rgba(94,234,212,0.20)',
+    textShadowRadius: 14,
+    marginBottom: 6,
+  },
+
   projectTitle: { color: '#F8FAFC', fontSize: 26, fontWeight: '900', textAlign: 'center' },
   projectLocation: { marginTop: 6, color: 'rgba(148,163,184,0.9)', fontSize: 13, fontWeight: '700' },
 
@@ -730,14 +797,12 @@ const styles = StyleSheet.create({
     right: -90,
   },
 
-  // ✅ bez "szarej karty" pod 3D - tło jak reszta
   modelHero: {
     borderRadius: 28,
     backgroundColor: 'transparent',
     padding: 0,
   },
 
-  // ✅ scena w czerni + obramowanie jak karty
   modelStage: {
     height: 260,
     alignItems: 'center',
@@ -746,7 +811,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: '#050915',
+    backgroundColor: '#000000',
   },
 
   modelCta: {
@@ -762,6 +827,14 @@ const styles = StyleSheet.create({
   },
   modelCtaText: { color: '#0B1120', fontWeight: '900' },
 
+  modelHint: {
+    marginTop: 8,
+    color: 'rgba(148,163,184,0.90)',
+    fontSize: 12.5,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+
   card: {
     borderRadius: 24,
     borderWidth: 1,
@@ -776,6 +849,18 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     textAlign: 'center',
+    marginBottom: 10,
+  },
+
+  // tylko ołówek (bez tekstu)
+  pencilBtn: {
+    alignSelf: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: '#5EEAD4',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
   },
 
@@ -848,7 +933,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // preview modal
   previewBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' },
   previewTopBar: {
     paddingTop: 54,
@@ -872,7 +956,6 @@ const styles = StyleSheet.create({
   previewImgWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 12 },
   previewImg: { width: '100%', height: '100%' },
 
-  // modal parametry
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',

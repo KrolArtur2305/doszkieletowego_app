@@ -159,7 +159,7 @@ export default function WelcomeScreen() {
         />
       </Animated.View>
 
-      <Text style={styles.brand}>doszkieletowego app</Text>
+      <Text style={styles.brand}>NEXO</Text>
 
       <View style={styles.langRow}>
         {renderLangButton('pl', 'PL')}

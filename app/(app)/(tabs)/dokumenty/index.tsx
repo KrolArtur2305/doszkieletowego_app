@@ -1,134 +1,269 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
-  Linking,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Modal,
   ActivityIndicator,
+  RefreshControl,
+  Alert,
+  Dimensions,
+  ScrollView,
+  Platform,
+  TextInput,
+  Pressable,
+  StatusBar,
+  Keyboard,
+  KeyboardAvoidingView,
+  Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 
-type CategoryKey = 'UMOWY' | 'FAKTURY_PARAGONY' | 'INNE';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
 
-const CATEGORIES: { key: CategoryKey; icon: keyof typeof Feather.glyphMap }[] = [
-  { key: 'UMOWY', icon: 'file-text' },
-  { key: 'FAKTURY_PARAGONY', icon: 'credit-card' },
-  { key: 'INNE', icon: 'archive' },
-];
+type ViewMode = 'grid' | 'list';
+type SortOrder = 'newest' | 'oldest';
+
+type DocTypeKey = 'all' | 'umowa' | 'faktura' | 'paragon' | 'oferta' | 'projekt' | 'pozwolenia' | 'inne';
 
 type DbDoc = {
   id: string;
   user_id: string | null;
-  tytul: string; // ✅ POPRAWIONE
+  tytul: string;
   notatki?: string | null;
   kategoria?: string | null;
   created_at?: string | null;
   plik_url: string;
 };
 
-function formatDate(iso?: string | null) {
+const COLORS = {
+  bg: '#050915',
+  cardBorder: 'rgba(255,255,255,0.08)',
+  cardBg: 'rgba(255,255,255,0.03)',
+  text: '#F8FAFC',
+  muted: '#94A3B8',
+  soft: '#CBD5F5',
+  accent: '#5EEAD4',
+  accent2: '#38BDF8',
+  danger: '#FF3B30',
+  brand: '#19705C',
+};
+
+const bucketName = 'dokumenty';
+const logo = require('../../../assets/logo.png');
+
+function localeFromLng(lng?: string) {
+  const base = (lng || 'en').split('-')[0];
+  return base === 'pl' ? 'pl-PL' : 'en-US';
+}
+
+function formatDateLocale(iso: string | null | undefined, locale: string) {
   if (!iso) return '—';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString('pl-PL', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function normalizeCategory(cat?: string | null): CategoryKey {
-  const c = (cat || '').toUpperCase();
-  if (c === 'UMOWY') return 'UMOWY';
-  if (c === 'FAKTURY_PARAGONY') return 'FAKTURY_PARAGONY';
-  return 'INNE';
+function normalizeType(cat?: string | null): DocTypeKey {
+  const c = (cat || '').trim().toLowerCase();
+
+  // wsteczna kompatybilność (stare wartości)
+  if (c === 'umowy') return 'umowa';
+  if (c === 'faktury_paragony') return 'faktura';
+  if (c === 'inne') return 'inne';
+
+  // nowe
+  if (c === 'umowa') return 'umowa';
+  if (c === 'faktura') return 'faktura';
+  if (c === 'paragon') return 'paragon';
+  if (c === 'oferta') return 'oferta';
+  if (c === 'projekt') return 'projekt';
+  if (c === 'pozwolenia') return 'pozwolenia';
+  return 'inne';
 }
+
+const DOC_TYPES: { key: DocTypeKey; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'all', icon: 'filter' },
+  { key: 'umowa', icon: 'document-text-outline' },
+  { key: 'faktura', icon: 'card-outline' },
+  { key: 'paragon', icon: 'receipt-outline' },
+  { key: 'oferta', icon: 'clipboard-outline' },
+  { key: 'projekt', icon: 'layers-outline' },
+  { key: 'pozwolenia', icon: 'shield-checkmark-outline' },
+  { key: 'inne', icon: 'archive-outline' },
+];
 
 export default function DokumentyScreen() {
-  const { t } = useTranslation('documents');
-  const [activeCat, setActiveCat] = useState<CategoryKey>('UMOWY');
+  const { t, i18n } = useTranslation(['documents', 'common']);
+
+  // ✅ zawsze string do <Text/>
+  const tt = useCallback((key: string, options?: any) => String(t(key as any, options)), [t]);
+
+  const dateLocale = useMemo(
+    () => localeFromLng(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
+
+  const lngBase = useMemo(() => (i18n.resolvedLanguage || i18n.language || 'en').split('-')[0], [
+    i18n.language,
+    i18n.resolvedLanguage,
+  ]);
+
+  // ✅ nagłówek identycznie jak w zdjęciach (PL/EN bez ryzyka braku kluczy)
+  const headerTitle = useMemo(() => {
+    if (lngBase === 'pl') return 'Dokumenty';
+    return 'Documents';
+  }, [lngBase]);
+
+  const [docs, setDocs] = useState<DbDoc[]>([]);
+  const [selectedType, setSelectedType] = useState<DocTypeKey>('all');
+
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [docs, setDocs] = useState<DbDoc[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
+  // dropdown states (jak w Zdjęcia)
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
 
+  // add modal
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [addDropdownOpen, setAddDropdownOpen] = useState(false);
+
+  const [selectedTypeForUpload, setSelectedTypeForUpload] = useState<DocTypeKey>('umowa');
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
-  const [file, setFile] = useState<{
-    uri: string;
-    name: string;
-    mimeType?: string;
-    size?: number;
-  } | null>(null);
+  const [file, setFile] = useState<{ uri: string; name: string; mimeType?: string; size?: number } | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const getCategoryLabel = (key: CategoryKey) => {
-    if (key === 'UMOWY') return t('category.contracts');
-    if (key === 'FAKTURY_PARAGONY') return t('category.invoicesReceipts');
-    return t('category.other');
-  };
+  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
 
-  const fetchDocs = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr) throw userErr;
-      const user = userData?.user;
-      if (!user?.id) {
-        setDocs([]);
-        return;
+  const getUserId = useCallback(async (): Promise<string | null> => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.user?.id ?? null;
+  }, []);
+
+  const getTypeLabel = useCallback(
+    (key: DocTypeKey) => {
+      // Możesz potem podpiąć i18n w documents.json, ale to działa od razu jak w zdjęciach
+      if (key === 'all') return lngBase === 'pl' ? 'Wszystkie rodzaje' : 'All types';
+      if (key === 'umowa') return lngBase === 'pl' ? 'Umowa' : 'Contract';
+      if (key === 'faktura') return lngBase === 'pl' ? 'Faktura' : 'Invoice';
+      if (key === 'paragon') return lngBase === 'pl' ? 'Paragon' : 'Receipt';
+      if (key === 'oferta') return lngBase === 'pl' ? 'Oferta' : 'Offer';
+      if (key === 'projekt') return lngBase === 'pl' ? 'Projekt' : 'Project';
+      if (key === 'pozwolenia') return lngBase === 'pl' ? 'Pozwolenia' : 'Permits';
+      return lngBase === 'pl' ? 'Inne' : 'Other';
+    },
+    [lngBase],
+  );
+
+  const sortLabel = useMemo(() => {
+    return sortOrder === 'newest'
+      ? lngBase === 'pl'
+        ? 'Najnowsze'
+        : 'Newest'
+      : lngBase === 'pl'
+        ? 'Najstarsze'
+        : 'Oldest';
+  }, [sortOrder, lngBase]);
+
+  const selectedFilterLabel = useMemo(() => getTypeLabel(selectedType), [selectedType, getTypeLabel]);
+
+  const selectedUploadTypeLabel = useMemo(
+    () => getTypeLabel(selectedTypeForUpload),
+    [selectedTypeForUpload, getTypeLabel],
+  );
+
+  const loadDocs = useCallback(
+    async (isInitial: boolean) => {
+      try {
+        if (isInitial) setLoading(true);
+
+        const userId = await getUserId();
+        if (!userId) {
+          setDocs([]);
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('dokumenty')
+          .select('id,user_id,tytul,notatki,kategoria,created_at,plik_url')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: sortOrder === 'oldest' });
+
+        if (error) throw error;
+        setDocs((data || []) as DbDoc[]);
+      } catch (e: any) {
+        console.error('Błąd ładowania dokumentów:', e);
+        Alert.alert(
+          tt('common:errorTitle', { defaultValue: 'Błąd' }),
+          tt('documents:alerts.loadDocsError', { defaultValue: 'Nie udało się wczytać dokumentów.' }),
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
+    },
+    [getUserId, sortOrder, tt],
+  );
 
-      const { data, error } = await supabase
-        .from('dokumenty')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setDocs((data || []) as DbDoc[]);
-    } catch (e: any) {
-      console.error('[Dokumenty] fetch error:', e?.message || e);
-      Alert.alert(t('alerts.errorTitle'), t('errors.fetchFailed'));
-    } finally {
-      setRefreshing(false);
-      setLoading(false);
-    }
+  useEffect(() => {
+    loadDocs(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    fetchDocs();
-  }, [fetchDocs]);
+    if (!loading) loadDocs(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortOrder]);
 
-  const filteredDocs = useMemo(
-    () => docs.filter((d) => normalizeCategory(d.kategoria) === activeCat),
-    [docs, activeCat]
-  );
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadDocs(false);
+  }, [loadDocs]);
+
+  const filteredDocs = useMemo(() => {
+    if (selectedType === 'all') return docs;
+    return docs.filter((d) => normalizeType(d.kategoria) === selectedType);
+  }, [docs, selectedType]);
 
   const counts = useMemo(() => {
-    const c: Record<CategoryKey, number> = { UMOWY: 0, FAKTURY_PARAGONY: 0, INNE: 0 };
-    for (const d of docs) c[normalizeCategory(d.kategoria)] += 1;
+    const c: Record<DocTypeKey, number> = {
+      all: 0,
+      umowa: 0,
+      faktura: 0,
+      paragon: 0,
+      oferta: 0,
+      projekt: 0,
+      pozwolenia: 0,
+      inne: 0,
+    };
+    for (const d of docs) {
+      c.all += 1;
+      c[normalizeType(d.kategoria)] += 1;
+    }
     return c;
   }, [docs]);
 
-  const resetForm = () => {
-    setTitle('');
-    setDesc('');
-    setFile(null);
+  const closeAllDropdowns = () => {
+    setFilterDropdownOpen(false);
+    setSortDropdownOpen(false);
+    setAddDropdownOpen(false);
   };
 
   const pickFile = async () => {
@@ -136,492 +271,807 @@ export default function DokumentyScreen() {
     if (!res.canceled) {
       const a = res.assets?.[0];
       if (a?.uri) {
-        setFile({
-          uri: a.uri,
-          name: a.name,
-          mimeType: a.mimeType,
-          size: a.size,
-        });
+        setFile({ uri: a.uri, name: a.name, mimeType: a.mimeType, size: a.size });
       }
     }
   };
 
   const openDoc = async (doc: DbDoc) => {
-    const path = doc.plik_url;
-    if (path.startsWith('http')) {
-      Linking.openURL(path);
-      return;
+    try {
+      const path = doc.plik_url;
+      if (path.startsWith('http')) {
+        Linking.openURL(path);
+        return;
+      }
+      const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(path, 120);
+      if (error) throw error;
+      if (data?.signedUrl) Linking.openURL(data.signedUrl);
+    } catch (e: any) {
+      console.error('Błąd otwierania dokumentu:', e);
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        tt('documents:alerts.openError', { defaultValue: 'Nie udało się otworzyć dokumentu.' }),
+      );
     }
-    const { data, error } = await supabase.storage.from('dokumenty').createSignedUrl(path, 120);
-    if (error) throw error;
-    if (data?.signedUrl) Linking.openURL(data.signedUrl);
+  };
 
-    if (data?.signedUrl) Linking.openURL(data.signedUrl);
+  const deleteDoc = async (doc: DbDoc) => {
+    Alert.alert(
+      lngBase === 'pl' ? 'Usunąć dokument?' : 'Delete document?',
+      lngBase === 'pl' ? 'Na pewno chcesz usunąć ten dokument?' : 'Are you sure you want to delete this document?',
+      [
+        { text: tt('common:cancel', { defaultValue: 'Anuluj' }), style: 'cancel' },
+        {
+          text: tt('common:delete', { defaultValue: 'Usuń' }),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await supabase.from('dokumenty').delete().eq('id', doc.id);
+              await supabase.storage.from(bucketName).remove([doc.plik_url]);
+              onRefresh();
+            } catch (e: any) {
+              console.error('Błąd usuwania dokumentu:', e);
+              Alert.alert(
+                tt('common:errorTitle', { defaultValue: 'Błąd' }),
+                tt('documents:alerts.deleteError', { defaultValue: 'Nie udało się usunąć dokumentu.' }),
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const resetAddForm = () => {
+    setSelectedTypeForUpload('umowa');
+    setTitle('');
+    setDesc('');
+    setFile(null);
+    setAddDropdownOpen(false);
   };
 
   const addDoc = async () => {
     if (saving) return;
 
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle || !file?.uri) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.titleAndAttachmentRequired'));
+    if (!file?.uri) {
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        lngBase === 'pl' ? 'Dodaj plik lub zdjęcie.' : 'Attach a file or image.',
+      );
       return;
     }
 
     setSaving(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
-      if (!user?.id) throw new Error(t('errors.noUser'));
+      const userId = await getUserId();
+      if (!userId) throw new Error('No user');
 
       const ext = (() => {
         const parts = (file.name || '').split('.');
         return parts.length > 1 ? parts.pop()!.toLowerCase() : '';
       })();
-      const filePath = `dokumenty/${user.id}/${Date.now()}${ext ? '.' + ext : ''}`;
 
+      const filePath = `dokumenty/${userId}/${Date.now()}${ext ? '.' + ext : ''}`;
 
       const blob = await (await fetch(file.uri)).blob();
-      const { error: upErr } = await supabase.storage.from('dokumenty').upload(filePath, blob, {
+
+      const { error: upErr } = await supabase.storage.from(bucketName).upload(filePath, blob, {
         contentType: file.mimeType || (ext === 'pdf' ? 'application/pdf' : undefined),
-              upsert: false,
+        upsert: false,
       });
       if (upErr) throw upErr;
+
+      const finalTitle =
+        title.trim() ||
+        (file.name ? file.name.replace(/\.[^/.]+$/, '') : `${getTypeLabel(selectedTypeForUpload)} • ${Date.now()}`);
+
       const { error } = await supabase.from('dokumenty').insert({
-        user_id: user.id,
-        tytul: trimmedTitle, // ✅ KLUCZOWE
-        notatki: desc || null,
-        kategoria: activeCat,
+        user_id: userId,
+        tytul: finalTitle,
+        notatki: desc.trim() ? desc.trim() : null,
+        kategoria: selectedTypeForUpload,
         plik_url: filePath,
       });
 
       if (error) throw error;
 
-      setModalOpen(false);
-      resetForm();
-      fetchDocs();
+      setAddModalVisible(false);
+      resetAddForm();
+      onRefresh();
+      Alert.alert(
+        tt('documents:alerts.successTitle', { defaultValue: 'Sukces' }),
+        tt('documents:alerts.docAdded', { defaultValue: 'Dodano dokument.' }),
+      );
     } catch (e: any) {
-      console.error('[Dokumenty] addDoc error:', e?.message || e);
-      Alert.alert(t('alerts.errorTitle'), t('errors.addFailed'));
+      console.error('Błąd dodawania dokumentu:', e);
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        tt('documents:alerts.addError', { defaultValue: 'Nie udało się dodać dokumentu.' }),
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteDoc = async (doc: DbDoc) => {
-    Alert.alert(t('delete.confirmTitle'), t('delete.confirmMessage', { title: doc.tytul }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          await supabase.from('dokumenty').delete().eq('id', doc.id);
-          await supabase.storage.from('dokumenty').remove([doc.plik_url]);
-          fetchDocs();
-        },
-      },
-    ]);
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <BlurView intensity={15} tint="dark" style={styles.emptyCard}>
+        <Ionicons name="document-text-outline" size={64} color="rgba(255,255,255,0.25)" />
+        <Text style={styles.emptyTitle}>{lngBase === 'pl' ? 'Brak dokumentów' : 'No documents'}</Text>
+        <Text style={styles.emptySubtitle}>
+          {lngBase === 'pl' ? 'Dodaj pierwsze dokumenty do projektu.' : 'Add your first documents to the project.'}
+        </Text>
+        <TouchableOpacity style={styles.emptyButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
+          <Ionicons name="add" size={18} color={COLORS.bg} />
+          <Text style={styles.emptyButtonText}>{lngBase === 'pl' ? 'Dodaj dokument' : 'Add document'}</Text>
+        </TouchableOpacity>
+      </BlurView>
+    </View>
+  );
+
+  const renderGridItem = ({ item }: { item: DbDoc }) => {
+    const type = normalizeType(item.kategoria);
+    const dateTxt = formatDateLocale(item.created_at || null, dateLocale);
+
+    return (
+      <TouchableOpacity
+        style={styles.gridCard}
+        onPress={() => openDoc(item)}
+        onLongPress={() => deleteDoc(item)}
+        activeOpacity={0.85}
+      >
+        <BlurView intensity={25} tint="dark" style={styles.cardBlur}>
+          <View style={styles.docCardInner}>
+            <View style={styles.docIconWrap}>
+              <Ionicons name="document-text-outline" size={22} color={COLORS.brand} />
+            </View>
+
+            <Text style={styles.docTitle} numberOfLines={2}>
+              {item.tytul}
+            </Text>
+
+            {!!item.notatki && (
+              <Text style={styles.docDesc} numberOfLines={2}>
+                {item.notatki}
+              </Text>
+            )}
+
+            <View style={styles.docMetaRow}>
+              <Text style={styles.docType} numberOfLines={1}>
+                {getTypeLabel(type).toUpperCase()}
+              </Text>
+              <Text style={styles.docDate}>{dateTxt}</Text>
+            </View>
+          </View>
+        </BlurView>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderListItem = ({ item }: { item: DbDoc }) => {
+    const type = normalizeType(item.kategoria);
+    const dateTxt = formatDateLocale(item.created_at || null, dateLocale);
+
+    return (
+      <TouchableOpacity
+        style={styles.listRow}
+        onPress={() => openDoc(item)}
+        onLongPress={() => deleteDoc(item)}
+        activeOpacity={0.85}
+      >
+        <BlurView intensity={22} tint="dark" style={styles.listBlur}>
+          <View style={styles.listLeftIcon}>
+            <Ionicons name="document-text-outline" size={22} color={COLORS.brand} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.listTitle} numberOfLines={1}>
+              {item.tytul}
+            </Text>
+            <Text style={styles.listMeta} numberOfLines={1}>
+              {getTypeLabel(type)} • {dateTxt}
+            </Text>
+            {!!item.notatki && (
+              <Text style={styles.listDesc} numberOfLines={2}>
+                {item.notatki}
+              </Text>
+            )}
+          </View>
+
+          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.35)" />
+        </BlurView>
+      </TouchableOpacity>
+    );
   };
 
   if (loading) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <ActivityIndicator />
-          <Text style={{ color: 'rgba(148,163,184,0.9)', marginTop: 10, fontWeight: '700' }}>
-          {t('loading.documents')}
-        </Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.brand} />
+        <Text style={styles.loadingText}>{lngBase === 'pl' ? 'Ładowanie…' : 'Loading…'}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.root}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('header.title')}</Text>
-        <Text style={styles.subtitle}>{t('header.subtitle')}</Text>
+    <View style={styles.container}>
+      {(filterDropdownOpen || sortDropdownOpen || addDropdownOpen) && (
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => {
+            closeAllDropdowns();
+            Keyboard.dismiss();
+          }}
+        />
+      )}
 
-        <View style={styles.tabsRow}>
-          {CATEGORIES.map((c) => {
-            const active = c.key === activeCat;
-            return (
-              <TouchableOpacity
-                key={c.key}
-                activeOpacity={0.9}
-                onPress={() => setActiveCat(c.key)}
-                style={[styles.tabPill, active && styles.tabPillActive]}
-              >
-                <Feather name={c.icon} size={14} color={active ? '#061015' : 'rgba(94,234,212,0.9)'} />
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                  {getCategoryLabel(c.key)} ({counts[c.key]})
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      <View pointerEvents="none" style={styles.glowOne} />
+      <View pointerEvents="none" style={styles.glowTwo} />
+
+      {/* TOP BAR (jak Zdjęcia) */}
+      <View style={[styles.topBar, { paddingTop: topPad }]}>
+        <View style={styles.logoWrap}>
+          <Image source={logo} style={styles.logoImg} contentFit="contain" />
         </View>
 
-        <View style={styles.actionsRow}>
+        <View style={styles.topTitleWrap}>
+          <Text style={styles.title}>{headerTitle}</Text>
+        </View>
+
+        <View style={styles.headerRight}>
           <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => setModalOpen(true)}
-            style={styles.addBtn}
+            style={[styles.toggleButton, viewMode === 'grid' && styles.toggleButtonActive]}
+            onPress={() => setViewMode('grid')}
+            activeOpacity={0.85}
           >
-            <Feather name="plus" size={18} color="#061015" />
-            <Text style={styles.addBtnText}>{t('actions.add')}</Text>
+            <Ionicons name="grid" size={20} color={viewMode === 'grid' ? COLORS.brand : 'rgba(255,255,255,0.45)'} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={fetchDocs}
-            style={styles.refreshBtn}
+            style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+            onPress={() => setViewMode('list')}
+            activeOpacity={0.85}
           >
-            <Feather name="refresh-cw" size={16} color="rgba(148,163,184,0.95)" />
-            <Text style={styles.refreshText}>{refreshing ? t('actions.refreshing') : t('actions.refresh')}</Text>
+            <Ionicons
+              name="list"
+              size={20}
+              color={viewMode === 'list' ? COLORS.brand : 'rgba(255,255,255,0.45)'}
+            />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
-        {filteredDocs.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>{t('empty.noDocsInCategory')}</Text>
-          </View>
-        ) : (
-          filteredDocs.map((d) => (
-            <Pressable
-              key={d.id}
-              onPress={() => openDoc(d)}
-              onLongPress={() => deleteDoc(d)}
-              style={{ marginBottom: 12 }}
+      {/* FILTER + SORT (identyczny układ jak Zdjęcia) */}
+      <View style={styles.filterBar}>
+        <View style={styles.filtersRow}>
+          <View style={[styles.dropdownWrap, { flex: 1 }]}>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              activeOpacity={0.85}
+              onPress={() => {
+                setSortDropdownOpen(false);
+                setFilterDropdownOpen((v) => !v);
+              }}
             >
-              <BlurView intensity={16} tint="dark" style={styles.card}>
-                <View style={styles.cardTop}>
-                  <View style={styles.iconBadge}>
-                    <Feather name="file" size={18} color="#5EEAD4" />
-                  </View>
+              <Ionicons name="filter" size={16} color={COLORS.brand} />
+              <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                {selectedFilterLabel} ({counts[selectedType] ?? 0})
+              </Text>
+              <Ionicons
+                name={filterDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color="rgba(255,255,255,0.65)"
+              />
+            </TouchableOpacity>
 
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {d.tytul}
-                    </Text>
-                    <Text style={styles.cardMeta}>
-                      {formatDate(d.created_at)} • {getCategoryLabel(normalizeCategory(d.kategoria))}
-                    </Text>
-                  </View>
-
-                  <Feather name="chevron-right" size={18} color="rgba(148,163,184,0.85)" />
-                </View>
-
-                {!!d.notatki && (
-                  <Text style={styles.cardDesc} numberOfLines={3}>
-                    {d.notatki}
-                  </Text>
-                )}
-
-                <View style={styles.cardHintRow}>
-                  <Text style={styles.cardHint}>{t('card.hint')}</Text>
-                  <View style={styles.privatePill}>
-                    <Feather name="lock" size={12} color="rgba(94,234,212,0.95)" />
-                    <Text style={styles.privateText}>PRIVATE</Text>
-                  </View>
-                </View>
-              </BlurView>
-            </Pressable>
-          ))
-        )}
-      </ScrollView>
-
-      {/* MODAL: Dodaj dokument */}
-      <Modal visible={modalOpen} transparent animationType="fade" onRequestClose={() => setModalOpen(false)}>
-        <View style={styles.modalOverlay}>
-          <BlurView intensity={18} tint="dark" style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('modal.title')}</Text>
-              <TouchableOpacity onPress={() => { setModalOpen(false); }} style={styles.modalClose}>
-                <Feather name="x" size={18} color="rgba(148,163,184,0.95)" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ gap: 10 }}>
-              <View style={styles.inputWrap}>
-                <Text style={styles.inputLabel}>{t('modal.titleLabel')}</Text>
-                <TextInput
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder={t('modal.titlePlaceholder')}
-                  placeholderTextColor="rgba(148,163,184,0.55)"
-                  style={styles.input}
-                />
-              </View>
-
-              <View style={styles.inputWrap}>
-                <Text style={styles.inputLabel}>{t('modal.descriptionLabel')}</Text>
-                <TextInput
-                  value={desc}
-                  onChangeText={setDesc}
-                  placeholder={t('modal.descriptionPlaceholder')}
-                  placeholderTextColor="rgba(148,163,184,0.55)"
-                  style={[styles.input, styles.textarea]}
-                  multiline
-                />
-              </View>
-
-              <View style={styles.inputWrap}>
-                <Text style={styles.inputLabel}>{t('modal.categoryLabel')}</Text>
-                <View style={styles.catRow}>
-                  {CATEGORIES.map((c) => {
-                    const on = c.key === activeCat;
+            {filterDropdownOpen && (
+              <View style={styles.dropdownPanel}>
+                <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
+                  {DOC_TYPES.map((opt) => {
+                    const active = selectedType === opt.key;
                     return (
                       <TouchableOpacity
-                        key={c.key}
-                        activeOpacity={0.9}
-                        onPress={() => setActiveCat(c.key)}
-                        style={[styles.catBtn, on && styles.catBtnOn]}
+                        key={opt.key}
+                        style={[styles.dropdownItem, active && styles.dropdownItemActive]}
+                        onPress={() => {
+                          setSelectedType(opt.key);
+                          setFilterDropdownOpen(false);
+                        }}
+                        activeOpacity={0.85}
                       >
-                        <Text style={[styles.catBtnText, on && styles.catBtnTextOn]}>{getCategoryLabel(c.key)}</Text>
+                        <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>
+                          {getTypeLabel(opt.key)}
+                        </Text>
+                        {active && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
                       </TouchableOpacity>
                     );
                   })}
-                </View>
+                </ScrollView>
               </View>
+            )}
+          </View>
 
-              <View style={styles.inputWrap}>
-                <Text style={styles.inputLabel}>{t('modal.attachmentRequired')}</Text>
-                <TouchableOpacity activeOpacity={0.9} onPress={pickFile} style={styles.fileBtn}>
-                  <Feather name="paperclip" size={16} color="#061015" />
-                  <Text style={styles.fileBtnText}>{file ? file.name : t('modal.pickFile')}</Text>
-                </TouchableOpacity>
-              </View>
+          <View style={[styles.dropdownWrap, { flex: 1 }]}>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              activeOpacity={0.85}
+              onPress={() => {
+                setFilterDropdownOpen(false);
+                setSortDropdownOpen((v) => !v);
+              }}
+            >
+              <Ionicons name="swap-vertical" size={16} color={COLORS.brand} />
+              <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                {sortLabel}
+              </Text>
+              <Ionicons
+                name={sortDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color="rgba(255,255,255,0.65)"
+              />
+            </TouchableOpacity>
 
-              <View style={styles.modalActions}>
+            {sortDropdownOpen && (
+              <View style={styles.dropdownPanel}>
                 <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => { setModalOpen(false); resetForm(); }}
-                  style={styles.cancelBtn}
-                  disabled={saving}
+                  style={[styles.dropdownItem, sortOrder === 'newest' && styles.dropdownItemActive]}
+                  onPress={() => {
+                    setSortOrder('newest');
+                    setSortDropdownOpen(false);
+                  }}
+                  activeOpacity={0.85}
                 >
-                  <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+                  <Text style={[styles.dropdownItemText, sortOrder === 'newest' && styles.dropdownItemTextActive]}>
+                    {lngBase === 'pl' ? 'Najnowsze' : 'Newest'}
+                  </Text>
+                  {sortOrder === 'newest' && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={addDoc}
-                  style={styles.saveBtn}
+                  style={[styles.dropdownItem, sortOrder === 'oldest' && styles.dropdownItemActive]}
+                  onPress={() => {
+                    setSortOrder('oldest');
+                    setSortDropdownOpen(false);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.dropdownItemText, sortOrder === 'oldest' && styles.dropdownItemTextActive]}>
+                    {lngBase === 'pl' ? 'Najstarsze' : 'Oldest'}
+                  </Text>
+                  {sortOrder === 'oldest' && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {filteredDocs.length === 0 ? (
+        renderEmptyState()
+      ) : viewMode === 'grid' ? (
+        <FlatList
+          key={`docs-${viewMode}`}
+          data={filteredDocs}
+          renderItem={renderGridItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.gridContainer}
+          columnWrapperStyle={styles.gridRow}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brand} />}
+        />
+      ) : (
+        <FlatList
+          key={`docs-${viewMode}`}
+          data={filteredDocs}
+          renderItem={renderListItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brand} />}
+        />
+      )}
+
+      {/* FAB (identyczny jak w Zdjęcia) */}
+      <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)} activeOpacity={0.9}>
+        <BlurView intensity={90} tint="dark" style={styles.fabBlur}>
+          <View style={styles.fabRing} />
+          <Ionicons name="add" size={30} color={COLORS.brand} />
+        </BlurView>
+      </TouchableOpacity>
+
+      {/* ADD MODAL (wizual jak Zdjęcia + klawiatura chowa się po tapie w tło) */}
+      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
+        <Pressable
+          style={styles.modalBlackOverlay}
+          onPress={() => {
+            Keyboard.dismiss();
+            closeAllDropdowns();
+          }}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <Pressable
+              style={styles.modalContent}
+              onPress={() => {
+                // blokuje zamykanie po kliknięciu w kartę
+              }}
+            >
+              <Text style={styles.modalTitle}>{lngBase === 'pl' ? 'Dodaj dokument' : 'Add document'}</Text>
+
+              <Text style={styles.modalLabel}>{lngBase === 'pl' ? 'RODZAJ' : 'TYPE'}</Text>
+
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setFilterDropdownOpen(false);
+                  setSortDropdownOpen(false);
+                  setAddDropdownOpen((v) => !v);
+                }}
+              >
+                <Ionicons name="layers-outline" size={16} color={COLORS.brand} />
+                <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                  {selectedUploadTypeLabel}
+                </Text>
+                <Ionicons
+                  name={addDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color="rgba(255,255,255,0.65)"
+                />
+              </TouchableOpacity>
+
+              {addDropdownOpen && (
+                <View style={styles.dropdownPanel}>
+                  <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+                    {DOC_TYPES.filter((d) => d.key !== 'all').map((opt) => {
+                      const active = selectedTypeForUpload === opt.key;
+                      return (
+                        <TouchableOpacity
+                          key={opt.key}
+                          style={[styles.dropdownItem, active && styles.dropdownItemActive]}
+                          onPress={() => {
+                            setSelectedTypeForUpload(opt.key);
+                            setAddDropdownOpen(false);
+                          }}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>
+                            {getTypeLabel(opt.key)}
+                          </Text>
+                          {active && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+
+              <Text style={styles.modalLabel}>{lngBase === 'pl' ? 'TYTUŁ (OPCJONALNIE)' : 'TITLE (OPTIONAL)'}</Text>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder={lngBase === 'pl' ? 'np. Umowa wykonawcza' : 'e.g. Contract'}
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                style={styles.input}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+              />
+
+              <Text style={styles.modalLabel}>{lngBase === 'pl' ? 'OPIS (OPCJONALNIE)' : 'DESCRIPTION (OPTIONAL)'}</Text>
+              <TextInput
+                value={desc}
+                onChangeText={setDesc}
+                placeholder={lngBase === 'pl' ? 'Dodaj opis (opcjonalnie)' : 'Add description (optional)'}
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                style={styles.textArea}
+                multiline
+              />
+
+              <Text style={styles.modalLabel}>{lngBase === 'pl' ? 'PLIK / ZDJĘCIE' : 'FILE / IMAGE'}</Text>
+              <TouchableOpacity style={styles.filePickButton} activeOpacity={0.85} onPress={pickFile}>
+                <Ionicons name="attach-outline" size={18} color={COLORS.brand} />
+                <Text style={styles.filePickText} numberOfLines={1}>
+                  {file?.name ? file.name : lngBase === 'pl' ? 'Dodaj plik lub zdjęcie' : 'Attach file or image'}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.45)" />
+              </TouchableOpacity>
+
+              {saving && (
+                <View style={styles.uploadProgressRow}>
+                  <ActivityIndicator color={COLORS.brand} />
+                  <Text style={styles.uploadProgressText}>{lngBase === 'pl' ? 'Zapisywanie…' : 'Saving…'}</Text>
+                </View>
+              )}
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonSecondary]}
+                  onPress={() => {
+                    setAddModalVisible(false);
+                    resetAddForm();
+                    Keyboard.dismiss();
+                    closeAllDropdowns();
+                  }}
                   disabled={saving}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.modalButtonTextSecondary}>{lngBase === 'pl' ? 'Anuluj' : 'Cancel'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonPrimary, !file?.uri && { opacity: 0.55 }]}
+                  onPress={addDoc}
+                  disabled={saving || !file?.uri}
+                  activeOpacity={0.85}
                 >
                   {saving ? (
-                    <ActivityIndicator color="#061015" />
+                    <ActivityIndicator color={COLORS.bg} />
                   ) : (
-                    <>
-                      <Feather name="check" size={16} color="#061015" />
-                      <Text style={styles.saveText}>{t('common.save')}</Text>
-                    </>
+                    <Text style={styles.modalButtonTextPrimary}>{lngBase === 'pl' ? 'Zapisz' : 'Save'}</Text>
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
-          </BlurView>
-        </View>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Pressable>
       </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#050915' },
-  center: { alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: 'transparent' },
 
-  header: { paddingTop: 16, paddingHorizontal: 16, paddingBottom: 10 },
+  glowOne: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+    borderRadius: 999,
+    backgroundColor: COLORS.brand,
+    opacity: 0.04,
+    top: -40,
+    right: -120,
+  },
+  glowTwo: {
+    position: 'absolute',
+    width: 360,
+    height: 360,
+    borderRadius: 999,
+    backgroundColor: COLORS.brand,
+    opacity: 0.025,
+    bottom: 120,
+    left: -170,
+  },
+
+  loadingContainer: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
+
+  topBar: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  logoWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  logoImg: { width: 30, height: 30 },
+
+  topTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  headerRight: { flexDirection: 'row', gap: 8 },
+
   title: {
-    color: '#E8F3FF',
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: '900',
+    color: COLORS.brand,
     textAlign: 'center',
-    textShadowColor: 'rgba(94,234,212,0.25)',
-    textShadowOffset: { width: 0, height: 8 },
-    textShadowRadius: 16,
-  },
-  subtitle: { marginTop: 8, color: 'rgba(148,163,184,0.85)', textAlign: 'center', fontSize: 12 },
-
-  tabsRow: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
-  tabPill: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.16)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  tabPillActive: {
-    backgroundColor: '#5EEAD4',
-    borderColor: 'rgba(94,234,212,0.35)',
-  },
-  tabText: { color: 'rgba(94,234,212,0.95)', fontSize: 12, fontWeight: '900' },
-  tabTextActive: { color: '#061015' },
-
-  actionsRow: { marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  addBtn: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#5EEAD4',
-    shadowColor: '#5EEAD4',
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
-  },
-  addBtnText: { color: '#061015', fontWeight: '900' },
-  refreshBtn: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    height: 42,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  refreshText: { color: 'rgba(148,163,184,0.95)', fontWeight: '800', fontSize: 12 },
-
-  empty: {
-    padding: 18,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  emptyText: { color: 'rgba(148,163,184,0.85)', textAlign: 'center', fontWeight: '800' },
-
-  card: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    padding: 14,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-  },
-  cardTop: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  iconBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(94,234,212,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.18)',
-  },
-  cardTitle: { color: '#E8F3FF', fontSize: 15, fontWeight: '900' },
-  cardMeta: { marginTop: 4, color: 'rgba(148,163,184,0.82)', fontSize: 12, fontWeight: '800' },
-  cardDesc: { marginTop: 10, color: 'rgba(226,232,240,0.88)', fontSize: 12, lineHeight: 16, fontWeight: '700' },
-  cardHintRow: { marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardHint: { color: 'rgba(148,163,184,0.7)', fontSize: 11, fontWeight: '800' },
-  privatePill: {
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    height: 24,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.18)',
-    backgroundColor: 'rgba(94,234,212,0.08)',
-  },
-  privateText: { color: 'rgba(94,234,212,0.95)', fontSize: 11, fontWeight: '900' },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    padding: 16,
-    justifyContent: 'center',
-  },
-  modalCard: {
-    borderRadius: 22,
-    overflow: 'hidden',
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.22)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  modalTitle: { color: '#E8F3FF', fontWeight: '900', fontSize: 16 },
-  modalClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    textShadowColor: 'rgba(25,112,92,0.85)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
+    letterSpacing: 0.6,
   },
 
-  inputWrap: { gap: 8 },
-  inputLabel: { color: 'rgba(148,163,184,0.92)', fontWeight: '900', fontSize: 12 },
-  input: {
+  toggleButton: {
+    width: 44,
     height: 44,
     borderRadius: 14,
-    paddingHorizontal: 12,
-    color: '#E8F3FF',
-    fontWeight: '800',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  textarea: { height: 88, paddingTop: Platform.OS === 'ios' ? 12 : 10, textAlignVertical: 'top' },
-
-  catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  catBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
     backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  catBtnOn: { backgroundColor: 'rgba(94,234,212,0.18)', borderColor: 'rgba(94,234,212,0.26)' },
-  catBtnText: { color: 'rgba(148,163,184,0.95)', fontWeight: '900', fontSize: 12 },
-  catBtnTextOn: { color: '#5EEAD4' },
+  toggleButtonActive: {
+    backgroundColor: 'rgba(25,112,92,0.14)',
+    borderColor: 'rgba(25,112,92,0.55)',
+    shadowColor: COLORS.brand,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 6,
+  },
 
-  fileBtn: {
+  filterBar: { paddingHorizontal: 16, paddingBottom: 10 },
+  filtersRow: { flexDirection: 'row', gap: 12 },
+
+  dropdownWrap: { position: 'relative' },
+  dropdownButton: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
-    alignItems: 'center',
-    height: 44,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    backgroundColor: '#5EEAD4',
-  },
-  fileBtnText: { color: '#061015', fontWeight: '900', flex: 1 },
-
-  modalActions: { marginTop: 4, flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  cancelBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(25,112,92,0.35)',
   },
-  cancelText: { color: 'rgba(226,232,240,0.9)', fontWeight: '900' },
-  saveBtn: {
-    flex: 1,
+  dropdownButtonText: { flex: 1, color: COLORS.text, fontWeight: '800' },
+  dropdownPanel: {
+    marginTop: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.30)',
+    backgroundColor: 'rgba(10,15,30,0.96)',
+  },
+  dropdownItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  dropdownItemActive: { backgroundColor: 'rgba(25,112,92,0.14)' },
+  dropdownItemText: { color: 'rgba(255,255,255,0.75)', fontWeight: '800' },
+  dropdownItemTextActive: { color: COLORS.brand },
+
+  // GRID
+  gridContainer: { paddingHorizontal: 8, paddingBottom: 110 },
+  gridRow: { gap: 16, paddingHorizontal: 8, marginBottom: 16 },
+  gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * 1.22, borderRadius: 18, overflow: 'hidden' },
+  cardBlur: { flex: 1, borderWidth: 1, borderColor: COLORS.cardBorder },
+  docCardInner: { flex: 1, padding: 14, backgroundColor: 'rgba(0,0,0,0.12)' },
+  docIconWrap: {
+    width: 44,
     height: 44,
     borderRadius: 14,
+    backgroundColor: 'rgba(25,112,92,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: '#5EEAD4',
+    marginBottom: 10,
   },
-  saveText: { color: '#061015', fontWeight: '900' },
+  docTitle: { color: COLORS.text, fontWeight: '900', fontSize: 14, lineHeight: 18 },
+  docDesc: { marginTop: 6, color: 'rgba(255,255,255,0.62)', fontWeight: '700', fontSize: 12, lineHeight: 16 },
+  docMetaRow: {
+    marginTop: 'auto',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  docType: { fontSize: 10, fontWeight: '900', color: COLORS.brand, letterSpacing: 1.2, marginBottom: 6 },
+  docDate: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700' },
+
+  // LIST
+  listContainer: { paddingHorizontal: 16, paddingBottom: 110 },
+  listRow: { marginBottom: 12, borderRadius: 18, overflow: 'hidden' },
+  listBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  listLeftIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(25,112,92,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listTitle: { color: COLORS.text, fontWeight: '900', fontSize: 14 },
+  listMeta: { marginTop: 4, color: 'rgba(255,255,255,0.60)', fontWeight: '800', fontSize: 12 },
+  listDesc: { marginTop: 6, color: 'rgba(255,255,255,0.58)', fontWeight: '700', fontSize: 12, lineHeight: 16 },
+
+  // EMPTY
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 },
+  emptyCard: {
+    width: '100%',
+    padding: 34,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  emptyTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginTop: 18, marginBottom: 8 },
+  emptySubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginBottom: 22, lineHeight: 20 },
+  emptyButton: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.brand },
+  emptyButtonText: { fontSize: 14, fontWeight: '900', color: '#03110C', letterSpacing: 0.5 },
+
+  // FAB (jak zdjęcia)
+  fab: {
+    position: 'absolute',
+    bottom: 28,
+    right: 16,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    overflow: 'hidden',
+    shadowColor: COLORS.brand,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    elevation: 14,
+  },
+  fabBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(25,112,92,0.55)' },
+  fabRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(25,112,92,0.35)', backgroundColor: 'rgba(25,112,92,0.06)' },
+
+  // MODAL (jak zdjęcia)
+  modalBlackOverlay: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 22 },
+
+  modalContent: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: 'rgba(10,15,30,0.96)',
+    borderRadius: 26,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  modalTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text, marginBottom: 18, textAlign: 'center' },
+  modalLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.6, marginTop: 12, marginBottom: 10 },
+
+  input: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 14,
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+  textArea: {
+    minHeight: 78,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 14,
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+
+  filePickButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.35)',
+  },
+  filePickText: { flex: 1, color: COLORS.text, fontWeight: '800' },
+
+  uploadProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
+  uploadProgressText: { color: COLORS.muted, fontWeight: '800' },
+
+  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  modalButton: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  modalButtonSecondary: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  modalButtonPrimary: { backgroundColor: COLORS.brand },
+  modalButtonTextSecondary: { fontSize: 15, fontWeight: '900', color: 'rgba(255,255,255,0.72)' },
+  modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: '#03110C' },
 });
