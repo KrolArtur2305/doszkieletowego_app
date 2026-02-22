@@ -1,0 +1,35 @@
+{
+  "common": {
+    "loading": "Lädt…",
+    "none": "Keine"
+  },
+  "errors": {
+    "fetchFailed": "Phasen konnten nicht geladen werden.",
+    "updateFailed": "Phase konnte nicht aktualisiert werden.",
+    "noteSaveFailed": "Notiz konnte nicht gespeichert werden."
+  },
+  "progress": {
+    "cardLabel": "Baufortschritt",
+    "noStages": "Keine Phasen.",
+    "progressPercent": "Bau bei {{percent}}%"
+  },
+  "stages": {
+    "cardLabel": "Phasen",
+    "currentStageLabel": "AKTUELLE PHASE",
+    "nextStageLabel": "NÄCHSTE PHASE",
+    "allDone": "Alle Phasen sind abgeschlossen.",
+    "checkAll": "Alle Phasen anzeigen"
+  },
+  "history": {
+    "cardLabel": "Verlauf",
+    "completedTitle": "Abgeschlossene Phasen",
+    "noCompleted": "Keine abgeschlossenen Phasen."
+  },
+  "all": {
+    "back": "Zurück",
+    "title": "Alle Bauphasen",
+    "noStagesHint": "Keine Phasen. (Supabase-Seed prüfen.)",
+    "showPrevious": "Vorherige anzeigen ({{count}})",
+    "notePlaceholder": "Notiz zur Phase hinzufügen…"
+  }
+}

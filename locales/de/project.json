@@ -1,0 +1,61 @@
+{
+  "myProject": "Mein Projekt",
+  "projectLocationPlaceholder": "—",
+  "buildingParams": "Gebäudeparameter",
+  "projectPlans": "Projektpläne",
+  "change3dModel": "3D-Modell hinzufügen / ersetzen",
+
+  "tilePowU": "Nutzfläche",
+  "tileFloors": "Etagen",
+  "tileRooms": "Zimmer",
+  "tilePowZ": "Bebauungsfläche",
+  "tileHeight": "Gebäudehöhe",
+  "tileRoofAngle": "Dachneigung",
+  "tileRoofArea": "Dachfläche",
+  "tileFacadeWidth": "Fassadenbreite",
+  "tileFacadeLength": "Fassadenlänge",
+
+  "addPlan": "Plan hinzufügen",
+  "planDefaultName": "Plan",
+  "planHint": "Tippen: Vorschau • Halten: löschen",
+
+  "noPlansTitle": "Noch keine Pläne",
+  "noPlansSubtitle": "Füge deinen ersten Plan hinzu (jpg/png/webp).",
+
+  "errorTitle": "Fehler",
+  "loadError": "Projektdaten konnten nicht aus Supabase geladen werden.",
+  "createProjectError": "Projekt konnte in Supabase nicht erstellt werden.",
+  "addPlanError": "Plan konnte nicht hinzugefügt werden.",
+  "deletePlanError": "Plan konnte nicht gelöscht werden.",
+
+  "deletePlanTitle": "Plan löschen?",
+  "deletePlanDesc": "Dadurch wird die Datei aus dem Storage entfernt und der Datenbankeintrag gelöscht.",
+
+  "cancel": "Abbrechen",
+  "delete": "Löschen",
+  "save": "Speichern",
+
+  "editParamsTitle": "Parameter bearbeiten",
+  "saveErrorTitle": "Fehler beim Speichern",
+
+  "fieldProjectName": "Projektname",
+  "fieldPowU": "Nutzfläche (m²)",
+  "fieldFloors": "Etagen",
+  "fieldRooms": "Zimmer",
+  "fieldPowZ": "Bebauungsfläche (m²)",
+  "fieldHeight": "Höhe (m)",
+  "fieldRoofAngle": "Dachneigung (°)",
+  "fieldRoofArea": "Dachfläche (m²)",
+  "fieldFacadeWidth": "Fassadenbreite (m)",
+  "fieldFacadeLength": "Fassadenlänge (m)",
+
+  "model3dTitle": "3D-Modell",
+  "model3dNextStep": "Nächster Schritt: .glb/.gltf hochladen und projekty.model_url aktualisieren.",
+
+  "notLoggedTitle": "Nicht angemeldet",
+  "notLoggedDesc": "Bitte melde dich erneut an.",
+  "noAccessTitle": "Kein Zugriff",
+  "noAccessPhotosDesc": "Erlaube den Zugriff auf die Fotobibliothek, um einen Plan hinzuzufügen.",
+  "uploadFailedTitle": "Upload fehlgeschlagen",
+  "urlError": "Datei-URL konnte nicht abgerufen werden."
+}
