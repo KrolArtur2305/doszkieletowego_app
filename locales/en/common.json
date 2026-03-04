@@ -4,5 +4,12 @@
   "save": "Save",
   "loading": "Loading…",
   "checkMore": "Check more",
-  "dash": "—"
+  "dash": "—",
+  "saving": "Saving…",
+
+  "errorTitle": "Error",
+  "errors": {
+    "generic": "Something went wrong. Please try again."
+  },
+  "delete": "Delete"
 }

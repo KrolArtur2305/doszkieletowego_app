@@ -2,7 +2,14 @@
   "ok": "OK",
   "cancel": "Abbrechen",
   "save": "Speichern",
-  "loading": "Lädt…",
+  "loading": "Wird geladen…",
   "checkMore": "Mehr anzeigen",
-  "dash": "—"
+  "dash": "—",
+  "saving": "Wird gespeichert…",
+
+  "errorTitle": "Fehler",
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+  },
+  "delete": "Löschen"
 }

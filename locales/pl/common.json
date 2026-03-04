@@ -4,5 +4,12 @@
   "save": "Zapisz",
   "loading": "Ładowanie…",
   "checkMore": "Sprawdź więcej",
-  "dash": "—"
+  "dash": "—",
+  "saving": "Zapisywanie…",
+
+  "errorTitle": "Błąd",
+  "errors": {
+    "generic": "Coś poszło nie tak. Spróbuj ponownie."
+  },
+  "delete": "Usuń"
 }
