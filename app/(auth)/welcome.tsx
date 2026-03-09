@@ -159,7 +159,7 @@ export default function WelcomeScreen() {
         />
       </Animated.View>
 
-      <Text style={styles.brand}>NEXO</Text>
+      <Text style={styles.brand}>Buildiq</Text>
 
       <View style={styles.langRow}>
         {renderLangButton('pl', 'PL')}

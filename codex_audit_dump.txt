@@ -23,7 +23,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <View style={styles.bg} />
       <BlurView intensity={80} tint="dark" style={styles.card}>
-        <Text style={styles.title}>doszkieletowego</Text>
+        <Text style={styles.title}>Buildiq</Text>
         <Text style={styles.subtitle}>Zaloguj siÄ™</Text>
 
         <TextInput placeholder="E-mail" placeholderTextColor="#9CA3AF" style={styles.input}
