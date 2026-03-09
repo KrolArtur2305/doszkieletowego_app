@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
-    "scheme": "doszkieletowego",
+    "name": "Buildiq",
+    "slug": "buildiq",
+    "scheme": "buildiq",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,10 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "pl.doszkieletowego.mobile"
+      "bundleIdentifier": "pl.buildiq.mobile"
     },
     "android": {
-      "package": "pl.doszkieletowego.mobile",
+      "package": "pl.buildiq.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

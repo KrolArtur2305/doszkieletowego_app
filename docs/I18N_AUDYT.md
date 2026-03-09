@@ -1,4 +1,4 @@
-# Audyt i18n (i18next readiness) – doszkieletowego_app
+# Audyt i18n (i18next readiness) – buildiq
 
 ## Zakres i metoda
 - Skan plików aplikacji Expo/React Native (`app/**`, `components/**`, `hooks/**`, `lib/**`, `supabase/**`) pod kątem hardcoded user-facing stringów.
