@@ -247,13 +247,11 @@ const styles = StyleSheet.create({
 
   header: { paddingTop: 12, paddingBottom: 18, alignItems: 'center' },
   headerMainTitle: {
-    color: COLORS.text,
-    fontSize: 26,
-    fontWeight: '800',
+    color: '#19705C',
+    fontSize: 34,
+    fontWeight: '900',
     letterSpacing: -0.2,
     textAlign: 'center',
-    textShadowColor: 'rgba(25,112,92,0.22)',
-    textShadowRadius: 14,
   },
   headerName: {
     marginTop: 10,
