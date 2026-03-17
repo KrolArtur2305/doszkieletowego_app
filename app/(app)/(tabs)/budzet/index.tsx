@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
+import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -708,18 +709,18 @@ const styles = StyleSheet.create({
 
   addBtn: {
     marginTop: 14,
-    borderRadius: 16,
-    paddingVertical: 12,
+    borderRadius: RADIUS.button,
+    paddingVertical: 13,
     alignItems: 'center',
-    backgroundColor: 'rgba(25,112,92,0.12)',
+    backgroundColor: 'rgba(37,240,200,0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.55)',
+    borderColor: 'rgba(37,240,200,0.38)',
   },
-  addBtnText: { color: 'rgba(220,255,245,0.95)', fontWeight: '900', letterSpacing: 0.4 },
+  addBtnText: { color: THEME_COLORS.neon, fontWeight: '900', letterSpacing: 0.4 },
 
   chartOuter: {
     marginTop: 14,
-    borderRadius: 24,
+    borderRadius: RADIUS.card,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.35,
@@ -727,7 +728,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
   },
   chartCard: {
-    borderRadius: 24,
+    borderRadius: RADIUS.card,
     padding: 16,
     backgroundColor: 'rgba(255,255,255,0.026)',
     borderWidth: 1,
@@ -761,7 +762,7 @@ const styles = StyleSheet.create({
 
   card: {
     marginTop: 14,
-    borderRadius: 24,
+    borderRadius: RADIUS.card,
     padding: 16,
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.026)',
@@ -806,11 +807,11 @@ const styles = StyleSheet.create({
   input: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#F8FAFC',
+    color: '#FFFFFF',
   },
 
   catRow: { gap: 10, paddingVertical: 2, paddingRight: 10 },
@@ -885,6 +886,6 @@ const styles = StyleSheet.create({
   btn: { flex: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
   btnGhost: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)' },
   btnGhostText: { color: '#E2E8F0', fontWeight: '900' },
-  btnMain: { borderWidth: 1, borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.16)' },
-  btnMainText: { color: 'rgba(220,255,245,0.98)', fontWeight: '900' },
+  btnMain: { borderWidth: 1, borderColor: 'rgba(37,240,200,0.38)', backgroundColor: 'rgba(37,240,200,0.14)', borderRadius: RADIUS.button, paddingVertical: 13 },
+  btnMainText: { color: THEME_COLORS.neon, fontWeight: '900' },
 });

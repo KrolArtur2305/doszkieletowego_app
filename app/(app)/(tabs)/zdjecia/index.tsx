@@ -25,6 +25,7 @@ import { decode as decodeBase64 } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -1060,7 +1061,7 @@ const styles = StyleSheet.create({
   emptyCard: {
     width: '100%',
     padding: 34,
-    borderRadius: 26,
+    borderRadius: RADIUS.card,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     alignItems: 'center',
@@ -1068,8 +1069,8 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginTop: 18, marginBottom: 8 },
   emptySubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginBottom: 22, lineHeight: 20 },
-  emptyButton: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.brand },
-  emptyButtonText: { fontSize: 14, fontWeight: '900', color: '#03110C', letterSpacing: 0.5 },
+  emptyButton: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 20, paddingVertical: 13, borderRadius: RADIUS.button, backgroundColor: 'rgba(37,240,200,0.14)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.38)' },
+  emptyButtonText: { fontSize: 14, fontWeight: '900', color: THEME_COLORS.neon, letterSpacing: 0.5 },
 
   fab: {
     position: 'absolute',
@@ -1106,8 +1107,8 @@ const styles = StyleSheet.create({
   dateButtonText: { color: COLORS.text, fontWeight: '800', flex: 1 },
   dateClear: { paddingHorizontal: 6, paddingVertical: 2 },
 
-  textArea: { minHeight: 78, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, color: COLORS.text, fontWeight: '700' },
-  input: { borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, color: COLORS.text, fontWeight: '700' },
+  textArea: { minHeight: 78, borderRadius: RADIUS.input, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12, paddingVertical: 10, color: '#FFFFFF', fontWeight: '800' },
+  input: { borderRadius: RADIUS.input, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12, paddingVertical: 10, color: '#FFFFFF', fontWeight: '800' },
 
   uploadProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
   uploadProgressText: { color: COLORS.muted, fontWeight: '800' },
@@ -1115,9 +1116,9 @@ const styles = StyleSheet.create({
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 16 },
   modalButton: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   modalButtonSecondary: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  modalButtonPrimary: { backgroundColor: COLORS.brand },
+  modalButtonPrimary: { backgroundColor: 'rgba(37,240,200,0.14)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.38)', borderRadius: RADIUS.button, paddingVertical: 13 },
   modalButtonTextSecondary: { fontSize: 15, fontWeight: '900', color: 'rgba(255,255,255,0.72)' },
-  modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: '#03110C' },
+  modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: THEME_COLORS.neon },
 
   previewOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   closeButton: {
