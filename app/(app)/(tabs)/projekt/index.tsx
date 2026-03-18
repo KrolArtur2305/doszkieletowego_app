@@ -456,26 +456,23 @@ export default function ProjektScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* czarna baza pod całą stroną */}
-      <View pointerEvents="none" style={styles.blackBase} />
-
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
-        <View style={[styles.safeTop, { height: topPad }]} />
-
-        {/* TOP BAR: tylko logo */}
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, { paddingTop: topPad }]}>
           <View style={styles.logoWrap}>
             <Image source={logo} style={styles.logoImg} resizeMode="contain" />
           </View>
-          <View style={{ width: 30, height: 30 }} />
+
+          <View style={styles.topTitleWrap}>
+            <Text style={styles.moduleTitle}>
+              {t('screenTitle', { defaultValue: i18n.language?.startsWith('pl') ? 'Projekt' : 'Project' })}
+            </Text>
+          </View>
+
+          <View style={styles.headerSpacer} />
         </View>
 
-        {/* Nagłówek: tytuł ekranu + nazwa projektu */}
+        {/* Nagłówek: nazwa projektu */}
         <View style={styles.headerBlock}>
-          <Text style={styles.screenTitle}>
-            {t('screenTitle', { defaultValue: i18n.language?.startsWith('pl') ? 'Projekt' : 'Project' })}
-          </Text>
-
           <Text style={styles.projectTitle} numberOfLines={2}>
             {projekt?.nazwa || '—'}
           </Text>
@@ -739,37 +736,28 @@ function FieldNum({ label, value, onChange }: { label: string; value: string; on
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: 'transparent' },
-  blackBase: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
-  },
-
-  container: { flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 },
-
-  safeTop: { width: '100%' },
+  screen: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: '#000000', paddingHorizontal: 16 },
 
   topBar: {
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
   },
-  logoWrap: { alignItems: 'flex-start', justifyContent: 'center' },
+  logoWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   logoImg: { width: 30, height: 30 },
+  topTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerSpacer: { width: 44, height: 44 },
 
   headerBlock: { alignItems: 'center', paddingVertical: 10 },
-
-  // zielony tytuł ekranu "Projekt / Project"
-  screenTitle: {
-    color: '#5EEAD4',
-    fontSize: 35,
+  moduleTitle: {
+    color: '#19705C',
+    fontSize: 34,
     fontWeight: '900',
     textAlign: 'center',
     letterSpacing: -0.2,
-    textShadowColor: 'rgba(94,234,212,0.20)',
-    textShadowRadius: 14,
-    marginBottom: 6,
+    textShadowColor: 'rgba(25,112,92,0.18)',
+    textShadowRadius: 18,
   },
 
   projectTitle: { color: '#F8FAFC', fontSize: 26, fontWeight: '900', textAlign: 'center' },
