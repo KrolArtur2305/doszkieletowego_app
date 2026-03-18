@@ -46,7 +46,7 @@ type DbDoc = {
 };
 
 const COLORS = {
-  bg: '#050915',
+  bg: '#000000',
   cardBorder: 'rgba(255,255,255,0.08)',
   cardBg: 'rgba(255,255,255,0.03)',
   text: '#F8FAFC',
@@ -793,7 +793,7 @@ export default function DokumentyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: '#000000' },
 
   glowOne: {
     position: 'absolute',
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
     left: -170,
   },
 
-  loadingContainer: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
+  loadingContainer: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
 
   topBar: {
@@ -834,14 +834,14 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', gap: 8 },
 
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '900',
-    color: COLORS.brand,
+    color: '#19705C',
     textAlign: 'center',
-    textShadowColor: 'rgba(25,112,92,0.85)',
+    textShadowColor: 'rgba(25,112,92,0.18)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 18,
-    letterSpacing: 0.6,
+    letterSpacing: -0.2,
   },
 
   toggleButton: {

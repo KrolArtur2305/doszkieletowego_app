@@ -689,7 +689,7 @@ export default function BudzetScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent', padding: 16 },
+  container: { flex: 1, backgroundColor: '#000000', padding: 16 },
 
   topBar: {
     paddingHorizontal: 2,
@@ -702,11 +702,11 @@ const styles = StyleSheet.create({
   topTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerSpacer: { width: 44, height: 44 },
   headerTitle: {
-    color: ACCENT,
-    fontSize: 32,
+    color: '#19705C',
+    fontSize: 34,
     fontWeight: '900',
-    letterSpacing: 0.6,
-    textShadowColor: 'rgba(25,112,92,0.85)',
+    letterSpacing: -0.2,
+    textShadowColor: 'rgba(25,112,92,0.18)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 18,
     textAlign: 'center',
