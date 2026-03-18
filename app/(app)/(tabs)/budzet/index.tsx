@@ -3,11 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
   Modal,
   Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
@@ -28,6 +30,7 @@ import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
+const logo = require('../../../assets/logo.png');
 
 const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
@@ -117,6 +120,7 @@ export default function BudzetScreen() {
   const userId = session?.user?.id;
 
   const scrollRef = useRef<ScrollView>(null);
+  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -405,9 +409,17 @@ export default function BudzetScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* HEADER (wyśrodkowany, bez pulsowania) */}
-      <View style={styles.headerWrap}>
-        <Text style={styles.headerTitle}>{t('header.title')}</Text>
+      {/* HEADER — spójny z modułami Zdjęcia / Dokumenty */}
+      <View style={[styles.topBar, { paddingTop: topPad }]}>
+        <View style={styles.logoWrap}>
+          <Image source={logo} style={styles.logoImg} resizeMode="contain" />
+        </View>
+
+        <View style={styles.topTitleWrap}>
+          <Text style={styles.headerTitle}>{t('header.title')}</Text>
+        </View>
+
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* BŁĘDY / LOADING */}
@@ -679,14 +691,24 @@ export default function BudzetScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent', padding: 16 },
 
-  headerWrap: { paddingHorizontal: 2, paddingTop: 6, paddingBottom: 10, alignItems: 'center' },
+  topBar: {
+    paddingHorizontal: 2,
+    paddingBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  logoImg: { width: 30, height: 30 },
+  topTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerSpacer: { width: 44, height: 44 },
   headerTitle: {
     color: ACCENT,
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '900',
-    letterSpacing: -0.2,
-    textShadowColor: 'rgba(37,240,200,0.22)',
-    textShadowRadius: 22,
+    letterSpacing: 0.6,
+    textShadowColor: 'rgba(25,112,92,0.85)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
     textAlign: 'center',
   },
 
