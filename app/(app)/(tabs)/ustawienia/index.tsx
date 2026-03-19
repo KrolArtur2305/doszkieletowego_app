@@ -127,7 +127,7 @@ export default function UstawieniaScreen() {
         title: t('settings:items.subscriptionTitle'),
         subtitle: t('settings:items.subscriptionSubtitle'),
         icon: 'credit-card',
-        onPress: () => handlePlaceholder(t('settings:items.subscriptionTitle')),
+        onPress: () => router.push('/(app)/(tabs)/ustawienia/subskrypcja/checkout'),
       },
       {
         key: 'report',
