@@ -15,11 +15,10 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 
-function safeEmailPrefix(email?: string | null) {
-  // fallback, gdyby t() jeszcze nie było gotowe w jakimś edge-case
-  if (!email) return 'User';
+function safeEmailPrefix(email?: string | null, fallback = 'User') {
+  if (!email) return fallback;
   const [p] = email.split('@');
-  return p ? p : 'User';
+  return p ? p : fallback;
 }
 
 type MenuItem = {
@@ -33,8 +32,6 @@ type MenuItem = {
 
 export default function UstawieniaScreen() {
   const router = useRouter();
-
-  // ✅ Wariant B: settings osobny namespace
   const { t } = useTranslation(['settings', 'common']);
 
   const [loading, setLoading] = useState(true);
@@ -47,10 +44,12 @@ export default function UstawieniaScreen() {
     (async () => {
       try {
         setLoading(true);
+
         const { data: userData, error: userErr } = await supabase.auth.getUser();
         if (userErr) throw userErr;
 
         const user = userData.user;
+
         if (!user) {
           if (!alive) return;
           setDisplayName(t('settings:fallbackUser'));
@@ -72,10 +71,17 @@ export default function UstawieniaScreen() {
         }
 
         const name = (profile?.imie || '').trim();
-        if (name) setDisplayName(name);
-        else setDisplayName(safeEmailPrefix(user.email));
+
+        if (name) {
+          setDisplayName(name);
+        } else {
+          setDisplayName(safeEmailPrefix(user.email, t('settings:fallbackUser')));
+        }
       } catch (e: any) {
-        Alert.alert(t('common:errorTitle'), e?.message ?? t('common:errors.generic'));
+        Alert.alert(
+          t('common:errorTitle'),
+          e?.message ?? t('common:errors.generic')
+        );
       } finally {
         if (alive) setLoading(false);
       }
@@ -86,16 +92,15 @@ export default function UstawieniaScreen() {
     };
   }, [t]);
 
-  const handlePlaceholder = (label: string) => {
-    Alert.alert(label, t('settings:placeholderMessage'));
-  };
-
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
       router.replace('/login');
     } catch (e: any) {
-      Alert.alert(t('common:errorTitle'), e?.message ?? t('settings:logoutError'));
+      Alert.alert(
+        t('common:errorTitle'),
+        e?.message ?? t('settings:logoutError')
+      );
     }
   };
 
@@ -120,7 +125,7 @@ export default function UstawieniaScreen() {
         title: t('settings:items.appTitle'),
         subtitle: t('settings:items.appSubtitle'),
         icon: 'sliders',
-        onPress: () => handlePlaceholder(t('settings:items.appTitle')),
+        onPress: () => router.push('/(app)/(tabs)/ustawienia/aplikacja'),
       },
       {
         key: 'sub',
@@ -143,7 +148,6 @@ export default function UstawieniaScreen() {
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.blackBase} />
-
       <View pointerEvents="none" style={styles.orbTop} />
       <View pointerEvents="none" style={styles.orbMid} />
 
@@ -222,7 +226,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
 
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 26, backgroundColor: 'transparent' },
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 26,
+    backgroundColor: 'transparent',
+  },
 
   orbTop: {
     position: 'absolute',
@@ -321,8 +330,18 @@ const styles = StyleSheet.create({
   },
 
   tileTextWrap: { flex: 1 },
-  tileTitle: { color: COLORS.text, fontSize: 17.5, fontWeight: '700', letterSpacing: -0.1 },
-  tileSubtitle: { marginTop: 4, color: 'rgba(255,255,255,0.44)', fontSize: 13, fontWeight: '500' },
+  tileTitle: {
+    color: COLORS.text,
+    fontSize: 17.5,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  tileSubtitle: {
+    marginTop: 4,
+    color: 'rgba(255,255,255,0.44)',
+    fontSize: 13,
+    fontWeight: '500',
+  },
 
   logoutDock: { position: 'absolute', left: 20, right: 20, bottom: 24 },
 

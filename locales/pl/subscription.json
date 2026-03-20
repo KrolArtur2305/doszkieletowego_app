@@ -1,0 +1,43 @@
+{
+  "checkout": {
+    "title": "Twój plan subskrypcyjny",
+    "subtitle": "Zarządzaj swoją budową bez ograniczeń",
+    "selectBtn": "Wybierz plan",
+    "freeCta": "Wybierz darmowy",
+    "processing": "Przetwarzanie...",
+    "successTitle": "Dziękujemy!",
+    "successMessage": "Plan zostanie aktywowany po potwierdzeniu płatności.",
+    "security": "Bezpieczna płatność • Anuluj w dowolnym momencie",
+    "savingsNote": "Oszczędzasz {{amount}} zł"
+  },
+  "plans": {
+    "free": { "name": "Free", "desc": "Podstawowe funkcje", "forever": "na zawsze" },
+    "standard": { "name": "Standard", "desc": "Dla aktywnych budujących", "badge": "POPULARNY" },
+    "pro": { "name": "Pro", "desc": "Pełna moc aplikacji", "badge": "PRO" }
+  },
+  "features": {
+    "photosLabel": "Zdjęcia",
+    "photos20": "do 20 zdjęć",
+    "photos50": "do 50 zdjęć",
+    "photosUnlimited": "bez limitu",
+    "docsLabel": "Dokumenty",
+    "docs5": "do 5 dokumentów",
+    "docs15": "do 15 dokumentów",
+    "docsUnlimited": "bez limitu",
+    "tasksLabel": "Zadania",
+    "tasks15": "do 15 zadań",
+    "tasks50": "do 50 zadań",
+    "tasksUnlimited": "bez limitu",
+    "model3dLabel": "Model 3D",
+    "aiLabel": "Asystent AI"
+  },
+  "free": "Bezpłatny",
+  "yes": "Tak",
+  "no": "Nie",
+  "month": "msc",
+  "twoYears": "2 lata",
+  "billingMonthly": "Miesięcznie",
+  "billingYearly": "2 lata",
+  "priceEquiv": "≈ {{amount}} zł/msc",
+  "savingsNote": "Płacąc jednorazowo oszczędzasz ponad 40% rocznie"
+}

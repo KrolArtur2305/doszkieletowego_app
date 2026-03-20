@@ -3,16 +3,16 @@
   "fallbackUser": "Benutzer",
   "placeholderMessage": "Diese Funktion wird später hinzugefügt.",
   "logout": "Abmelden",
-  "logoutError": "Abmelden fehlgeschlagen.",
+  "logoutError": "Abmeldung fehlgeschlagen.",
   "items": {
     "profileTitle": "Profil",
-    "profileSubtitle": "Kontoinhaber-Daten",
-    "investmentTitle": "Projekt",
-    "investmentSubtitle": "Projekt- / Bau-Daten",
+    "profileSubtitle": "Daten des Kontoinhabers",
+    "investmentTitle": "Investition",
+    "investmentSubtitle": "Projekt- / Baudetails",
     "appTitle": "App",
-    "appSubtitle": "App-Einstellungen (später)",
+    "appSubtitle": "App-Einstellungen",
     "subscriptionTitle": "Abonnement verwalten",
-    "subscriptionSubtitle": "Später",
+    "subscriptionSubtitle": "Plan- und Zahlungseinstellungen",
     "reportTitle": "Problem melden",
     "reportSubtitle": "Fehlerbeschreibung senden"
   },
@@ -20,13 +20,13 @@
     "title": "Problem melden",
     "categoryTitle": "Kategorie",
     "descriptionTitle": "Beschreibung",
-    "descriptionPlaceholder": "Was genau ist passiert? Was hast du angeklickt? Was war das Ergebnis?",
+    "descriptionPlaceholder": "Was genau ist passiert? Was hast du angetippt? Was war das Ergebnis?",
     "categories": {
-      "loginSession": "Login / Sitzung",
+      "loginSession": "Anmeldung / Sitzung",
       "supabaseData": "Supabase / Daten",
       "uiScreen": "UI / Bildschirm",
-      "crash": "Crash",
-      "other": "Sonstiges"
+      "crash": "Absturz",
+      "other": "Andere"
     },
     "alerts": {
       "warningTitle": "Hinweis",
@@ -37,6 +37,88 @@
     "actions": {
       "send": "Senden"
     },
-    "hintDemo": "Das ist eine Demo-Version. Später verbinden wir Supabase-Speicherung oder einen Webhook."
+    "hintDemo": "Dies ist eine Demo-Version. Später verbinden wir Supabase Storage oder einen Webhook."
+  },
+  "appSettings": {
+    "title": "App-Einstellungen",
+    "version": "App-Version",
+    "terms": "Nutzungsbedingungen",
+    "privacy": "Datenschutz",
+    "support": "Hilfe",
+    "language": {
+      "groupLabel": "Sprache",
+      "options": {
+        "pl": "Polnisch",
+        "en": "Englisch",
+        "de": "Deutsch"
+      }
+    },
+    "notif": {
+      "groupLabel": "Benachrichtigungen",
+      "pushTitle": "Push-Benachrichtigungen",
+      "pushSubtitle": "Erinnerungen zu Aufgaben und Warnungen",
+      "deniedTitle": "Keine Berechtigung",
+      "deniedMessage": "Aktiviere Benachrichtigungen in den Systemeinstellungen.",
+      "disableTitle": "Benachrichtigungen deaktivieren",
+      "disableMessage": "Um Benachrichtigungen zu deaktivieren, gehe zu den Systemeinstellungen deines Telefons."
+    },
+    "security": {
+      "groupLabel": "Sicherheit"
+    },
+    "password": {
+      "title": "Passwort ändern",
+      "subtitle": "Aktualisiere dein Kontopasswort",
+      "modalTitle": "Passwort ändern",
+      "modalSubtitle": "Das neue Passwort muss mindestens 8 Zeichen lang sein",
+      "newLabel": "Neues Passwort",
+      "confirmLabel": "Neues Passwort bestätigen",
+      "saveBtn": "Passwort ändern",
+      "saving": "Speichern...",
+      "errorTitle": "Fehler",
+      "tooShort": "Das neue Passwort muss mindestens 8 Zeichen lang sein.",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
+      "successTitle": "Fertig",
+      "successMessage": "Das Passwort wurde geändert.",
+      "genericError": "Das Passwort konnte nicht geändert werden."
+    },
+    "deleteAccount": {
+      "title": "Konto löschen",
+      "subtitle": "Alle Daten dauerhaft löschen",
+      "confirmTitle": "Konto löschen",
+      "confirmMessage": "Dieser Vorgang kann nicht rückgängig gemacht werden. Alle deine Daten werden gelöscht.",
+      "confirmBtn": "Konto löschen",
+      "errorTitle": "Fehler",
+      "errorMessage": "Konto konnte nicht gelöscht werden. Kontaktiere den Support."
+    }
+  },
+  "subscription": {
+    "eyebrow": "Dein Plan",
+    "title": "Abonnement wählen",
+    "subtitle": "Verwalte deinen Bau ohne Einschränkungen",
+    "currentPlan": "Aktiver Plan",
+    "popular": "Beliebt",
+    "free": "Kostenlos",
+    "currency": "€",
+    "month": "Monat",
+    "twoYears": "2 Jahre",
+    "orYearly": "oder {{price}} {{currency}} / {{period}}",
+    "savingsNote": "Bei Einmalzahlung sparst du über 40% pro Jahr",
+    "currentPlanBtn": "Aktiv",
+    "downgradBtn": "Wählen",
+    "selectBtn": "Wählen",
+    "unlimited": "Unbegrenzt",
+    "featureWithValue": "{{value}} {{label}}",
+    "plans": {
+      "free": { "name": "Free" },
+      "standard": { "name": "Standard" },
+      "pro": { "name": "Pro" }
+    },
+    "features": {
+      "photos": "Fotos",
+      "docs": "Dokumente",
+      "tasks": "Aufgaben",
+      "model3d": "3D-Modell",
+      "ai": "KI-Assistent"
+    }
   }
 }

@@ -1,0 +1,43 @@
+{
+  "checkout": {
+    "title": "Ihr Abonnementplan",
+    "subtitle": "Verwalten Sie Ihren Bau ohne Einschränkungen",
+    "selectBtn": "Plan wählen",
+    "freeCta": "Kostenlos wählen",
+    "processing": "Verarbeitung...",
+    "successTitle": "Danke!",
+    "successMessage": "Ihr Plan wird nach der Zahlungsbestätigung aktiviert.",
+    "security": "Sichere Zahlung • Jederzeit kündbar",
+    "savingsNote": "Sie sparen {{amount}} zł"
+  },
+  "plans": {
+    "free": { "name": "Free", "desc": "Grundfunktionen", "forever": "für immer" },
+    "standard": { "name": "Standard", "desc": "Für aktive Bauherren", "badge": "BELIEBT" },
+    "pro": { "name": "Pro", "desc": "Volle Leistung", "badge": "PRO" }
+  },
+  "features": {
+    "photosLabel": "Fotos",
+    "photos20": "bis zu 20 Fotos",
+    "photos50": "bis zu 50 Fotos",
+    "photosUnlimited": "unbegrenzt",
+    "docsLabel": "Dokumente",
+    "docs5": "bis zu 5 Dokumente",
+    "docs15": "bis zu 15 Dokumente",
+    "docsUnlimited": "unbegrenzt",
+    "tasksLabel": "Aufgaben",
+    "tasks15": "bis zu 15 Aufgaben",
+    "tasks50": "bis zu 50 Aufgaben",
+    "tasksUnlimited": "unbegrenzt",
+    "model3dLabel": "3D-Modell",
+    "aiLabel": "KI-Assistent"
+  },
+  "free": "Kostenlos",
+  "yes": "Ja",
+  "no": "Nein",
+  "month": "Mo.",
+  "twoYears": "2 Jahre",
+  "billingMonthly": "Monatlich",
+  "billingYearly": "2 Jahre",
+  "priceEquiv": "≈ {{amount}} zł/Mo.",
+  "savingsNote": "Sparen Sie über 40% gegenüber monatlich"
+}

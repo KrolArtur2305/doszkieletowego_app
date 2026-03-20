@@ -2,6 +2,7 @@ import en_auth from '../../locales/en/auth.json';
 import en_project from '../../locales/en/project.json';
 import en_investment from '../../locales/en/investment.json';
 import en_plan from '../../locales/en/plan.json';
+import en_subscription from '../../locales/en/subscription.json';
 
 import en_budget from '../../locales/en/budget.json';
 import en_common from '../../locales/en/common.json';
@@ -17,6 +18,7 @@ import de_auth from '../../locales/de/auth.json';
 import de_project from '../../locales/de/project.json';
 import de_investment from '../../locales/de/investment.json';
 import de_plan from '../../locales/de/plan.json';
+import de_subscription from '../../locales/de/subscription.json';
 
 import de_budget from '../../locales/de/budget.json';
 import de_common from '../../locales/de/common.json';
@@ -32,6 +34,7 @@ import pl_auth from '../../locales/pl/auth.json';
 import pl_project from '../../locales/pl/project.json';
 import pl_investment from '../../locales/pl/investment.json';
 import pl_plan from '../../locales/pl/plan.json';
+import pl_subscription from '../../locales/pl/subscription.json';
 
 import pl_budget from '../../locales/pl/budget.json';
 import pl_common from '../../locales/pl/common.json';
@@ -58,6 +61,7 @@ export const resources = {
     project: en_project,
     investment: en_investment,
     plan: en_plan,
+    subscription: en_subscription,
   },
   pl: {
     common: pl_common,
@@ -73,6 +77,7 @@ export const resources = {
     project: pl_project,
     investment: pl_investment,
     plan: pl_plan,
+    subscription: pl_subscription,
   },
   de: {
     common: de_common,
@@ -88,5 +93,6 @@ export const resources = {
     project: de_project,
     investment: de_investment,
     plan: de_plan,
+    subscription: de_subscription,
   },
 } as const;

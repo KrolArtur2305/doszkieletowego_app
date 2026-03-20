@@ -1,0 +1,43 @@
+{
+  "checkout": {
+    "title": "Your subscription plan",
+    "subtitle": "Manage your build without limits",
+    "selectBtn": "Choose plan",
+    "freeCta": "Choose free",
+    "processing": "Processing...",
+    "successTitle": "Thank you!",
+    "successMessage": "Your plan will be activated after payment confirmation.",
+    "security": "Secure payment • Cancel anytime",
+    "savingsNote": "You save {{amount}} zł"
+  },
+  "plans": {
+    "free": { "name": "Free", "desc": "Basic features", "forever": "forever" },
+    "standard": { "name": "Standard", "desc": "For active builders", "badge": "POPULAR" },
+    "pro": { "name": "Pro", "desc": "Full power", "badge": "PRO" }
+  },
+  "features": {
+    "photosLabel": "Photos",
+    "photos20": "up to 20 photos",
+    "photos50": "up to 50 photos",
+    "photosUnlimited": "unlimited",
+    "docsLabel": "Documents",
+    "docs5": "up to 5 documents",
+    "docs15": "up to 15 documents",
+    "docsUnlimited": "unlimited",
+    "tasksLabel": "Tasks",
+    "tasks15": "up to 15 tasks",
+    "tasks50": "up to 50 tasks",
+    "tasksUnlimited": "unlimited",
+    "model3dLabel": "3D Model",
+    "aiLabel": "AI Assistant"
+  },
+  "free": "Free",
+  "yes": "Yes",
+  "no": "No",
+  "month": "mo",
+  "twoYears": "2 years",
+  "billingMonthly": "Monthly",
+  "billingYearly": "2 years",
+  "priceEquiv": "≈ {{amount}} zł/mo",
+  "savingsNote": "Save over 40% compared to monthly"
+}

@@ -4,6 +4,15 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
+import {
+  configureNotifications,
+  registerPushToken,
+  syncAllTaskReminders,
+  cancelAllNotifications,
+} from '../../lib/notifications';
+
+// Konfiguruj handler globalnie — raz przy starcie
+configureNotifications();
 
 const BG = '#000000';
 const NEON = '#25F0C8';
@@ -108,6 +117,20 @@ export default function AppLayout() {
       alive = false;
     };
   }, [authLoading, session?.user?.id, pathname]);
+
+  // ── Powiadomienia ──
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) {
+      // Wylogowanie — anuluj wszystkie
+      cancelAllNotifications();
+      return;
+    }
+
+    // Zalogowanie — zarejestruj token i zsynchronizuj zadania
+    registerPushToken(userId);
+    syncAllTaskReminders(userId);
+  }, [session?.user?.id]);
 
   // 2) Gate (kolejność ma znaczenie!)
   const gateTarget = useMemo(() => {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -22,23 +23,21 @@ import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
-const APP_VERSION = '1.0.0'; // TODO: pull from expo-constants if needed
+const APP_VERSION = '1.0.0';
 
-const LANGUAGES: { key: AppLanguage; label: string; flag: string }[] = [
-  { key: 'pl', label: 'Polski',  flag: '🇵🇱' },
-  { key: 'en', label: 'English', flag: '🇬🇧' },
-  { key: 'de', label: 'Deutsch', flag: '🇩🇪' },
+const LANGUAGES: { key: AppLanguage; labelKey: string; flag: string }[] = [
+  { key: 'pl', labelKey: 'appSettings.language.options.pl', flag: '🇵🇱' },
+  { key: 'en', labelKey: 'appSettings.language.options.en', flag: '🇬🇧' },
+  { key: 'de', labelKey: 'appSettings.language.options.de', flag: '🇩🇪' },
 ];
 
 export default function UstawieniaAplikacjiScreen() {
   const router = useRouter();
-  const { t, i18n } = useTranslation('settings');
+  const { t, i18n } = useTranslation(['settings', 'common']);
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
 
-  // ── Language ──
   const activeLang = (i18n.resolvedLanguage || i18n.language) as AppLanguage;
 
-  // ── Notifications ──
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifLoading, setNotifLoading] = useState(true);
 
@@ -54,22 +53,21 @@ export default function UstawieniaAplikacjiScreen() {
     if (value) {
       const { status } = await Notifications.requestPermissionsAsync();
       setNotifEnabled(status === 'granted');
+
       if (status !== 'granted') {
         Alert.alert(
-          t('appSettings.notif.deniedTitle', { defaultValue: 'Brak uprawnień' }),
-          t('appSettings.notif.deniedMessage', { defaultValue: 'Włącz powiadomienia w ustawieniach systemu.' })
+          t('appSettings.notif.deniedTitle'),
+          t('appSettings.notif.deniedMessage')
         );
       }
     } else {
-      // Can't revoke programmatically — redirect to system settings
       Alert.alert(
-        t('appSettings.notif.disableTitle', { defaultValue: 'Wyłącz powiadomienia' }),
-        t('appSettings.notif.disableMessage', { defaultValue: 'Aby wyłączyć powiadomienia, przejdź do ustawień systemowych swojego telefonu.' })
+        t('appSettings.notif.disableTitle'),
+        t('appSettings.notif.disableMessage')
       );
     }
   };
 
-  // ── Change password modal ──
   const [pwdModalOpen, setPwdModalOpen] = useState(false);
   const [currentPwd, setCurrentPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
@@ -82,60 +80,64 @@ export default function UstawieniaAplikacjiScreen() {
   const handleChangePassword = async () => {
     if (!newPwd || newPwd.length < 8) {
       Alert.alert(
-        t('appSettings.password.errorTitle', { defaultValue: 'Błąd' }),
-        t('appSettings.password.tooShort', { defaultValue: 'Nowe hasło musi mieć co najmniej 8 znaków.' })
+        t('appSettings.password.errorTitle'),
+        t('appSettings.password.tooShort')
       );
       return;
     }
+
     if (newPwd !== confirmPwd) {
       Alert.alert(
-        t('appSettings.password.errorTitle', { defaultValue: 'Błąd' }),
-        t('appSettings.password.mismatch', { defaultValue: 'Hasła nie są identyczne.' })
+        t('appSettings.password.errorTitle'),
+        t('appSettings.password.mismatch')
       );
       return;
     }
+
     setPwdSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPwd });
       if (error) throw error;
+
       setPwdModalOpen(false);
-      setCurrentPwd(''); setNewPwd(''); setConfirmPwd('');
+      setCurrentPwd('');
+      setNewPwd('');
+      setConfirmPwd('');
+
       Alert.alert(
-        t('appSettings.password.successTitle', { defaultValue: 'Gotowe' }),
-        t('appSettings.password.successMessage', { defaultValue: 'Hasło zostało zmienione.' })
+        t('appSettings.password.successTitle'),
+        t('appSettings.password.successMessage')
       );
     } catch (e: any) {
       Alert.alert(
-        t('appSettings.password.errorTitle', { defaultValue: 'Błąd' }),
-        e?.message ?? t('appSettings.password.genericError', { defaultValue: 'Nie udało się zmienić hasła.' })
+        t('appSettings.password.errorTitle'),
+        e?.message ?? t('appSettings.password.genericError')
       );
     } finally {
       setPwdSaving(false);
     }
   };
 
-  // ── Delete account ──
   const handleDeleteAccount = () => {
     Alert.alert(
-      t('appSettings.deleteAccount.confirmTitle', { defaultValue: 'Usuń konto' }),
-      t('appSettings.deleteAccount.confirmMessage', { defaultValue: 'Tej operacji nie można cofnąć. Wszystkie Twoje dane zostaną trwale usunięte.' }),
+      t('appSettings.deleteAccount.confirmTitle'),
+      t('appSettings.deleteAccount.confirmMessage'),
       [
-        { text: t('common:cancel', { defaultValue: 'Anuluj' }), style: 'cancel' },
+        { text: t('common:cancel'), style: 'cancel' },
         {
-          text: t('appSettings.deleteAccount.confirmBtn', { defaultValue: 'Usuń konto' }),
+          text: t('appSettings.deleteAccount.confirmBtn'),
           style: 'destructive',
           onPress: async () => {
             try {
-              // Supabase doesn't have a client-side delete user method —
-              // call your backend Edge Function or RPC that deletes the user
               const { error } = await supabase.rpc('delete_user');
               if (error) throw error;
+
               await supabase.auth.signOut();
               router.replace('/login');
             } catch (e: any) {
               Alert.alert(
-                t('appSettings.deleteAccount.errorTitle', { defaultValue: 'Błąd' }),
-                t('appSettings.deleteAccount.errorMessage', { defaultValue: 'Nie udało się usunąć konta. Skontaktuj się z pomocą techniczną.' })
+                t('appSettings.deleteAccount.errorTitle'),
+                t('appSettings.deleteAccount.errorMessage')
               );
             }
           },
@@ -153,36 +155,40 @@ export default function UstawieniaAplikacjiScreen() {
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
             <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.70)" />
           </TouchableOpacity>
+
           <Text style={styles.screenTitle}>
-            {t('appSettings.title', { defaultValue: 'Ustawienia aplikacji' })}
+            {t('appSettings.title')}
           </Text>
+
           <View style={{ width: 40 }} />
         </View>
 
-        {/* ── JĘZYK ── */}
         <Text style={styles.groupLabel}>
-          {t('appSettings.language.groupLabel', { defaultValue: 'Język' })}
+          {t('appSettings.language.groupLabel')}
         </Text>
+
         <View style={styles.cardOuter}>
           <BlurView intensity={16} tint="dark" style={styles.card}>
             {LANGUAGES.map((lang, i) => {
               const isActive = activeLang === lang.key;
               const isLast = i === LANGUAGES.length - 1;
+
               return (
                 <TouchableOpacity
                   key={lang.key}
-                  onPress={async () => { await setAppLanguage(lang.key); }}
+                  onPress={async () => {
+                    await setAppLanguage(lang.key);
+                  }}
                   activeOpacity={0.85}
                   style={[styles.row, !isLast && styles.rowBorder]}
                 >
                   <Text style={styles.rowFlag}>{lang.flag}</Text>
                   <Text style={[styles.rowTitle, isActive && { color: '#FFFFFF' }]}>
-                    {lang.label}
+                    {t(lang.labelKey)}
                   </Text>
                   {isActive && (
                     <View style={styles.activeCheck}>
@@ -195,24 +201,26 @@ export default function UstawieniaAplikacjiScreen() {
           </BlurView>
         </View>
 
-        {/* ── POWIADOMIENIA ── */}
         <Text style={styles.groupLabel}>
-          {t('appSettings.notif.groupLabel', { defaultValue: 'Powiadomienia' })}
+          {t('appSettings.notif.groupLabel')}
         </Text>
+
         <View style={styles.cardOuter}>
           <BlurView intensity={16} tint="dark" style={styles.card}>
             <View style={styles.row}>
               <View style={styles.rowIconWrap}>
                 <Feather name="bell" size={18} color={ACCENT} />
               </View>
+
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>
-                  {t('appSettings.notif.pushTitle', { defaultValue: 'Powiadomienia push' })}
+                  {t('appSettings.notif.pushTitle')}
                 </Text>
                 <Text style={styles.rowSubtitle}>
-                  {t('appSettings.notif.pushSubtitle', { defaultValue: 'Przypomnienia o zadaniach i alertach' })}
+                  {t('appSettings.notif.pushSubtitle')}
                 </Text>
               </View>
+
               {notifLoading ? null : (
                 <Switch
                   value={notifEnabled}
@@ -226,10 +234,10 @@ export default function UstawieniaAplikacjiScreen() {
           </BlurView>
         </View>
 
-        {/* ── BEZPIECZEŃSTWO ── */}
         <Text style={styles.groupLabel}>
-          {t('appSettings.security.groupLabel', { defaultValue: 'Bezpieczeństwo' })}
+          {t('appSettings.security.groupLabel')}
         </Text>
+
         <View style={styles.cardOuter}>
           <BlurView intensity={16} tint="dark" style={styles.card}>
             <TouchableOpacity
@@ -240,14 +248,16 @@ export default function UstawieniaAplikacjiScreen() {
               <View style={styles.rowIconWrap}>
                 <Feather name="lock" size={18} color={ACCENT} />
               </View>
+
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>
-                  {t('appSettings.password.title', { defaultValue: 'Zmień hasło' })}
+                  {t('appSettings.password.title')}
                 </Text>
                 <Text style={styles.rowSubtitle}>
-                  {t('appSettings.password.subtitle', { defaultValue: 'Zaktualizuj hasło do konta' })}
+                  {t('appSettings.password.subtitle')}
                 </Text>
               </View>
+
               <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.25)" />
             </TouchableOpacity>
 
@@ -259,30 +269,47 @@ export default function UstawieniaAplikacjiScreen() {
               <View style={[styles.rowIconWrap, styles.rowIconDanger]}>
                 <Feather name="trash-2" size={18} color="#FF4747" />
               </View>
+
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, styles.rowTitleDanger]}>
-                  {t('appSettings.deleteAccount.title', { defaultValue: 'Usuń konto' })}
+                  {t('appSettings.deleteAccount.title')}
                 </Text>
                 <Text style={styles.rowSubtitle}>
-                  {t('appSettings.deleteAccount.subtitle', { defaultValue: 'Trwale usuwa wszystkie dane' })}
+                  {t('appSettings.deleteAccount.subtitle')}
                 </Text>
               </View>
+
               <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.25)" />
             </TouchableOpacity>
           </BlurView>
         </View>
 
-        {/* ── WERSJA ── */}
         <View style={styles.versionWrap}>
           <Text style={styles.versionLabel}>
-            {t('appSettings.version', { defaultValue: 'Wersja aplikacji' })}
+            {t('appSettings.version')}
           </Text>
           <Text style={styles.versionNumber}>{APP_VERSION}</Text>
-        </View>
 
+          <View style={styles.linksRow}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/terms')} activeOpacity={0.7}>
+              <Text style={styles.linkText}>{t('appSettings.terms')}</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.linkSep}>•</Text>
+
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/privacy')} activeOpacity={0.7}>
+              <Text style={styles.linkText}>{t('appSettings.privacy')}</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.linkSep}>•</Text>
+
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/support')} activeOpacity={0.7}>
+              <Text style={styles.linkText}>{t('appSettings.support')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
 
-      {/* ── MODAL ZMIEŃ HASŁO ── */}
       <Modal
         visible={pwdModalOpen}
         transparent
@@ -296,12 +323,13 @@ export default function UstawieniaAplikacjiScreen() {
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>
-                  {t('appSettings.password.modalTitle', { defaultValue: 'Zmień hasło' })}
+                  {t('appSettings.password.modalTitle')}
                 </Text>
                 <Text style={styles.modalSubtitle}>
-                  {t('appSettings.password.modalSubtitle', { defaultValue: 'Nowe hasło musi mieć min. 8 znaków' })}
+                  {t('appSettings.password.modalSubtitle')}
                 </Text>
               </View>
+
               <TouchableOpacity
                 onPress={() => setPwdModalOpen(false)}
                 style={styles.modalCloseBtn}
@@ -311,9 +339,8 @@ export default function UstawieniaAplikacjiScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* New password */}
             <Text style={styles.fieldLabel}>
-              {t('appSettings.password.newLabel', { defaultValue: 'Nowe hasło' })}
+              {t('appSettings.password.newLabel')}
             </Text>
             <View style={styles.inputWrap}>
               <TextInput
@@ -330,9 +357,8 @@ export default function UstawieniaAplikacjiScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Confirm password */}
             <Text style={styles.fieldLabel}>
-              {t('appSettings.password.confirmLabel', { defaultValue: 'Potwierdź nowe hasło' })}
+              {t('appSettings.password.confirmLabel')}
             </Text>
             <View style={styles.inputWrap}>
               <TextInput
@@ -357,9 +383,10 @@ export default function UstawieniaAplikacjiScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={styles.modalBtnGhostText}>
-                  {t('common:cancel', { defaultValue: 'Anuluj' })}
+                  {t('common:cancel')}
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 onPress={handleChangePassword}
                 style={[styles.modalBtnPrimary, pwdSaving && { opacity: 0.65 }]}
@@ -368,9 +395,8 @@ export default function UstawieniaAplikacjiScreen() {
               >
                 <Text style={styles.modalBtnPrimaryText}>
                   {pwdSaving
-                    ? t('appSettings.password.saving', { defaultValue: 'Zapisywanie...' })
-                    : t('appSettings.password.saveBtn', { defaultValue: 'Zmień hasło' })
-                  }
+                    ? t('appSettings.password.saving')
+                    : t('appSettings.password.saveBtn')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -457,7 +483,13 @@ const styles = StyleSheet.create({
   versionLabel: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
   versionNumber: { marginTop: 4, color: 'rgba(255,255,255,0.15)', fontSize: 12, fontWeight: '600' },
 
-  // ── Modal ──
+  linksRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 8, marginTop: 10,
+  },
+  linkText: { color: 'rgba(255,255,255,0.22)', fontSize: 12, fontWeight: '600' },
+  linkSep: { color: 'rgba(255,255,255,0.15)', fontSize: 12 },
+
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
   modalSheet: {
     backgroundColor: '#0A0F1E',

@@ -1,18 +1,18 @@
 {
   "title": "Ustawienia konta",
   "fallbackUser": "Użytkownik",
-  "placeholderMessage": "Ta funkcja będzie dodana później.",
-  "logout": "Wyloguj",
+  "placeholderMessage": "Ta funkcja zostanie dodana później.",
+  "logout": "Wyloguj się",
   "logoutError": "Nie udało się wylogować.",
   "items": {
     "profileTitle": "Profil",
     "profileSubtitle": "Dane właściciela konta",
     "investmentTitle": "Inwestycja",
-    "investmentSubtitle": "Dane projektu / budowy",
+    "investmentSubtitle": "Szczegóły projektu / budowy",
     "appTitle": "Aplikacja",
-    "appSubtitle": "Ustawienia aplikacji (później)",
+    "appSubtitle": "Ustawienia aplikacji",
     "subscriptionTitle": "Zarządzaj subskrypcją",
-    "subscriptionSubtitle": "Później",
+    "subscriptionSubtitle": "Ustawienia planu i płatności",
     "reportTitle": "Zgłoś problem",
     "reportSubtitle": "Wyślij opis błędu"
   },
@@ -20,23 +20,105 @@
     "title": "Zgłoś problem",
     "categoryTitle": "Kategoria",
     "descriptionTitle": "Opis",
-    "descriptionPlaceholder": "Co dokładnie się stało? Co kliknąłeś? Jaki był efekt?",
+    "descriptionPlaceholder": "Co dokładnie się wydarzyło? Co kliknąłeś? Jaki był efekt?",
     "categories": {
       "loginSession": "Logowanie / sesja",
       "supabaseData": "Supabase / dane",
       "uiScreen": "UI / ekran",
-      "crash": "Crash",
+      "crash": "Awaria",
       "other": "Inne"
     },
     "alerts": {
       "warningTitle": "Uwaga",
-      "minLength": "Opisz problem przynajmniej w 10 znakach.",
+      "minLength": "Opisz problem co najmniej na 10 znaków.",
       "thanksTitle": "Dzięki!",
-      "savedLocalDemo": "Zgłoszenie zostało zapisane lokalnie (demo)."
+      "savedLocalDemo": "Zgłoszenie zapisane lokalnie (demo)."
     },
     "actions": {
       "send": "Wyślij"
     },
-    "hintDemo": "To jest wersja demo. Później podepniemy zapis do Supabase lub webhook."
+    "hintDemo": "To wersja demo. Później podłączymy Supabase Storage lub webhook."
+  },
+  "appSettings": {
+    "title": "Ustawienia aplikacji",
+    "version": "Wersja aplikacji",
+    "terms": "Regulamin",
+    "privacy": "Polityka prywatności",
+    "support": "Pomoc",
+    "language": {
+      "groupLabel": "Język",
+      "options": {
+        "pl": "Polski",
+        "en": "Angielski",
+        "de": "Niemiecki"
+      }
+    },
+    "notif": {
+      "groupLabel": "Powiadomienia",
+      "pushTitle": "Powiadomienia push",
+      "pushSubtitle": "Przypomnienia o zadaniach i alerty",
+      "deniedTitle": "Brak zgody",
+      "deniedMessage": "Włącz powiadomienia w ustawieniach systemowych.",
+      "disableTitle": "Wyłącz powiadomienia",
+      "disableMessage": "Aby wyłączyć powiadomienia, przejdź do ustawień systemowych telefonu."
+    },
+    "security": {
+      "groupLabel": "Bezpieczeństwo"
+    },
+    "password": {
+      "title": "Zmień hasło",
+      "subtitle": "Zaktualizuj hasło do konta",
+      "modalTitle": "Zmień hasło",
+      "modalSubtitle": "Nowe hasło musi mieć co najmniej 8 znaków",
+      "newLabel": "Nowe hasło",
+      "confirmLabel": "Potwierdź nowe hasło",
+      "saveBtn": "Zmień hasło",
+      "saving": "Zapisywanie...",
+      "errorTitle": "Błąd",
+      "tooShort": "Hasło musi mieć co najmniej 8 znaków.",
+      "mismatch": "Hasła nie są takie same.",
+      "successTitle": "Gotowe",
+      "successMessage": "Hasło zostało zmienione.",
+      "genericError": "Nie udało się zmienić hasła."
+    },
+    "deleteAccount": {
+      "title": "Usuń konto",
+      "subtitle": "Usuń wszystkie dane na stałe",
+      "confirmTitle": "Usuń konto",
+      "confirmMessage": "Tego nie da się cofnąć. Wszystkie dane zostaną usunięte.",
+      "confirmBtn": "Usuń konto",
+      "errorTitle": "Błąd",
+      "errorMessage": "Nie udało się usunąć konta. Skontaktuj się z pomocą."
+    }
+  },
+  "subscription": {
+    "eyebrow": "Twój plan",
+    "title": "Wybierz abonament",
+    "subtitle": "Zarządzaj budową bez ograniczeń",
+    "currentPlan": "Aktywny plan",
+    "popular": "Popularny",
+    "free": "Bezpłatny",
+    "currency": "zł",
+    "month": "msc",
+    "twoYears": "2 lata",
+    "orYearly": "lub {{price}} {{currency}} / {{period}}",
+    "savingsNote": "Płacąc jednorazowo oszczędzasz ponad 40% rocznie",
+    "currentPlanBtn": "Aktywny",
+    "downgradBtn": "Wybierz",
+    "selectBtn": "Wybierz",
+    "unlimited": "Bez limitu",
+    "featureWithValue": "{{value}} {{label}}",
+    "plans": {
+      "free": { "name": "Free" },
+      "standard": { "name": "Standard" },
+      "pro": { "name": "Pro" }
+    },
+    "features": {
+      "photos": "zdjęć",
+      "docs": "dokumentów",
+      "tasks": "zadań",
+      "model3d": "Model 3D",
+      "ai": "Asystent AI"
+    }
   }
 }

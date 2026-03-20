@@ -10,9 +10,9 @@
     "investmentTitle": "Investment",
     "investmentSubtitle": "Project / build details",
     "appTitle": "App",
-    "appSubtitle": "App settings (later)",
+    "appSubtitle": "App settings",
     "subscriptionTitle": "Manage subscription",
-    "subscriptionSubtitle": "Later",
+    "subscriptionSubtitle": "Plan and payment settings",
     "reportTitle": "Report a problem",
     "reportSubtitle": "Send a bug description"
   },
@@ -30,13 +30,95 @@
     },
     "alerts": {
       "warningTitle": "Notice",
-      "minLength": "Please describe the issue using at least 10 characters.",
+      "minLength": "Please describe the problem with at least 10 characters.",
       "thanksTitle": "Thanks!",
-      "savedLocalDemo": "Your report was saved locally (demo)."
+      "savedLocalDemo": "Your report has been saved locally (demo)."
     },
     "actions": {
       "send": "Send"
     },
-    "hintDemo": "This is a demo version. Later we’ll connect Supabase storage or a webhook."
+    "hintDemo": "This is a demo version. Later we will connect Supabase Storage or a webhook."
+  },
+  "appSettings": {
+    "title": "App settings",
+    "version": "App version",
+    "terms": "Terms of service",
+    "privacy": "Privacy policy",
+    "support": "Support",
+    "language": {
+      "groupLabel": "Language",
+      "options": {
+        "pl": "Polish",
+        "en": "English",
+        "de": "German"
+      }
+    },
+    "notif": {
+      "groupLabel": "Notifications",
+      "pushTitle": "Push notifications",
+      "pushSubtitle": "Task reminders and alerts",
+      "deniedTitle": "Permission denied",
+      "deniedMessage": "Enable notifications in system settings.",
+      "disableTitle": "Disable notifications",
+      "disableMessage": "To disable notifications, go to your phone settings."
+    },
+    "security": {
+      "groupLabel": "Security"
+    },
+    "password": {
+      "title": "Change password",
+      "subtitle": "Update your account password",
+      "modalTitle": "Change password",
+      "modalSubtitle": "Password must be at least 8 characters long",
+      "newLabel": "New password",
+      "confirmLabel": "Confirm new password",
+      "saveBtn": "Change password",
+      "saving": "Saving...",
+      "errorTitle": "Error",
+      "tooShort": "Password must be at least 8 characters long.",
+      "mismatch": "Passwords do not match.",
+      "successTitle": "Done",
+      "successMessage": "Password has been changed.",
+      "genericError": "Failed to change password."
+    },
+    "deleteAccount": {
+      "title": "Delete account",
+      "subtitle": "Permanently delete all data",
+      "confirmTitle": "Delete account",
+      "confirmMessage": "This cannot be undone. All your data will be permanently deleted.",
+      "confirmBtn": "Delete account",
+      "errorTitle": "Error",
+      "errorMessage": "Failed to delete account. Please contact support."
+    }
+  },
+  "subscription": {
+    "eyebrow": "Your plan",
+    "title": "Choose a subscription",
+    "subtitle": "Manage your build without limits",
+    "currentPlan": "Active plan",
+    "popular": "Popular",
+    "free": "Free",
+    "currency": "PLN",
+    "month": "mo",
+    "twoYears": "2 years",
+    "orYearly": "or {{price}} {{currency}} / {{period}}",
+    "savingsNote": "Paying upfront saves you over 40% per year",
+    "currentPlanBtn": "Active",
+    "downgradBtn": "Choose",
+    "selectBtn": "Choose",
+    "unlimited": "Unlimited",
+    "featureWithValue": "{{value}} {{label}}",
+    "plans": {
+      "free": { "name": "Free" },
+      "standard": { "name": "Standard" },
+      "pro": { "name": "Pro" }
+    },
+    "features": {
+      "photos": "photos",
+      "docs": "documents",
+      "tasks": "tasks",
+      "model3d": "3D model",
+      "ai": "AI assistant"
+    }
   }
 }
