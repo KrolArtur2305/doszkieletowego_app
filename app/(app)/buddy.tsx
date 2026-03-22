@@ -16,14 +16,14 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../../../lib/supabase';
-import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
+import { supabase } from '../../lib/supabase';
+import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
 
 // TODO: podmień na Lottie gdy będzie gotowa animacja
-const BUDDY_AVATAR = require('../../../assets/buddy_avatar.png');
+const BUDDY_AVATAR = require('../../assets/buddy_avatar.png');
 
 const FEATURES = [
   {

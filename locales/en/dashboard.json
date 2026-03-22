@@ -1,21 +1,23 @@
 {
   "errors": {
-    "tasksFetchFailed": "Could not fetch tasks.",
-    "photosFetchFailed": "Could not fetch photos."
+    "tasksFetchFailed": "Failed to fetch tasks.",
+    "photosFetchFailed": "Failed to fetch photos."
   },
   "hero": {
     "welcome": "Welcome",
-    "dateLine": "Today is {{date}}, you're already halfway through the build — moving day is getting closer."
+    "dateLine": "Today is {{date}} — your new home is getting closer."
   },
   "donuts": {
     "budgetLabel": "Budget",
     "timeLabel": "Time",
     "progressLabel": "Progress",
-    "completeInvestmentDates": "Complete project dates"
+    "completeInvestmentDates": "Complete your investment dates"
   },
   "progress": {
     "currentStageLabel": "CURRENT STAGE",
     "nextStageLabel": "NEXT STAGE",
+    "estimatedCompletionLabel": "ESTIMATED COMPLETION DATE",
+    "estimatedCompletionPlaceholder": "—",
     "allDone": "All stages completed",
     "noStages": "No stages",
     "loadingProgress": "Loading progress…",
@@ -24,28 +26,39 @@
   "photos": {
     "latestTitle": "Recently added photos",
     "loading": "Loading photos…",
-    "empty": "No photos — add your first one in the Photos module."
+    "empty": "No photos yet — add your first one in the Photos module."
   },
   "calendar": {
     "title": "Calendar",
     "loadingTasks": "Loading tasks…",
-    "fetchError": "Task fetch error",
-    "clickDayHint": "Click a day to see tasks",
-    "nearestTasks": "Nearest tasks",
+    "fetchError": "Error fetching tasks",
+    "clickDayHint": "Tap a day to see tasks",
+    "nearestTasks": "Upcoming tasks",
     "addTaskPlus": "+ Add",
     "noTasks": "No tasks — add your first one.",
     "tasksForDay": "Tasks: {{date}}",
     "addTask": "Add",
     "noTasksForDay": "No tasks for this day.",
-    "allDay": "all-day",
+    "allDay": "all day",
     "weekdays": {
-      "mon": "Mon",
-      "tue": "Tue",
-      "wed": "Wed",
-      "thu": "Thu",
-      "fri": "Fri",
-      "sat": "Sat",
-      "sun": "Sun"
+      "mon": "Mo",
+      "tue": "Tu",
+      "wed": "We",
+      "thu": "Th",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "Su"
+    }
+  },
+  "weather": {
+    "days": {
+      "sun": "sun",
+      "mon": "mon",
+      "tue": "tue",
+      "wed": "wed",
+      "thu": "thu",
+      "fri": "fri",
+      "sat": "sat"
     }
   },
   "modal": {
@@ -55,7 +68,36 @@
     "descriptionPlaceholder": "Description (optional)",
     "date": "Date",
     "time": "Time",
-    "removeTime": "Remove time (set all-day)",
-    "hint": "Select a date and optionally a time from the pickers. If you don't set a time — the task is all-day."
+    "removeTime": "Remove time (set as all-day)",
+    "hint": "Choose a date and optionally a time. If no time is set, the task is all-day.",
+    "errorTitle": "Error",
+    "errorGeneric": "Failed to add task."
+  },
+  "brief": {
+    "tasksToday": "You have {{count}} tasks today.",
+    "tasksToday_one": "You have {{count}} task today.",
+    "tasksToday_other": "You have {{count}} tasks today.",
+    "budgetCritical": "Budget is {{pct}}% used — watch out!",
+    "budgetHigh": "Budget is {{pct}}% used.",
+    "budgetOk": "Budget is on track: {{pct}}%.",
+    "currentStage": "Current stage: {{stage}}.",
+    "allGood": "Everything looks stable for today."
+  },
+  "activity": {
+    "title": "Recent activity",
+    "empty": "No activity yet",
+    "expense": "Expense",
+    "stageDone": "Stage completed"
+  },
+  "quickActions": {
+    "title": "Quick actions",
+    "addExpense": "Add expense",
+    "addPhoto": "Add photo",
+    "addDocument": "Add document",
+    "stages": "Progress"
+  },
+  "buddy": {
+    "analyzing": "AI Construction Manager",
+    "placeholder": "Budget analysis coming soon..."
   }
 }

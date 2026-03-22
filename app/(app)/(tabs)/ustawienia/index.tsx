@@ -121,6 +121,13 @@ export default function UstawieniaScreen() {
         onPress: () => router.push('/(app)/inwestycja'),
       },
       {
+        key: 'buddy',
+        title: t('settings:items.buddyTitle', { defaultValue: 'Kierownik budowy AI' }),
+        subtitle: t('settings:items.buddySubtitle', { defaultValue: 'Zmień imię i ustawienia' }),
+        icon: 'cpu',
+        onPress: () => router.push('/(app)/buddy'),
+      },
+      {
         key: 'aplikacja',
         title: t('settings:items.appTitle'),
         subtitle: t('settings:items.appSubtitle'),

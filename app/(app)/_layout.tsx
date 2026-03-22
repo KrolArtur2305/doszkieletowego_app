@@ -39,13 +39,14 @@ export default function AppLayout() {
 
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [investmentComplete, setInvestmentComplete] = useState<boolean | null>(null);
+  const [buddyComplete, setBuddyComplete] = useState<boolean | null>(null); // ✅ buddy gate
 
   // ✅ NOWE: plan gate
   const [planOk, setPlanOk] = useState<boolean | null>(null);
 
   const lastCheckKeyRef = useRef<string>('');
 
-  // 1) Pobierz status profilu/inwestycji + plan
+  // 1) Pobierz status profilu/inwestycji + plan + buddy
   useEffect(() => {
     let alive = true;
 
@@ -59,6 +60,7 @@ export default function AppLayout() {
         setProfileComplete(null);
         setInvestmentComplete(null);
         setPlanOk(null);
+        setBuddyComplete(null); // ✅
         return;
       }
 
@@ -73,7 +75,7 @@ export default function AppLayout() {
         const [profileRes, invRes] = await Promise.all([
           supabase
             .from('profiles')
-            .select('profil_wypelniony, plan, plan_expires_at')
+            .select('profil_wypelniony, plan, plan_expires_at, ai_buddy_name') // ✅ dodane ai_buddy_name
             .eq('user_id', userId)
             .maybeSingle(),
           supabase
@@ -87,6 +89,7 @@ export default function AppLayout() {
 
         setProfileComplete(Boolean(profileRes.data?.profil_wypelniony));
         setInvestmentComplete(Boolean(invRes.data?.inwestycja_wypelniona));
+        setBuddyComplete(Boolean(profileRes.data?.ai_buddy_name)); // ✅
 
         // ✅ Plan OK jeśli:
         // - plan != null
@@ -107,6 +110,7 @@ export default function AppLayout() {
         setProfileComplete(false);
         setInvestmentComplete(false);
         setPlanOk(false);
+        setBuddyComplete(false); // ✅
       } finally {
         if (alive) setChecking(false);
       }
@@ -143,8 +147,12 @@ export default function AppLayout() {
     if (profileComplete === false) return '/(app)/profil';
     if (profileComplete === true && investmentComplete === false) return '/(app)/inwestycja';
 
+    // ✅ 3) buddy — po inwestycji
+    if (profileComplete === true && investmentComplete === true && buddyComplete === false)
+      return '/(app)/buddy';
+
     return null;
-  }, [session, planOk, profileComplete, investmentComplete]);
+  }, [session, planOk, profileComplete, investmentComplete, buddyComplete]);
 
   // 3) Routing
   useEffect(() => {
@@ -159,16 +167,22 @@ export default function AppLayout() {
       planOk === true &&
       profileComplete === true &&
       investmentComplete === true &&
+      buddyComplete === true && // ✅
       pathname === '/(app)'
     ) {
       router.replace('/(app)/(tabs)/dashboard');
     }
-  }, [gateTarget, pathname, router, session, planOk, profileComplete, investmentComplete]);
+  }, [gateTarget, pathname, router, session, planOk, profileComplete, investmentComplete, buddyComplete]);
 
   const showOverlay =
     authLoading ||
     checking ||
-    (session && (planOk === null || profileComplete === null || investmentComplete === null));
+    (session && (
+      planOk === null ||
+      profileComplete === null ||
+      investmentComplete === null ||
+      buddyComplete === null // ✅
+    ));
 
   return (
     <View style={styles.root}>

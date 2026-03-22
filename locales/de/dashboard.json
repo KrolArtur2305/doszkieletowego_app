@@ -5,17 +5,19 @@
   },
   "hero": {
     "welcome": "Willkommen",
-    "dateLine": "Heute ist {{date}}, du bist schon auf halbem Weg beim Bau — der Umzug rückt näher."
+    "dateLine": "Heute ist {{date}} — Ihr neues Zuhause rückt näher."
   },
   "donuts": {
     "budgetLabel": "Budget",
     "timeLabel": "Zeit",
     "progressLabel": "Fortschritt",
-    "completeInvestmentDates": "Projekttermine ergänzen"
+    "completeInvestmentDates": "Investitionsdaten ergänzen"
   },
   "progress": {
     "currentStageLabel": "AKTUELLE PHASE",
     "nextStageLabel": "NÄCHSTE PHASE",
+    "estimatedCompletionLabel": "VORAUSSICHTLICHES FERTIGSTELLUNGSDATUM",
+    "estimatedCompletionPlaceholder": "—",
     "allDone": "Alle Phasen abgeschlossen",
     "noStages": "Keine Phasen",
     "loadingProgress": "Fortschritt wird geladen…",
@@ -24,16 +26,16 @@
   "photos": {
     "latestTitle": "Zuletzt hinzugefügte Fotos",
     "loading": "Fotos werden geladen…",
-    "empty": "Keine Fotos — füge dein erstes Foto im Modul „Fotos“ hinzu."
+    "empty": "Noch keine Fotos — fügen Sie das erste im Fotos-Modul hinzu."
   },
   "calendar": {
     "title": "Kalender",
     "loadingTasks": "Aufgaben werden geladen…",
     "fetchError": "Fehler beim Laden der Aufgaben",
-    "clickDayHint": "Tippe auf einen Tag, um Aufgaben zu sehen",
+    "clickDayHint": "Tag antippen, um Aufgaben zu sehen",
     "nearestTasks": "Nächste Aufgaben",
     "addTaskPlus": "+ Hinzufügen",
-    "noTasks": "Keine Aufgaben — füge deine erste Aufgabe hinzu.",
+    "noTasks": "Keine Aufgaben — erste hinzufügen.",
     "tasksForDay": "Aufgaben: {{date}}",
     "addTask": "Hinzufügen",
     "noTasksForDay": "Keine Aufgaben für diesen Tag.",
@@ -48,14 +50,54 @@
       "sun": "So"
     }
   },
+  "weather": {
+    "days": {
+      "sun": "So",
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa"
+    }
+  },
   "modal": {
     "addTaskTitle": "Aufgabe hinzufügen",
     "selectedDate": "Ausgewähltes Datum: {{date}}",
-    "titlePlaceholder": "Titel (z. B. Fenstermontage)",
+    "titlePlaceholder": "Titel (z.B. Fenstermontage)",
     "descriptionPlaceholder": "Beschreibung (optional)",
     "date": "Datum",
     "time": "Uhrzeit",
-    "removeTime": "Zeit entfernen (ganztägig)",
-    "hint": "Wähle ein Datum und optional eine Uhrzeit in den Pickern. Wenn keine Zeit gesetzt wird — ist die Aufgabe ganztägig."
+    "removeTime": "Uhrzeit entfernen (ganztägig setzen)",
+    "hint": "Wählen Sie ein Datum und optional eine Uhrzeit. Ohne Uhrzeit ist die Aufgabe ganztägig.",
+    "errorTitle": "Fehler",
+    "errorGeneric": "Aufgabe konnte nicht hinzugefügt werden."
+  },
+  "brief": {
+    "tasksToday": "Sie haben heute {{count}} Aufgaben.",
+    "tasksToday_one": "Sie haben heute {{count}} Aufgabe.",
+    "tasksToday_other": "Sie haben heute {{count}} Aufgaben.",
+    "budgetCritical": "Budget zu {{pct}}% ausgeschöpft — Achtung!",
+    "budgetHigh": "Budget zu {{pct}}% ausgeschöpft.",
+    "budgetOk": "Budget unter Kontrolle: {{pct}}%.",
+    "currentStage": "Aktuelle Phase: {{stage}}.",
+    "allGood": "Heute sieht alles stabil aus."
+  },
+  "activity": {
+    "title": "Letzte Aktivität",
+    "empty": "Noch keine Aktivität",
+    "expense": "Ausgabe",
+    "stageDone": "Phase abgeschlossen"
+  },
+  "quickActions": {
+    "title": "Schnellaktionen",
+    "addExpense": "Ausgabe hinzufügen",
+    "addPhoto": "Foto hinzufügen",
+    "addDocument": "Dokument hinzufügen",
+    "stages": "Fortschritt"
+  },
+  "buddy": {
+    "analyzing": "KI-Bauleiter",
+    "placeholder": "Budgetanalyse demnächst verfügbar..."
   }
 }

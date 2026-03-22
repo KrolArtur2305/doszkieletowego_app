@@ -16,6 +16,8 @@
   "progress": {
     "currentStageLabel": "OBECNY ETAP",
     "nextStageLabel": "KOLEJNY ETAP",
+    "estimatedCompletionLabel": "PRZEWIDYWANA DATA UKOŃCZENIA",
+    "estimatedCompletionPlaceholder": "—",
     "allDone": "Wszystkie etapy zrealizowane",
     "noStages": "Brak etapów",
     "loadingProgress": "Ładowanie postępu…",
@@ -48,6 +50,17 @@
       "sun": "Nd"
     }
   },
+  "weather": {
+    "days": {
+      "sun": "nd",
+      "mon": "pn",
+      "tue": "wt",
+      "wed": "śr",
+      "thu": "czw",
+      "fri": "pt",
+      "sat": "sob"
+    }
+  },
   "modal": {
     "addTaskTitle": "Dodaj zadanie",
     "selectedDate": "Wybrana data: {{date}}",
@@ -56,6 +69,36 @@
     "date": "Data",
     "time": "Godzina",
     "removeTime": "Usuń godzinę (ustaw całodniowe)",
-    "hint": "Wybierz datę i opcjonalnie godzinę z pickerów. Jeśli nie ustawisz godziny — zadanie jest całodniowe."
+    "hint": "Wybierz datę i opcjonalnie godzinę z pickerów. Jeśli nie ustawisz godziny — zadanie jest całodniowe.",
+    "errorTitle": "Błąd",
+    "errorGeneric": "Nie udało się dodać zadania."
+  },
+  "brief": {
+    "tasksToday": "Na dziś masz {{count}} zadań.",
+    "tasksToday_one": "Na dziś masz {{count}} zadanie.",
+    "tasksToday_few": "Na dziś masz {{count}} zadania.",
+    "tasksToday_many": "Na dziś masz {{count}} zadań.",
+    "budgetCritical": "Budżet jest wykorzystany już w {{pct}}%.",
+    "budgetHigh": "Budżet jest wykorzystany w {{pct}}%.",
+    "budgetOk": "Budżet jest pod kontrolą: {{pct}}%.",
+    "currentStage": "Obecny etap: {{stage}}.",
+    "allGood": "Na dziś wszystko wygląda stabilnie."
+  },
+  "activity": {
+    "title": "Ostatnia aktywność",
+    "empty": "Brak aktywności",
+    "expense": "Wydatek",
+    "stageDone": "Etap zrealizowany"
+  },
+  "quickActions": {
+    "title": "Szybkie akcje",
+    "addExpense": "Dodaj wydatek",
+    "addPhoto": "Dodaj zdjęcie",
+    "addDocument": "Dodaj dokument",
+    "stages": "Postępy"
+  },
+  "buddy": {
+    "analyzing": "Kierownik budowy AI",
+    "placeholder": "Analiza budżetu będzie dostępna wkrótce..."
   }
 }

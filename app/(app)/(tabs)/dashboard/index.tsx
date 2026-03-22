@@ -70,8 +70,16 @@ const STATUS_DONE = 'zrealizowany';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatPLDateLong(d: Date) {
-  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+function normalizeLocale(lang?: string) {
+  if (!lang) return 'pl-PL';
+  if (lang.startsWith('pl')) return 'pl-PL';
+  if (lang.startsWith('en')) return 'en-US';
+  if (lang.startsWith('de')) return 'de-DE';
+  return lang;
+}
+
+function formatDateLongByLocale(d: Date, locale: string) {
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function clamp01(n: number) {
@@ -153,9 +161,18 @@ function weatherCodeToIcon(code: number): string {
   return '⛈️';
 }
 
+function getWeekdayKey(date: Date) {
+  const day = date.getDay();
+  if (day === 0) return 'sun';
+  if (day === 1) return 'mon';
+  if (day === 2) return 'tue';
+  if (day === 3) return 'wed';
+  if (day === 4) return 'thu';
+  if (day === 5) return 'fri';
+  return 'sat';
+}
+
 // ─── Daily brief generator ────────────────────────────────────────────────────
-// Generates a dynamic 1-2 sentence brief from live data — NOT hardcoded strings.
-// All labels come from i18n so it works in all languages.
 
 function buildBrief(
   todayTaskCount: number,
@@ -212,11 +229,10 @@ function addMonths(d: Date, delta: number) {
   return new Date(d.getFullYear(), d.getMonth() + delta, 1);
 }
 
-
-
 export default function DashboardScreen() {
   const router = useRouter();
-  const { t } = useTranslation('dashboard');
+  const { t, i18n } = useTranslation('dashboard');
+  const appLocale = useMemo(() => normalizeLocale(i18n.resolvedLanguage || i18n.language), [i18n.resolvedLanguage, i18n.language]);
 
   // ── Hero ──
   const [imie, setImie] = useState<string>('');
@@ -332,7 +348,6 @@ export default function DashboardScreen() {
     setSelectedYMD(toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), day)));
   };
 
-  // when month changes, reset selected to 1st
   useEffect(() => {
     setSelectedYMD(toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), 1)));
   }, [calBase]);
@@ -458,7 +473,6 @@ export default function DashboardScreen() {
     let alive = true;
     (async () => {
       try {
-        // Get approximate location via IP geolocation (free, no key)
         const geoRes = await fetch('https://ipapi.co/json/');
         const geo = await geoRes.json();
         const lat = geo.latitude ?? 52.23;
@@ -474,18 +488,27 @@ export default function DashboardScreen() {
 
         const days: WeatherDay[] = data.daily.time.map((dateStr: string, i: number) => {
           const d = new Date(dateStr);
-          const isToday = i === 0;
-          const isTomorrow = i === 1;
-          const label = isToday
-            ? t('weather.today')
-            : isTomorrow
-            ? t('weather.tomorrow')
-            : d.toLocaleDateString('pl-PL', { weekday: 'short' });
+          const weekdayKey = getWeekdayKey(d);
+
+          const defaultDayMap: Record<string, string> = {
+            sun: 'nd',
+            mon: 'pn',
+            tue: 'wt',
+            wed: 'śr',
+            thu: 'czw',
+            fri: 'pt',
+            sat: 'sob',
+          };
+
+          const label = t(`weather.days.${weekdayKey}`, {
+            defaultValue: defaultDayMap[weekdayKey] ?? d.toLocaleDateString(appLocale, { weekday: 'short' }),
+          });
+
           const maxT = Math.round(data.daily.temperature_2m_max[i]);
-          const minT = Math.round(data.daily.temperature_2m_min[i]);
+
           return {
             label,
-            temp: `${maxT}° / ${minT}°`,
+            temp: `${maxT}°`,
             icon: weatherCodeToIcon(data.daily.weathercode[i]),
           };
         });
@@ -498,7 +521,7 @@ export default function DashboardScreen() {
       }
     })();
     return () => { alive = false; };
-  }, []); // eslint-disable-line
+  }, [appLocale, t]);
 
   // ── Activity feed ──
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -569,7 +592,6 @@ export default function DashboardScreen() {
           });
         }
 
-        // Sort by recency — show max 5
         setActivity(items.slice(0, 5));
       } catch {
         setActivity([]);
@@ -740,7 +762,14 @@ export default function DashboardScreen() {
 
   // ── Derived ──
   const heroDateLine = useMemo(() => {
-    return t('hero.dateLine', { date: formatPLDateLong(new Date()) });
+    return t('hero.dateLine', {
+      date: formatDateLongByLocale(new Date(), appLocale),
+      defaultValue: formatDateLongByLocale(new Date(), appLocale),
+    });
+  }, [t, appLocale]);
+
+  const estimatedCompletionText = useMemo(() => {
+    return t('progress.estimatedCompletionPlaceholder', { defaultValue: '—' });
   }, [t]);
 
   const dailyBrief = useMemo(() => {
@@ -751,7 +780,6 @@ export default function DashboardScreen() {
   const glowOpacity = heroGlow.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.55] });
   const glowScale = heroGlow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] });
 
-  // Scan animation for progress card
   const scanX = useRef(new Animated.Value(-60)).current;
   useEffect(() => {
     scanX.setValue(-60);
@@ -771,58 +799,59 @@ export default function DashboardScreen() {
     setActiveIndex(Math.max(0, Math.min(donutData.length - 1, idx)));
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
-
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* LOGO */}
-        <View style={styles.logoRow}>
-          <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-        </View>
-
-        {/* HERO */}
+        {/* ── HERO — ZMIANA: logo po lewej, tytuł, pogoda chipy po prawej, subtitle pełna szerokość ── */}
         <View style={styles.hero}>
-          <View style={styles.heroTitleWrap}>
-            <Animated.View pointerEvents="none" style={[styles.heroTitleGlow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]} />
-            <Text style={styles.heroTitle}>{t('hero.welcome')}{imie ? ` ${imie}` : ''}</Text>
-          </View>
-          <Animated.View style={{ opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }}>
-            <Text style={styles.heroSubtitle}>{heroDateLine}</Text>
-            {/* Weather mini — small row below date */}
-            {!weatherLoading && weather && weather[0] ? (
-              <View style={styles.weatherMiniRow}>
-                {weather.slice(0, 3).map((day, i) => (
-                  <View key={i} style={styles.weatherMiniChip}>
-                    <Text style={styles.weatherMiniIcon}>{day.icon}</Text>
-                    <Text style={styles.weatherMiniTemp}>{day.temp}</Text>
-                    <Text style={styles.weatherMiniLabel}>{day.label}</Text>
+          {/* Linia 1: logo | tytuł | pogoda */}
+          <View style={styles.heroTopRow}>
+            <Image
+              source={require('../../../assets/logo.png')}
+              style={styles.heroLogo}
+              resizeMode="contain"
+            />
+            <View style={styles.heroTitleWrap}>
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.heroTitleGlow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]}
+              />
+              <Text style={styles.heroTitle} numberOfLines={1}>
+                {t('hero.welcome')}{imie ? ` ${imie}` : ''}
+              </Text>
+            </View>
+            <View style={styles.heroWeatherWrap}>
+              {!weatherLoading && weather && weather.length > 0 ? (
+                weather.slice(0, 3).map((day, i) => (
+                  <View key={i} style={styles.heroWeatherChip}>
+                    <Text style={styles.heroWeatherLabel}>{day.label}</Text>
+                    <Text style={styles.heroWeatherIcon}>{day.icon}</Text>
+                    <Text style={styles.heroWeatherTemp}>{day.temp}</Text>
                   </View>
-                ))}
-              </View>
-            ) : null}
+                ))
+              ) : (
+                [0, 1, 2].map((i) => (
+                  <View key={i} style={styles.heroWeatherChip}>
+                    <Text style={styles.heroWeatherLabel}>—</Text>
+                    <Text style={styles.heroWeatherIcon}>·</Text>
+                    <Text style={styles.heroWeatherTemp}>—</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+          {/* Linia 2: subtitle pełna szerokość */}
+          <Animated.View style={[styles.heroSubtitleWrap, { opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }]}>
+            <Text style={styles.heroSubtitle}>{heroDateLine}</Text>
           </Animated.View>
         </View>
-
-        {/* ── DAILY BRIEF ── */}
-        {!!dailyBrief && (
-          <View style={styles.briefOuter}>
-            <BlurView intensity={14} tint="dark" style={styles.briefCard}>
-              <View style={styles.briefRow}>
-                <Text style={styles.briefIcon}>⚡</Text>
-                <Text style={styles.briefText}>{dailyBrief}</Text>
-              </View>
-            </BlurView>
-          </View>
-        )}
 
         {/* ── PROGRESS CARD (etapy) ── */}
         <View style={styles.progressCardOuter}>
           <BlurView intensity={18} tint="dark" style={styles.progressCard}>
             <Animated.View pointerEvents="none" style={[styles.progressScan, { transform: [{ translateX: scanX }, { rotate: '-12deg' }] }]} />
 
-            {/* Progress bar under current stage */}
             <View style={styles.progressRow}>
               <Text style={styles.progressLabel}>{t('progress.currentStageLabel')}</Text>
               {progressLoading
@@ -831,7 +860,6 @@ export default function DashboardScreen() {
               }
             </View>
 
-            {/* Mini progress bar */}
             {!progressLoading && progressPercent > 0 && (
               <View style={styles.miniBarWrap}>
                 <View style={styles.miniBarTrack}>
@@ -840,6 +868,13 @@ export default function DashboardScreen() {
                 <Text style={styles.miniBarLabel}>{progressPercent}%</Text>
               </View>
             )}
+
+            <View style={styles.estimatedWrap}>
+              <Text style={styles.progressLabel}>
+                {t('progress.estimatedCompletionLabel', { defaultValue: 'Przewidywana data ukończenia' })}
+              </Text>
+              <Text style={styles.estimatedValue}>{estimatedCompletionText}</Text>
+            </View>
 
             <View style={styles.sep} />
 
@@ -934,7 +969,6 @@ export default function DashboardScreen() {
                       </Text>
                     )}
                   </View>
-                  {/* Dot indicators */}
                   <View style={styles.donutDots}>
                     {donutData.map((_, di) => (
                       <View key={di} style={[styles.donutDot, di === activeIndex && styles.donutDotActive]} />
@@ -977,7 +1011,6 @@ export default function DashboardScreen() {
           <View style={styles.sectionOuter}>
             <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
 
-              {/* Month nav */}
               <View style={styles.calendarTop}>
                 <TouchableOpacity onPress={goPrevMonth} style={styles.calNavBtn} activeOpacity={0.85}>
                   <Text style={styles.calNavTxt}>‹</Text>
@@ -993,7 +1026,6 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Nearest tasks */}
               <View style={styles.nearestWrap}>
                 <View style={styles.nearestHeader}>
                   <Text style={styles.nearestTitle}>{t('calendar.nearestTasks')}</Text>
@@ -1023,7 +1055,6 @@ export default function DashboardScreen() {
                 )}
               </View>
 
-              {/* Weekday headers */}
               <View style={styles.weekRow}>
                 {[
                   t('calendar.weekdays.mon'), t('calendar.weekdays.tue'), t('calendar.weekdays.wed'),
@@ -1033,7 +1064,6 @@ export default function DashboardScreen() {
                 ))}
               </View>
 
-              {/* Month grid */}
               <View style={styles.grid}>
                 {calCells.map((c, idx) => {
                   const hasDay = !!c.day;
@@ -1061,7 +1091,6 @@ export default function DashboardScreen() {
                 })}
               </View>
 
-              {/* Selected day tasks */}
               <View style={styles.dayTasksWrap}>
                 <View style={styles.dayTasksHeader}>
                   <Text style={styles.dayTasksTitle}>{t('calendar.tasksForDay', { date: selectedYMD })}</Text>
@@ -1251,30 +1280,74 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
   content: { paddingTop: 16, paddingHorizontal: 18, paddingBottom: 140 },
 
-  logoRow: { alignItems: 'center', marginTop: 6, marginBottom: 10 },
-  logo: { width: 176, height: 54, opacity: 0.98 },
-
-  hero: { marginTop: 8, marginBottom: 8 },
-  heroTitleWrap: { position: 'relative', alignSelf: 'flex-start' },
+  // ── HERO — ZMIENIONE (tylko ta sekcja, reszta styles identyczna z doc 13) ──
+  hero: { marginTop: 6, marginBottom: 8 },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroLogo: {
+    width: 44,
+    height: 44,
+    flexShrink: 0,
+    opacity: 0.98,
+  },
+  heroTitleWrap: {
+    flex: 1,
+    position: 'relative',
+    minWidth: 0,
+  },
   heroTitleGlow: {
-    position: 'absolute', left: -12, right: -12, top: 10, height: 26,
-    borderRadius: 999, backgroundColor: 'rgba(37,240,200,0.22)',
-    shadowColor: NEON, shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 0 },
+    position: 'absolute',
+    left: -12, right: -12, top: 8, height: 28,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.22)',
+    shadowColor: NEON,
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
   },
   heroTitle: {
-    color: ACCENT, fontSize: 34, fontWeight: '900', letterSpacing: -0.2,
-    textShadowColor: 'rgba(25,112,92,0.18)', textShadowRadius: 18,
+    color: ACCENT,
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+    textShadowColor: 'rgba(25,112,92,0.18)',
+    textShadowRadius: 18,
   },
-  heroSubtitle: { marginTop: 10, color: 'rgba(255,255,255,0.60)', fontSize: 15.5, fontWeight: '400', lineHeight: 22 },
+  heroWeatherWrap: {
+    flexDirection: 'row',
+    gap: 4,
+    flexShrink: 0,
+  },
+  heroWeatherChip: {
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+  },
+  heroWeatherLabel: {
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 8,
+    fontWeight: '900',
+    textTransform: 'lowercase',
+  },
+  heroWeatherIcon: { fontSize: 11, lineHeight: 13 },
+  heroWeatherTemp: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+  heroSubtitleWrap: { marginTop: 8, width: '100%' },
+  heroSubtitle: {
+    color: 'rgba(255,255,255,0.60)',
+    fontSize: 15.5,
+    fontWeight: '400',
+    lineHeight: 22,
+    maxWidth: '96%',
+  },
+  // ── koniec zmian hero ──
 
-  // Weather mini strip — small chips below subtitle
-  weatherMiniRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  weatherMiniChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  weatherMiniIcon: { fontSize: 13 },
-  weatherMiniTemp: { color: 'rgba(255,255,255,0.70)', fontSize: 11, fontWeight: '800' },
-  weatherMiniLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: '700' },
-
-  // Monthly calendar
   calendarTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 10 },
   calendarMonth: { color: '#FFFFFF', fontSize: 16, fontWeight: '900', textTransform: 'capitalize' },
   calendarHint: { color: 'rgba(255,255,255,0.45)', fontSize: 12.5, fontWeight: '700' },
@@ -1290,14 +1363,12 @@ const styles = StyleSheet.create({
   cellTextToday: { color: '#E9FFF7' },
   cellTextSelected: { color: '#E9FFF7' },
 
-  // Brief
   briefOuter: { marginTop: 10, borderRadius: 20, overflow: 'hidden' },
   briefCard: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'rgba(37,240,200,0.04)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.14)' },
   briefRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   briefIcon: { fontSize: 16, marginTop: 1 },
   briefText: { flex: 1, color: 'rgba(255,255,255,0.80)', fontSize: 13.5, fontWeight: '700', lineHeight: 20 },
 
-  // Progress card
   progressCardOuter: { marginTop: 14, borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 26, shadowOffset: { width: 0, height: 14 } },
   progressCard: { borderRadius: 28, padding: 18, backgroundColor: 'rgba(255,255,255,0.026)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.12)' },
   progressScan: {
@@ -1314,18 +1385,19 @@ const styles = StyleSheet.create({
   miniBarFill: { height: '100%', backgroundColor: NEON, borderRadius: 999, shadowColor: NEON, shadowOpacity: 0.5, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
   miniBarLabel: { color: NEON, fontSize: 11.5, fontWeight: '900', minWidth: 32, textAlign: 'right' },
 
+  estimatedWrap: { paddingTop: 8, paddingBottom: 12 },
+  estimatedValue: { marginTop: 6, color: 'rgba(255,255,255,0.82)', fontSize: 14.5, fontWeight: '800' },
+
   sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
 
   centerBtnWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 12 },
   centerBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: 'rgba(37,240,200,0.12)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.32)', shadowColor: NEON, shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
   centerBtnText: { color: NEON, fontSize: 12.5, fontWeight: '900', letterSpacing: 0.2, textShadowColor: 'rgba(37,240,200,0.22)', textShadowRadius: 10 },
 
-  // Carousel hint arrows only (no text)
   carouselHintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
   carouselHintText: { display: 'none' } as any,
   carouselHintArrow: { color: 'rgba(37,240,200,0.40)', fontSize: 18, fontWeight: '900' },
 
-  // Donut carousel
   donutSlide: { borderRadius: 24, overflow: 'visible' },
   donutGlowWrap: { position: 'absolute', left: 12, right: 12, top: 18, bottom: 18, borderRadius: 999, shadowColor: NEON, shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } },
   donutInnerWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
@@ -1334,7 +1406,6 @@ const styles = StyleSheet.create({
   donutDot: { width: 6, height: 6, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.15)' },
   donutDotActive: { backgroundColor: NEON, shadowColor: NEON, shadowOpacity: 0.6, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
 
-  // Section common
   sectionWrap: { marginTop: 18 },
   sectionTitleCenterNeon: { textAlign: 'center', color: NEON, fontSize: 20, fontWeight: '900', letterSpacing: -0.2, marginBottom: 12, textShadowColor: 'rgba(37,240,200,0.18)', textShadowRadius: 16 },
   sectionOuter: { borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 26, shadowOffset: { width: 0, height: 14 } },
@@ -1342,7 +1413,6 @@ const styles = StyleSheet.create({
 
   sectionLabelSmall: { color: 'rgba(255,255,255,0.42)', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
 
-  // Quick actions
   qaRow: { flexDirection: 'row', gap: 10 },
   qaCard: { flex: 1, borderRadius: 20, overflow: 'hidden', aspectRatio: 0.9 },
   qaBlur: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 12, borderWidth: 1, borderColor: 'rgba(37,240,200,0.12)', backgroundColor: 'rgba(255,255,255,0.026)' },
@@ -1352,9 +1422,6 @@ const styles = StyleSheet.create({
   calNavBtn: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
   calNavTxt: { color: NEON, fontSize: 20, fontWeight: '900', marginTop: -2 },
 
-  // (monthly calendar styles are above)
-
-  // Nearest tasks
   nearestWrap: { marginBottom: 12, padding: 12, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.10)' },
   nearestHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   nearestTitle: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '900', letterSpacing: 0.2 },
@@ -1372,21 +1439,18 @@ const styles = StyleSheet.create({
   addTaskMiniBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.25)' },
   addTaskMiniBtnText: { color: NEON, fontSize: 11.5, fontWeight: '900' },
 
-  // Activity
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   activityIconWrap: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(37,240,200,0.08)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.14)', alignItems: 'center', justifyContent: 'center' },
   activityIcon: { fontSize: 16 },
   activityLabel: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '900' },
   activityMeta: { color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '700', marginTop: 2 },
 
-  // Photos compact
   photoThumbRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
   photoThumb: { flex: 1, aspectRatio: 1, borderRadius: 16, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.04)' },
   photoThumbImg: { width: '100%', height: '100%' },
 
   mutedText: { color: 'rgba(255,255,255,0.48)', fontSize: 14, lineHeight: 20 },
 
-  // Modal
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 18 },
   modalCard: { width: '100%', borderRadius: 24, padding: 16, backgroundColor: 'rgba(12,12,12,0.92)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.18)', shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 26, shadowOffset: { width: 0, height: 14 } },
   modalTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
