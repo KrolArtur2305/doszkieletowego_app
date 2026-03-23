@@ -1,10 +1,16 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Image, TouchableOpacity, View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
+const NEON = '#25F0C8';
+const BUDDY_AVATAR = require('../../../assets/buddy_avatar.png');
+
 export default function TabsLayout() {
   const { t } = useTranslation('navigation');
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -46,26 +52,41 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* DOKUMENTY */}
+      {/* KIEROWNIK AI — środkowy, większy */}
       <Tabs.Screen
-        name="dokumenty/index"
+        name="buddy/index"
         options={{
-          title: t('tabs.documents'),
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="file-text" color={color} size={size ?? 20} />
+          title: t('tabs.buddy', { defaultValue: 'Kierownik' }),
+          tabBarIcon: ({ focused }) => (
+            <View style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              borderWidth: 2,
+              borderColor: focused ? NEON : 'rgba(37,240,200,0.35)',
+              overflow: 'hidden',
+              marginBottom: 2,
+              shadowColor: NEON,
+              shadowOpacity: focused ? 0.55 : 0.20,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 0 },
+            }}>
+              <Image
+                source={BUDDY_AVATAR}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+            </View>
           ),
-        }}
-      />
-
-      {/* ZDJĘCIA */}
-      <Tabs.Screen
-        name="zdjecia/index"
-        options={{
-          title: t('tabs.photos'),
-          sceneStyle: { backgroundColor: 'transparent' },
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="camera" color={color} size={size ?? 20} />
-          ),
+          tabBarLabelStyle: { fontSize: 12, fontWeight: '700', color: NEON },
+          tabBarStyle: {
+            backgroundColor: 'rgba(7, 12, 24, 0.92)',
+            borderTopColor: 'rgba(255,255,255,0.08)',
+            borderTopWidth: 1,
+            height: 72,
+            paddingBottom: 10,
+            paddingTop: 4,
+          },
         }}
       />
 
@@ -80,20 +101,23 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* PROFIL (kieruje do tego samego co ustawienia) */}
+      {/* WIĘCEJ */}
       <Tabs.Screen
-        name="ustawienia"
+        name="wiecej/index"
         options={{
-          title: t('tabs.profile'),
+          title: t('tabs.more', { defaultValue: 'Więcej' }),
           tabBarIcon: ({ color, size }) => (
-            <Feather name="user" color={color} size={size ?? 20} />
+            <Feather name="grid" color={color} size={size ?? 20} />
           ),
         }}
       />
 
-      {/* 🔒 UKRYJ POSTĘPY (ważne: ukryj konkretne routy, nie tylko folder) */}
+      {/* 🔒 UKRYTE */}
       <Tabs.Screen name="postepy/index" options={{ href: null }} />
       <Tabs.Screen name="postepy/wszystkie" options={{ href: null }} />
+      <Tabs.Screen name="dokumenty/index" options={{ href: null }} />
+      <Tabs.Screen name="zdjecia/index" options={{ href: null }} />
+      <Tabs.Screen name="ustawienia" options={{ href: null }} />
     </Tabs>
   );
 }
