@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -450,18 +451,29 @@ export default function DashboardScreen() {
   const addTask = async () => {
     const title = newTitle.trim();
     if (!title) return;
+
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const user = userData?.user;
+      if (!user) throw new Error('NO_USER');
+
       const ins = await supabase.from(TASKS_TABLE).insert({
+        user_id: user.id,
         nazwa: title,
         opis: newDesc.trim() || null,
         data: selectedYMD,
         godzina: hasTime ? toTimeHHMMSS(pickTime) : null,
       });
+
       if (ins.error) throw ins.error;
+
       setTaskModalOpen(false);
       await loadTasksForMonth();
-    } catch {
-      setTaskModalOpen(false);
+    } catch (e) {
+      console.warn('addTask error:', e);
+      Alert.alert('Błąd', 'Nie udało się dodać zadania.');
     }
   };
 

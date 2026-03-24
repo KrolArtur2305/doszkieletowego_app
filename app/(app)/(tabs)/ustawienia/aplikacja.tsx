@@ -133,7 +133,7 @@ export default function UstawieniaAplikacjiScreen() {
               if (error) throw error;
 
               await supabase.auth.signOut();
-              router.replace('/login');
+              router.replace('/(auth)/login');
             } catch (e: any) {
               Alert.alert(
                 t('appSettings.deleteAccount.errorTitle'),
