@@ -216,11 +216,11 @@ export default function WiecejScreen() {
       onPress: () => router.push('/(app)/(tabs)/ustawienia'),
     },
     {
-      key: 'empty',
-      label: '',
-      icon: 'plus',
-      color: 'transparent',
-      onPress: () => {},
+      key: 'dziennik',
+      label: 'Dziennik budowy',
+      icon: 'book-open',
+      color: '#F472B6',
+      onPress: () => router.push('/(app)/(tabs)/wiecej/dziennik'),
     },
   ];
 
@@ -242,10 +242,6 @@ export default function WiecejScreen() {
             const anim = anims[i];
             const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] });
             const opacity = anim;
-
-            if (tile.key === 'empty') {
-              return <View key="empty" style={styles.tilePlaceholder} />;
-            }
 
             return (
               <Animated.View

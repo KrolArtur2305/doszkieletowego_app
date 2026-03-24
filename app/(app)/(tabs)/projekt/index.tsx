@@ -441,22 +441,26 @@ export default function ProjektScreen() {
         <View style={[styles.safeTop, { height: topPad }]} />
 
         <View style={styles.headerBlock}>
-          <View style={styles.headerTopRow}>
-            <Image source={logo} style={styles.logoHugeLeft} resizeMode="contain" />
+          <Image source={logo} style={styles.logoHugeLeft} resizeMode="contain" />
+
+          <View style={styles.headerTitleWrap}>
             <Text style={styles.screenTitle}>
               {t('screenTitle', { defaultValue: i18n.language?.startsWith('pl') ? 'Projekt' : 'Project' })}
             </Text>
-          </View>
 
-          <Text style={styles.projectTitle} numberOfLines={2}>
-            {projekt?.nazwa || '—'}
-          </Text>
-
-          {!!lokalizacja && (
-            <Text style={styles.projectLocation} numberOfLines={1}>
-              {lokalizacja}
+            <Text style={styles.projectTitle} numberOfLines={2}>
+              {projekt?.nazwa || '—'}
             </Text>
-          )}
+
+            {!!lokalizacja && (
+              <View style={styles.locationRow}>
+                <Feather name="map-pin" size={16} color="rgba(148,163,184,0.95)" />
+                <Text style={styles.projectLocation} numberOfLines={1}>
+                  {lokalizacja}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={styles.modelHeroWrap}>
@@ -765,21 +769,25 @@ const styles = StyleSheet.create({
   },
 
   headerBlock: {
-    alignItems: 'center',
+    position: 'relative',
+    minHeight: 112,
+    justifyContent: 'center',
     paddingVertical: 10,
   },
 
-  headerTopRow: {
-    flexDirection: 'row',
+  headerTitleWrap: {
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginBottom: 6,
   },
 
   logoHugeLeft: {
+    position: 'absolute',
+    left: 0,
+    top: '50%',
     width: 112,
     height: 112,
+    marginTop: -56,
   },
 
   screenTitle: {
@@ -790,7 +798,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     textShadowColor: 'rgba(25,112,92,0.18)',
     textShadowRadius: 18,
-    marginBottom: 0,
+    marginBottom: 6,
   },
 
   projectTitle: {
@@ -800,11 +808,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  locationRow: {
+    marginTop: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    maxWidth: '100%',
+  },
+
   projectLocation: {
-    marginTop: 6,
-    color: 'rgba(148,163,184,0.9)',
-    fontSize: 13,
-    fontWeight: '700',
+    color: 'rgba(148,163,184,0.95)',
+    fontSize: 14,
+    fontWeight: '800',
   },
 
   modelHeroWrap: {
