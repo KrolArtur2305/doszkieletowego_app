@@ -4,6 +4,7 @@ import {
   Animated,
   Dimensions,
   FlatList,
+  Image,
   Linking,
   Modal,
   Platform,
@@ -220,7 +221,7 @@ export default function WiecejScreen() {
       label: 'Dziennik budowy',
       icon: 'book-open',
       color: '#F472B6',
-      onPress: () => router.push('/(app)/(tabs)/wiecej/dziennik'),
+      onPress: () => router.push('./dziennik'),
     },
   ];
 
@@ -234,7 +235,15 @@ export default function WiecejScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Text style={styles.heading}>Więcej</Text>
+        <View style={styles.headerRow}>
+          <Image
+            source={require('../../../assets/logo.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.heading}>Więcej</Text>
+          <View style={styles.headerSpacer} />
+        </View>
 
         {/* 2x3 grid */}
         <View style={styles.grid}>
@@ -458,12 +467,26 @@ const styles = StyleSheet.create({
 
   content: { paddingHorizontal: 18, paddingBottom: 120 },
 
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 22,
+  },
+  headerLogo: {
+    width: 36,
+    height: 36,
+    opacity: 0.98,
+  },
   heading: {
-    color: '#FFFFFF',
-    fontSize: 30,
+    flex: 1,
+    color: ACCENT,
+    fontSize: 32,
     fontWeight: '900',
     letterSpacing: -0.3,
-    marginBottom: 22,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 36,
   },
 
   // Grid

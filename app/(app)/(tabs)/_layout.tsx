@@ -103,7 +103,7 @@ export default function TabsLayout() {
 
       {/* WIĘCEJ */}
       <Tabs.Screen
-        name="wiecej/index"
+        name="wiecej"
         options={{
           title: t('tabs.more', { defaultValue: 'Więcej' }),
           tabBarIcon: ({ color, size }) => (
