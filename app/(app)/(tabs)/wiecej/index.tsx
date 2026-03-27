@@ -88,7 +88,7 @@ export default function WiecejScreen() {
       label: 'Zadania',
       icon: 'check-square',
       color: '#22C55E',
-      onPress: () => router.push('/plan'),
+      onPress: () => router.push('/zadania'),
     },
     {
       key: 'dziennik',
