@@ -5,6 +5,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Keyboard,
   Linking,
   Modal,
   Platform,
@@ -14,11 +15,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 
@@ -47,8 +49,30 @@ const emptyContact = (): Omit<Contact, 'id' | 'user_id' | 'created_at'> => ({
   notatki: '',
 });
 
+const isValidEmail = (email: string) => {
+  const value = email.trim();
+  if (!value) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+};
+
+const normalizePhone = (phone: string) => phone.replace(/[^\d+]/g, '');
+
+const isValidPhone = (phone: string) => {
+  const value = phone.trim();
+  if (!value) return true;
+
+  const cleaned = normalizePhone(value);
+
+  if (!/^\+?\d{7,15}$/.test(cleaned)) return false;
+
+  const plusCount = (cleaned.match(/\+/g) || []).length;
+  if (plusCount > 1) return false;
+  if (plusCount === 1 && !cleaned.startsWith('+')) return false;
+
+  return true;
+};
+
 export default function KontaktyScreen() {
-  const router = useRouter();
   const { session } = useSupabaseAuth();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
 
@@ -56,6 +80,9 @@ export default function KontaktyScreen() {
   const [loading, setLoading] = useState(true);
 
   const [editOpen, setEditOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [form, setForm] = useState(emptyContact());
   const [saving, setSaving] = useState(false);
@@ -131,9 +158,24 @@ export default function KontaktyScreen() {
     setEditOpen(true);
   };
 
+  const openDetails = (c: Contact) => {
+    setSelectedContact(c);
+    setDetailsOpen(true);
+  };
+
   const saveContact = async () => {
     if (!form.imie_nazwisko.trim()) {
       Alert.alert('Błąd', 'Podaj imię i nazwisko.');
+      return;
+    }
+
+    if (!isValidEmail(form.email ?? '')) {
+      Alert.alert('Błąd', 'Podaj poprawny adres e-mail.');
+      return;
+    }
+
+    if (!isValidPhone(form.telefon ?? '')) {
+      Alert.alert('Błąd', 'Podaj poprawny numer telefonu.');
       return;
     }
 
@@ -189,6 +231,12 @@ export default function KontaktyScreen() {
           try {
             const { error } = await supabase.from('kontakty').delete().eq('id', c.id);
             if (error) throw error;
+
+            if (selectedContact?.id === c.id) {
+              setDetailsOpen(false);
+              setSelectedContact(null);
+            }
+
             await loadContacts();
           } catch (e: any) {
             Alert.alert('Błąd', e?.message ?? 'Nie udało się usunąć kontaktu.');
@@ -209,192 +257,310 @@ export default function KontaktyScreen() {
   });
 
   return (
-    <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.bg} />
-      <View pointerEvents="none" style={styles.glowTop} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.screen}>
+        <View pointerEvents="none" style={styles.bg} />
+        <View pointerEvents="none" style={styles.glowTop} />
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: topPad }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View
-          style={{
-            opacity: headerAnim,
-            transform: [{ scale: headerScale }],
-          }}
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingTop: topPad }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.headerRow}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backBtn}
-              activeOpacity={0.85}
-            >
-              <Feather name="chevron-left" size={20} color={ACCENT} />
-            </TouchableOpacity>
-
-            <Image
-              source={require('../../../../assets/logo.png')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
-
-            <Text style={styles.heading}>Kontakty</Text>
-
-            <TouchableOpacity
-              onPress={openNew}
-              style={styles.addBtn}
-              activeOpacity={0.88}
-            >
-              <Feather name="plus" size={18} color={NEON} />
-            </TouchableOpacity>
-          </View>
-
-          <BlurView intensity={16} tint="dark" style={styles.heroCard}>
-            <View style={styles.heroIconWrap}>
-              <Feather name="users" size={26} color={NEON} />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={styles.heroTitle}>Kontakty na budowie</Text>
-              <Text style={styles.heroSubtitle}>
-                Przechowuj numery i dane do wykonawców, kierownika budowy, dostawców i ekip.
-              </Text>
-            </View>
-          </BlurView>
-        </Animated.View>
-
-        <Animated.View
-          style={{
-            opacity: listAnim,
-            transform: [{ scale: listScale }],
-          }}
-        >
-          {loading ? (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>Ładowanie...</Text>
-            </View>
-          ) : contacts.length === 0 ? (
-            <View style={styles.emptyWrap}>
-              <Feather name="users" size={44} color="rgba(255,255,255,0.15)" />
-              <Text style={styles.emptyText}>Brak kontaktów</Text>
-              <TouchableOpacity
-                onPress={openNew}
-                style={styles.emptyAddBtn}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.emptyAddBtnText}>+ Dodaj pierwszy kontakt</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <FlatList
-              data={contacts}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              contentContainerStyle={styles.listContent}
-              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-              renderItem={({ item }) => (
-                <ContactCard
-                  contact={item}
-                  onEdit={() => openEdit(item)}
-                  onDelete={() => deleteContact(item)}
-                />
-              )}
-            />
-          )}
-        </Animated.View>
-      </ScrollView>
-
-      <Modal
-        visible={editOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setEditOpen(false)}
-      >
-        <View style={styles.modalScreen}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {editingContact ? 'Edytuj kontakt' : 'Nowy kontakt'}
-            </Text>
-            <TouchableOpacity onPress={() => setEditOpen(false)} activeOpacity={0.88}>
-              <Feather name="x" size={22} color="rgba(255,255,255,0.55)" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            contentContainerStyle={{ padding: 16, gap: 12 }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+          <Animated.View
+            style={{
+              opacity: headerAnim,
+              transform: [{ scale: headerScale }],
+            }}
           >
-            <FormField
-              label="Imię i nazwisko *"
-              value={form.imie_nazwisko}
-              onChangeText={(v) => setForm({ ...form, imie_nazwisko: v })}
-              placeholder="np. Jan Kowalski"
-            />
+            <View style={styles.headerRow}>
+              <Image
+                source={require('../../../../assets/logo.png')}
+                style={styles.headerLogo}
+                resizeMode="contain"
+              />
 
-            <FormField
-              label="Firma"
-              value={form.firma ?? ''}
-              onChangeText={(v) => setForm({ ...form, firma: v })}
-              placeholder="np. Budmax Sp. z o.o."
-            />
+              <Text style={styles.heading}>Kontakty</Text>
 
-            <FormField
-              label="Rola"
-              value={form.rola ?? ''}
-              onChangeText={(v) => setForm({ ...form, rola: v })}
-              placeholder="np. Kierownik budowy, Elektryk..."
-            />
+              <View style={styles.headerRightSpacer} />
+            </View>
+          </Animated.View>
 
-            <FormField
-              label="Telefon"
-              value={form.telefon ?? ''}
-              onChangeText={(v) => setForm({ ...form, telefon: v })}
-              placeholder="+48 600 000 000"
-              keyboardType="phone-pad"
-            />
+          <Animated.View
+            style={{
+              opacity: listAnim,
+              transform: [{ scale: listScale }],
+            }}
+          >
+            {loading ? (
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyText}>Ładowanie...</Text>
+              </View>
+            ) : contacts.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <Feather name="users" size={44} color="rgba(255,255,255,0.15)" />
+                <Text style={styles.emptyText}>Brak kontaktów</Text>
+                <TouchableOpacity
+                  onPress={openNew}
+                  style={styles.emptyAddBtn}
+                  activeOpacity={0.88}
+                >
+                  <Text style={styles.emptyAddBtnText}>+ Dodaj pierwszy kontakt</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList
+                data={contacts}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                contentContainerStyle={styles.listContent}
+                ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+                renderItem={({ item }) => (
+                  <ContactCard
+                    contact={item}
+                    onPress={() => openDetails(item)}
+                    onEdit={() => openEdit(item)}
+                    onDelete={() => deleteContact(item)}
+                  />
+                )}
+              />
+            )}
+          </Animated.View>
+        </ScrollView>
 
-            <FormField
-              label="Email"
-              value={form.email ?? ''}
-              onChangeText={(v) => setForm({ ...form, email: v })}
-              placeholder="jan@firma.pl"
-              keyboardType="email-address"
-            />
+        <TouchableOpacity
+          onPress={openNew}
+          style={styles.floatingAddBtn}
+          activeOpacity={0.9}
+        >
+          <Feather name="plus" size={22} color="#0B1120" />
+        </TouchableOpacity>
 
-            <FormField
-              label="Notatki"
-              value={form.notatki ?? ''}
-              onChangeText={(v) => setForm({ ...form, notatki: v })}
-              placeholder="Dodatkowe informacje..."
-              multiline
-            />
+        <Modal
+          visible={editOpen}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setEditOpen(false)}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.modalCard}>
+                  <View style={styles.modalHeader}>
+                    <View style={styles.modalHeaderSide} />
+                    <Text style={styles.modalTitle}>
+                      {editingContact ? 'Edytuj kontakt' : 'Nowy kontakt'}
+                    </Text>
+                    <TouchableOpacity onPress={() => setEditOpen(false)} activeOpacity={0.88}>
+                      <Feather name="x" size={22} color="rgba(255,255,255,0.55)" />
+                    </TouchableOpacity>
+                  </View>
 
-            <TouchableOpacity
-              style={[styles.saveBtn, saving && { opacity: 0.6 }]}
-              onPress={saveContact}
-              disabled={saving}
-              activeOpacity={0.9}
-            >
-              <Text style={styles.saveBtnText}>
-                {saving ? 'Zapisywanie...' : 'Zapisz kontakt'}
-              </Text>
-            </TouchableOpacity>
+                  <ScrollView
+                    contentContainerStyle={{ padding: 16, gap: 12 }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <FormField
+                      label="Imię i nazwisko *"
+                      value={form.imie_nazwisko}
+                      onChangeText={(v) => setForm({ ...form, imie_nazwisko: v })}
+                      placeholder="np. Jan Kowalski"
+                    />
 
-            <View style={{ height: 40 }} />
-          </ScrollView>
-        </View>
-      </Modal>
-    </View>
+                    <FormField
+                      label="Firma"
+                      value={form.firma ?? ''}
+                      onChangeText={(v) => setForm({ ...form, firma: v })}
+                      placeholder="np. doszkieletowego"
+                    />
+
+                    <FormField
+                      label="Rola"
+                      value={form.rola ?? ''}
+                      onChangeText={(v) => setForm({ ...form, rola: v })}
+                      placeholder="np. Kierownik budowy, Elektryk..."
+                    />
+
+                    <FormField
+                      label="Telefon"
+                      value={form.telefon ?? ''}
+                      onChangeText={(v) => setForm({ ...form, telefon: v })}
+                      placeholder="+48 600 000 000"
+                      keyboardType="phone-pad"
+                    />
+
+                    <FormField
+                      label="Email"
+                      value={form.email ?? ''}
+                      onChangeText={(v) => setForm({ ...form, email: v })}
+                      placeholder="jan@firma.pl"
+                      keyboardType="email-address"
+                    />
+
+                    <FormField
+                      label="Notatki"
+                      value={form.notatki ?? ''}
+                      onChangeText={(v) => setForm({ ...form, notatki: v })}
+                      placeholder="Dodatkowe informacje..."
+                      multiline
+                    />
+
+                    <TouchableOpacity
+                      style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+                      onPress={saveContact}
+                      disabled={saving}
+                      activeOpacity={0.9}
+                    >
+                      <Text style={styles.saveBtnText}>
+                        {saving ? 'Zapisywanie...' : 'Zapisz kontakt'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <View style={{ height: 8 }} />
+                  </ScrollView>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+
+        <Modal
+          visible={detailsOpen}
+          animationType="fade"
+          transparent
+          onRequestClose={() => {
+            setDetailsOpen(false);
+            setSelectedContact(null);
+          }}
+        >
+          <TouchableWithoutFeedback
+            onPress={() => {
+              setDetailsOpen(false);
+              setSelectedContact(null);
+            }}
+          >
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.detailsCard}>
+                  {selectedContact && (
+                    <>
+                      <View style={styles.detailsHeader}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setDetailsOpen(false);
+                            setSelectedContact(null);
+                          }}
+                          activeOpacity={0.88}
+                        >
+                          <Feather name="x" size={22} color="rgba(255,255,255,0.55)" />
+                        </TouchableOpacity>
+                      </View>
+
+                      <ScrollView
+                        contentContainerStyle={styles.detailsScroll}
+                        showsVerticalScrollIndicator={false}
+                      >
+                        <View style={styles.detailsAvatar}>
+                          <Text style={styles.detailsAvatarText}>
+                            {selectedContact.imie_nazwisko
+                              .split(' ')
+                              .map((w) => w[0])
+                              .slice(0, 2)
+                              .join('')
+                              .toUpperCase()}
+                          </Text>
+                        </View>
+
+                        <Text style={styles.detailsName}>{selectedContact.imie_nazwisko}</Text>
+
+                        {!!selectedContact.rola && (
+                          <Text style={styles.detailsRole}>{selectedContact.rola}</Text>
+                        )}
+
+                        {!!selectedContact.firma && (
+                          <View style={styles.detailsInfoBox}>
+                            <Text style={styles.detailsInfoLabel}>Firma</Text>
+                            <Text style={styles.detailsInfoValue}>{selectedContact.firma}</Text>
+                          </View>
+                        )}
+
+                        {!!selectedContact.telefon && (
+                          <View style={styles.detailsInfoBox}>
+                            <Text style={styles.detailsInfoLabel}>Telefon</Text>
+                            <Text style={styles.detailsInfoValue}>{selectedContact.telefon}</Text>
+                          </View>
+                        )}
+
+                        {!!selectedContact.email && (
+                          <View style={styles.detailsInfoBox}>
+                            <Text style={styles.detailsInfoLabel}>Email</Text>
+                            <Text style={styles.detailsInfoValue}>{selectedContact.email}</Text>
+                          </View>
+                        )}
+
+                        {!!selectedContact.notatki && (
+                          <View style={styles.detailsInfoBox}>
+                            <Text style={styles.detailsInfoLabel}>Opis / notatki</Text>
+                            <Text style={styles.detailsInfoValueMultiline}>{selectedContact.notatki}</Text>
+                          </View>
+                        )}
+
+                        <View style={styles.detailsActions}>
+                          {!!selectedContact.telefon && (
+                            <>
+                              <TouchableOpacity
+                                onPress={() => Linking.openURL(`tel:${selectedContact.telefon}`)}
+                                style={styles.detailsActionBtn}
+                                activeOpacity={0.88}
+                              >
+                                <Feather name="phone" size={22} color={NEON} />
+                                <Text style={styles.detailsActionText}>Zadzwoń</Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                onPress={() => Linking.openURL(`sms:${selectedContact.telefon}`)}
+                                style={styles.detailsActionBtn}
+                                activeOpacity={0.88}
+                              >
+                                <Feather name="message-circle" size={22} color={NEON} />
+                                <Text style={styles.detailsActionText}>SMS</Text>
+                              </TouchableOpacity>
+                            </>
+                          )}
+
+                          {!!selectedContact.email && (
+                            <TouchableOpacity
+                              onPress={() => Linking.openURL(`mailto:${selectedContact.email}`)}
+                              style={styles.detailsActionBtn}
+                              activeOpacity={0.88}
+                            >
+                              <Feather name="mail" size={22} color={NEON} />
+                              <Text style={styles.detailsActionText}>Email</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </ScrollView>
+                    </>
+                  )}
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
 function ContactCard({
   contact: c,
+  onPress,
   onEdit,
   onDelete,
 }: {
   contact: Contact;
+  onPress: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -410,57 +576,59 @@ function ContactCard({
   const mail = () => c.email && Linking.openURL(`mailto:${c.email}`);
 
   return (
-    <BlurView intensity={14} tint="dark" style={cardStyles.card}>
-      <View style={cardStyles.avatar}>
-        <Text style={cardStyles.avatarText}>{initials}</Text>
-      </View>
-
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={cardStyles.name} numberOfLines={1}>
-          {c.imie_nazwisko}
-        </Text>
-
-        {!!(c.firma || c.rola) && (
-          <Text style={cardStyles.sub} numberOfLines={1}>
-            {[c.rola, c.firma].filter(Boolean).join(' · ')}
-          </Text>
-        )}
-
-        {!!(c.telefon || c.email) && (
-          <Text style={cardStyles.meta} numberOfLines={1}>
-            {[c.telefon, c.email].filter(Boolean).join(' • ')}
-          </Text>
-        )}
-
-        <View style={cardStyles.actions}>
-          {!!c.telefon && (
-            <>
-              <TouchableOpacity onPress={call} style={cardStyles.actionBtn} activeOpacity={0.8}>
-                <Feather name="phone" size={14} color={NEON} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={sms} style={cardStyles.actionBtn} activeOpacity={0.8}>
-                <Feather name="message-circle" size={14} color={NEON} />
-              </TouchableOpacity>
-            </>
-          )}
-
-          {!!c.email && (
-            <TouchableOpacity onPress={mail} style={cardStyles.actionBtn} activeOpacity={0.8}>
-              <Feather name="mail" size={14} color={NEON} />
-            </TouchableOpacity>
-          )}
+    <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
+      <BlurView intensity={14} tint="dark" style={cardStyles.card}>
+        <View style={cardStyles.avatar}>
+          <Text style={cardStyles.avatarText}>{initials}</Text>
         </View>
-      </View>
 
-      <View style={cardStyles.cardActions}>
-        <TouchableOpacity onPress={onEdit} style={cardStyles.iconBtn} activeOpacity={0.8}>
-          <Feather name="edit-2" size={15} color="rgba(255,255,255,0.45)" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onDelete} style={cardStyles.iconBtn} activeOpacity={0.8}>
-          <Feather name="trash-2" size={15} color="rgba(239,68,68,0.70)" />
-        </TouchableOpacity>
-      </View>
-    </BlurView>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={cardStyles.name} numberOfLines={1}>
+            {c.imie_nazwisko}
+          </Text>
+
+          {!!(c.firma || c.rola) && (
+            <Text style={cardStyles.sub} numberOfLines={1}>
+              {[c.rola, c.firma].filter(Boolean).join(' · ')}
+            </Text>
+          )}
+
+          {!!(c.telefon || c.email) && (
+            <Text style={cardStyles.meta} numberOfLines={1}>
+              {[c.telefon, c.email].filter(Boolean).join(' • ')}
+            </Text>
+          )}
+
+          <View style={cardStyles.actions}>
+            {!!c.telefon && (
+              <>
+                <TouchableOpacity onPress={call} style={cardStyles.actionBtn} activeOpacity={0.8}>
+                  <Feather name="phone" size={14} color={NEON} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={sms} style={cardStyles.actionBtn} activeOpacity={0.8}>
+                  <Feather name="message-circle" size={14} color={NEON} />
+                </TouchableOpacity>
+              </>
+            )}
+
+            {!!c.email && (
+              <TouchableOpacity onPress={mail} style={cardStyles.actionBtn} activeOpacity={0.8}>
+                <Feather name="mail" size={14} color={NEON} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        <View style={cardStyles.cardActions}>
+          <TouchableOpacity onPress={onEdit} style={cardStyles.iconBtn} activeOpacity={0.8}>
+            <Feather name="edit-2" size={15} color="rgba(255,255,255,0.45)" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onDelete} style={cardStyles.iconBtn} activeOpacity={0.8}>
+            <Feather name="trash-2" size={15} color="rgba(239,68,68,0.70)" />
+          </TouchableOpacity>
+        </View>
+      </BlurView>
+    </TouchableOpacity>
   );
 }
 
@@ -497,8 +665,14 @@ function FormField({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  bg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000' },
+  screen: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  bg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+  },
   glowTop: {
     position: 'absolute',
     width: 380,
@@ -513,82 +687,37 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 18,
     paddingBottom: 120,
+    backgroundColor: '#000000',
   },
 
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 18,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: 'rgba(25,112,92,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.25)',
-    alignItems: 'center',
+    position: 'relative',
     justifyContent: 'center',
+    marginBottom: 18,
+    minHeight: 40,
   },
   headerLogo: {
-    width: 34,
-    height: 34,
+    position: 'absolute',
+    left: 0,
+    width: 30,
+    height: 30,
+    top: 5,
     opacity: 0.98,
   },
+  headerRightSpacer: {
+    width: 30,
+    height: 30,
+    position: 'absolute',
+    right: 0,
+    top: 5,
+  },
   heading: {
-    flex: 1,
     color: ACCENT,
     fontSize: 30,
     fontWeight: '900',
     letterSpacing: -0.3,
     textAlign: 'center',
-    marginRight: 6,
-  },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: 'rgba(37,240,200,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  heroCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    padding: 18,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    marginBottom: 18,
-  },
-  heroIconWrap: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(37,240,200,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.24)',
-  },
-  heroTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '900',
-    marginBottom: 4,
-  },
-  heroSubtitle: {
-    color: 'rgba(255,255,255,0.56)',
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '600',
+    lineHeight: 40,
   },
 
   listContent: {
@@ -621,22 +750,55 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  modalScreen: {
+  floatingAddBtn: {
+    position: 'absolute',
+    right: 22,
+    bottom: 28,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: NEON,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: NEON,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+
+  modalOverlay: {
     flex: 1,
-    backgroundColor: '#080E1C',
+    backgroundColor: 'rgba(0,0,0,0.76)',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  modalCard: {
+    maxHeight: '86%',
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.07)',
   },
+  modalHeaderSide: {
+    width: 22,
+    height: 22,
+  },
   modalTitle: {
-    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+    color: ACCENT,
     fontSize: 20,
     fontWeight: '900',
   },
@@ -652,6 +814,110 @@ const styles = StyleSheet.create({
     color: '#0B1120',
     fontSize: 16,
     fontWeight: '900',
+  },
+
+  detailsCard: {
+    maxHeight: '88%',
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 4,
+  },
+  detailsScroll: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    alignItems: 'center',
+  },
+  detailsAvatar: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: 'rgba(37,240,200,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(37,240,200,0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  detailsAvatarText: {
+    color: NEON,
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  detailsName: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  detailsRole: {
+    color: 'rgba(255,255,255,0.48)',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  detailsInfoBox: {
+    width: '100%',
+    borderRadius: 18,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 10,
+  },
+  detailsInfoLabel: {
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  detailsInfoValue: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  detailsInfoValueMultiline: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 22,
+  },
+  detailsActions: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  detailsActionBtn: {
+    minWidth: 110,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 18,
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  detailsActionText: {
+    color: NEON,
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
 

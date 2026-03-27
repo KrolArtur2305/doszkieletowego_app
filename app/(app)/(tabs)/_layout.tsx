@@ -18,8 +18,8 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: 'transparent' },
 
         tabBarStyle: {
-          backgroundColor: 'rgba(7, 12, 24, 0.92)',
-          borderTopColor: 'rgba(255,255,255,0.08)',
+          backgroundColor: '#000000',
+          borderTopColor: 'rgba(37,240,200,0.35)',
           borderTopWidth: 1,
           height: 64,
           paddingBottom: 10,
@@ -30,7 +30,6 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 12, fontWeight: '700' },
       }}
     >
-      {/* START */}
       <Tabs.Screen
         name="dashboard/index"
         options={{
@@ -41,7 +40,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* BUDŻET */}
       <Tabs.Screen
         name="budzet/index"
         options={{
@@ -52,7 +50,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* KIEROWNIK AI — środkowy, większy */}
       <Tabs.Screen
         name="buddy/index"
         options={{
@@ -80,7 +77,7 @@ export default function TabsLayout() {
           ),
           tabBarLabelStyle: { fontSize: 12, fontWeight: '700', color: NEON },
           tabBarStyle: {
-            backgroundColor: 'rgba(7, 12, 24, 0.92)',
+            backgroundColor: '#000000',
             borderTopColor: 'rgba(255,255,255,0.08)',
             borderTopWidth: 1,
             height: 72,
@@ -90,7 +87,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* PROJEKT */}
       <Tabs.Screen
         name="projekt/index"
         options={{
@@ -101,7 +97,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* WIĘCEJ */}
       <Tabs.Screen
         name="wiecej"
         options={{
@@ -112,7 +107,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 🔒 UKRYTE */}
       <Tabs.Screen name="postepy/index" options={{ href: null }} />
       <Tabs.Screen name="postepy/wszystkie" options={{ href: null }} />
       <Tabs.Screen name="dokumenty/index" options={{ href: null }} />
