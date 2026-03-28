@@ -9,12 +9,14 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 import { initI18n } from '../lib/i18n';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 
 export default function RootLayout() {
   const { session, loading } = useSupabaseAuth();
-
   const [i18nReady, setI18nReady] = useState(false);
+
+  usePushNotifications();
 
   useEffect(() => {
     let mounted = true;

@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Image,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -32,6 +33,7 @@ type Task = {
   nazwa: string;
   opis: string | null;
   utworzone_at?: string;
+  wykonane?: boolean | null;
 };
 
 type TaskForm = {
@@ -54,6 +56,17 @@ const prettyDate = (ymd: string) => {
   if (!ymd) return '—';
   const [y, m, d] = ymd.split('-');
   return `${d}.${m}.${y}`;
+};
+
+const prettyDateLong = (ymd: string) => {
+  if (!ymd) return '—';
+  const [y, m, d] = ymd.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString('pl-PL', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 };
 
 const prettyTime = (hhmmss?: string | null) => {
@@ -92,8 +105,6 @@ function getMonthMatrix(baseDate: Date) {
   const month = baseDate.getMonth();
 
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-
   const jsDay = firstDay.getDay();
   const mondayFirst = jsDay === 0 ? 6 : jsDay - 1;
 
@@ -135,6 +146,9 @@ export default function ZadaniaScreen() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState(toYMD(new Date()));
+
+  const [showUpcomingList, setShowUpcomingList] = useState(false);
+  const [showOverdueList, setShowOverdueList] = useState(false);
 
   const headerAnim = useRef(new Animated.Value(0)).current;
   const bodyAnim = useRef(new Animated.Value(0)).current;
@@ -193,12 +207,12 @@ export default function ZadaniaScreen() {
   const todayYMD = toYMD(new Date());
 
   const upcomingTasks = useMemo(
-    () => tasks.filter((task) => task.data >= todayYMD),
+    () => tasks.filter((task) => task.data >= todayYMD && !task.wykonane),
     [tasks, todayYMD]
   );
 
   const overdueTasks = useMemo(
-    () => tasks.filter((task) => task.data < todayYMD),
+    () => tasks.filter((task) => task.data < todayYMD && !task.wykonane),
     [tasks, todayYMD]
   );
 
@@ -209,6 +223,7 @@ export default function ZadaniaScreen() {
       tasks
         .filter((task) => task.data === selectedDate)
         .sort((a, b) => {
+          if (!!a.wykonane !== !!b.wykonane) return a.wykonane ? 1 : -1;
           if (!a.godzina && !b.godzina) return 0;
           if (!a.godzina) return 1;
           if (!b.godzina) return -1;
@@ -235,6 +250,8 @@ export default function ZadaniaScreen() {
       data: selectedDate || toYMD(new Date()),
       godzina: '',
     });
+    setShowDatePicker(false);
+    setShowTimePicker(false);
     setEditOpen(true);
   };
 
@@ -246,10 +263,13 @@ export default function ZadaniaScreen() {
       data: task.data ?? toYMD(new Date()),
       godzina: task.godzina ? task.godzina.slice(0, 5) : '',
     });
+    setShowDatePicker(false);
+    setShowTimePicker(false);
     setEditOpen(true);
   };
 
   const closeModal = () => {
+    Keyboard.dismiss();
     setEditOpen(false);
     setEditingTask(null);
     setForm(emptyForm());
@@ -302,6 +322,24 @@ export default function ZadaniaScreen() {
     }
   };
 
+  const toggleDone = async (task: Task) => {
+    try {
+      const { error } = await supabase
+        .from('zadania')
+        .update({ wykonane: !task.wykonane })
+        .eq('id', task.id);
+
+      if (error) throw error;
+      await loadTasks();
+    } catch (e: any) {
+      Alert.alert(
+        'Błąd',
+        e?.message ??
+          'Nie udało się zmienić statusu zadania. Sprawdź, czy tabela ma kolumnę "wykonane".'
+      );
+    }
+  };
+
   const deleteTask = (task: Task) => {
     Alert.alert('Usuń zadanie', `Usunąć "${task.nazwa}"?`, [
       { text: 'Anuluj', style: 'cancel' },
@@ -332,13 +370,14 @@ export default function ZadaniaScreen() {
   });
 
   return (
-    <View style={styles.screen}>
+    <Pressable style={styles.screen} onPress={Keyboard.dismiss}>
       <View pointerEvents="none" style={styles.bg} />
       <View pointerEvents="none" style={styles.glowTop} />
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <Animated.View
           style={{
@@ -361,16 +400,80 @@ export default function ZadaniaScreen() {
           </View>
 
           <View style={styles.statsRow}>
-            <BlurView intensity={14} tint="dark" style={styles.statCard}>
-              <Text style={styles.statValue}>{upcomingTasks.length}</Text>
-              <Text style={styles.statLabel}>Nadchodzące</Text>
-            </BlurView>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => setShowUpcomingList((prev) => !prev)}
+              style={styles.statTouchable}
+            >
+              <BlurView intensity={14} tint="dark" style={styles.statCard}>
+                <View style={styles.statTopRow}>
+                  <Text style={styles.statValue}>{upcomingTasks.length}</Text>
+                  <Feather
+                    name={showUpcomingList ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color="rgba(255,255,255,0.55)"
+                  />
+                </View>
+                <Text style={styles.statLabel}>Nadchodzące</Text>
+              </BlurView>
+            </TouchableOpacity>
 
-            <BlurView intensity={14} tint="dark" style={styles.statCard}>
-              <Text style={styles.statValue}>{overdueTasks.length}</Text>
-              <Text style={styles.statLabel}>Zaległe</Text>
-            </BlurView>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => setShowOverdueList((prev) => !prev)}
+              style={styles.statTouchable}
+            >
+              <BlurView intensity={14} tint="dark" style={styles.statCard}>
+                <View style={styles.statTopRow}>
+                  <Text style={styles.statValue}>{overdueTasks.length}</Text>
+                  <Feather
+                    name={showOverdueList ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color="rgba(255,255,255,0.55)"
+                  />
+                </View>
+                <Text style={styles.statLabel}>Zaległe</Text>
+              </BlurView>
+            </TouchableOpacity>
           </View>
+
+          {showUpcomingList && (
+            <View style={styles.expandListWrap}>
+              {upcomingTasks.length === 0 ? (
+                <View style={styles.emptyMiniCard}>
+                  <Text style={styles.emptyMiniText}>Brak nadchodzących zadań</Text>
+                </View>
+              ) : (
+                upcomingTasks.map((task) => (
+                  <TaskListItem
+                    key={`upcoming-${task.id}`}
+                    task={task}
+                    onToggleDone={() => toggleDone(task)}
+                    onEdit={() => openEdit(task)}
+                  />
+                ))
+              )}
+            </View>
+          )}
+
+          {showOverdueList && (
+            <View style={styles.expandListWrap}>
+              {overdueTasks.length === 0 ? (
+                <View style={styles.emptyMiniCard}>
+                  <Text style={styles.emptyMiniText}>Brak zaległych zadań</Text>
+                </View>
+              ) : (
+                overdueTasks.map((task) => (
+                  <TaskListItem
+                    key={`overdue-${task.id}`}
+                    task={task}
+                    onToggleDone={() => toggleDone(task)}
+                    onEdit={() => openEdit(task)}
+                  />
+                ))
+              )}
+            </View>
+          )}
         </Animated.View>
 
         <Animated.View
@@ -397,6 +500,7 @@ export default function ZadaniaScreen() {
                   task={task}
                   onEdit={() => openEdit(task)}
                   onDelete={() => deleteTask(task)}
+                  onToggleDone={() => toggleDone(task)}
                 />
               ))}
             </View>
@@ -409,11 +513,7 @@ export default function ZadaniaScreen() {
               <TouchableOpacity
                 onPress={() =>
                   setCalendarMonth(
-                    new Date(
-                      calendarMonth.getFullYear(),
-                      calendarMonth.getMonth() - 1,
-                      1
-                    )
+                    new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1)
                   )
                 }
                 style={styles.calendarNavBtn}
@@ -429,11 +529,7 @@ export default function ZadaniaScreen() {
               <TouchableOpacity
                 onPress={() =>
                   setCalendarMonth(
-                    new Date(
-                      calendarMonth.getFullYear(),
-                      calendarMonth.getMonth() + 1,
-                      1
-                    )
+                    new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1)
                   )
                 }
                 style={styles.calendarNavBtn}
@@ -461,10 +557,7 @@ export default function ZadaniaScreen() {
                   <Pressable
                     key={cell.ymd}
                     onPress={() => setSelectedDate(cell.ymd)}
-                    style={[
-                      styles.dayCell,
-                      isSelected && styles.dayCellSelected,
-                    ]}
+                    style={[styles.dayCell, isSelected && styles.dayCellSelected]}
                   >
                     <Text
                       style={[
@@ -478,12 +571,7 @@ export default function ZadaniaScreen() {
                     </Text>
 
                     {hasTasks && (
-                      <View
-                        style={[
-                          styles.dayDot,
-                          isSelected && styles.dayDotSelected,
-                        ]}
-                      />
+                      <View style={[styles.dayDot, isSelected && styles.dayDotSelected]} />
                     )}
                   </Pressable>
                 );
@@ -505,6 +593,7 @@ export default function ZadaniaScreen() {
                   task={task}
                   onEdit={() => openEdit(task)}
                   onDelete={() => deleteTask(task)}
+                  onToggleDone={() => toggleDone(task)}
                 />
               ))}
             </View>
@@ -518,125 +607,168 @@ export default function ZadaniaScreen() {
 
       <Modal
         visible={editOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
+        animationType="fade"
+        transparent
         onRequestClose={closeModal}
       >
-        <View style={styles.modalScreen}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {editingTask ? 'Edytuj zadanie' : 'Nowe zadanie'}
-            </Text>
-            <TouchableOpacity onPress={closeModal} activeOpacity={0.88}>
-              <Feather name="x" size={22} color="rgba(255,255,255,0.55)" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            contentContainerStyle={{ padding: 16, gap: 12 }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <FormField
-              label="Nazwa zadania *"
-              value={form.nazwa}
-              onChangeText={(v) => setForm({ ...form, nazwa: v })}
-              placeholder="np. Zadzwonić do elektryka"
-            />
-
-            <FormField
-              label="Opis"
-              value={form.opis}
-              onChangeText={(v) => setForm({ ...form, opis: v })}
-              placeholder="Dodatkowe informacje..."
-              multiline
-            />
-
-            <TouchableOpacity
-              style={fieldStyles.pickerButton}
-              onPress={() => setShowDatePicker(true)}
-              activeOpacity={0.88}
-            >
-              <Text style={fieldStyles.label}>Data</Text>
-              <Text style={fieldStyles.pickerText}>{prettyDate(form.data)}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={fieldStyles.pickerButton}
-              onPress={() => setShowTimePicker(true)}
-              activeOpacity={0.88}
-            >
-              <Text style={fieldStyles.label}>Godzina</Text>
-              <Text style={fieldStyles.pickerText}>
-                {form.godzina ? form.godzina : 'Bez godziny'}
+        <Pressable style={styles.modalOverlay} onPress={Keyboard.dismiss}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderSide} />
+              <Text style={styles.modalTitle}>
+                {editingTask ? 'Edytuj zadanie' : 'Nowe zadanie'}
               </Text>
-            </TouchableOpacity>
-
-            {!!form.godzina && (
-              <TouchableOpacity
-                onPress={() => setForm({ ...form, godzina: '' })}
-                style={styles.clearTimeBtn}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.clearTimeBtnText}>Usuń godzinę</Text>
+              <TouchableOpacity onPress={closeModal} activeOpacity={0.88} style={styles.modalCloseBtn}>
+                <Feather name="x" size={22} color="rgba(255,255,255,0.55)" />
               </TouchableOpacity>
-            )}
+            </View>
 
-            <TouchableOpacity
-              style={[styles.saveBtn, saving && { opacity: 0.6 }]}
-              onPress={saveTask}
-              disabled={saving}
-              activeOpacity={0.9}
+            <ScrollView
+              contentContainerStyle={styles.modalContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.saveBtnText}>
-                {saving ? 'Zapisywanie...' : 'Zapisz zadanie'}
-              </Text>
-            </TouchableOpacity>
+              <FormField
+                label="Nazwa zadania *"
+                value={form.nazwa}
+                onChangeText={(v) => setForm({ ...form, nazwa: v })}
+                placeholder="np. Zadzwonić do elektryka"
+              />
 
-            <View style={{ height: 40 }} />
-          </ScrollView>
-        </View>
+              <FormField
+                label="Opis"
+                value={form.opis}
+                onChangeText={(v) => setForm({ ...form, opis: v })}
+                placeholder="Dodatkowe informacje..."
+                multiline
+              />
 
-        {showDatePicker && (
-          <DateTimePicker
-            value={(() => {
-              const [year, month, day] = form.data.split('-').map(Number);
-              return new Date(year, month - 1, day);
-            })()}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onChange={(event, selected) => {
-              if (Platform.OS !== 'ios') setShowDatePicker(false);
-              if (selected) setForm({ ...form, data: toYMD(selected) });
-            }}
-          />
-        )}
+              <View style={styles.dateTimeRow}>
+                <TouchableOpacity
+                  style={fieldStyles.pickerButtonDark}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setShowTimePicker(false);
+                    setShowDatePicker((prev) => !prev);
+                  }}
+                  activeOpacity={0.88}
+                >
+                  <Text style={fieldStyles.label}>Data</Text>
+                  <View style={styles.pickerValueRow}>
+                    <Feather name="calendar" size={15} color={NEON} />
+                    <Text style={fieldStyles.pickerText}>{prettyDateLong(form.data)}</Text>
+                  </View>
+                </TouchableOpacity>
 
-        {showTimePicker && (
-          <DateTimePicker
-            value={
-              form.godzina
-                ? (() => {
-                    const [h, m] = form.godzina.split(':').map(Number);
-                    const d = new Date();
-                    d.setHours(h);
-                    d.setMinutes(m);
-                    d.setSeconds(0);
-                    return d;
-                  })()
-                : new Date()
-            }
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            is24Hour
-            onChange={(event, selected) => {
-              if (Platform.OS !== 'ios') setShowTimePicker(false);
-              if (selected) setForm({ ...form, godzina: toHHMM(selected) });
-            }}
-          />
-        )}
+                <TouchableOpacity
+                  style={fieldStyles.pickerButtonDark}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setShowDatePicker(false);
+                    setShowTimePicker((prev) => !prev);
+                  }}
+                  activeOpacity={0.88}
+                >
+                  <Text style={fieldStyles.label}>Godzina</Text>
+                  <View style={styles.pickerValueRow}>
+                    <Feather name="clock" size={15} color={NEON} />
+                    <Text style={fieldStyles.pickerText}>
+                      {form.godzina ? form.godzina : 'Bez godziny'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {showDatePicker && (
+                <View style={styles.inlinePickerWrap}>
+                  <Text style={styles.inlinePickerTitle}>Wybierz datę</Text>
+                  <DateTimePicker
+                    value={(() => {
+                      const [year, month, day] = form.data.split('-').map(Number);
+                      return new Date(year, month - 1, day);
+                    })()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    themeVariant="dark"
+                    onChange={(event, selected) => {
+                      if (Platform.OS !== 'ios') setShowDatePicker(false);
+                      if (selected) setForm({ ...form, data: toYMD(selected) });
+                    }}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity
+                      style={styles.inlinePickerDoneBtn}
+                      onPress={() => setShowDatePicker(false)}
+                      activeOpacity={0.88}
+                    >
+                      <Text style={styles.inlinePickerDoneText}>Gotowe</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {showTimePicker && (
+                <View style={styles.inlinePickerWrap}>
+                  <Text style={styles.inlinePickerTitle}>Wybierz godzinę</Text>
+                  <DateTimePicker
+                    value={
+                      form.godzina
+                        ? (() => {
+                            const [h, m] = form.godzina.split(':').map(Number);
+                            const d = new Date();
+                            d.setHours(h);
+                            d.setMinutes(m);
+                            d.setSeconds(0);
+                            return d;
+                          })()
+                        : new Date()
+                    }
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    themeVariant="dark"
+                    is24Hour
+                    onChange={(event, selected) => {
+                      if (Platform.OS !== 'ios') setShowTimePicker(false);
+                      if (selected) setForm({ ...form, godzina: toHHMM(selected) });
+                    }}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity
+                      style={styles.inlinePickerDoneBtn}
+                      onPress={() => setShowTimePicker(false)}
+                      activeOpacity={0.88}
+                    >
+                      <Text style={styles.inlinePickerDoneText}>Gotowe</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {!!form.godzina && (
+                <TouchableOpacity
+                  onPress={() => setForm({ ...form, godzina: '' })}
+                  style={styles.clearTimeBtn}
+                  activeOpacity={0.88}
+                >
+                  <Text style={styles.clearTimeBtnText}>Usuń godzinę</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+                onPress={saveTask}
+                disabled={saving}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.saveBtnText}>
+                  {saving ? 'Zapisywanie...' : 'Zapisz zadanie'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
       </Modal>
-    </View>
+    </Pressable>
   );
 }
 
@@ -648,19 +780,29 @@ function TaskCard({
   task,
   onEdit,
   onDelete,
+  onToggleDone,
 }: {
   task: Task;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleDone: () => void;
 }) {
   return (
-    <BlurView intensity={14} tint="dark" style={cardStyles.card}>
+    <BlurView intensity={14} tint="dark" style={[cardStyles.card, !!task.wykonane && cardStyles.cardDone]}>
+      <TouchableOpacity onPress={onToggleDone} style={cardStyles.checkBtn} activeOpacity={0.85}>
+        <Feather
+          name={task.wykonane ? 'check-circle' : 'circle'}
+          size={20}
+          color={task.wykonane ? NEON : 'rgba(255,255,255,0.35)'}
+        />
+      </TouchableOpacity>
+
       <View style={cardStyles.badge}>
         <Feather name="calendar" size={15} color={NEON} />
       </View>
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={cardStyles.name} numberOfLines={1}>
+        <Text style={[cardStyles.name, !!task.wykonane && cardStyles.textDone]} numberOfLines={1}>
           {task.nazwa}
         </Text>
 
@@ -677,13 +819,48 @@ function TaskCard({
 
       <View style={cardStyles.cardActions}>
         <TouchableOpacity onPress={onEdit} style={cardStyles.iconBtn} activeOpacity={0.8}>
-          <Feather name="edit-2" size={15} color="rgba(255,255,255,0.45)" />
+          <Feather name="edit-2" size={15} color="rgba(255,255,255,0.55)" />
         </TouchableOpacity>
         <TouchableOpacity onPress={onDelete} style={cardStyles.iconBtn} activeOpacity={0.8}>
           <Feather name="trash-2" size={15} color="rgba(239,68,68,0.70)" />
         </TouchableOpacity>
       </View>
     </BlurView>
+  );
+}
+
+function TaskListItem({
+  task,
+  onToggleDone,
+  onEdit,
+}: {
+  task: Task;
+  onToggleDone: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <View style={[listStyles.row, !!task.wykonane && listStyles.rowDone]}>
+      <TouchableOpacity onPress={onToggleDone} style={listStyles.checkBtn} activeOpacity={0.85}>
+        <Feather
+          name={task.wykonane ? 'check-circle' : 'circle'}
+          size={20}
+          color={task.wykonane ? NEON : 'rgba(255,255,255,0.35)'}
+        />
+      </TouchableOpacity>
+
+      <TouchableOpacity style={listStyles.content} onPress={onEdit} activeOpacity={0.82}>
+        <Text style={[listStyles.name, !!task.wykonane && listStyles.textDone]} numberOfLines={1}>
+          {task.nazwa}
+        </Text>
+        <Text style={listStyles.meta} numberOfLines={1}>
+          {prettyDate(task.data)} · {prettyTime(task.godzina)}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={onEdit} style={listStyles.editBtn} activeOpacity={0.82}>
+        <Feather name="edit-2" size={15} color="rgba(255,255,255,0.55)" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -708,7 +885,7 @@ function FormField({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="rgba(255,255,255,0.25)"
-        style={[fieldStyles.input, multiline && { height: 88, textAlignVertical: 'top' }]}
+        style={[fieldStyles.inputDark, multiline && { height: 88, textAlignVertical: 'top' }]}
         multiline={multiline}
         autoCapitalize="sentences"
       />
@@ -771,7 +948,10 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  statTouchable: {
+    flex: 1,
   },
   statCard: {
     flex: 1,
@@ -783,6 +963,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
+  statTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   statValue: {
     color: '#FFFFFF',
     fontSize: 22,
@@ -793,6 +978,24 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     marginTop: 4,
+  },
+
+  expandListWrap: {
+    gap: 8,
+    marginBottom: 14,
+  },
+  emptyMiniCard: {
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  emptyMiniText: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   sectionTitle: {
@@ -938,24 +1141,91 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 
-  modalScreen: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: '#080E1C',
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 520,
+    maxHeight: '86%',
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: 18,
+    paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.07)',
   },
+  modalHeaderSide: {
+    width: 28,
+  },
+  modalCloseBtn: {
+    width: 28,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
   modalTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
+    flex: 1,
+    textAlign: 'center',
+    color: NEON,
+    fontSize: 21,
     fontWeight: '900',
+    textShadowColor: 'rgba(37,240,200,0.20)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  modalContent: {
+    padding: 16,
+    gap: 12,
+  },
+
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  pickerValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  inlinePickerWrap: {
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  inlinePickerTitle: {
+    color: 'rgba(255,255,255,0.86)',
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  inlinePickerDoneBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.24)',
+  },
+  inlinePickerDoneText: {
+    color: NEON,
+    fontSize: 13,
+    fontWeight: '800',
   },
 
   clearTimeBtn: {
@@ -974,7 +1244,7 @@ const styles = StyleSheet.create({
   },
 
   saveBtn: {
-    marginTop: 8,
+    marginTop: 4,
     borderRadius: 18,
     paddingVertical: 16,
     backgroundColor: NEON,
@@ -999,6 +1269,16 @@ const cardStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
+  cardDone: {
+    opacity: 0.78,
+  },
+  checkBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+  },
   badge: {
     width: 44,
     height: 44,
@@ -1014,6 +1294,10 @@ const cardStyles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
+  },
+  textDone: {
+    textDecorationLine: 'line-through',
+    color: 'rgba(255,255,255,0.55)',
   },
   meta: {
     color: 'rgba(255,255,255,0.42)',
@@ -1045,6 +1329,58 @@ const cardStyles = StyleSheet.create({
   },
 });
 
+const listStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  rowDone: {
+    opacity: 0.72,
+  },
+  checkBtn: {
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    flex: 1,
+    minWidth: 0,
+  },
+  name: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  textDone: {
+    textDecorationLine: 'line-through',
+    color: 'rgba(255,255,255,0.55)',
+  },
+  meta: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  editBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+
 const fieldStyles = StyleSheet.create({
   label: {
     color: 'rgba(255,255,255,0.40)',
@@ -1054,7 +1390,7 @@ const fieldStyles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
   },
-  input: {
+  inputDark: {
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -1065,7 +1401,8 @@ const fieldStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  pickerButton: {
+  pickerButtonDark: {
+    flex: 1,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -1075,7 +1412,8 @@ const fieldStyles = StyleSheet.create({
   },
   pickerText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+    flexShrink: 1,
   },
 });
