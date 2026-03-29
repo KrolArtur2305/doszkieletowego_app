@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 export async function refreshCurrentStageCode(userId: string): Promise<string | null> {
   const { data, error } = await supabase

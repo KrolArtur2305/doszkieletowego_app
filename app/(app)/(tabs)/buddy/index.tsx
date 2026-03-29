@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -22,30 +24,32 @@ const NEON = '#25F0C8';
 const ACCENT = '#19705C';
 const BUDDY_AVATAR = require('../../../../assets/buddy_avatar.png');
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+const EDGE_FUNCTION_NAME = 'ai-chat';
+const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  '';
+const SUPABASE_ANON_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  '';
 
 type Message = {
   id: string;
-  role: 'user' | 'buddy';
-  text: string;
-  ts: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at?: string;
+  status?: 'streaming' | 'completed' | 'error';
+  pending?: boolean;
 };
 
-type BuildContext = {
-  buddyName: string;
-  plannedBudget: number;
-  spentTotal: number;
-  budgetPct: number;
-  obecnyEtap: string;
-  kolejnyEtap: string;
-  etapyTotal: number;
-  etapyDone: number;
-  todayTasks: string[];
-  dataStart: string | null;
-  dataKoniec: string | null;
+type ConversationItem = {
+  id: string;
+  title: string | null;
+  assistant_name: string | null;
+  last_message_at: string | null;
+  created_at: string;
 };
-
-// ─── Quick questions ──────────────────────────────────────────────────────────
 
 const QUICK_QUESTIONS = [
   { key: 'q1', label: 'Jak idzie budżet?' },
@@ -54,50 +58,38 @@ const QUICK_QUESTIONS = [
   { key: 'q4', label: 'Kiedy koniec?' },
 ];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatPLN(v: number) {
-  return new Intl.NumberFormat('pl-PL', {
-    style: 'currency', currency: 'PLN', maximumFractionDigits: 0,
-  }).format(v);
+function uid() {
+  return Math.random().toString(36).slice(2) + Date.now();
 }
 
-function pad2(n: number) { return String(n).padStart(2, '0'); }
-function toYMD(d: Date) {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+function formatConversationDate(value?: string | null) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+  });
 }
-function uid() { return Math.random().toString(36).slice(2) + Date.now(); }
-
-// ─── System prompt ────────────────────────────────────────────────────────────
-
-function buildSystemPrompt(ctx: BuildContext): string {
-  return `Jesteś ${ctx.buddyName} — inteligentny kierownik budowy AI w aplikacji BuildIQ. Rozmawiasz z właścicielem budowy domu. Jesteś profesjonalny, konkretny i przyjazny. Odpowiadasz po polsku, zwięźle (max 3-4 zdania), używasz liczb i faktów z kontekstu.
-
-DANE O BUDOWIE:
-- Budżet: ${formatPLN(ctx.spentTotal)} wydane z ${formatPLN(ctx.plannedBudget)} (${ctx.budgetPct}%)
-- Obecny etap: ${ctx.obecnyEtap}
-- Kolejny etap: ${ctx.kolejnyEtap}
-- Postęp: ${ctx.etapyDone} z ${ctx.etapyTotal} etapów ukończonych
-- Start budowy: ${ctx.dataStart ?? 'nie ustawiono'}
-- Planowany koniec: ${ctx.dataKoniec ?? 'nie ustawiono'}
-- Zadania na dziś: ${ctx.todayTasks.length > 0 ? ctx.todayTasks.join(', ') : 'brak'}
-
-Odpowiadaj na podstawie tych danych. Jeśli czegoś nie wiesz — powiedz szczerze.`;
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BuddyChatScreen() {
   const { session } = useSupabaseAuth();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 44) + 8;
 
   const [buddyName, setBuddyName] = useState('Kierownik');
-  const [context, setContext] = useState<BuildContext | null>(null);
-  const [contextLoading, setContextLoading] = useState(true);
+  const [loadingInitial, setLoadingInitial] = useState(true);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -108,6 +100,7 @@ export default function BuddyChatScreen() {
 
   useEffect(() => {
     if (!sending) return;
+
     const anim = (dot: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
@@ -117,165 +110,403 @@ export default function BuddyChatScreen() {
           Animated.delay(600),
         ])
       );
+
     const a1 = anim(dot1, 0);
     const a2 = anim(dot2, 200);
     const a3 = anim(dot3, 400);
-    a1.start(); a2.start(); a3.start();
+
+    a1.start();
+    a2.start();
+    a3.start();
+
     return () => {
-      a1.stop(); a2.stop(); a3.stop();
-      dot1.setValue(0); dot2.setValue(0); dot3.setValue(0);
+      a1.stop();
+      a2.stop();
+      a3.stop();
+      dot1.setValue(0);
+      dot2.setValue(0);
+      dot3.setValue(0);
     };
   }, [sending, dot1, dot2, dot3]);
 
-  // ── Load build context ──
   useEffect(() => {
-    let alive = true;
-    const load = async () => {
+    const loadInitial = async () => {
       try {
         const userId = session?.user?.id;
-        if (!userId) return;
+        if (!userId) {
+          setLoadingInitial(false);
+          return;
+        }
 
-        const today = toYMD(new Date());
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('ai_buddy_name')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-        const [profileRes, invRes, expRes, etapyRes, tasksRes] = await Promise.all([
-          supabase.from('profiles').select('ai_buddy_name').eq('user_id', userId).maybeSingle(),
-          supabase.from('inwestycje').select('budzet,data_start,data_koniec').eq('user_id', userId).maybeSingle(),
-          supabase.from('wydatki').select('kwota,status').eq('user_id', userId),
-          supabase.from('etapy').select('nazwa,kolejnosc,status').eq('user_id', userId).order('kolejnosc', { ascending: true }),
-          supabase.from('zadania').select('nazwa').eq('user_id', userId).eq('data', today),
-        ]);
+        if (error) throw error;
 
-        if (!alive) return;
-
-        const name = profileRes.data?.ai_buddy_name ?? 'Kierownik';
+        const name = String(data?.ai_buddy_name ?? '').trim() || 'Kierownik';
         setBuddyName(name);
 
-        const plannedBudget = Number(invRes.data?.budzet ?? 0);
-        const spentTotal = (expRes.data ?? [])
-          .filter((w: any) => String(w.status ?? '').toLowerCase().trim() === 'poniesiony')
-          .reduce((acc: number, w: any) => acc + Number(w.kwota ?? 0), 0);
-        const budgetPct = plannedBudget > 0 ? Math.round((spentTotal / plannedBudget) * 100) : 0;
-
-        const etapy = (etapyRes.data ?? []) as any[];
-        const isDone = (s: string | null) => (s ?? '').toLowerCase().trim() === 'zrealizowany';
-        const etapyDone = etapy.filter(e => isDone(e.status)).length;
-        const currentIdx = etapy.findIndex(e => !isDone(e.status));
-        const obecnyEtap = currentIdx >= 0
-          ? etapy[currentIdx].nazwa
-          : etapy.length > 0 ? 'Wszystkie ukończone' : 'Brak etapów';
-        const kolejnyEtap = currentIdx >= 0 && etapy[currentIdx + 1]
-          ? etapy[currentIdx + 1].nazwa : '—';
-
-        const todayTasks = (tasksRes.data ?? []).map((task: any) => task.nazwa);
-
-        const ctx: BuildContext = {
-          buddyName: name,
-          plannedBudget,
-          spentTotal,
-          budgetPct,
-          obecnyEtap,
-          kolejnyEtap,
-          etapyTotal: etapy.length,
-          etapyDone,
-          todayTasks,
-          dataStart: invRes.data?.data_start ?? null,
-          dataKoniec: invRes.data?.data_koniec ?? null,
-        };
-
-        setContext(ctx);
-
-        // Auto-brief przy wejściu
-        const parts: string[] = [];
-        if (ctx.etapyTotal > 0) {
-          parts.push(`Jesteś na etapie **${ctx.obecnyEtap}** (${ctx.etapyDone}/${ctx.etapyTotal} ukończonych).`);
-        }
-        if (ctx.plannedBudget > 0) {
-          const statusLabel = ctx.budgetPct >= 90 ? '⚠️ Budżet krytyczny'
-            : ctx.budgetPct >= 70 ? '⚡ Budżet wysoki' : '✅ Budżet pod kontrolą';
-          parts.push(`${statusLabel}: ${formatPLN(ctx.spentTotal)} z ${formatPLN(ctx.plannedBudget)} (${ctx.budgetPct}%).`);
-        }
-        if (ctx.todayTasks.length > 0) {
-          const shown = ctx.todayTasks.slice(0, 3).join(', ');
-          const extra = ctx.todayTasks.length > 3 ? ` i ${ctx.todayTasks.length - 3} więcej` : '';
-          parts.push(`Na dziś: ${shown}${extra}.`);
-        }
-
-        const briefText = parts.length > 0
-          ? parts.join('\n\n') + '\n\nCzego potrzebujesz?'
-          : 'Cześć! Jestem gotowy. Uzupełnij dane o budowie, żebym mógł lepiej pomagać.';
-
-        setMessages([{ id: uid(), role: 'buddy', text: briefText, ts: Date.now() }]);
+        await loadConversations();
       } catch {
-        setMessages([{ id: uid(), role: 'buddy', text: 'Cześć! Wystąpił problem z pobieraniem danych. Spróbuj ponownie.', ts: Date.now() }]);
+        setMessages([
+          {
+            id: uid(),
+            role: 'assistant',
+            content: 'Cześć! Nie udało się pobrać danych. Spróbuj ponownie.',
+          },
+        ]);
       } finally {
-        if (alive) setContextLoading(false);
+        setLoadingInitial(false);
       }
     };
-    load();
-    return () => { alive = false; };
+
+    loadInitial();
   }, [session?.user?.id]);
 
-  // ── Send ──
+  useEffect(() => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+  }, [messages]);
+
+  const currentConversationTitle =
+    conversations.find((c) => c.id === currentConversationId)?.title || 'Nowa rozmowa';
+
+  const loadConversations = async () => {
+    try {
+      setLoadingHistory(true);
+
+      const { data, error } = await supabase.rpc('get_my_ai_conversations', {
+        p_limit: 20,
+        p_offset: 0,
+      });
+
+      if (error) throw error;
+
+      const rows = Array.isArray(data) ? (data as ConversationItem[]) : [];
+      setConversations(rows);
+
+      if (!currentConversationId && rows.length > 0) {
+        const first = rows[0];
+        setCurrentConversationId(first.id);
+        await loadMessages(first.id);
+      }
+
+      if (!rows.length && messages.length === 0) {
+        setMessages([
+          {
+            id: uid(),
+            role: 'assistant',
+            content:
+              'Cześć! Jestem gotowy. Pytaj o budżet, etapy, harmonogram albo cokolwiek związanego z budową.',
+          },
+        ]);
+      }
+    } catch {
+      setError('Nie udało się pobrać historii rozmów.');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const loadMessages = async (conversationId: string) => {
+    try {
+      setLoadingMessages(true);
+
+      const { data, error } = await supabase.rpc('get_ai_messages', {
+        p_conversation_id: conversationId,
+        p_limit: 100,
+        p_offset: 0,
+      });
+
+      if (error) throw error;
+
+      const rows = Array.isArray(data) ? (data as Message[]) : [];
+      setMessages(rows);
+      setCurrentConversationId(conversationId);
+    } catch {
+      setError('Nie udało się pobrać wiadomości.');
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const startNewConversation = () => {
+    if (sending) return;
+    setCurrentConversationId(null);
+    setMessages([
+      {
+        id: uid(),
+        role: 'assistant',
+        content: 'Nowa rozmowa rozpoczęta. O co chcesz zapytać?',
+      },
+    ]);
+    setHistoryVisible(false);
+    setError(null);
+  };
+
+  const parseSSEStream = async (
+    response: Response,
+    handlers: {
+      onMeta?: (payload: any) => void;
+      onDelta?: (payload: any) => void;
+      onDone?: (payload: any) => void;
+      onError?: (payload: any) => void;
+    }
+  ) => {
+    if (!response.body) {
+      throw new Error('Brak streamu odpowiedzi');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      let boundaryIndex = buffer.indexOf('\n\n');
+      while (boundaryIndex !== -1) {
+        const rawEvent = buffer.slice(0, boundaryIndex);
+        buffer = buffer.slice(boundaryIndex + 2);
+
+        const lines = rawEvent.split('\n');
+        let eventName = '';
+        const dataLines: string[] = [];
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            eventName = line.replace('event:', '').trim();
+          } else if (line.startsWith('data:')) {
+            dataLines.push(line.replace('data:', '').trim());
+          }
+        }
+
+        const rawData = dataLines.join('\n');
+
+        if (rawData) {
+          try {
+            const payload = JSON.parse(rawData);
+
+            if (eventName === 'meta') handlers.onMeta?.(payload);
+            else if (eventName === 'delta') handlers.onDelta?.(payload);
+            else if (eventName === 'done') handlers.onDone?.(payload);
+            else if (eventName === 'error') handlers.onError?.(payload);
+          } catch {
+            // ignoruję uszkodzony chunk
+          }
+        }
+
+        boundaryIndex = buffer.indexOf('\n\n');
+      }
+    }
+  };
+
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || sending || !context) return;
+    if (!trimmed || sending) return;
 
-    const userMsg: Message = { id: uid(), role: 'user', text: trimmed, ts: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setSending(true);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      Alert.alert('Błąd', 'Brakuje EXPO_PUBLIC_SUPABASE_URL lub EXPO_PUBLIC_SUPABASE_ANON_KEY');
+      return;
+    }
 
     try {
-      const history = messages.map(m => ({
-        role: m.role === 'buddy' ? 'assistant' : 'user',
-        content: m.text,
-      }));
+      setSending(true);
+      setError(null);
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const {
+        data: { session: activeSession },
+      } = await supabase.auth.getSession();
+
+      const accessToken = activeSession?.access_token;
+      if (!accessToken) throw new Error('Brak aktywnej sesji');
+
+      const tempUserId = `tmp-user-${Date.now()}`;
+      const tempAssistantId = `tmp-ai-${Date.now()}`;
+
+      const optimisticUser: Message = {
+        id: tempUserId,
+        role: 'user',
+        content: trimmed,
+        created_at: new Date().toISOString(),
+        pending: true,
+        status: 'completed',
+      };
+
+      const optimisticAssistant: Message = {
+        id: tempAssistantId,
+        role: 'assistant',
+        content: '',
+        created_at: new Date().toISOString(),
+        pending: true,
+        status: 'streaming',
+      };
+
+      setMessages((prev) => [...prev, optimisticUser, optimisticAssistant]);
+      setInput('');
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/${EDGE_FUNCTION_NAME}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          apikey: SUPABASE_ANON_KEY,
+        },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: buildSystemPrompt(context),
-          messages: [...history, { role: 'user', content: trimmed }],
+          conversation_id: currentConversationId,
+          message: trimmed,
+          assistant_name: buddyName,
         }),
       });
 
-      const data = await response.json();
-      const replyText = data?.content?.[0]?.text ?? 'Przepraszam, nie udało się uzyskać odpowiedzi.';
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Błąd połączenia z AI');
+      }
 
-      setMessages(prev => [...prev, { id: uid(), role: 'buddy', text: replyText, ts: Date.now() }]);
-    } catch {
-      setMessages(prev => [...prev, {
-        id: uid(), role: 'buddy',
-        text: 'Przepraszam, wystąpił błąd połączenia. Spróbuj ponownie.',
-        ts: Date.now(),
-      }]);
+      let resolvedConversationId = currentConversationId;
+      let finalAssistantText = '';
+      let streamFailed = false;
+
+      await parseSSEStream(response, {
+        onMeta: (payload) => {
+          if (payload?.conversation_id) {
+            resolvedConversationId = payload.conversation_id;
+            setCurrentConversationId(payload.conversation_id);
+          }
+        },
+        onDelta: (payload) => {
+          const delta = String(payload?.text ?? '');
+          if (!delta) return;
+
+          finalAssistantText += delta;
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempAssistantId
+                ? {
+                    ...m,
+                    content: (m.content || '') + delta,
+                    status: 'streaming',
+                  }
+                : m
+            )
+          );
+        },
+        onDone: (payload) => {
+          if (payload?.conversation_id) {
+            resolvedConversationId = payload.conversation_id;
+            setCurrentConversationId(payload.conversation_id);
+          }
+
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id === tempUserId) return { ...m, pending: false };
+              if (m.id === tempAssistantId) {
+                return {
+                  ...m,
+                  pending: false,
+                  status: 'completed',
+                  content: finalAssistantText || m.content || '',
+                };
+              }
+              return m;
+            })
+          );
+        },
+        onError: (payload) => {
+          streamFailed = true;
+          const msg = String(payload?.message ?? 'Wystąpił błąd AI');
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempAssistantId
+                ? {
+                    ...m,
+                    content: msg,
+                    status: 'error',
+                    pending: false,
+                  }
+                : m.id === tempUserId
+                ? { ...m, pending: false }
+                : m
+            )
+          );
+
+          setError(msg);
+        },
+      });
+
+      if (!streamFailed && resolvedConversationId) {
+        await loadConversations();
+        await loadMessages(resolvedConversationId);
+      }
+    } catch (e: any) {
+      const msg = e?.message ?? 'Przepraszam, wystąpił błąd połączenia. Spróbuj ponownie.';
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.pending && m.role === 'assistant'
+            ? {
+                ...m,
+                content: msg,
+                status: 'error',
+                pending: false,
+              }
+            : m.pending && m.role === 'user'
+            ? { ...m, pending: false }
+            : m
+        )
+      );
+
+      setError(msg);
     } finally {
       setSending(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
       <View pointerEvents="none" style={styles.glowTop} />
 
-      {/* Header */}
       <View style={[styles.header, { paddingTop: topPad }]}>
         <View style={styles.headerAvatarWrap}>
           <Image source={BUDDY_AVATAR} style={styles.headerAvatar} resizeMode="cover" />
           <View style={styles.onlineDot} />
         </View>
+
         <View style={{ flex: 1 }}>
           <Text style={styles.headerName}>{buddyName}</Text>
-          <Text style={styles.headerSub}>Kierownik budowy AI</Text>
+          <Text style={styles.headerSub}>
+            {currentConversationId ? currentConversationTitle : 'Kierownik budowy AI'}
+          </Text>
         </View>
+
+        <TouchableOpacity
+          style={styles.headerIconBtn}
+          activeOpacity={0.85}
+          onPress={startNewConversation}
+          disabled={sending}
+        >
+          <Feather name="edit-3" size={17} color={NEON} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.headerIconBtn}
+          activeOpacity={0.85}
+          onPress={() => setHistoryVisible(true)}
+        >
+          <Feather name="clock" size={17} color={NEON} />
+        </TouchableOpacity>
+
         <View style={styles.headerBadge}>
           <Feather name="cpu" size={11} color="#0B1120" />
           <Text style={styles.headerBadgeText}>AI</Text>
@@ -286,7 +517,6 @@ export default function BuddyChatScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Messages */}
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
@@ -294,30 +524,40 @@ export default function BuddyChatScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {contextLoading ? (
+          {loadingInitial || loadingMessages ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={NEON} />
-              <Text style={styles.loadingText}>Analizuję Twoją budowę…</Text>
+              <Text style={styles.loadingText}>Ładuję rozmowę…</Text>
             </View>
           ) : (
-            messages.map(msg => (
+            messages.map((msg) => (
               <View
                 key={msg.id}
-                style={[styles.msgRow, msg.role === 'user' ? styles.msgRowUser : styles.msgRowBuddy]}
+                style={[
+                  styles.msgRow,
+                  msg.role === 'user' ? styles.msgRowUser : styles.msgRowBuddy,
+                ]}
               >
-                {msg.role === 'buddy' && (
+                {msg.role !== 'user' && (
                   <Image source={BUDDY_AVATAR} style={styles.msgAvatar} resizeMode="cover" />
                 )}
+
                 <BlurView
-                  intensity={msg.role === 'buddy' ? 14 : 0}
+                  intensity={msg.role === 'user' ? 0 : 14}
                   tint="dark"
                   style={[
                     styles.msgBubble,
-                    msg.role === 'buddy' ? styles.msgBubbleBuddy : styles.msgBubbleUser,
+                    msg.role === 'user' ? styles.msgBubbleUser : styles.msgBubbleBuddy,
+                    msg.status === 'error' && styles.msgBubbleError,
                   ]}
                 >
-                  <Text style={[styles.msgText, msg.role === 'user' ? styles.msgTextUser : styles.msgTextBuddy]}>
-                    {msg.text}
+                  <Text
+                    style={[
+                      styles.msgText,
+                      msg.role === 'user' ? styles.msgTextUser : styles.msgTextBuddy,
+                    ]}
+                  >
+                    {msg.content}
                   </Text>
                 </BlurView>
               </View>
@@ -327,7 +567,11 @@ export default function BuddyChatScreen() {
           {sending && (
             <View style={[styles.msgRow, styles.msgRowBuddy]}>
               <Image source={BUDDY_AVATAR} style={styles.msgAvatar} resizeMode="cover" />
-              <BlurView intensity={14} tint="dark" style={[styles.msgBubble, styles.msgBubbleBuddy, styles.typingBubble]}>
+              <BlurView
+                intensity={14}
+                tint="dark"
+                style={[styles.msgBubble, styles.msgBubbleBuddy, styles.typingBubble]}
+              >
                 {[dot1, dot2, dot3].map((dot, i) => (
                   <Animated.View
                     key={i}
@@ -335,7 +579,14 @@ export default function BuddyChatScreen() {
                       styles.typingDot,
                       {
                         opacity: dot,
-                        transform: [{ translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }],
+                        transform: [
+                          {
+                            translateY: dot.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, -4],
+                            }),
+                          },
+                        ],
                       },
                     ]}
                   />
@@ -343,17 +594,20 @@ export default function BuddyChatScreen() {
               </BlurView>
             </View>
           )}
+
+          {!!error && !sending && (
+            <Text style={styles.inlineError}>{error}</Text>
+          )}
         </ScrollView>
 
-        {/* Quick questions — pokazuj tylko gdy mała historia */}
-        {messages.length <= 1 && !sending && !contextLoading && (
+        {messages.length <= 1 && !sending && !loadingInitial && !loadingMessages && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.quickWrap}
             style={styles.quickScroll}
           >
-            {QUICK_QUESTIONS.map(q => (
+            {QUICK_QUESTIONS.map((q) => (
               <TouchableOpacity
                 key={q.key}
                 style={styles.quickChip}
@@ -366,7 +620,6 @@ export default function BuddyChatScreen() {
           </ScrollView>
         )}
 
-        {/* Input */}
         <View style={styles.inputBar}>
           <BlurView intensity={18} tint="dark" style={styles.inputWrap}>
             <TextInput
@@ -376,7 +629,7 @@ export default function BuddyChatScreen() {
               placeholderTextColor="rgba(255,255,255,0.28)"
               style={styles.input}
               multiline
-              maxLength={500}
+              maxLength={800}
             />
             <TouchableOpacity
               style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]}
@@ -393,77 +646,236 @@ export default function BuddyChatScreen() {
           </BlurView>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={historyVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setHistoryVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Historia rozmów</Text>
+              <TouchableOpacity
+                onPress={() => setHistoryVisible(false)}
+                style={styles.modalCloseBtn}
+                activeOpacity={0.85}
+              >
+                <Feather name="x" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.newChatBtn}
+              onPress={startNewConversation}
+              activeOpacity={0.9}
+            >
+              <Feather name="plus" size={16} color="#0B1120" />
+              <Text style={styles.newChatBtnText}>Nowa rozmowa</Text>
+            </TouchableOpacity>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              {loadingHistory ? (
+                <View style={styles.loadingWrap}>
+                  <ActivityIndicator color={NEON} />
+                  <Text style={styles.loadingText}>Ładuję historię…</Text>
+                </View>
+              ) : conversations.length === 0 ? (
+                <Text style={styles.emptyHistoryText}>Brak wcześniejszych rozmów.</Text>
+              ) : (
+                conversations.map((conv) => {
+                  const active = conv.id === currentConversationId;
+                  return (
+                    <TouchableOpacity
+                      key={conv.id}
+                      style={[styles.historyItem, active && styles.historyItemActive]}
+                      activeOpacity={0.85}
+                      onPress={async () => {
+                        setHistoryVisible(false);
+                        await loadMessages(conv.id);
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.historyTitle} numberOfLines={1}>
+                          {conv.title || 'Rozmowa z AI'}
+                        </Text>
+                        <Text style={styles.historyMeta}>
+                          {formatConversationDate(conv.last_message_at || conv.created_at)}
+                        </Text>
+                      </View>
+                      {active && <Feather name="check" size={16} color={NEON} />}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   bg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000' },
   glowTop: {
-    position: 'absolute', width: 360, height: 360, borderRadius: 180,
-    backgroundColor: ACCENT, opacity: 0.07, top: -180, right: -120,
+    position: 'absolute',
+    width: 360,
+    height: 360,
+    borderRadius: 180,
+    backgroundColor: ACCENT,
+    opacity: 0.07,
+    top: -180,
+    right: -120,
   },
 
   header: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 18, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.07)',
   },
   headerAvatarWrap: { position: 'relative' },
   headerAvatar: {
-    width: 44, height: 44, borderRadius: 22,
-    borderWidth: 2, borderColor: 'rgba(37,240,200,0.40)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: 'rgba(37,240,200,0.40)',
   },
   onlineDot: {
-    position: 'absolute', bottom: 1, right: 1,
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: NEON, borderWidth: 2, borderColor: '#000',
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: NEON,
+    borderWidth: 2,
+    borderColor: '#000',
   },
   headerName: { color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
-  headerSub: { color: 'rgba(255,255,255,0.42)', fontSize: 12, fontWeight: '600', marginTop: 1 },
+  headerSub: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 1,
+  },
   headerBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
     backgroundColor: NEON,
   },
   headerBadgeText: { color: '#0B1120', fontSize: 10, fontWeight: '900' },
+  headerIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+  },
 
-  messageList: { paddingHorizontal: 14, paddingTop: 16, paddingBottom: 8, gap: 12 },
-  loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48, gap: 12 },
-  loadingText: { color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: '600' },
+  messageList: {
+    paddingHorizontal: 14,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 12,
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    gap: 12,
+  },
+  loadingText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
 
   msgRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
   msgRowBuddy: { justifyContent: 'flex-start' },
   msgRowUser: { justifyContent: 'flex-end' },
 
   msgAvatar: {
-    width: 30, height: 30, borderRadius: 15, flexShrink: 0,
-    borderWidth: 1, borderColor: 'rgba(37,240,200,0.30)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    flexShrink: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.30)',
   },
-  msgBubble: { maxWidth: '78%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, overflow: 'hidden' },
+  msgBubble: {
+    maxWidth: '78%',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    overflow: 'hidden',
+  },
   msgBubbleBuddy: {
     borderBottomLeftRadius: 4,
     backgroundColor: 'rgba(37,240,200,0.06)',
-    borderWidth: 1, borderColor: 'rgba(37,240,200,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
   },
-  msgBubbleUser: { borderBottomRightRadius: 4, backgroundColor: ACCENT },
+  msgBubbleUser: {
+    borderBottomRightRadius: 4,
+    backgroundColor: ACCENT,
+  },
+  msgBubbleError: {
+    borderColor: 'rgba(252,165,165,0.35)',
+    backgroundColor: 'rgba(127,29,29,0.25)',
+  },
 
   msgText: { fontSize: 14, lineHeight: 21, fontWeight: '600' },
   msgTextBuddy: { color: 'rgba(255,255,255,0.88)' },
   msgTextUser: { color: '#FFFFFF' },
 
-  typingBubble: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 14 },
-  typingDot: { width: 7, height: 7, borderRadius: 99, backgroundColor: NEON },
+  typingBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 14,
+  },
+  typingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 99,
+    backgroundColor: NEON,
+  },
+
+  inlineError: {
+    color: '#FCA5A5',
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 8,
+  },
 
   quickScroll: { maxHeight: 52 },
   quickWrap: { paddingHorizontal: 14, paddingVertical: 8, gap: 8 },
   quickChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
     backgroundColor: 'rgba(37,240,200,0.08)',
-    borderWidth: 1, borderColor: 'rgba(37,240,200,0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.25)',
   },
   quickChipText: { color: NEON, fontSize: 13, fontWeight: '700' },
 
@@ -473,19 +885,122 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   inputWrap: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
-    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(37,240,200,0.22)',
-    paddingHorizontal: 14, paddingVertical: 10, overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.025)',
   },
   input: {
-    flex: 1, color: '#FFFFFF', fontSize: 15, fontWeight: '600',
-    maxHeight: 100, paddingTop: 2,
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    maxHeight: 100,
+    paddingTop: 2,
   },
   sendBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: NEON,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   sendBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.08)' },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#050915',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 28,
+    borderTopWidth: 1,
+    borderColor: 'rgba(37,240,200,0.14)',
+    minHeight: '55%',
+    maxHeight: '82%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  modalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+
+  newChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: NEON,
+    paddingVertical: 13,
+    borderRadius: 16,
+    marginBottom: 14,
+  },
+  newChatBtnText: {
+    color: '#0B1120',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+
+  emptyHistoryText: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 13,
+    fontWeight: '600',
+    paddingTop: 14,
+    textAlign: 'center',
+  },
+
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    marginBottom: 10,
+  },
+  historyItemActive: {
+    borderColor: 'rgba(37,240,200,0.25)',
+    backgroundColor: 'rgba(37,240,200,0.06)',
+  },
+  historyTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  historyMeta: {
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });
