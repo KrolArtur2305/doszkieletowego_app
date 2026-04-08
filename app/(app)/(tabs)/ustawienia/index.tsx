@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { removePushToken } from '../../../src/services/notifications/pushService';
 
 function safeEmailPrefix(email?: string | null, fallback = 'User') {
   if (!email) return fallback;
@@ -94,6 +95,12 @@ export default function UstawieniaScreen() {
 
   const handleLogout = async () => {
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await removePushToken(user.id);
+      }
       await supabase.auth.signOut();
       router.replace('/(auth)/login');
     } catch (e: any) {
