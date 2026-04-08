@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import * as Notifications from 'expo-notifications';
 import { supabase } from '../../../../lib/supabase';
 import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
+import { removePushToken } from '../../../src/services/notifications/pushService';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -132,6 +133,12 @@ export default function UstawieniaAplikacjiScreen() {
               const { error } = await supabase.rpc('delete_user');
               if (error) throw error;
 
+              const {
+                data: { user },
+              } = await supabase.auth.getUser();
+              if (user) {
+                await removePushToken(user.id);
+              }
               await supabase.auth.signOut();
               router.replace('/(auth)/login');
             } catch (e: any) {

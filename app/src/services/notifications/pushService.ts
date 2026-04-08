@@ -41,20 +41,35 @@ async function getInstallationIdAsync(): Promise<string> {
   return id ?? 'unknown-ios';
 }
 
-export async function savePushToken(userId: string, token: string): Promise<void> {
+export async function savePushToken(token: string): Promise<void> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    console.error('[Push] Nie udało się pobrać użytkownika:', userError.message);
+    throw userError;
+  }
+
+  if (!user) {
+    console.warn('[Push] Pomijam zapis tokenu — brak zalogowanego użytkownika.');
+    return;
+  }
+
   const installationId = await getInstallationIdAsync();
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
   const { error } = await supabase.from('push_devices').upsert(
     {
-      user_id: userId,
+      user_id: user.id,
       expo_push_token: token,
       installation_id: installationId,
       platform,
       updated_at: new Date().toISOString(),
     },
     {
-      onConflict: 'installation_id',
+      onConflict: 'user_id,installation_id',
     }
   );
 

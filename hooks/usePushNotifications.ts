@@ -58,9 +58,13 @@ export function usePushNotifications() {
     let active = true;
 
     async function setup() {
-      const token = await registerForPushNotificationsAsync();
-      if (!token || !active) return;
-      await savePushToken(userId!, token);
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (!token || !active) return;
+        await savePushToken(token);
+      } catch (e: any) {
+        console.error('[Push] setup error:', e?.message ?? e);
+      }
     }
 
     setup();
