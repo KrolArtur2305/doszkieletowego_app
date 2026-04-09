@@ -126,8 +126,8 @@ function prettyTime(t?: string | null) {
   return t.slice(0, 5);
 }
 
-function formatPLDateShort(d: Date) {
-  return d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function formatDateShort(d: Date, locale: string) {
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 const TASKS_TABLE = 'zadania';
@@ -338,8 +338,8 @@ export default function DashboardScreen() {
 
   const calCells = useMemo(() => buildMonthGrid(calBase), [calBase]);
   const monthLabel = useMemo(
-    () => calBase.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' }),
-    [calBase]
+    () => calBase.toLocaleDateString(appLocale, { month: 'long', year: 'numeric' }),
+    [appLocale, calBase]
   );
 
   const goPrevMonth = () => setCalBase((d) => addMonths(d, -1));
@@ -967,7 +967,7 @@ export default function DashboardScreen() {
                     {item.key === 'czas' && (
                       <Text style={styles.donutSubText}>
                         {dates.start && dates.end
-                          ? `${new Date(dates.start).toLocaleDateString('pl-PL')} → ${new Date(dates.end).toLocaleDateString('pl-PL')}`
+                          ? `${new Date(dates.start).toLocaleDateString(appLocale)} → ${new Date(dates.end).toLocaleDateString(appLocale)}`
                           : t('donuts.completeInvestmentDates')}
                       </Text>
                     )}
@@ -1227,7 +1227,7 @@ export default function DashboardScreen() {
             <View style={styles.pickerRow}>
               <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.pickerBtn} activeOpacity={0.9}>
                 <Text style={styles.pickerBtnLabel}>{t('modal.date')}</Text>
-                <Text style={styles.pickerBtnValue}>{formatPLDateShort(pickDate)}</Text>
+                <Text style={styles.pickerBtnValue}>{formatDateShort(pickDate, appLocale)}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => { setHasTime(true); setShowTimePicker(true); }}
@@ -1250,6 +1250,7 @@ export default function DashboardScreen() {
                 value={pickDate}
                 mode="date"
                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                locale={appLocale}
                 onChange={(_: any, d?: Date) => {
                   if (Platform.OS !== 'ios') setShowDatePicker(false);
                   if (d) { setPickDate(d); setSelectedYMD(toYMD(d)); }
@@ -1262,6 +1263,7 @@ export default function DashboardScreen() {
                 mode="time"
                 is24Hour
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                locale={appLocale}
                 onChange={(_: any, d?: Date) => {
                   if (Platform.OS !== 'ios') setShowTimePicker(false);
                   if (d) { setPickTime(d); setHasTime(true); }

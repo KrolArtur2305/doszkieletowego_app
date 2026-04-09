@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -668,12 +669,7 @@ export default function DokumentyScreen() {
         />
       )}
 
-      <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)} activeOpacity={0.9}>
-        <BlurView intensity={90} tint="dark" style={styles.fabBlur}>
-          <View style={styles.fabRing} />
-          <Ionicons name="add" size={30} color={COLORS.brand} />
-        </BlurView>
-      </TouchableOpacity>
+      <FloatingAddButton onPress={() => setAddModalVisible(true)} />
 
       <Modal visible={previewVisible} transparent animationType="fade" onRequestClose={closePreview}>
         <View style={styles.previewOverlay}>
@@ -1186,37 +1182,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.38)',
   },
   emptyButtonText: { fontSize: 14, fontWeight: '900', color: THEME_COLORS.neon, letterSpacing: 0.5 },
-
-  fab: {
-    position: 'absolute',
-    bottom: 28,
-    right: 16,
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    overflow: 'hidden',
-    shadowColor: COLORS.brand,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.55,
-    shadowRadius: 18,
-    elevation: 14,
-  },
-  fabBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(25,112,92,0.55)',
-  },
-  fabRing: {
-    position: 'absolute',
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.35)',
-    backgroundColor: 'rgba(25,112,92,0.06)',
-  },
 
   previewOverlay: { flex: 1, backgroundColor: '#000000' },
   previewTopBar: {

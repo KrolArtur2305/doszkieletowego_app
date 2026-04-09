@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,6 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
   Image,
 } from 'react-native';
@@ -129,8 +131,9 @@ export default function BuddyOnboardingScreen() {
   }
 
   return (
-    <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.bg} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.screen}>
+        <View pointerEvents="none" style={styles.bg} />
 
       {/* Ambient glows */}
       <View pointerEvents="none" style={styles.glowTop} />
@@ -201,7 +204,7 @@ export default function BuddyOnboardingScreen() {
                 value={buddyName}
                 onChangeText={(v) => { setBuddyName(v); setError(null) }}
                 placeholder={t('buddy.onboarding.namePlaceholder', { defaultValue: 'np. Andrzej, Max, Tomek...' })}
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor="#888888"
                 style={styles.input}
                 maxLength={30}
                 autoCapitalize="words"
@@ -268,7 +271,8 @@ export default function BuddyOnboardingScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   )
 }
 
@@ -343,7 +347,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     borderRadius: 18, borderWidth: 1.5, borderColor: 'rgba(37,240,200,0.25)',
     paddingHorizontal: 16, paddingVertical: 14, overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.028)',
+    backgroundColor: '#0B0F14',
   },
   input: {
     flex: 1, color: '#FFFFFF', fontSize: 18, fontWeight: '700',

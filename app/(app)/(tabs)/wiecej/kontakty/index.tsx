@@ -23,6 +23,7 @@ import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
+import { FloatingAddButton } from '../../../../../components/FloatingAddButton';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -328,13 +329,7 @@ export default function KontaktyScreen() {
           </Animated.View>
         </ScrollView>
 
-        <TouchableOpacity
-          onPress={openNew}
-          style={styles.floatingAddBtn}
-          activeOpacity={0.9}
-        >
-          <Feather name="plus" size={22} color="#0B1120" />
-        </TouchableOpacity>
+        <FloatingAddButton onPress={openNew} />
 
         <Modal
           visible={editOpen}
@@ -748,23 +743,6 @@ const styles = StyleSheet.create({
     color: NEON,
     fontSize: 14,
     fontWeight: '800',
-  },
-
-  floatingAddBtn: {
-    position: 'absolute',
-    right: 22,
-    bottom: 28,
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: NEON,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: NEON,
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
   },
 
   modalOverlay: {

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -13,6 +13,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -24,15 +25,7 @@ const NEON = '#25F0C8';
 const ACCENT = '#19705C';
 const BUDDY_AVATAR = require('../../../../assets/buddy_avatar.png');
 
-const EDGE_FUNCTION_NAME = 'ai-chat';
-const SUPABASE_URL =
-  process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  '';
-const SUPABASE_ANON_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  '';
+const AI_CHAT_ENDPOINT = 'https://pkgeautweumkupfxfjoo.supabase.co/functions/v1/ai-chat';
 
 type Message = {
   id: string;
@@ -246,74 +239,9 @@ export default function BuddyChatScreen() {
     setError(null);
   };
 
-  const parseSSEStream = async (
-    response: Response,
-    handlers: {
-      onMeta?: (payload: any) => void;
-      onDelta?: (payload: any) => void;
-      onDone?: (payload: any) => void;
-      onError?: (payload: any) => void;
-    }
-  ) => {
-    if (!response.body) {
-      throw new Error('Brak streamu odpowiedzi');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let boundaryIndex = buffer.indexOf('\n\n');
-      while (boundaryIndex !== -1) {
-        const rawEvent = buffer.slice(0, boundaryIndex);
-        buffer = buffer.slice(boundaryIndex + 2);
-
-        const lines = rawEvent.split('\n');
-        let eventName = '';
-        const dataLines: string[] = [];
-
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            eventName = line.replace('event:', '').trim();
-          } else if (line.startsWith('data:')) {
-            dataLines.push(line.replace('data:', '').trim());
-          }
-        }
-
-        const rawData = dataLines.join('\n');
-
-        if (rawData) {
-          try {
-            const payload = JSON.parse(rawData);
-
-            if (eventName === 'meta') handlers.onMeta?.(payload);
-            else if (eventName === 'delta') handlers.onDelta?.(payload);
-            else if (eventName === 'done') handlers.onDone?.(payload);
-            else if (eventName === 'error') handlers.onError?.(payload);
-          } catch {
-            // ignoruję uszkodzony chunk
-          }
-        }
-
-        boundaryIndex = buffer.indexOf('\n\n');
-      }
-    }
-  };
-
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      Alert.alert('Błąd', 'Brakuje EXPO_PUBLIC_SUPABASE_URL lub EXPO_PUBLIC_SUPABASE_ANON_KEY');
-      return;
-    }
 
     try {
       setSending(true);
@@ -323,6 +251,7 @@ export default function BuddyChatScreen() {
         data: { session: activeSession },
       } = await supabase.auth.getSession();
 
+      console.log('AI session token exists:', !!activeSession?.access_token);
       const accessToken = activeSession?.access_token;
       if (!accessToken) throw new Error('Brak aktywnej sesji');
 
@@ -338,25 +267,15 @@ export default function BuddyChatScreen() {
         status: 'completed',
       };
 
-      const optimisticAssistant: Message = {
-        id: tempAssistantId,
-        role: 'assistant',
-        content: '',
-        created_at: new Date().toISOString(),
-        pending: true,
-        status: 'streaming',
-      };
-
-      setMessages((prev) => [...prev, optimisticUser, optimisticAssistant]);
+      setMessages((prev) => [...prev, optimisticUser]);
       setInput('');
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
 
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/${EDGE_FUNCTION_NAME}`, {
+      const response = await fetch(AI_CHAT_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
-          apikey: SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
           conversation_id: currentConversationId,
@@ -366,84 +285,38 @@ export default function BuddyChatScreen() {
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Błąd połączenia z AI');
+        let errorText = '';
+        try {
+          errorText = await response.text();
+        } catch {
+          errorText = '';
+        }
+        throw new Error(errorText || 'Błąd połączenia z AI');
       }
 
-      let resolvedConversationId = currentConversationId;
-      let finalAssistantText = '';
-      let streamFailed = false;
+      const payload = (await response.json()) as {
+        conversation_id?: string | null;
+        assistant_message_id?: string | null;
+        message?: string | null;
+      };
 
-      await parseSSEStream(response, {
-        onMeta: (payload) => {
-          if (payload?.conversation_id) {
-            resolvedConversationId = payload.conversation_id;
-            setCurrentConversationId(payload.conversation_id);
-          }
+      const resolvedConversationId = payload?.conversation_id || currentConversationId;
+      const finalAssistantText = String(payload?.message ?? '').trim();
+
+      setMessages((prev) => [
+        ...prev.map((m) => (m.id === tempUserId ? { ...m, pending: false } : m)),
+        {
+          id: payload?.assistant_message_id || tempAssistantId,
+          role: 'assistant',
+          content: finalAssistantText || 'Nie udało mi się wygenerować odpowiedzi.',
+          created_at: new Date().toISOString(),
+          pending: false,
+          status: 'completed',
         },
-        onDelta: (payload) => {
-          const delta = String(payload?.text ?? '');
-          if (!delta) return;
+      ]);
 
-          finalAssistantText += delta;
-
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === tempAssistantId
-                ? {
-                    ...m,
-                    content: (m.content || '') + delta,
-                    status: 'streaming',
-                  }
-                : m
-            )
-          );
-        },
-        onDone: (payload) => {
-          if (payload?.conversation_id) {
-            resolvedConversationId = payload.conversation_id;
-            setCurrentConversationId(payload.conversation_id);
-          }
-
-          setMessages((prev) =>
-            prev.map((m) => {
-              if (m.id === tempUserId) return { ...m, pending: false };
-              if (m.id === tempAssistantId) {
-                return {
-                  ...m,
-                  pending: false,
-                  status: 'completed',
-                  content: finalAssistantText || m.content || '',
-                };
-              }
-              return m;
-            })
-          );
-        },
-        onError: (payload) => {
-          streamFailed = true;
-          const msg = String(payload?.message ?? 'Wystąpił błąd AI');
-
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === tempAssistantId
-                ? {
-                    ...m,
-                    content: msg,
-                    status: 'error',
-                    pending: false,
-                  }
-                : m.id === tempUserId
-                ? { ...m, pending: false }
-                : m
-            )
-          );
-
-          setError(msg);
-        },
-      });
-
-      if (!streamFailed && resolvedConversationId) {
+      if (resolvedConversationId) {
+        setCurrentConversationId(resolvedConversationId);
         await loadConversations();
         await loadMessages(resolvedConversationId);
       }
@@ -452,14 +325,7 @@ export default function BuddyChatScreen() {
 
       setMessages((prev) =>
         prev.map((m) =>
-          m.pending && m.role === 'assistant'
-            ? {
-                ...m,
-                content: msg,
-                status: 'error',
-                pending: false,
-              }
-            : m.pending && m.role === 'user'
+          m.pending && m.role === 'user'
             ? { ...m, pending: false }
             : m
         )
@@ -473,9 +339,10 @@ export default function BuddyChatScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.bg} />
-      <View pointerEvents="none" style={styles.glowTop} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.screen}>
+        <View pointerEvents="none" style={styles.bg} />
+        <View pointerEvents="none" style={styles.glowTop} />
 
       <View style={[styles.header, { paddingTop: topPad }]}>
         <View style={styles.headerAvatarWrap}>
@@ -626,7 +493,7 @@ export default function BuddyChatScreen() {
               value={input}
               onChangeText={setInput}
               placeholder={`Zapytaj ${buddyName}…`}
-              placeholderTextColor="rgba(255,255,255,0.28)"
+              placeholderTextColor="#888888"
               style={styles.input}
               multiline
               maxLength={800}
@@ -716,7 +583,8 @@ export default function BuddyChatScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -894,7 +762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.025)',
+    backgroundColor: '#0B0F14',
   },
   input: {
     flex: 1,

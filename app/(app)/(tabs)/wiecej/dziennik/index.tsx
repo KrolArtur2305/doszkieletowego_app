@@ -20,6 +20,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 
@@ -63,19 +64,25 @@ function fromYMD(ymd: string) {
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
-function formatDate(ymd: string) {
+function localeFromLng(lng?: string) {
+  const base = (lng || 'en').split('-')[0];
+  if (base === 'pl') return 'pl-PL';
+  if (base === 'de') return 'de-DE';
+  return 'en-US';
+}
+
+function formatDate(ymd: string, locale: string) {
   const d = new Date(ymd + 'T00:00:00');
-  return d.toLocaleDateString('pl-PL', {
+  return d.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
 }
 
-function getDayName(ymd: string) {
+function getDayName(ymd: string, locale: string) {
   const d = new Date(ymd + 'T00:00:00');
-  const days = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
-  return days[d.getDay()];
+  return d.toLocaleDateString(locale, { weekday: 'long' });
 }
 
 function getCurrentEtapId(etapy: Etap[]) {
@@ -93,7 +100,12 @@ function getCurrentEtapId(etapy: Etap[]) {
 
 export default function DziennikScreen() {
   const { session } = useSupabaseAuth();
+  const { i18n } = useTranslation();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const dateLocale = useMemo(
+    () => localeFromLng(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  );
 
   // ── State ──
   const [wpisy, setWpisy] = useState<Wpis[]>([]);
@@ -404,6 +416,7 @@ export default function DziennikScreen() {
               key={w.id}
               wpis={w}
               index={i}
+              dateLocale={dateLocale}
               onPress={() => {
                 setDetailWpis(w);
                 setDetailOpen(true);
@@ -463,7 +476,7 @@ export default function DziennikScreen() {
                 >
                   <View style={styles.datePickerLeft}>
                     <Feather name="calendar" size={16} color="rgba(37,240,200,0.70)" />
-                    <Text style={styles.datePickerText}>{formatDate(formData)}</Text>
+                    <Text style={styles.datePickerText}>{formatDate(formData, dateLocale)}</Text>
                   </View>
                   <Feather name="chevron-down" size={16} color="rgba(255,255,255,0.35)" />
                 </TouchableOpacity>
@@ -473,6 +486,7 @@ export default function DziennikScreen() {
                     value={fromYMD(formData)}
                     mode="date"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    locale={dateLocale}
                     onChange={(event, selectedDate) => {
                       if (Platform.OS === 'android') {
                         setShowDatePicker(false);
@@ -658,8 +672,8 @@ export default function DziennikScreen() {
           <View style={styles.modalScreen}>
             <View style={styles.modalHeaderDetail}>
               <View>
-                <Text style={styles.detailHeaderTitle}>{getDayName(detailWpis.data)}</Text>
-                <Text style={styles.modalSubtitle}>{formatDate(detailWpis.data)}</Text>
+                <Text style={styles.detailHeaderTitle}>{getDayName(detailWpis.data, dateLocale)}</Text>
+                <Text style={styles.modalSubtitle}>{formatDate(detailWpis.data, dateLocale)}</Text>
               </View>
 
               <View style={styles.detailActionsRow}>
@@ -715,10 +729,12 @@ export default function DziennikScreen() {
 function WpisCard({
   wpis: w,
   index,
+  dateLocale,
   onPress,
 }: {
   wpis: Wpis;
   index: number;
+  dateLocale: string;
   onPress: () => void;
 }) {
   const anim = useRef(new Animated.Value(0)).current;
@@ -749,7 +765,7 @@ function WpisCard({
         <View style={styles.cardDateCol}>
           <Text style={styles.cardDay}>{new Date(w.data + 'T00:00:00').getDate()}</Text>
           <Text style={styles.cardMonth}>
-            {new Date(w.data + 'T00:00:00').toLocaleDateString('pl-PL', { month: 'short' })}
+            {new Date(w.data + 'T00:00:00').toLocaleDateString(dateLocale, { month: 'short' })}
           </Text>
           {isToday && <View style={styles.todayDot} />}
         </View>

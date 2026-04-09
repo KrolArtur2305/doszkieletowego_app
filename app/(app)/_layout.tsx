@@ -147,9 +147,7 @@ export default function AppLayout() {
     if (profileComplete === false) return '/(app)/profil';
     if (profileComplete === true && investmentComplete === false) return '/(app)/inwestycja';
 
-    // ✅ 3) buddy — po inwestycji
-    if (profileComplete === true && investmentComplete === true && buddyComplete === false)
-      return '/(app)/buddy';
+    
 
     return null;
   }, [session, planOk, profileComplete, investmentComplete, buddyComplete]);

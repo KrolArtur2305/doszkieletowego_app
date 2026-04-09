@@ -19,8 +19,10 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
+import { FloatingAddButton } from '../../../components/FloatingAddButton';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -58,11 +60,11 @@ const prettyDate = (ymd: string) => {
   return `${d}.${m}.${y}`;
 };
 
-const prettyDateLong = (ymd: string) => {
+const prettyDateLong = (ymd: string, locale: string) => {
   if (!ymd) return '—';
   const [y, m, d] = ymd.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString('pl-PL', {
+  return date.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -83,22 +85,12 @@ const emptyForm = (): TaskForm => ({
   godzina: '',
 });
 
-const MONTHS_PL = [
-  'Styczeń',
-  'Luty',
-  'Marzec',
-  'Kwiecień',
-  'Maj',
-  'Czerwiec',
-  'Lipiec',
-  'Sierpień',
-  'Wrzesień',
-  'Październik',
-  'Listopad',
-  'Grudzień',
-];
-
-const WEEKDAYS_SHORT = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'];
+const localeFromLng = (lng?: string) => {
+  const base = (lng || 'en').split('-')[0];
+  if (base === 'pl') return 'pl-PL';
+  if (base === 'de') return 'de-DE';
+  return 'en-US';
+};
 
 function getMonthMatrix(baseDate: Date) {
   const year = baseDate.getFullYear();
@@ -128,7 +120,12 @@ function getMonthMatrix(baseDate: Date) {
 
 export default function ZadaniaScreen() {
   const { session } = useSupabaseAuth();
+  const { i18n } = useTranslation();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const dateLocale = useMemo(
+    () => localeFromLng(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  );
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,6 +230,21 @@ export default function ZadaniaScreen() {
   );
 
   const monthCells = useMemo(() => getMonthMatrix(calendarMonth), [calendarMonth]);
+  const monthLabel = useMemo(
+    () =>
+      new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1).toLocaleDateString(dateLocale, {
+        month: 'long',
+        year: 'numeric',
+      }),
+    [calendarMonth, dateLocale]
+  );
+  const weekdayLabels = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) =>
+        new Date(2024, 0, 1 + i).toLocaleDateString(dateLocale, { weekday: 'short' })
+      ),
+    [dateLocale]
+  );
 
   const tasksCountByDate = useMemo(() => {
     const map: Record<string, number> = {};
@@ -523,7 +535,7 @@ export default function ZadaniaScreen() {
               </TouchableOpacity>
 
               <Text style={styles.calendarTitle}>
-                {MONTHS_PL[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}
+                {monthLabel}
               </Text>
 
               <TouchableOpacity
@@ -540,7 +552,7 @@ export default function ZadaniaScreen() {
             </View>
 
             <View style={styles.weekdaysRow}>
-              {WEEKDAYS_SHORT.map((day) => (
+              {weekdayLabels.map((day) => (
                 <Text key={day} style={styles.weekdayText}>
                   {day}
                 </Text>
@@ -601,9 +613,7 @@ export default function ZadaniaScreen() {
         </Animated.View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={openNew} activeOpacity={0.9}>
-        <Feather name="plus" size={24} color="#07110E" />
-      </TouchableOpacity>
+      <FloatingAddButton onPress={openNew} />
 
       <Modal
         visible={editOpen}
@@ -656,7 +666,7 @@ export default function ZadaniaScreen() {
                   <Text style={fieldStyles.label}>Data</Text>
                   <View style={styles.pickerValueRow}>
                     <Feather name="calendar" size={15} color={NEON} />
-                    <Text style={fieldStyles.pickerText}>{prettyDateLong(form.data)}</Text>
+                    <Text style={fieldStyles.pickerText}>{prettyDateLong(form.data, dateLocale)}</Text>
                   </View>
                 </TouchableOpacity>
 
@@ -689,6 +699,7 @@ export default function ZadaniaScreen() {
                     })()}
                     mode="date"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    locale={dateLocale}
                     themeVariant="dark"
                     onChange={(event, selected) => {
                       if (Platform.OS !== 'ios') setShowDatePicker(false);
@@ -1122,23 +1133,6 @@ const styles = StyleSheet.create({
   },
   dayDotSelected: {
     backgroundColor: '#FFFFFF',
-  },
-
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 28,
-    width: 60,
-    height: 60,
-    borderRadius: 999,
-    backgroundColor: NEON,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: NEON,
-    shadowOpacity: 0.28,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
   },
 
   modalOverlay: {

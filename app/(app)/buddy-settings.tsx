@@ -4,6 +4,7 @@ import {
   Alert,
   Animated,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -159,10 +161,11 @@ export default function BuddySettingsScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.bg} />
-      <View pointerEvents="none" style={styles.glowTop} />
-      <View pointerEvents="none" style={styles.glowBottom} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.screen}>
+        <View pointerEvents="none" style={styles.bg} />
+        <View pointerEvents="none" style={styles.glowTop} />
+        <View pointerEvents="none" style={styles.glowBottom} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -262,7 +265,7 @@ export default function BuddySettingsScreen() {
                       if (error) setError(null);
                     }}
                     placeholder="np. Andrzej, Max, Adam..."
-                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    placeholderTextColor="#888888"
                     style={styles.input}
                     maxLength={30}
                     autoCapitalize="words"
@@ -368,7 +371,8 @@ export default function BuddySettingsScreen() {
           <View style={{ height: 36 }} />
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -573,7 +577,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: '#0B0F14',
   },
 
   input: {

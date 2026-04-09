@@ -1,12 +1,14 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
   ActivityIndicator,
   Image,
@@ -182,8 +184,9 @@ export default function ProfilScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.screen}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.screen}>
         {/* tło + glowy (zostają, ale wyciszone — czarne tło) */}
         <View pointerEvents="none" style={styles.bg}>
           <View style={styles.glowA} />
@@ -263,7 +266,8 @@ export default function ProfilScreen() {
           </BlurView>
         </View>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 

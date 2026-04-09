@@ -2,6 +2,7 @@
 import {
   Alert,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,6 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
   Modal,
 } from 'react-native';
@@ -233,8 +235,9 @@ export default function InwestycjaScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.screen}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg}>
           <View style={styles.glowA} />
           <View style={styles.glowB} />
@@ -382,7 +385,8 @@ export default function InwestycjaScreen() {
           </View>
         </Modal>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 

@@ -27,6 +27,7 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
+import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const ACCENT = '#19705C';
@@ -116,10 +117,17 @@ async function uriToArrayBuffer(uri: string, readFileFailedText: string): Promis
 }
 
 export default function BudzetScreen() {
-  const { t } = useTranslation('budget');
+  const { t, i18n } = useTranslation('budget');
   const router = useRouter();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
+  const datePickerLocale = useMemo(() => {
+    const lang = i18n.resolvedLanguage || i18n.language;
+    if (!lang) return 'pl-PL';
+    if (lang.startsWith('pl')) return 'pl-PL';
+    if (lang.startsWith('de')) return 'de-DE';
+    return 'en-US';
+  }, [i18n.language, i18n.resolvedLanguage]);
 
   const scrollRef = useRef<ScrollView>(null);
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
@@ -622,13 +630,13 @@ export default function BudzetScreen() {
               {datePickerOpen && (
                 Platform.OS === 'ios' ? (
                   <View style={styles.iosDateWrap}>
-                    <DateTimePicker value={datePickerValue} mode="date" display="spinner" onChange={onDatePicked} />
+                    <DateTimePicker value={datePickerValue} mode="date" display="spinner" locale={datePickerLocale} onChange={onDatePicked} />
                     <TouchableOpacity style={styles.iosDateOk} onPress={() => { setDatePickerOpen(false); setFData(toYYYYMMDD(datePickerValue)); }} activeOpacity={0.85}>
                       <Text style={styles.iosDateOkText}>{t('modal.setDate')}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <DateTimePicker value={datePickerValue} mode="date" display="default" onChange={onDatePicked} />
+                  <DateTimePicker value={datePickerValue} mode="date" display="default" locale={datePickerLocale} onChange={onDatePicked} />
                 )
               )}
 
@@ -658,13 +666,7 @@ export default function BudzetScreen() {
       </ScrollView>
 
       {/* FAB — przyklejony na dole po prawej, zawsze widoczny */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setAddOpen(true)}
-        activeOpacity={0.9}
-      >
-        <Feather name="plus" size={24} color={NEON} />
-      </TouchableOpacity>
+      <FloatingAddButton onPress={() => setAddOpen(true)} />
     </View>
   );
 }
@@ -810,18 +812,6 @@ const styles = StyleSheet.create({
   },
   trashIcon: { fontSize: 18, marginBottom: 4 },
   trashText: { color: '#FCA5A5', fontWeight: '900', fontSize: 12 },
-
-  // ── FAB ──
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 28,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(37,240,200,0.14)',
-    borderWidth: 1.5, borderColor: 'rgba(37,240,200,0.40)',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: NEON, shadowOpacity: 0.30, shadowRadius: 16, shadowOffset: { width: 0, height: 0 },
-  },
 
   // ── Modal ──
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },

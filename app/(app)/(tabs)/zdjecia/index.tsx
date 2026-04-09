@@ -25,6 +25,7 @@ import { decode as decodeBase64 } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -724,12 +725,7 @@ export default function ZdjeciaScreen() {
         />
       )}
 
-      <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)} activeOpacity={0.9}>
-        <BlurView intensity={90} tint="dark" style={styles.fabBlur}>
-          <View style={styles.fabRing} />
-          <Ionicons name="add" size={30} color={COLORS.brand} />
-        </BlurView>
-      </TouchableOpacity>
+      <FloatingAddButton onPress={() => setAddModalVisible(true)} />
 
       {/* ADD MODAL */}
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
@@ -801,6 +797,7 @@ export default function ZdjeciaScreen() {
                 value={takenAt ?? new Date()}
                 mode="date"
                 display="default"
+                locale={dateLocale}
                 onChange={(_, date) => {
                   setShowDatePicker(false);
                   if (date) setTakenAt(date);
@@ -1071,23 +1068,6 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginBottom: 22, lineHeight: 20 },
   emptyButton: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 20, paddingVertical: 13, borderRadius: RADIUS.button, backgroundColor: 'rgba(37,240,200,0.14)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.38)' },
   emptyButtonText: { fontSize: 14, fontWeight: '900', color: THEME_COLORS.neon, letterSpacing: 0.5 },
-
-  fab: {
-    position: 'absolute',
-    bottom: 28,
-    right: 16,
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    overflow: 'hidden',
-    shadowColor: COLORS.brand,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.55,
-    shadowRadius: 18,
-    elevation: 14,
-  },
-  fabBlur: { flex: 1, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(25,112,92,0.55)' },
-  fabRing: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(25,112,92,0.35)', backgroundColor: 'rgba(25,112,92,0.06)' },
 
   modalBlackOverlay: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 22 },
 

@@ -7,11 +7,13 @@ import {
   ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Image,
   Alert,
   Dimensions,
   Animated,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -121,11 +123,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
-    >
-      <View style={styles.bgBase} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+      >
+        <View style={styles.bgBase} />
 
       {/* gwiazdki */}
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -159,23 +162,23 @@ export default function LoginScreen() {
           />
         </Animated.View>
 
-        <TextInput
-          placeholder={t('login.form.emailPlaceholder')}
-          placeholderTextColor="rgba(255,255,255,0.45)"
-          style={styles.input}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          placeholder={t('login.form.passwordPlaceholder')}
-          placeholderTextColor="rgba(255,255,255,0.45)"
-          style={styles.input}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+          <TextInput
+            placeholder={t('login.form.emailPlaceholder')}
+            placeholderTextColor="#888888"
+            style={styles.input}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            placeholder={t('login.form.passwordPlaceholder')}
+            placeholderTextColor="#888888"
+            style={styles.input}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -218,8 +221,8 @@ export default function LoginScreen() {
             {t('login.form.noAccount')} <Text style={styles.bottomLinkStrong}>{t('login.form.createAccount')}</Text>
           </Text>
         </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -262,7 +265,7 @@ const styles = StyleSheet.create({
   logoImg: { width: 96, height: 96 },
 
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#0B0F14',
     color: 'rgba(255,255,255,0.92)',
     paddingVertical: 14,
     paddingHorizontal: 14,

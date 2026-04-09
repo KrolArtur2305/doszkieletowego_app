@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+console.log("OPENAI KEY EXISTS:", !!Deno.env.get("OPENAI_API_KEY"));
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
@@ -44,20 +46,6 @@ function jsonResponse(
       "Content-Type": "application/json; charset=utf-8",
     },
   });
-}
-
-function sseHeaders(): HeadersInit {
-  return {
-    ...corsHeaders,
-    "Content-Type": "text/event-stream; charset=utf-8",
-    "Cache-Control": "no-cache, no-transform",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
-  };
-}
-
-function sseEvent(event: string, data: Record<string, unknown>) {
-  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
 function normalizeText(value: unknown): string {
@@ -481,7 +469,43 @@ function mapMessagesForOpenAI(
     }));
 }
 
-async function createOpenAIStream(params: {
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Nieznany błąd";
+  }
+}
+
+function extractOpenAIText(payload: Record<string, unknown>): string {
+  if (typeof payload.output_text === "string" && payload.output_text.trim()) {
+    return payload.output_text.trim();
+  }
+
+  const output = Array.isArray(payload.output) ? payload.output : [];
+  const parts: string[] = [];
+
+  for (const item of output) {
+    if (!item || typeof item !== "object") continue;
+    const content = Array.isArray((item as Record<string, unknown>).content)
+      ? ((item as Record<string, unknown>).content as Array<unknown>)
+      : [];
+
+    for (const chunk of content) {
+      if (!chunk || typeof chunk !== "object") continue;
+      const chunkRecord = chunk as Record<string, unknown>;
+      if (typeof chunkRecord.text === "string" && chunkRecord.text.trim()) {
+        parts.push(chunkRecord.text);
+      }
+    }
+  }
+
+  return parts.join("").trim();
+}
+
+async function createOpenAIResponse(params: {
   message: string;
   history: Array<{ role: string; content: string }>;
   assistantName: string | null;
@@ -508,7 +532,7 @@ async function createOpenAIStream(params: {
     model: OPENAI_MODEL,
     input,
     store: false,
-    stream: true,
+    stream: false,
     truncation: "auto",
   };
 
@@ -517,6 +541,8 @@ async function createOpenAIStream(params: {
     body.tool_choice = "auto";
   }
 
+  console.log("OPENAI REQUEST BODY:", JSON.stringify(body));
+  console.log("CALLING OPENAI...");
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -525,96 +551,22 @@ async function createOpenAIStream(params: {
     },
     body: JSON.stringify(body),
   });
+  console.log("OPENAI STATUS:", response.status);
 
-  if (!response.ok || !response.body) {
-    const text = await response.text();
-    throw new Error(`OpenAI error ${response.status}: ${text}`);
-  }
-
-  return response.body;
-}
-
-async function streamOpenAIToClient(params: {
-  openaiBody: ReadableStream<Uint8Array>;
-  controller: ReadableStreamDefaultController<Uint8Array>;
-  encoder: TextEncoder;
-}) {
-  const reader = params.openaiBody.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let fullText = "";
-  let openaiResponseId: string | null = null;
-
-  const push = (event: string, data: Record<string, unknown>) => {
-    params.controller.enqueue(params.encoder.encode(sseEvent(event, data)));
-  };
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-
-    let boundaryIndex: number;
-    while ((boundaryIndex = buffer.indexOf("\n\n")) !== -1) {
-      const rawEvent = buffer.slice(0, boundaryIndex);
-      buffer = buffer.slice(boundaryIndex + 2);
-
-      if (!rawEvent.trim()) continue;
-
-      const lines = rawEvent.split("\n");
-      let eventName = "";
-      const dataLines: string[] = [];
-
-      for (const line of lines) {
-        if (line.startsWith("event:")) {
-          eventName = line.slice(6).trim();
-        } else if (line.startsWith("data:")) {
-          dataLines.push(line.slice(5).trim());
-        }
-      }
-
-      const dataRaw = dataLines.join("\n");
-      if (!dataRaw || dataRaw === "[DONE]") continue;
-
-      let parsed: Record<string, unknown>;
-      try {
-        parsed = JSON.parse(dataRaw);
-      } catch {
-        continue;
-      }
-
-      if (typeof parsed.id === "string") {
-        openaiResponseId = parsed.id;
-      }
-
-      if (eventName === "response.output_text.delta") {
-        const delta = typeof parsed.delta === "string" ? parsed.delta : "";
-        if (delta) {
-          fullText += delta;
-          push("delta", { text: delta });
-        }
-      } else if (eventName === "response.completed") {
-        // nic, done wyślemy po zapisie do bazy
-      } else if (
-        eventName === "error" ||
-        eventName === "response.failed"
-      ) {
-        throw new Error(
-          String(
-            parsed?.message ??
-              parsed?.error ??
-              "Nieznany błąd streamingu OpenAI",
-          ),
-        );
-      }
+  if (!response.ok) {
+    let errorText = "";
+    try {
+      errorText = await response.text();
+    } catch (error) {
+      errorText = error instanceof Error ? error.message : "Failed to read OpenAI error body";
     }
+    console.log("OPENAI ERROR FULL TEXT:", errorText);
+    console.log("OPENAI ERROR:", errorText);
+    throw new Error(`OpenAI error ${response.status}: ${errorText}`);
   }
 
-  return {
-    fullText: fullText.trim(),
-    openaiResponseId,
-  };
+  const payload = (await response.json()) as Record<string, unknown>;
+  return extractOpenAIText(payload);
 }
 
 serve(async (req) => {
@@ -642,7 +594,7 @@ serve(async (req) => {
     const user = await getAuthenticatedUser(supabase);
 
     const body = (await req.json()) as ChatRequestBody;
-    const message = normalizeText(body.message);
+    const message = normalizeText(body.message ?? (body as Record<string, unknown>).question);
     const assistantName = normalizeText(body.assistant_name) || null;
 
     if (!message) {
@@ -681,89 +633,39 @@ serve(async (req) => {
 
     const useWebSearch = needsWebSearch(message);
 
-    const encoder = new TextEncoder();
+    const finalText =
+      (await createOpenAIResponse({
+        message,
+        history: historyForModel,
+        assistantName,
+        userContext,
+        useWebSearch,
+      })) || "Nie udało mi się wygenerować odpowiedzi.";
 
-    const stream = new ReadableStream<Uint8Array>({
-      start: async (controller) => {
-        const push = (event: string, data: Record<string, unknown>) => {
-          controller.enqueue(encoder.encode(sseEvent(event, data)));
-        };
-
-        try {
-          push("meta", {
-            conversation_id: conversationId,
-            user_message_id: userMessage?.id ?? null,
-            used_web: useWebSearch,
-            model: OPENAI_MODEL,
-          });
-
-          const openaiBody = await createOpenAIStream({
-            message,
-            history: historyForModel,
-            assistantName,
-            userContext,
-            useWebSearch,
-          });
-
-          const { fullText } = await streamOpenAIToClient({
-            openaiBody,
-            controller,
-            encoder,
-          });
-
-          const finalText =
-            fullText || "Nie udało mi się wygenerować odpowiedzi.";
-
-          const assistantMessage = await addMessage(supabase, {
-            conversationId,
-            role: "assistant",
-            content: finalText,
-            usedWeb: useWebSearch,
-            model: OPENAI_MODEL,
-            status: "completed",
-          });
-
-          await incrementDailyUsage(supabase, user.id);
-
-          push("done", {
-            conversation_id: conversationId,
-            assistant_message_id: assistantMessage?.id ?? null,
-            used_web: useWebSearch,
-            model: OPENAI_MODEL,
-          });
-
-          controller.close();
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Nieznany błąd AI";
-
-          try {
-            await addMessage(supabase, {
-              conversationId,
-              role: "assistant",
-              content: "Wystąpił błąd podczas generowania odpowiedzi.",
-              usedWeb: false,
-              model: OPENAI_MODEL,
-              status: "error",
-              errorMessage: message,
-            });
-          } catch {
-            // celowo ignoruję
-          }
-
-          push("error", { message });
-          controller.close();
-        }
-      },
+    const assistantMessage = await addMessage(supabase, {
+      conversationId,
+      role: "assistant",
+      content: finalText,
+      usedWeb: useWebSearch,
+      model: OPENAI_MODEL,
+      status: "completed",
     });
 
-    return new Response(stream, {
-      status: 200,
-      headers: sseHeaders(),
+    await incrementDailyUsage(supabase, user.id);
+
+    return jsonResponse({
+      conversation_id: conversationId,
+      user_message_id: userMessage?.id ?? null,
+      assistant_message_id: assistantMessage?.id ?? null,
+      used_web: useWebSearch,
+      model: OPENAI_MODEL,
+      message: finalText,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Nieznany błąd serwera";
+    const message = extractErrorMessage(error);
+    if (message === "Unauthorized") {
+      return jsonResponse({ error: message }, 401);
+    }
     return jsonResponse({ error: message }, 500);
   }
 });

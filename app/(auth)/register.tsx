@@ -7,11 +7,13 @@ import {
   ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Image,
   Alert,
   Dimensions,
   Animated,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -118,11 +120,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
-    >
-      <View style={styles.bgBase} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+      >
+        <View style={styles.bgBase} />
 
       {/* gwiazdki */}
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -156,33 +159,33 @@ export default function RegisterScreen() {
           />
         </Animated.View>
 
-        <TextInput
-          placeholder={t('register.form.emailPlaceholder')}
-          placeholderTextColor="rgba(255,255,255,0.45)"
-          style={styles.input}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
+          <TextInput
+            placeholder={t('register.form.emailPlaceholder')}
+            placeholderTextColor="#888888"
+            style={styles.input}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
 
-        <TextInput
-          placeholder={t('register.form.passwordPlaceholder')}
-          placeholderTextColor="rgba(255,255,255,0.45)"
-          style={styles.input}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+          <TextInput
+            placeholder={t('register.form.passwordPlaceholder')}
+            placeholderTextColor="#888888"
+            style={styles.input}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
 
-        <TextInput
-          placeholder={t('register.form.repeatPasswordPlaceholder')}
-          placeholderTextColor="rgba(255,255,255,0.45)"
-          style={styles.input}
-          secureTextEntry
-          value={password2}
-          onChangeText={setPassword2}
-        />
+          <TextInput
+            placeholder={t('register.form.repeatPasswordPlaceholder')}
+            placeholderTextColor="#888888"
+            style={styles.input}
+            secureTextEntry
+            value={password2}
+            onChangeText={setPassword2}
+          />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -226,8 +229,8 @@ export default function RegisterScreen() {
             {t('register.form.haveAccount')} <Text style={styles.bottomLinkStrong}>{t('register.form.login')}</Text>
           </Text>
         </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -271,7 +274,7 @@ const styles = StyleSheet.create({
   logoImg: { width: 96, height: 96 },
 
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#0B0F14',
     color: 'rgba(255,255,255,0.92)',
     paddingVertical: 14,
     paddingHorizontal: 14,

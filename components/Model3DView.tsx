@@ -3,6 +3,37 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function isTrustedModelUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:') return false;
+    return parsed.hostname.endsWith('.supabase.co');
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedWebViewUrl(value: string) {
+  if (value === 'about:blank') return true;
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.hostname === 'unpkg.com') return true;
+    return parsed.protocol === 'https:' && parsed.hostname.endsWith('.supabase.co');
+  } catch {
+    return false;
+  }
+}
+
 export default function Model3DView({ url }: { url: string }) {
   const { t } = useTranslation('project');
 
@@ -12,12 +43,13 @@ export default function Model3DView({ url }: { url: string }) {
   const hint = t('model.hintRotateZoom');
   const fallbackLoadFailed = t('model.loadFailed');
   const fallbackTitle = t('model.errorTitle');
+  const trustedUrl = useMemo(() => (isTrustedModelUrl(url) ? url : null), [url]);
 
   const html = useMemo(() => {
-    if (!url) return '<html><body></body></html>';
+    if (!trustedUrl) return '<html><body></body></html>';
 
-    // prosta ucieczka, żeby nie rozwalić HTML gdyby tłumaczenie miało cudzysłowy
-    const safeHint = String(hint).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeHint = escapeHtml(String(hint));
+    const safeUrl = escapeHtml(trustedUrl);
 
     return `<!doctype html>
 <html>
@@ -38,7 +70,7 @@ export default function Model3DView({ url }: { url: string }) {
     <div class="wrap">
       <model-viewer
         id="mv"
-        src="${url}"
+        src="${safeUrl}"
         camera-controls
         auto-rotate
         rotation-per-second="18deg"
@@ -66,14 +98,15 @@ export default function Model3DView({ url }: { url: string }) {
     </script>
   </body>
 </html>`;
-  }, [url, hint]);
+  }, [hint, trustedUrl]);
 
   return (
     <View style={styles.wrap}>
       <WebView
         source={{ html }}
-        originWhitelist={['*']}
+        originWhitelist={['about:blank', 'https://unpkg.com', 'https://*.supabase.co']}
         javaScriptEnabled
+        onShouldStartLoadWithRequest={(request) => isAllowedWebViewUrl(request.url)}
         onMessage={(ev) => {
           try {
             const data = JSON.parse(ev.nativeEvent.data || '{}');
@@ -93,7 +126,7 @@ export default function Model3DView({ url }: { url: string }) {
         }}
         onLoadStart={() => {
           setLoading(true);
-          setErr(null);
+          setErr(trustedUrl ? null : 'Nieprawidlowe lub niezaufane zrodlo modelu.');
         }}
         style={styles.web}
       />
