@@ -63,7 +63,7 @@ export default function RegisterScreen() {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
-      if (data.session) router.replace('/(app)/(tabs)/dashboard');
+      if (data.session) router.replace('/(app)');
     });
 
     const anim = Animated.loop(
@@ -159,6 +159,7 @@ export default function RegisterScreen() {
           />
         </Animated.View>
 
+        <View>
           <TextInput
             placeholder={t('register.form.emailPlaceholder')}
             placeholderTextColor="#888888"
@@ -229,6 +230,8 @@ export default function RegisterScreen() {
             {t('register.form.haveAccount')} <Text style={styles.bottomLinkStrong}>{t('register.form.login')}</Text>
           </Text>
         </TouchableOpacity>
+        </View>
+      </View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );

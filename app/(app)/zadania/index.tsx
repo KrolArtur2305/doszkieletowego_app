@@ -21,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
+import { syncAllTaskReminders } from '../../../lib/notifications';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../components/FloatingAddButton';
 
@@ -36,6 +37,8 @@ type Task = {
   opis: string | null;
   utworzone_at?: string;
   wykonane?: boolean | null;
+  zakonczone_at?: string | null;
+  caly_dzien?: boolean | null;
 };
 
 type TaskForm = {
@@ -320,13 +323,17 @@ export default function ZadaniaScreen() {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('zadania').insert(payload);
+        const { error } = await supabase.from('zadania').insert({
+          ...payload,
+          wykonane: false,
+          zakonczone_at: null,
+        });
         if (error) throw error;
       }
 
       setSelectedDate(form.data);
       closeModal();
-      await loadTasks();
+      await Promise.all([loadTasks(), syncAllTaskReminders(userId)]);
     } catch (e: any) {
       Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać zadania.');
     } finally {
@@ -336,13 +343,21 @@ export default function ZadaniaScreen() {
 
   const toggleDone = async (task: Task) => {
     try {
+      const nextDone = !task.wykonane;
       const { error } = await supabase
         .from('zadania')
-        .update({ wykonane: !task.wykonane })
+        .update({
+          wykonane: nextDone,
+          zakonczone_at: nextDone ? new Date().toISOString() : null,
+        })
         .eq('id', task.id);
 
       if (error) throw error;
-      await loadTasks();
+      if (session?.user?.id) {
+        await Promise.all([loadTasks(), syncAllTaskReminders(session.user.id)]);
+      } else {
+        await loadTasks();
+      }
     } catch (e: any) {
       Alert.alert(
         'Błąd',
@@ -360,9 +375,14 @@ export default function ZadaniaScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
+            const userId = session?.user?.id;
             const { error } = await supabase.from('zadania').delete().eq('id', task.id);
             if (error) throw error;
-            await loadTasks();
+            if (userId) {
+              await Promise.all([loadTasks(), syncAllTaskReminders(userId)]);
+            } else {
+              await loadTasks();
+            }
           } catch (e: any) {
             Alert.alert('Błąd', e?.message ?? 'Nie udało się usunąć zadania.');
           }

@@ -61,11 +61,11 @@ export default function LoginScreen() {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
-      if (data.session) router.replace('/(app)/(tabs)/dashboard');
+      if (data.session) router.replace('/(app)');
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) router.replace('/(app)/(tabs)/dashboard');
+      if (session) router.replace('/(app)');
     });
 
     const anim = Animated.loop(
@@ -162,6 +162,7 @@ export default function LoginScreen() {
           />
         </Animated.View>
 
+        <View>
           <TextInput
             placeholder={t('login.form.emailPlaceholder')}
             placeholderTextColor="#888888"
@@ -221,6 +222,8 @@ export default function LoginScreen() {
             {t('login.form.noAccount')} <Text style={styles.bottomLinkStrong}>{t('login.form.createAccount')}</Text>
           </Text>
         </TouchableOpacity>
+        </View>
+      </View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );

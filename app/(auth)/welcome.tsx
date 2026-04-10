@@ -91,11 +91,11 @@ export default function WelcomeScreen() {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
-      if (data.session) router.replace('/(app)/(tabs)/dashboard');
+      if (data.session) router.replace('/(app)');
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) router.replace('/(app)/(tabs)/dashboard');
+      if (session) router.replace('/(app)');
     });
 
     Animated.loop(

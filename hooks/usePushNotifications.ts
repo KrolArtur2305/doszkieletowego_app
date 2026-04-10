@@ -2,21 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useSupabaseAuth } from './useSupabaseAuth';
-import {
-  registerForPushNotificationsAsync,
-  savePushToken,
-  removePushToken,
-} from '../app/src/services/notifications/pushService';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+import { removePushToken } from '../app/src/services/notifications/pushService';
 
 type NotificationPayload = {
   screen?: string;
@@ -25,6 +11,11 @@ type NotificationPayload = {
 };
 
 function handleNotificationNavigation(data: NotificationPayload) {
+  if (data?.type === 'task_reminder') {
+    router.push('/(app)/(tabs)/zadania');
+    return;
+  }
+
   if (!data?.screen) return;
 
   switch (data.screen) {
@@ -55,20 +46,6 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!userId) return;
 
-    let active = true;
-
-    async function setup() {
-      try {
-        const token = await registerForPushNotificationsAsync();
-        if (!token || !active) return;
-        await savePushToken(token);
-      } catch (e: any) {
-        console.error('[Push] setup error:', e?.message ?? e);
-      }
-    }
-
-    setup();
-
     foregroundSubRef.current = Notifications.addNotificationReceivedListener(
       (notification) => {
         console.log('[Push] Foreground:', notification);
@@ -83,7 +60,6 @@ export function usePushNotifications() {
     );
 
     return () => {
-      active = false;
       foregroundSubRef.current?.remove();
       responseSubRef.current?.remove();
     };

@@ -30,6 +30,14 @@ type Particle = {
   s: Animated.Value; // scale
 };
 
+type OnboardingStep =
+  | 'build_type'
+  | 'build_stage'
+  | 'budget'
+  | 'profile'
+  | 'investment'
+  | 'done';
+
 export default function AppLayout() {
   const { session, loading: authLoading } = useSupabaseAuth();
   const pathname = usePathname();
@@ -39,14 +47,12 @@ export default function AppLayout() {
 
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [investmentComplete, setInvestmentComplete] = useState<boolean | null>(null);
-  const [buddyComplete, setBuddyComplete] = useState<boolean | null>(null); // ✅ buddy gate
-
-  // ✅ NOWE: plan gate
-  const [planOk, setPlanOk] = useState<boolean | null>(null);
+  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
 
   const lastCheckKeyRef = useRef<string>('');
 
-  // 1) Pobierz status profilu/inwestycji + plan + buddy
+  // 1) Pobierz stan onboardingu i kompletności danych
   useEffect(() => {
     let alive = true;
 
@@ -59,8 +65,8 @@ export default function AppLayout() {
         setChecking(false);
         setProfileComplete(null);
         setInvestmentComplete(null);
-        setPlanOk(null);
-        setBuddyComplete(null); // ✅
+        setOnboardingStep(null);
+        setOnboardingCompleted(null);
         return;
       }
 
@@ -75,7 +81,7 @@ export default function AppLayout() {
         const [profileRes, invRes] = await Promise.all([
           supabase
             .from('profiles')
-            .select('profil_wypelniony, plan, plan_expires_at, ai_buddy_name') // ✅ dodane ai_buddy_name
+            .select('profil_wypelniony, onboarding_step, onboarding_completed')
             .eq('user_id', userId)
             .maybeSingle(),
           supabase
@@ -87,30 +93,37 @@ export default function AppLayout() {
 
         if (!alive) return;
 
-        setProfileComplete(Boolean(profileRes.data?.profil_wypelniony));
-        setInvestmentComplete(Boolean(invRes.data?.inwestycja_wypelniona));
-        setBuddyComplete(Boolean(profileRes.data?.ai_buddy_name)); // ✅
+        const nextProfileComplete = Boolean(profileRes.data?.profil_wypelniony);
+        const nextInvestmentComplete = Boolean(invRes.data?.inwestycja_wypelniona);
+        const rawStep = profileRes.data?.onboarding_step;
 
-        // ✅ Plan OK jeśli:
-        // - plan != null
-        // - oraz jeśli plan_expires_at jest ustawione, to nie jest w przeszłości
-        const plan = profileRes.data?.plan ?? null;
-        const expiresAt = profileRes.data?.plan_expires_at ?? null;
+        const nextOnboardingStep: OnboardingStep =
+          rawStep === 'build_type' ||
+          rawStep === 'build_stage' ||
+          rawStep === 'budget' ||
+          rawStep === 'profile' ||
+          rawStep === 'investment' ||
+          rawStep === 'done'
+            ? rawStep
+            : nextProfileComplete && nextInvestmentComplete
+            ? 'done'
+            : 'build_type';
 
-        if (!plan) {
-          setPlanOk(false);
-        } else if (expiresAt) {
-          const exp = new Date(expiresAt).getTime();
-          setPlanOk(Number.isFinite(exp) ? exp > Date.now() : true);
-        } else {
-          setPlanOk(true); // bezterminowy
-        }
+        const nextOnboardingCompleted =
+          typeof profileRes.data?.onboarding_completed === 'boolean'
+            ? profileRes.data.onboarding_completed
+            : nextOnboardingStep === 'done';
+
+        setProfileComplete(nextProfileComplete);
+        setInvestmentComplete(nextInvestmentComplete);
+        setOnboardingStep(nextOnboardingStep);
+        setOnboardingCompleted(nextOnboardingCompleted);
       } catch {
         if (!alive) return;
         setProfileComplete(false);
         setInvestmentComplete(false);
-        setPlanOk(false);
-        setBuddyComplete(false); // ✅
+        setOnboardingStep('build_type');
+        setOnboardingCompleted(false);
       } finally {
         if (alive) setChecking(false);
       }
@@ -139,47 +152,60 @@ export default function AppLayout() {
   // 2) Gate (kolejność ma znaczenie!)
   const gateTarget = useMemo(() => {
     if (!session) return null;
+    if (onboardingStep === null || onboardingCompleted === null) return null;
 
-    // ✅ 1) najpierw plan (po pierwszym logowaniu)
-    if (planOk === false) return '/(app)/plan';
+    if (
+      onboardingStep === 'build_type' ||
+      onboardingStep === 'build_stage' ||
+      onboardingStep === 'budget'
+    ) {
+      return '/(app)/onboarding';
+    }
 
-    // ✅ 2) potem profil / inwestycja
-    if (profileComplete === false) return '/(app)/profil';
-    if (profileComplete === true && investmentComplete === false) return '/(app)/inwestycja';
+    if (onboardingStep === 'profile') return '/(app)/onboarding/profile';
+    if (onboardingStep === 'investment') return '/(app)/onboarding/inwestycja';
 
-    
+    if (onboardingStep === 'done') {
+      if (profileComplete !== true) return '/(app)/onboarding/profile';
+      if (investmentComplete !== true) return '/(app)/onboarding/inwestycja';
+      if (onboardingCompleted !== true) return '/(app)/onboarding';
+    }
 
     return null;
-  }, [session, planOk, profileComplete, investmentComplete, buddyComplete]);
+  }, [session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete]);
 
   // 3) Routing
   useEffect(() => {
     if (gateTarget) {
-      if (pathname !== gateTarget) router.replace(gateTarget);
+      const onAppRoot = pathname === '/(app)';
+      const outsideOnboarding = !pathname.startsWith('/(app)/onboarding');
+      if ((onAppRoot || outsideOnboarding) && pathname !== gateTarget) {
+        router.replace(gateTarget);
+      }
       return;
     }
 
     // Wejście na /(app) => dashboard, ale dopiero gdy wszystko OK
     if (
       session &&
-      planOk === true &&
+      onboardingStep === 'done' &&
+      onboardingCompleted === true &&
       profileComplete === true &&
       investmentComplete === true &&
-      buddyComplete === true && // ✅
       pathname === '/(app)'
     ) {
       router.replace('/(app)/(tabs)/dashboard');
     }
-  }, [gateTarget, pathname, router, session, planOk, profileComplete, investmentComplete, buddyComplete]);
+  }, [gateTarget, pathname, router, session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete]);
 
   const showOverlay =
     authLoading ||
     checking ||
     (session && (
-      planOk === null ||
+      onboardingStep === null ||
+      onboardingCompleted === null ||
       profileComplete === null ||
-      investmentComplete === null ||
-      buddyComplete === null // ✅
+      investmentComplete === null
     ));
 
   return (

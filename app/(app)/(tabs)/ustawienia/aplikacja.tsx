@@ -130,15 +130,15 @@ export default function UstawieniaAplikacjiScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error } = await supabase.rpc('delete_user');
-              if (error) throw error;
-
               const {
                 data: { user },
               } = await supabase.auth.getUser();
               if (user) {
                 await removePushToken(user.id);
               }
+
+              const { error } = await supabase.rpc('delete_user');
+              if (error) throw error;
               await supabase.auth.signOut();
               router.replace('/(auth)/login');
             } catch (e: any) {

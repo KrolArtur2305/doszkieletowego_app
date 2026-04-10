@@ -19,6 +19,10 @@
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
 import { supabase } from './supabase'
+import {
+  registerForPushNotificationsAsync,
+  savePushToken,
+} from '../app/src/services/notifications/pushService'
 
 // ─── Konfiguracja globalnego handlera ────────────────────────────────────────
 // Wywołaj raz na starcie apki (w _layout.tsx)
@@ -37,22 +41,10 @@ export function configureNotifications() {
 
 // ─── Rejestracja tokenu push ──────────────────────────────────────────────────
 // Wywołaj raz po zalogowaniu użytkownika (w _layout.tsx)
-// Token zapisujemy w profiles.push_token żeby Supabase Edge Function
-// mogła wysyłać zdalne powiadomienia (AI alerty, itp.)
+// Token zapisujemy wyłącznie w push_devices.
 
 export async function registerPushToken(userId: string): Promise<string | null> {
   try {
-    // Sprawdź uprawnienia
-    const { status: existing } = await Notifications.getPermissionsAsync()
-    let finalStatus = existing
-
-    if (existing !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync()
-      finalStatus = status
-    }
-
-    if (finalStatus !== 'granted') return null
-
     // Android wymaga kanału
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
@@ -76,14 +68,10 @@ export async function registerPushToken(userId: string): Promise<string | null> 
       })
     }
 
-    const tokenData = await Notifications.getExpoPushTokenAsync()
-    const token = tokenData.data
+    const token = await registerForPushNotificationsAsync()
+    if (!token) return null
 
-    // Zapisz token w Supabase (potrzebne dla zdalnych powiadomień AI)
-    await supabase
-      .from('profiles')
-      .update({ push_token: token })
-      .eq('user_id', userId)
+    await savePushToken(token)
 
     return token
   } catch (e) {
@@ -101,6 +89,7 @@ type Task = {
   data: string        // 'YYYY-MM-DD'
   godzina?: string | null  // 'HH:MM' lub null
   caly_dzien?: boolean
+  wykonane?: boolean | null
 }
 
 /**
@@ -177,6 +166,16 @@ export async function cancelTaskReminders(taskId: string): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(`task-${taskId}-day`).catch(() => {})
 }
 
+async function cancelAllTaskReminders(): Promise<void> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync().catch(() => [])
+  for (const notification of scheduled) {
+    const identifier = notification.identifier ?? ''
+    if (identifier.startsWith('task-')) {
+      await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {})
+    }
+  }
+}
+
 /**
  * Synchronizuje powiadomienia dla WSZYSTKICH zadań użytkownika.
  * Wywołaj po zalogowaniu lub gdy użytkownik włączy powiadomienia.
@@ -186,12 +185,14 @@ export async function syncAllTaskReminders(userId: string): Promise<void> {
   try {
     const today = new Date().toISOString().split('T')[0]
 
+    await cancelAllTaskReminders()
+
     const { data: tasks, error } = await supabase
       .from('zadania')
-      .select('id, nazwa, opis, data, godzina, caly_dzien')
+      .select('id, nazwa, opis, data, godzina, caly_dzien, wykonane')
       .eq('user_id', userId)
       .gte('data', today)          // tylko przyszłe i dzisiejsze
-      .is('zakonczone_at', null)   // tylko niezakończone
+      .eq('wykonane', false)       // tylko niewykonane
 
     if (error || !tasks) return
 
@@ -220,7 +221,7 @@ export async function cancelAllNotifications(): Promise<void> {
  * 1. Supabase Cron (codziennie 9:00) → Edge Function
  * 2. Edge Function pobiera dane usera → wysyła do Claude API
  * 3. Claude zwraca alert lub null
- * 4. Edge Function → Expo Push API (używa push_token z profiles)
+ * 4. Edge Function → Expo Push API (używa tokenów z push_devices)
  *
  * export async function sendAiAlert(userId: string, message: string) { ... }
  */

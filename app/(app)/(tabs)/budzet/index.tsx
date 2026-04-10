@@ -37,14 +37,17 @@ const logo = require('../../../assets/logo.png');
 const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
 
-const CATEGORIES = [
-  'Stan zero',
-  'Stan surowy otwarty',
-  'Stan surowy zamknięty',
-  'Instalacje',
-  'Stan deweloperski',
-  'Inne',
-];
+const CATEGORY_OPTIONS = [
+  { value: 'Stan zero', label: 'Zero' },
+  { value: 'Stan surowy otwarty', label: 'SSO' },
+  { value: 'Stan surowy zamknięty', label: 'SSZ' },
+  { value: 'Instalacje', label: 'Inst.' },
+  { value: 'Stan deweloperski', label: 'Dewel.' },
+  { value: 'Inne', label: 'Inne' },
+] as const;
+
+const CATEGORIES = CATEGORY_OPTIONS.map((option) => option.value);
+type CategoryValue = (typeof CATEGORY_OPTIONS)[number]['value'];
 
 const formatPLN = (value: number) =>
   new Intl.NumberFormat('pl-PL', {
@@ -77,6 +80,17 @@ const toYYYYMMDD = (d: Date) => {
 
 function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
+}
+
+function inferCategoryFromStage(stageName: string | null | undefined): CategoryValue {
+  const stage = normalize(stageName);
+  if (!stage) return 'Inne';
+  if (stage.includes('zero')) return 'Stan zero';
+  if (stage.includes('otwart')) return 'Stan surowy otwarty';
+  if (stage.includes('zamkni')) return 'Stan surowy zamknięty';
+  if (stage.includes('instal')) return 'Instalacje';
+  if (stage.includes('dewel')) return 'Stan deweloperski';
+  return 'Inne';
 }
 
 type WydatkiRow = {
@@ -149,13 +163,14 @@ export default function BudzetScreen() {
   const [saving, setSaving] = useState(false);
 
   const [fNazwa, setFNazwa] = useState('');
-  const [fKategoria, setFKategoria] = useState(CATEGORIES.includes('Inne') ? 'Inne' : CATEGORIES[0]);
+  const [fKategoria, setFKategoria] = useState<CategoryValue>(CATEGORIES.includes('Inne') ? 'Inne' : CATEGORIES[0] as CategoryValue);
   const [fKwota, setFKwota] = useState('');
-  const [fStatus, setFStatus] = useState<typeof STATUS_SPENT | typeof STATUS_UPCOMING>(STATUS_UPCOMING);
+  const [fStatus, setFStatus] = useState<typeof STATUS_SPENT | typeof STATUS_UPCOMING>(STATUS_SPENT);
   const [fData, setFData] = useState('');
   const [fOpis, setFOpis] = useState('');
   const [fSklep, setFSklep] = useState('');
   const [picked, setPicked] = useState<PickedFile | null>(null);
+  const [currentStageCategory, setCurrentStageCategory] = useState<CategoryValue>('Inne');
 
   // date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -224,6 +239,19 @@ export default function BudzetScreen() {
 
       if (expRes.error) throw expRes.error;
       setWydatki((expRes.data ?? []) as any);
+
+      const stageRes = await supabase
+        .from('etapy')
+        .select('nazwa, status, kolejnosc')
+        .eq('user_id', userId)
+        .order('kolejnosc', { ascending: true });
+
+      if (stageRes.error) throw stageRes.error;
+
+      const completedStatuses = new Set(['zrealizowany', 'wykonany', 'done', 'completed', 'ukończony']);
+      const activeStage = (stageRes.data ?? []).find((row: any) => !completedStatuses.has(normalize(row?.status)));
+      const fallbackStage = (stageRes.data ?? [])[0];
+      setCurrentStageCategory(inferCategoryFromStage(activeStage?.nazwa ?? fallbackStage?.nazwa ?? null));
     } catch (e: any) {
       setErrorMsg(e?.message ?? t('errors.fetchFailed'));
     } finally {
@@ -289,7 +317,7 @@ export default function BudzetScreen() {
       if (ins.error) throw ins.error;
 
       setFNazwa(''); setFKategoria('Inne'); setFKwota('');
-      setFStatus(STATUS_UPCOMING); setFData(''); setFOpis('');
+      setFStatus(STATUS_SPENT); setFData(''); setFOpis('');
       setFSklep(''); setPicked(null);
       setAddOpen(false);
       await loadBudget();
@@ -336,6 +364,18 @@ export default function BudzetScreen() {
     const base = fData?.trim() ? new Date(fData.trim()) : new Date();
     if (!Number.isNaN(base.getTime())) setDatePickerValue(base);
     setDatePickerOpen(true);
+  };
+
+  const openAddExpense = () => {
+    setFNazwa('');
+    setFKwota('');
+    setFKategoria(currentStageCategory || 'Inne');
+    setFStatus(STATUS_SPENT);
+    setFData('');
+    setFOpis('');
+    setFSklep('');
+    setPicked(null);
+    setAddOpen(true);
   };
 
   const onDatePicked = (event: any, selected?: Date) => {
@@ -595,28 +635,29 @@ export default function BudzetScreen() {
               <Text style={styles.lbl}>{t('modal.nameLabel')}</Text>
               <TextInput value={fNazwa} onChangeText={setFNazwa} style={styles.input} placeholder={t('modal.namePlaceholder')} placeholderTextColor="rgba(148,163,184,0.7)" />
 
-              <Text style={styles.lbl}>{t('modal.categoryLabel')}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
-                {CATEGORIES.map((c) => {
-                  const on = normalize(fKategoria) === normalize(c);
-                  return (
-                    <TouchableOpacity key={c} onPress={() => setFKategoria(c)} style={[styles.catPill, on && styles.catPillOn]} activeOpacity={0.85}>
-                      <Text style={[styles.catText, on && styles.catTextOn]}>{c}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
               <Text style={styles.lbl}>{t('modal.amountLabel')}</Text>
               <TextInput value={fKwota} onChangeText={setFKwota} style={styles.input} keyboardType="numeric" placeholder={t('modal.amountPlaceholder')} placeholderTextColor="rgba(148,163,184,0.7)" />
 
               <View style={styles.row2}>
-                <TouchableOpacity style={[styles.pill, fStatus === STATUS_UPCOMING && styles.pillOn]} onPress={() => setFStatus(STATUS_UPCOMING)}>
-                  <Text style={[styles.pillText, fStatus === STATUS_UPCOMING && styles.pillTextOn]}>{t('status.planned')}</Text>
-                </TouchableOpacity>
                 <TouchableOpacity style={[styles.pill, fStatus === STATUS_SPENT && styles.pillOn]} onPress={() => setFStatus(STATUS_SPENT)}>
                   <Text style={[styles.pillText, fStatus === STATUS_SPENT && styles.pillTextOn]}>{t('status.spent')}</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={[styles.pill, fStatus === STATUS_UPCOMING && styles.pillOn]} onPress={() => setFStatus(STATUS_UPCOMING)}>
+                  <Text style={[styles.pillText, fStatus === STATUS_UPCOMING && styles.pillTextOn]}>{t('status.planned')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.lbl}>{t('modal.categoryLabel')}</Text>
+              <View style={styles.catGrid}>
+                {CATEGORY_OPTIONS.map((option) => {
+                  const c = option.value;
+                  const on = normalize(fKategoria) === normalize(c);
+                  return (
+                    <TouchableOpacity key={c} onPress={() => setFKategoria(c)} style={[styles.catTile, on && styles.catTileOn]} activeOpacity={0.85}>
+                      <Text style={[styles.catTileText, on && styles.catTileTextOn]}>{option.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               <Text style={styles.lbl}>{t('modal.dateOptional')}</Text>
@@ -666,7 +707,7 @@ export default function BudzetScreen() {
       </ScrollView>
 
       {/* FAB — przyklejony na dole po prawej, zawsze widoczny */}
-      <FloatingAddButton onPress={() => setAddOpen(true)} />
+      <FloatingAddButton onPress={openAddExpense} />
     </View>
   );
 }
@@ -816,21 +857,29 @@ const styles = StyleSheet.create({
   // ── Modal ──
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   modalCard: { padding: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  modalTitle: { color: '#F8FAFC', fontWeight: '900', fontSize: 18, marginBottom: 12 },
+  modalTitle: { color: NEON, fontWeight: '900', fontSize: 18, marginBottom: 12, textAlign: 'center' },
   lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
   input: {
     borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
     backgroundColor: 'rgba(255,255,255,0.03)',
     paddingHorizontal: 12, paddingVertical: 10, color: '#FFFFFF',
   },
-  catRow: { gap: 10, paddingVertical: 2, paddingRight: 10 },
-  catPill: {
-    borderRadius: 999, paddingVertical: 9, paddingHorizontal: 12,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)',
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingVertical: 2 },
+  catTile: {
+    width: '30%',
+    minWidth: 84,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  catPillOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
-  catText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
-  catTextOn: { color: 'rgba(220,255,245,0.98)' },
+  catTileOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
+  catTileText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
+  catTileTextOn: { color: 'rgba(220,255,245,0.98)' },
   row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
   pill: {
     flex: 1, borderRadius: 999, paddingVertical: 10, alignItems: 'center',
