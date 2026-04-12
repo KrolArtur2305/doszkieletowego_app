@@ -20,9 +20,28 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
 
-// ✅ twardy cache na poziomie modułu (przetrwa Fast Refresh w większości przypadków)
-let __profilInitOnce = false;
-let __profilInitUserId: string | null = null;
+type ProfileCache = {
+  userId: string | null;
+  email: string;
+  imie: string;
+  nazwisko: string;
+  telefon: string;
+};
+
+const EMPTY_PROFILE_CACHE: ProfileCache = {
+  userId: null,
+  email: '',
+  imie: '',
+  nazwisko: '',
+  telefon: '',
+};
+
+// ✅ cache modułowy powiązany z konkretnym userem
+let __profileCache: ProfileCache = { ...EMPTY_PROFILE_CACHE };
+
+function resetProfileCache() {
+  __profileCache = { ...EMPTY_PROFILE_CACHE };
+}
 
 export default function ProfilScreen() {
   // ✅ trzymamy jeden namespace jako bazę
@@ -51,6 +70,13 @@ export default function ProfilScreen() {
 
   const normalizePhone = (v: string) => v.replace(/[^\d+]/g, '');
 
+  const applyProfileState = (next: ProfileCache) => {
+    setUserId(next.userId);
+    setEmail(next.email);
+    setImie(next.imie);
+    setNazwisko(next.nazwisko);
+    setTelefon(next.telefon);
+  };
 
   useEffect(() => {
     console.log('[Profil][i18n] render', {
@@ -64,12 +90,6 @@ export default function ProfilScreen() {
     let alive = true;
 
     (async () => {
-      // ✅ jeśli już raz zainicjalizowaliśmy dla tego usera, nie rób drugi raz
-      if (__profilInitOnce && __profilInitUserId) {
-        if (alive) setLoading(false);
-        return;
-      }
-
       setLoading(true);
       try {
         const { data: userRes, error: userErr } = await supabase.auth.getUser();
@@ -78,19 +98,25 @@ export default function ProfilScreen() {
         if (!alive) return;
 
         if (userErr || !userRes?.user) {
-          setUserId(null);
-          setEmail('');
+          resetProfileCache();
+          applyProfileState({ ...EMPTY_PROFILE_CACHE });
           return;
         }
 
         const user = userRes.user;
 
-        // ✅ ustaw cache modułowy
-        __profilInitOnce = true;
-        __profilInitUserId = user.id;
+        if (__profileCache.userId === user.id) {
+          applyProfileState(__profileCache);
+          return;
+        }
 
-        setUserId(user.id);
-        setEmail(user.email ?? '');
+        // ✅ zmiana usera: czyścimy poprzedni stan zanim dociągniemy nowe dane
+        resetProfileCache();
+        applyProfileState({
+          ...EMPTY_PROFILE_CACHE,
+          userId: user.id,
+          email: user.email ?? '',
+        });
 
         const { data, error } = await supabase
           .from('profiles')
@@ -103,11 +129,16 @@ export default function ProfilScreen() {
 
         if (!alive) return;
 
-        if (data) {
-          setImie(data.imie ?? '');
-          setNazwisko(data.nazwisko ?? '');
-          setTelefon(data.telefon ?? '');
-        }
+        const nextProfile: ProfileCache = {
+          userId: user.id,
+          email: user.email ?? '',
+          imie: data?.imie ?? '',
+          nazwisko: data?.nazwisko ?? '',
+          telefon: data?.telefon ?? '',
+        };
+
+        __profileCache = nextProfile;
+        applyProfileState(nextProfile);
       } catch (e) {
         console.log('[Profil] init exception:', e);
       } finally {

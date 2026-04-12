@@ -24,7 +24,7 @@ import {
   savePushToken,
 } from '../app/src/services/notifications/pushService'
 
-// ─── Konfiguracja globalnego handlera ────────────────────────────────────────
+// Konfiguracja globalnego handlera
 // Wywołaj raz na starcie apki (w _layout.tsx)
 
 export function configureNotifications() {
@@ -39,7 +39,7 @@ export function configureNotifications() {
   })
 }
 
-// ─── Rejestracja tokenu push ──────────────────────────────────────────────────
+// Rejestracja tokenu push
 // Wywołaj raz po zalogowaniu użytkownika (w _layout.tsx)
 // Token zapisujemy wyłącznie w push_devices.
 
@@ -80,7 +80,7 @@ export async function registerPushToken(userId: string): Promise<string | null> 
   }
 }
 
-// ─── ZADANIA ─────────────────────────────────────────────────────────────────
+// ZADANIA
 
 type Task = {
   id: string
@@ -113,7 +113,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     taskMinute = parseInt(parts[1], 10) || 0
   }
 
-  // ── Przypomnienie dzień wcześniej o 20:00 ──
+  // Przypomnienie dzień wcześniej o 20:00
   const dayBefore = new Date(taskDate)
   dayBefore.setDate(dayBefore.getDate() - 1)
   dayBefore.setHours(20, 0, 0, 0)
@@ -135,7 +135,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     })
   }
 
-  // ── Przypomnienie w dniu zadania ──
+  // Przypomnienie w dniu zadania
   const onDay = new Date(taskDate)
   onDay.setHours(taskHour, taskMinute, 0, 0)
 
@@ -212,7 +212,7 @@ export async function cancelAllNotifications(): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync()
 }
 
-// ─── PRZYSZŁE TYPY (TODO) ────────────────────────────────────────────────────
+// PRZYSZŁE TYPY (TODO)
 
 /**
  * TODO: AI Alerty — zdalne powiadomienia przez Supabase Edge Function

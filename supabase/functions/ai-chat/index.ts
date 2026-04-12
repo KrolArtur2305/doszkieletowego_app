@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-console.log("OPENAI KEY EXISTS:", !!Deno.env.get("OPENAI_API_KEY"));
-
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
@@ -479,6 +477,11 @@ function extractErrorMessage(error: unknown): string {
   }
 }
 
+function getErrorSummary(error: unknown): string {
+  const message = extractErrorMessage(error);
+  return message.length > 200 ? `${message.slice(0, 200)}...` : message;
+}
+
 function extractOpenAIText(payload: Record<string, unknown>): string {
   if (typeof payload.output_text === "string" && payload.output_text.trim()) {
     return payload.output_text.trim();
@@ -541,8 +544,11 @@ async function createOpenAIResponse(params: {
     body.tool_choice = "auto";
   }
 
-  console.log("OPENAI REQUEST BODY:", JSON.stringify(body));
-  console.log("CALLING OPENAI...");
+  console.log("ai-chat: openai request start", {
+    model: OPENAI_MODEL,
+    useWebSearch: params.useWebSearch,
+    historyCount: params.history.length,
+  });
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -551,18 +557,22 @@ async function createOpenAIResponse(params: {
     },
     body: JSON.stringify(body),
   });
-  console.log("OPENAI STATUS:", response.status);
+  console.log("ai-chat: openai response", { status: response.status });
 
   if (!response.ok) {
-    let errorText = "";
+    let errorSummary = "Failed to read OpenAI error body";
     try {
-      errorText = await response.text();
+      const errorText = await response.text();
+      errorSummary = errorText.slice(0, 200) || "Empty OpenAI error body";
     } catch (error) {
-      errorText = error instanceof Error ? error.message : "Failed to read OpenAI error body";
+      errorSummary =
+        error instanceof Error ? getErrorSummary(error) : "Failed to read OpenAI error body";
     }
-    console.log("OPENAI ERROR FULL TEXT:", errorText);
-    console.log("OPENAI ERROR:", errorText);
-    throw new Error(`OpenAI error ${response.status}: ${errorText}`);
+    console.error("ai-chat: openai error", {
+      status: response.status,
+      summary: errorSummary,
+    });
+    throw new Error(`OpenAI error ${response.status}: ${errorSummary}`);
   }
 
   const payload = (await response.json()) as Record<string, unknown>;
@@ -586,6 +596,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log("ai-chat: request received");
     const supabase = await getUserClient(req);
     if (!supabase) {
       return jsonResponse({ error: "Brak Authorization header." }, 401);
@@ -663,6 +674,10 @@ serve(async (req) => {
     });
   } catch (error) {
     const message = extractErrorMessage(error);
+    console.error("ai-chat: request failed", {
+      message: getErrorSummary(error),
+      unauthorized: message === "Unauthorized",
+    });
     if (message === "Unauthorized") {
       return jsonResponse({ error: message }, 401);
     }

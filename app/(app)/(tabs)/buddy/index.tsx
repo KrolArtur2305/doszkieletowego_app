@@ -18,14 +18,14 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
-import { supabase } from '../../../../lib/supabase';
+import { publicConfig, supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
 const BUDDY_AVATAR = require('../../../../assets/buddy_avatar.png');
 
-const AI_CHAT_ENDPOINT = 'https://pkgeautweumkupfxfjoo.supabase.co/functions/v1/ai-chat';
+const AI_CHAT_ENDPOINT = publicConfig.aiChatEndpoint;
 
 type Message = {
   id: string;
@@ -251,7 +251,6 @@ export default function BuddyChatScreen() {
         data: { session: activeSession },
       } = await supabase.auth.getSession();
 
-      console.log('AI session token exists:', !!activeSession?.access_token);
       const accessToken = activeSession?.access_token;
       if (!accessToken) throw new Error('Brak aktywnej sesji');
 
@@ -394,7 +393,7 @@ export default function BuddyChatScreen() {
           {loadingInitial || loadingMessages ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={NEON} />
-              <Text style={styles.loadingText}>Ładuję rozmowę…</Text>
+              <Text style={styles.loadingText}>Ładuję rozmowę...</Text>
             </View>
           ) : (
             messages.map((msg) => (
@@ -492,7 +491,7 @@ export default function BuddyChatScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder={`Zapytaj ${buddyName}…`}
+              placeholder={`Zapytaj ${buddyName}...`}
               placeholderTextColor="#888888"
               style={styles.input}
               multiline
@@ -549,7 +548,7 @@ export default function BuddyChatScreen() {
               {loadingHistory ? (
                 <View style={styles.loadingWrap}>
                   <ActivityIndicator color={NEON} />
-                  <Text style={styles.loadingText}>Ładuję historię…</Text>
+                  <Text style={styles.loadingText}>Ładuję historię...</Text>
                 </View>
               ) : conversations.length === 0 ? (
                 <Text style={styles.emptyHistoryText}>Brak wcześniejszych rozmów.</Text>

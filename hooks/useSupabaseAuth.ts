@@ -9,11 +9,6 @@ export function useSupabaseAuth() {
   useEffect(() => {
     let alive = true;
 
-    // bezpiecznik: nie pozwól wisieć w nieskończoność
-    const timer = setTimeout(() => {
-      if (alive) setLoading(false);
-    }, 2000);
-
     (async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
@@ -36,7 +31,6 @@ export function useSupabaseAuth() {
 
     return () => {
       alive = false;
-      clearTimeout(timer);
       sub.subscription.unsubscribe();
     };
   }, []);

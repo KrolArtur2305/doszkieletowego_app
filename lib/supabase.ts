@@ -11,6 +11,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+export const publicConfig = {
+  supabaseUrl,
+  supabaseAnonKey,
+  aiChatEndpoint: `${supabaseUrl}/functions/v1/ai-chat`,
+} as const;
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: {
