@@ -6,9 +6,22 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 
 const OPENAI_MODEL = "gpt-5.4-mini";
-const MAX_MESSAGES_PER_DAY = 50;
+const FREE_TRIAL_MESSAGES_PER_DAY = 5;
+const PAID_MESSAGES_PER_DAY = 50;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const MAX_HISTORY_MESSAGES = 16;
+const PAID_PLANS = new Set(["standard", "pro", "pro_plus"]);
+const TRUSTED_SUBSCRIPTION_SOURCES = new Set([
+  "stripe",
+  "revenuecat",
+  "app_store",
+  "apple",
+  "google_play",
+  "play_store",
+  "webhook",
+  "backend",
+  "server",
+]);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +45,20 @@ type UserContext = {
   currentStage: string | null;
   timeProgressPct: number | null;
 };
+
+type AccessPolicy = {
+  dailyLimit: number;
+};
+
+class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
 
 function jsonResponse(
   body: Record<string, unknown>,
@@ -196,9 +223,55 @@ async function getAuthenticatedUser(
 ) {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {
-    throw new Error("Unauthorized");
+    throw new HttpError(401, "Unauthorized");
   }
   return data.user;
+}
+
+async function getAccessPolicy(
+  supabase: ReturnType<typeof createClient>,
+): Promise<AccessPolicy> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("plan, subscription_source, plan_expires_at")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Nie udało się sprawdzić dostępu AI: ${error.message}`);
+  }
+
+  const plan = normalizeText(data?.plan).toLowerCase();
+  const subscriptionSource = normalizeText(data?.subscription_source).toLowerCase();
+  const planExpiresAt = normalizeText(data?.plan_expires_at);
+
+  const isPaidPlan = PAID_PLANS.has(plan);
+  const hasTrustedSource =
+    subscriptionSource.length > 0 &&
+    TRUSTED_SUBSCRIPTION_SOURCES.has(subscriptionSource);
+
+  const expiresAt = planExpiresAt ? new Date(planExpiresAt) : null;
+  const isExpired =
+    expiresAt !== null &&
+    !Number.isNaN(expiresAt.getTime()) &&
+    expiresAt.getTime() < Date.now();
+
+  if (isPaidPlan && hasTrustedSource && !isExpired) {
+    return {
+      dailyLimit: PAID_MESSAGES_PER_DAY,
+    };
+  }
+
+  if (isPaidPlan && (!hasTrustedSource || isExpired)) {
+    throw new HttpError(
+      403,
+      "Dostęp do AI wymaga aktywnej i zweryfikowanej subskrypcji.",
+    );
+  }
+
+  return {
+    dailyLimit: FREE_TRIAL_MESSAGES_PER_DAY,
+  };
 }
 
 async function ensureConversation(
@@ -235,6 +308,7 @@ async function ensureConversation(
 async function checkDailyUsage(
   supabase: ReturnType<typeof createClient>,
   userId: string,
+  dailyLimit: number,
 ) {
   const { data, error } = await supabase.rpc("get_ai_daily_usage", {
     p_user_id: userId,
@@ -246,10 +320,15 @@ async function checkDailyUsage(
 
   const row = Array.isArray(data) ? data[0] : data;
   const used = Number(row?.messages_count ?? 0);
-  const remaining = Math.max(MAX_MESSAGES_PER_DAY - used, 0);
+  const remaining = Math.max(dailyLimit - used, 0);
 
-  if (used >= MAX_MESSAGES_PER_DAY) {
-    throw new Error("Osiągnięto dzienny limit 50 wiadomości AI.");
+  if (used >= dailyLimit) {
+    throw new HttpError(
+      403,
+      dailyLimit <= FREE_TRIAL_MESSAGES_PER_DAY
+        ? "Wykorzystano dzienny limit darmowego dostępu do AI."
+        : "Osiągnięto dzienny limit wiadomości AI.",
+    );
   }
 
   return { used, remaining };
@@ -283,7 +362,10 @@ async function checkMinuteRateLimit(
   const requestCount = Number(row?.request_count ?? 0);
 
   if (requestCount > MAX_REQUESTS_PER_MINUTE) {
-    throw new Error("Za dużo zapytań w krótkim czasie. Spróbuj za chwilę.");
+    throw new HttpError(
+      429,
+      "Za dużo zapytań w krótkim czasie. Spróbuj za chwilę.",
+    );
   }
 }
 
@@ -373,9 +455,6 @@ async function fetchInvestment(
 async function fetchSpentBudget(
   supabase: ReturnType<typeof createClient>,
 ): Promise<number | null> {
-  // Zakładam najprostszy wariant: tabela wydatki ma kolumnę kwota.
-  // Jeśli później będziesz chciał liczyć tylko wydatki "poniesione",
-  // to dopniemy to pod Twój konkretny schemat statusów.
   const { data, error } = await supabase
     .from("wydatki")
     .select("kwota")
@@ -549,6 +628,7 @@ async function createOpenAIResponse(params: {
     useWebSearch: params.useWebSearch,
     historyCount: params.history.length,
   });
+
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -557,6 +637,7 @@ async function createOpenAIResponse(params: {
     },
     body: JSON.stringify(body),
   });
+
   console.log("ai-chat: openai response", { status: response.status });
 
   if (!response.ok) {
@@ -568,10 +649,12 @@ async function createOpenAIResponse(params: {
       errorSummary =
         error instanceof Error ? getErrorSummary(error) : "Failed to read OpenAI error body";
     }
+
     console.error("ai-chat: openai error", {
       status: response.status,
       summary: errorSummary,
     });
+
     throw new Error(`OpenAI error ${response.status}: ${errorSummary}`);
   }
 
@@ -603,16 +686,19 @@ serve(async (req) => {
     }
 
     const user = await getAuthenticatedUser(supabase);
+    const accessPolicy = await getAccessPolicy(supabase);
 
     const body = (await req.json()) as ChatRequestBody;
-    const message = normalizeText(body.message ?? (body as Record<string, unknown>).question);
+    const message = normalizeText(
+      body.message ?? (body as Record<string, unknown>).question,
+    );
     const assistantName = normalizeText(body.assistant_name) || null;
 
     if (!message) {
       return jsonResponse({ error: "Wiadomość nie może być pusta." }, 400);
     }
 
-    await checkDailyUsage(supabase, user.id);
+    await checkDailyUsage(supabase, user.id, accessPolicy.dailyLimit);
     await checkMinuteRateLimit(supabase);
 
     const conversationId = await ensureConversation(
@@ -633,7 +719,6 @@ serve(async (req) => {
     const userContext = await getUserContext(supabase);
     const history = await getRecentMessages(supabase, conversationId);
 
-    // Z historii wywalamy właśnie zapisaną wiadomość usera, bo dokładamy ją osobno na końcu.
     const historyForModel = history
       .filter((m: Record<string, unknown>) => m.id !== userMessage?.id)
       .slice(-MAX_HISTORY_MESSAGES)
@@ -674,13 +759,19 @@ serve(async (req) => {
     });
   } catch (error) {
     const message = extractErrorMessage(error);
+    const status = error instanceof HttpError ? error.status : 500;
+
     console.error("ai-chat: request failed", {
       message: getErrorSummary(error),
-      unauthorized: message === "Unauthorized",
+      status,
+      unauthorized: status === 401,
     });
-    if (message === "Unauthorized") {
-      return jsonResponse({ error: message }, 401);
-    }
-    return jsonResponse({ error: message }, 500);
+
+    const publicMessage =
+      status === 500
+        ? "Nie udało się obsłużyć wiadomości AI. Spróbuj ponownie później."
+        : message;
+
+    return jsonResponse({ error: publicMessage }, status);
   }
 });

@@ -17,6 +17,11 @@ import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import {
+  SUBSCRIPTION_PLAN_ORDER,
+  SUBSCRIPTION_PLANS,
+  type SubscriptionPlanKey,
+} from '../../../../../src/config/subscriptionPlans'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
@@ -28,30 +33,27 @@ const CARD_W = W - PEEK * 2 - GAP * 2
 const SNAP = CARD_W + GAP
 
 type BillingCycle = 'monthly' | 'yearly'
-type PlanKey = 'free' | 'standard' | 'pro'
-const PLAN_KEYS: PlanKey[] = ['free', 'standard', 'pro']
-
-// ─── All user-visible strings go through t() ──────────────────────────────────
-// defaultValue is the Polish fallback so the app works even without translation files
 
 export default function CheckoutScreen() {
   const router = useRouter()
   const { t } = useTranslation('subscription')
-  const { planKey: initialPlanKey } = useLocalSearchParams<{ planKey: PlanKey }>()
+  const { planKey: initialPlanKey } = useLocalSearchParams<{ planKey: SubscriptionPlanKey }>()
 
   const initIndex = Math.max(
     0,
-    PLAN_KEYS.indexOf(PLAN_KEYS.includes(initialPlanKey as PlanKey) ? (initialPlanKey as PlanKey) : 'standard')
+    SUBSCRIPTION_PLAN_ORDER.indexOf(
+      SUBSCRIPTION_PLAN_ORDER.includes(initialPlanKey as SubscriptionPlanKey)
+        ? (initialPlanKey as SubscriptionPlanKey)
+        : 'standard'
+    )
   )
 
   const [activeIndex, setActiveIndex] = useState(initIndex)
-  // Each card has its own billing cycle state
-  const [billingPerCard, setBillingPerCard] = useState<Record<PlanKey, BillingCycle>>({
+  const [billingPerCard, setBillingPerCard] = useState<Record<SubscriptionPlanKey, BillingCycle>>({
     free: 'monthly',
     standard: 'monthly',
     pro: 'monthly',
   })
-  const [processing, setProcessing] = useState(false)
 
   const scrollX = useRef(new Animated.Value(initIndex * SNAP)).current
   const scrollRef = useRef<ScrollView>(null)
@@ -64,13 +66,13 @@ export default function CheckoutScreen() {
     }, 80)
   }, [])
 
-  const activeKey = PLAN_KEYS[activeIndex]
+  const activeKey = SUBSCRIPTION_PLAN_ORDER[activeIndex]
   const isPro = activeKey === 'pro'
   const isFree = activeKey === 'free'
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / SNAP)
-    setActiveIndex(Math.max(0, Math.min(PLAN_KEYS.length - 1, idx)))
+    setActiveIndex(Math.max(0, Math.min(SUBSCRIPTION_PLAN_ORDER.length - 1, idx)))
   }
 
   const goTo = (i: number) => {
@@ -78,23 +80,18 @@ export default function CheckoutScreen() {
     setActiveIndex(i)
   }
 
-  const handlePurchase = async (key: PlanKey) => {
-    if (key === 'free') { router.back(); return }
-    // TODO: Stripe / Przelewy24
-    // 1. POST backend → create payment session
-    // 2. Linking.openURL(session.paymentUrl)
-    // 3. Webhook → activate plan in profiles.plan
-    setProcessing(true)
-    try {
-      await new Promise((r) => setTimeout(r, 1200))
-      Alert.alert(
-        t('checkout.successTitle', { defaultValue: 'Dziękujemy!' }),
-        t('checkout.successMessage', { defaultValue: 'Plan zostanie aktywowany po potwierdzeniu płatności.' }),
-        [{ text: 'OK', onPress: () => router.back() }]
-      )
-    } finally {
-      setProcessing(false)
+  const handlePurchase = async (key: SubscriptionPlanKey) => {
+    if (key === 'free') {
+      router.back()
+      return
     }
+
+    Alert.alert(
+      t('checkout.unavailableTitle', { defaultValue: 'Zakupy chwilowo niedostępne' }),
+      t('checkout.unavailableMessage', {
+        defaultValue: 'Zakupy w aplikacji nie są jeszcze aktywne w tej wersji. Wybranie planu nie uruchamia płatności ani nie aktywuje subskrypcji.',
+      })
+    )
   }
 
   return (
@@ -109,23 +106,20 @@ export default function CheckoutScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.outer, { paddingTop: topPad }]}
       >
-        {/* Back */}
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
           <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.65)" />
         </TouchableOpacity>
 
-        {/* Title — green like other screens */}
         <Text style={styles.screenTitle}>
-          {t('checkout.title', { defaultValue: 'Twój plan subskrypcyjny' })}
+          {t('checkout.title', { defaultValue: 'Plany subskrypcyjne' })}
         </Text>
         <Text style={styles.screenSubtitle}>
-          {t('checkout.subtitle', { defaultValue: 'Przesuń aby porównać plany' })}
+          {t('checkout.subtitle', { defaultValue: 'Porównaj ofertę. Zakupy w aplikacji będą dostępne w kolejnej wersji.' })}
         </Text>
 
-        {/* Dot indicators */}
         <View style={styles.dots}>
-          {PLAN_KEYS.map((k, i) => (
-            <TouchableOpacity key={k} onPress={() => goTo(i)} hitSlop={10} activeOpacity={0.7}>
+          {SUBSCRIPTION_PLAN_ORDER.map((key, i) => (
+            <TouchableOpacity key={key} onPress={() => goTo(i)} hitSlop={10} activeOpacity={0.7}>
               <View
                 style={[
                   styles.dot,
@@ -139,7 +133,6 @@ export default function CheckoutScreen() {
           ))}
         </View>
 
-        {/* ── CAROUSEL ── */}
         <Animated.ScrollView
           ref={scrollRef as any}
           horizontal
@@ -156,7 +149,8 @@ export default function CheckoutScreen() {
           onMomentumScrollEnd={onMomentumEnd}
           scrollEventThrottle={16}
         >
-          {PLAN_KEYS.map((key, index) => {
+          {SUBSCRIPTION_PLAN_ORDER.map((key, index) => {
+            const plan = SUBSCRIPTION_PLANS[key]
             const billing = billingPerCard[key]
             const isThisFree = key === 'free'
             const isThisPro = key === 'pro'
@@ -176,15 +170,17 @@ export default function CheckoutScreen() {
             const nameColor = isThisPro ? NEON : isThisStandard ? '#FFFFFF' : 'rgba(255,255,255,0.55)'
             const checkColor = isThisPro ? NEON : ACCENT
 
-            // Prices — Standard: 19,99 zł/msc → 399 zł/2 lata (≈ 16,63 zł/msc, oszczędność ~81 zł)
-            //          Pro:      34,99 zł/msc → 699 zł/2 lata (≈ 29,13 zł/msc, oszczędność ~141 zł)
-            const monthlyPrice = isThisFree ? null : isThisStandard ? 19.99 : 34.99
-            const yearlyPrice  = isThisFree ? null : isThisStandard ? 399   : 699
-            const yearlyMonthly = isThisFree ? null : isThisStandard ? 16.63 : 29.13
+            const monthlyPrice = plan.monthlyPrice
+            const yearlyPrice = plan.yearlyPrice
+            const yearlyMonthly =
+              !isThisFree && monthlyPrice !== null && yearlyPrice !== null
+                ? yearlyPrice / 24
+                : null
             const displayPrice = billing === 'monthly' ? monthlyPrice : yearlyPrice
-            const savings = !isThisFree && billing === 'yearly'
-              ? Math.round((monthlyPrice! * 24) - yearlyPrice!)
-              : null
+            const savings =
+              !isThisFree && billing === 'yearly' && monthlyPrice !== null && yearlyPrice !== null
+                ? Math.round((monthlyPrice * 24) - yearlyPrice)
+                : null
 
             return (
               <Animated.View
@@ -192,10 +188,8 @@ export default function CheckoutScreen() {
                 style={[styles.cardWrap, { width: CARD_W, transform: [{ scale }], opacity }]}
               >
                 <BlurView intensity={18} tint="dark" style={[styles.card, { borderColor }]}>
-                  {/* Top accent line */}
                   <View style={[styles.cardLine, { backgroundColor: topLineColor }]} />
 
-                  {/* Badge row */}
                   <View style={styles.badgeRow}>
                     {isThisPro && (
                       <View style={[styles.badge, styles.badgePro]}>
@@ -213,92 +207,71 @@ export default function CheckoutScreen() {
                     )}
                   </View>
 
-                  {/* Plan name — centered, same size for all */}
                   <Text style={[styles.cardName, { color: nameColor }]}>
-                    {t(`plans.${key}.name`, { defaultValue: key.toUpperCase() })}
+                    {t(plan.nameKey, { defaultValue: key.toUpperCase() })}
                   </Text>
 
-                  {/* ── FEATURES — exact schema ── */}
                   <View style={styles.features}>
-
-                    {/* Zdjęcia */}
                     <View style={styles.featRow}>
                       <Text style={styles.featLabel}>{t('features.photosLabel', { defaultValue: 'Zdjęcia' })}</Text>
                       <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
-                        {isThisFree
-                          ? t('features.photos20', { defaultValue: 'do 20 zdjęć' })
-                          : isThisStandard
-                          ? t('features.photos50', { defaultValue: 'do 50 zdjęć' })
-                          : t('features.photosUnlimited', { defaultValue: 'bez limitu' })
-                        }
+                        {plan.features.photos === 'unlimited'
+                          ? t('features.photosUnlimited', { defaultValue: 'bez limitu' })
+                          : t(`features.photos${plan.features.photos}`, { defaultValue: `do ${plan.features.photos} zdjęć` })}
                       </Text>
                     </View>
 
-                    {/* Dokumenty */}
                     <View style={styles.featRow}>
                       <Text style={styles.featLabel}>{t('features.docsLabel', { defaultValue: 'Dokumenty' })}</Text>
                       <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
-                        {isThisFree
-                          ? t('features.docs5', { defaultValue: 'do 5 dokumentów' })
-                          : isThisStandard
-                          ? t('features.docs15', { defaultValue: 'do 15 dokumentów' })
-                          : t('features.docsUnlimited', { defaultValue: 'bez limitu' })
-                        }
+                        {plan.features.docs === 'unlimited'
+                          ? t('features.docsUnlimited', { defaultValue: 'bez limitu' })
+                          : t(`features.docs${plan.features.docs}`, { defaultValue: `do ${plan.features.docs} dokumentów` })}
                       </Text>
                     </View>
 
-                    {/* Zadania */}
                     <View style={styles.featRow}>
                       <Text style={styles.featLabel}>{t('features.tasksLabel', { defaultValue: 'Zadania' })}</Text>
                       <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
-                        {isThisFree
-                          ? t('features.tasks15', { defaultValue: 'do 15 zadań' })
-                          : isThisStandard
-                          ? t('features.tasks50', { defaultValue: 'do 50 zadań' })
-                          : t('features.tasksUnlimited', { defaultValue: 'bez limitu' })
-                        }
+                        {plan.features.tasks === 'unlimited'
+                          ? t('features.tasksUnlimited', { defaultValue: 'bez limitu' })
+                          : t(`features.tasks${plan.features.tasks}`, { defaultValue: `do ${plan.features.tasks} zadań` })}
                       </Text>
                     </View>
 
-                    {/* Model 3D */}
                     <View style={styles.featRow}>
                       <Text style={styles.featLabel}>{t('features.model3dLabel', { defaultValue: 'Model 3D' })}</Text>
                       <View style={styles.featBoolWrap}>
                         <Feather
-                          name={isThisFree ? 'x' : 'check'}
+                          name={plan.features.model3d ? 'check' : 'x'}
                           size={13}
-                          color={isThisFree ? 'rgba(255,255,255,0.22)' : checkColor}
+                          color={plan.features.model3d ? checkColor : 'rgba(255,255,255,0.22)'}
                         />
-                        <Text style={[styles.featBool, isThisFree && styles.featBoolOff]}>
-                          {isThisFree
-                            ? t('no', { defaultValue: 'Nie' })
-                            : t('yes', { defaultValue: 'Tak' })
-                          }
+                        <Text style={[styles.featBool, !plan.features.model3d && styles.featBoolOff]}>
+                          {plan.features.model3d
+                            ? t('yes', { defaultValue: 'Tak' })
+                            : t('no', { defaultValue: 'Nie' })}
                         </Text>
                       </View>
                     </View>
 
-                    {/* Asystent AI */}
                     <View style={[styles.featRow, { borderBottomWidth: 0 }]}>
                       <Text style={styles.featLabel}>{t('features.aiLabel', { defaultValue: 'Asystent AI' })}</Text>
                       <View style={styles.featBoolWrap}>
                         <Feather
-                          name={isThisPro ? 'check' : 'x'}
+                          name={plan.features.ai ? 'check' : 'x'}
                           size={13}
-                          color={isThisPro ? NEON : 'rgba(255,255,255,0.22)'}
+                          color={plan.features.ai ? (isThisPro ? NEON : checkColor) : 'rgba(255,255,255,0.22)'}
                         />
-                        <Text style={[styles.featBool, !isThisPro && styles.featBoolOff]}>
-                          {isThisPro
+                        <Text style={[styles.featBool, !plan.features.ai && styles.featBoolOff]}>
+                          {plan.features.ai
                             ? t('yes', { defaultValue: 'Tak' })
-                            : t('no', { defaultValue: 'Nie' })
-                          }
+                            : t('no', { defaultValue: 'Nie' })}
                         </Text>
                       </View>
                     </View>
-
                   </View>
 
-                  {/* ── PRICE ── */}
                   <View style={styles.priceSection}>
                     {isThisFree ? (
                       <>
@@ -307,7 +280,6 @@ export default function CheckoutScreen() {
                       </>
                     ) : (
                       <>
-                        {/* Price display */}
                         <View style={styles.priceRow}>
                           <Text style={[styles.priceAmount, isThisPro && { color: NEON }]}>
                             {billing === 'monthly'
@@ -323,11 +295,11 @@ export default function CheckoutScreen() {
                           </Text>
                         </View>
 
-                        {billing === 'yearly' && (
+                        {billing === 'yearly' && yearlyMonthly !== null && (
                           <Text style={styles.priceEquiv}>
                             {t('priceEquiv', {
-                              defaultValue: `≈ ${yearlyMonthly?.toFixed(2)} zł/msc`,
-                              amount: yearlyMonthly?.toFixed(2),
+                              defaultValue: `≈ ${yearlyMonthly.toFixed(2)} zł/msc`,
+                              amount: yearlyMonthly.toFixed(2),
                             })}
                           </Text>
                         )}
@@ -337,14 +309,13 @@ export default function CheckoutScreen() {
                             <Feather name="tag" size={11} color={NEON} />
                             <Text style={styles.savingsText}>
                               {t('checkout.savingsNote', {
-                                defaultValue: `Oszczędzasz ${savings} zł`,
+                                defaultValue: `Różnica względem rozliczenia miesięcznego: ${savings} zł`,
                                 amount: savings,
                               })}
                             </Text>
                           </View>
                         )}
 
-                        {/* ── BILLING TOGGLE ── */}
                         <View style={styles.billingRow}>
                           <TouchableOpacity
                             onPress={() => setBillingPerCard((p) => ({ ...p, [key]: 'monthly' }))}
@@ -372,16 +343,13 @@ export default function CheckoutScreen() {
                     )}
                   </View>
 
-                  {/* ── SELECT BUTTON ── */}
                   <TouchableOpacity
                     style={[
                       styles.selectBtn,
                       isThisPro && styles.selectBtnPro,
                       isThisFree && styles.selectBtnFree,
-                      processing && { opacity: 0.65 },
                     ]}
                     onPress={() => handlePurchase(key)}
-                    disabled={processing}
                     activeOpacity={0.88}
                   >
                     <Text style={[
@@ -391,24 +359,21 @@ export default function CheckoutScreen() {
                     ]}>
                       {isThisFree
                         ? t('checkout.freeCta', { defaultValue: 'Wybierz darmowy' })
-                        : processing
-                        ? t('checkout.processing', { defaultValue: 'Przetwarzanie...' })
-                        : t('checkout.selectBtn', { defaultValue: 'Wybierz plan' })
-                      }
+                        : t('checkout.selectBtn', { defaultValue: 'Wkrótce dostępne' })}
                     </Text>
                   </TouchableOpacity>
-
                 </BlurView>
               </Animated.View>
             )
           })}
         </Animated.ScrollView>
 
-        {/* Security note */}
         <View style={styles.securityRow}>
-          <Feather name="shield" size={12} color="rgba(255,255,255,0.25)" />
+          <Feather name="info" size={12} color="rgba(255,255,255,0.25)" />
           <Text style={styles.securityText}>
-            {t('checkout.security', { defaultValue: 'Bezpieczna płatność • Anuluj w dowolnym momencie' })}
+            {t('checkout.notice', {
+              defaultValue: 'Ten ekran ma obecnie charakter informacyjny. Zakupy i aktywacja planów będą dostępne w kolejnej wersji.',
+            })}
           </Text>
         </View>
 
@@ -417,8 +382,6 @@ export default function CheckoutScreen() {
     </View>
   )
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
@@ -437,7 +400,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
 
-  // Title — same green as other screens, bigger
   screenTitle: {
     color: NEON,
     fontSize: 26, fontWeight: '900', letterSpacing: -0.2,
@@ -453,7 +415,6 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.16)' },
   dotActive: { width: 24, borderRadius: 99 },
 
-  // ── Carousel ──
   carouselContent: { paddingLeft: PEEK, paddingRight: PEEK, paddingBottom: 8 },
 
   cardWrap: { marginRight: GAP },
@@ -472,13 +433,11 @@ const styles = StyleSheet.create({
   badgeStandard: { backgroundColor: 'rgba(25,112,92,0.10)', borderColor: 'rgba(25,112,92,0.28)' },
   badgeText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
 
-  // Name — centered, same fontSize for all 3
   cardName: {
     fontSize: 22, fontWeight: '900', letterSpacing: -0.2,
     textAlign: 'center', marginBottom: 18,
   },
 
-  // ── Features table ──
   features: {
     borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
     backgroundColor: 'rgba(255,255,255,0.02)', overflow: 'hidden', marginBottom: 18,
@@ -500,7 +459,6 @@ const styles = StyleSheet.create({
   featBool: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   featBoolOff: { color: 'rgba(255,255,255,0.30)' },
 
-  // ── Price section ──
   priceSection: { marginBottom: 16 },
 
   priceFree: { color: '#FFFFFF', fontSize: 28, fontWeight: '900', textAlign: 'center' },
@@ -521,7 +479,6 @@ const styles = StyleSheet.create({
   },
   savingsText: { color: NEON, fontSize: 11, fontWeight: '800' },
 
-  // Billing toggle
   billingRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   billingPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -541,7 +498,6 @@ const styles = StyleSheet.create({
   },
   savePillText: { color: NEON, fontSize: 9, fontWeight: '900' },
 
-  // Select button
   selectBtn: {
     borderRadius: 18, paddingVertical: 14, alignItems: 'center',
     backgroundColor: 'rgba(37,240,200,0.12)',
@@ -557,7 +513,6 @@ const styles = StyleSheet.create({
   selectBtnTextPro: { color: '#0B1120' },
   selectBtnTextFree: { color: 'rgba(255,255,255,0.45)', fontSize: 14 },
 
-  // Bottom
   securityRow: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: 6, marginTop: 18,

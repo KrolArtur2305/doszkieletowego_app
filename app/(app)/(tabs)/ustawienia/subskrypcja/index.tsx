@@ -14,88 +14,30 @@ import { Feather } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../../../../lib/supabase'
+import {
+  SUBSCRIPTION_PLAN_LIST,
+  type SubscriptionPlanDefinition,
+  type SubscriptionPlanKey,
+} from '../../../../../src/config/subscriptionPlans'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
 
-type PlanKey = 'free' | 'standard' | 'pro'
+const FEATURE_ROWS = [
+  { key: 'photos', labelKey: 'features.photos' },
+  { key: 'docs', labelKey: 'features.docs' },
+  { key: 'tasks', labelKey: 'features.tasks' },
+  { key: 'model3d', labelKey: 'features.model3d' },
+  { key: 'ai', labelKey: 'features.ai' },
+] as const
 
-type Plan = {
-  key: PlanKey
-  nameKey: string
-  descKey: string
-  monthlyPrice: number | null
-  yearlyPrice: number | null
-  color: string
-  glowColor: string
-  popular: boolean
-  features: {
-    key: string
-    labelKey: string
-    value: string | boolean
-    highlight?: boolean
-  }[]
-}
-
-const PLANS: Plan[] = [
-  {
-    key: 'free',
-    nameKey: 'plans.free.name',
-    descKey: 'plans.free.desc',
-    monthlyPrice: null,
-    yearlyPrice: null,
-    color: 'rgba(255,255,255,0.06)',
-    glowColor: 'rgba(255,255,255,0.10)',
-    popular: false,
-    features: [
-      { key: 'photos', labelKey: 'features.photos', value: '20' },
-      { key: 'docs', labelKey: 'features.docs', value: '5' },
-      { key: 'tasks', labelKey: 'features.tasks', value: '15' },
-      { key: 'model3d', labelKey: 'features.model3d', value: false },
-      { key: 'ai', labelKey: 'features.ai', value: false },
-    ],
-  },
-  {
-    key: 'standard',
-    nameKey: 'plans.standard.name',
-    descKey: 'plans.standard.desc',
-    monthlyPrice: 19.99,
-    yearlyPrice: 399,
-    color: 'rgba(25,112,92,0.14)',
-    glowColor: 'rgba(25,112,92,0.35)',
-    popular: true,
-    features: [
-      { key: 'photos', labelKey: 'features.photos', value: '50' },
-      { key: 'docs', labelKey: 'features.docs', value: '15' },
-      { key: 'tasks', labelKey: 'features.tasks', value: '50' },
-      { key: 'model3d', labelKey: 'features.model3d', value: true },
-      { key: 'ai', labelKey: 'features.ai', value: false },
-    ],
-  },
-  {
-    key: 'pro',
-    nameKey: 'plans.pro.name',
-    descKey: 'plans.pro.desc',
-    monthlyPrice: 34.99,
-    yearlyPrice: 699,
-    color: 'rgba(37,240,200,0.08)',
-    glowColor: 'rgba(37,240,200,0.40)',
-    popular: false,
-    features: [
-      { key: 'photos', labelKey: 'features.photos', value: '∞', highlight: true },
-      { key: 'docs', labelKey: 'features.docs', value: '∞', highlight: true },
-      { key: 'tasks', labelKey: 'features.tasks', value: '∞', highlight: true },
-      { key: 'model3d', labelKey: 'features.model3d', value: true },
-      { key: 'ai', labelKey: 'features.ai', value: true, highlight: true },
-    ],
-  },
-]
+const PLANS = SUBSCRIPTION_PLAN_LIST
 
 export default function SubskrypcjaScreen() {
   const router = useRouter()
   const { t, i18n } = useTranslation('subscription')
 
-  const [currentPlan, setCurrentPlan] = useState<PlanKey>('free')
+  const [currentPlan, setCurrentPlan] = useState<SubscriptionPlanKey>('free')
   const [loading, setLoading] = useState(true)
 
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8
@@ -115,7 +57,7 @@ export default function SubskrypcjaScreen() {
           .maybeSingle()
 
         if (!alive) return
-        const p = profile?.plan as PlanKey | null
+        const p = profile?.plan as SubscriptionPlanKey | null
         if (p && ['free', 'standard', 'pro'].includes(p)) setCurrentPlan(p)
       } catch {
       } finally {
@@ -138,7 +80,7 @@ export default function SubskrypcjaScreen() {
     ]).start()
   }, [])
 
-  const onSelectPlan = (plan: Plan) => {
+  const onSelectPlan = (plan: SubscriptionPlanDefinition) => {
     if (plan.key === 'free') return
     router.push({
       pathname: '/(app)/(tabs)/ustawienia/subskrypcja/checkout',
@@ -248,7 +190,7 @@ function PlanCard({
   formatPrice,
   onSelect,
 }: {
-  plan: Plan
+  plan: SubscriptionPlanDefinition
   isCurrent: boolean
   t: (key: string, opts?: any) => string
   formatPrice: (value: number) => string
@@ -315,34 +257,40 @@ function PlanCard({
           <View style={[styles.cardDivider, isPro && { backgroundColor: 'rgba(37,240,200,0.18)' }]} />
 
           <View style={styles.featuresWrap}>
-            {plan.features.map((feat) => (
-              <View key={feat.key} style={styles.featureRow}>
-                {typeof feat.value === 'boolean' ? (
-                  <View style={[styles.featIcon, feat.value && styles.featIconOn]}>
-                    <Feather
-                      name={feat.value ? 'check' : 'x'}
-                      size={10}
-                      color={feat.value ? '#0B1120' : 'rgba(255,255,255,0.25)'}
-                    />
-                  </View>
-                ) : (
-                  <View style={[styles.featIcon, styles.featIconOn]}>
-                    <Feather name="check" size={10} color="#0B1120" />
-                  </View>
-                )}
-                <Text
-                  style={[styles.featureText, feat.highlight && styles.featureTextHighlight]}
-                  numberOfLines={2}
-                >
-                  {typeof feat.value === 'boolean'
-                    ? t(feat.labelKey)
-                    : t('featureWithValue', {
-                        value: feat.value === '∞' ? t('unlimited') : feat.value,
-                        label: t(feat.labelKey),
-                      })}
-                </Text>
-              </View>
-            ))}
+            {FEATURE_ROWS.map((feature) => {
+              const value = plan.features[feature.key]
+              const isUnlimited = value === 'unlimited'
+              const highlight = feature.key === 'ai' ? value === true : isUnlimited
+
+              return (
+                <View key={feature.key} style={styles.featureRow}>
+                  {typeof value === 'boolean' ? (
+                    <View style={[styles.featIcon, value && styles.featIconOn]}>
+                      <Feather
+                        name={value ? 'check' : 'x'}
+                        size={10}
+                        color={value ? '#0B1120' : 'rgba(255,255,255,0.25)'}
+                      />
+                    </View>
+                  ) : (
+                    <View style={[styles.featIcon, styles.featIconOn]}>
+                      <Feather name="check" size={10} color="#0B1120" />
+                    </View>
+                  )}
+                  <Text
+                    style={[styles.featureText, highlight && styles.featureTextHighlight]}
+                    numberOfLines={2}
+                  >
+                    {typeof value === 'boolean'
+                      ? t(feature.labelKey)
+                      : t('featureWithValue', {
+                          value: isUnlimited ? t('unlimited') : String(value),
+                          label: t(feature.labelKey),
+                        })}
+                  </Text>
+                </View>
+              )
+            })}
           </View>
 
           <TouchableOpacity

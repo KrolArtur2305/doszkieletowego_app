@@ -20,11 +20,11 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
+import { getPlansWithFeature } from '../src/config/subscriptionPlans';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
 
-// TODO: podmień na Lottie gdy będzie gotowa animacja
 const BUDDY_AVATAR = require('../../assets/buddy_avatar.png');
 
 const FEATURES = [
@@ -54,226 +54,233 @@ const FEATURES = [
     titleKey: 'buddy.feature4.title',
     titleDefault: 'Zawsze do dyspozycji',
     descKey: 'buddy.feature4.desc',
-    descDefault: 'Pytaj o wszystko związane z budową — odpowie od razu',
+    descDefault: 'Pytaj o wszystko związane z budową, odpowie od razu',
   },
-]
+];
 
 export default function BuddyOnboardingScreen() {
-  const router = useRouter()
-  const { t } = useTranslation('settings')
-  const { session } = useSupabaseAuth()
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8
+  const router = useRouter();
+  const { t } = useTranslation('settings');
+  const { session } = useSupabaseAuth();
+  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const aiPlansLabel = getPlansWithFeature('ai')
+    .map((planKey) =>
+      t(`subscription:plans.${planKey}.name`, { defaultValue: planKey.toUpperCase() })
+    )
+    .join(', ');
 
-  const [buddyName, setBuddyName] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [buddyName, setBuddyName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Entrance animations
-  const avatarAnim = useRef(new Animated.Value(0)).current
-  const contentAnim = useRef(new Animated.Value(0)).current
-  const avatarScale = useRef(new Animated.Value(0.8)).current
-
-  // Subtle floating animation for avatar
-  const floatAnim = useRef(new Animated.Value(0)).current
+  const avatarAnim = useRef(new Animated.Value(0)).current;
+  const contentAnim = useRef(new Animated.Value(0)).current;
+  const avatarScale = useRef(new Animated.Value(0.8)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Entrance
     Animated.sequence([
       Animated.parallel([
         Animated.timing(avatarAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
         Animated.spring(avatarScale, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
       ]),
       Animated.timing(contentAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-    ]).start()
+    ]).start();
 
-    // Float loop
     const float = Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, { toValue: -8, duration: 2200, useNativeDriver: true }),
         Animated.timing(floatAnim, { toValue: 0, duration: 2200, useNativeDriver: true }),
       ])
-    )
-    float.start()
-    return () => float.stop()
-  }, [])
+    );
+    float.start();
+    return () => float.stop();
+  }, []);
 
   const handleSave = async () => {
-    const name = buddyName.trim()
+    const name = buddyName.trim();
     if (!name) {
-      setError(t('buddy.nameRequired', { defaultValue: 'Podaj imię kierownika' }))
-      return
+      setError(t('buddy.nameRequired', { defaultValue: 'Podaj imię kierownika' }));
+      return;
     }
     if (name.length > 30) {
-      setError(t('buddy.nameTooLong', { defaultValue: 'Imię może mieć max 30 znaków' }))
-      return
+      setError(t('buddy.nameTooLong', { defaultValue: 'Imię może mieć max 30 znaków' }));
+      return;
     }
 
-    setSaving(true)
-    setError(null)
+    setSaving(true);
+    setError(null);
     try {
-      const userId = session?.user?.id
-      if (!userId) throw new Error('Brak sesji')
+      const userId = session?.user?.id;
+      if (!userId) throw new Error('Brak sesji');
 
       const { error: dbErr } = await supabase
         .from('profiles')
         .update({ ai_buddy_name: name })
-        .eq('user_id', userId)
+        .eq('user_id', userId);
 
-      if (dbErr) throw dbErr
+      if (dbErr) throw dbErr;
 
-      // Przejdź do dashboardu (onboarding) lub wróć (edycja z profilu)
-      router.replace('/(app)/(tabs)/dashboard')
+      router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
-      setError(e?.message ?? t('buddy.saveError', { defaultValue: 'Nie udało się zapisać' }))
+      setError(e?.message ?? t('buddy.saveError', { defaultValue: 'Nie udało się zapisać' }));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg} />
 
-      {/* Ambient glows */}
-      <View pointerEvents="none" style={styles.glowTop} />
-      <View pointerEvents="none" style={styles.glowBottom} />
+        <View pointerEvents="none" style={styles.glowTop} />
+        <View pointerEvents="none" style={styles.glowBottom} />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingTop: topPad }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Eyebrow */}
-          <Animated.View style={{ opacity: avatarAnim, alignItems: 'center' }}>
-            <View style={styles.eyebrowWrap}>
-              <View style={styles.eyebrowDot} />
-              <Text style={styles.eyebrow}>
-                {t('buddy.eyebrow', { defaultValue: 'Plan Pro · Kierownik AI' })}
-              </Text>
-            </View>
-          </Animated.View>
-
-          {/* Avatar */}
-          <Animated.View style={[
-            styles.avatarWrap,
-            {
-              opacity: avatarAnim,
-              transform: [{ scale: avatarScale }, { translateY: floatAnim }],
-            },
-          ]}>
-            {/* Glow ring */}
-            <View style={styles.avatarGlowRing} />
-            <View style={styles.avatarGlowRing2} />
-
-            <Image
-              source={BUDDY_AVATAR}
-              style={styles.avatarImage}
-              resizeMode="cover"
-            />
-
-            {/* AI badge */}
-            <View style={styles.aiBadge}>
-              <Feather name="cpu" size={10} color="#0B1120" />
-              <Text style={styles.aiBadgeText}>AI</Text>
-            </View>
-          </Animated.View>
-
-          {/* Title */}
-          <Animated.View style={[styles.titleWrap, { opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
-            <Text style={styles.title}>
-              {t('buddy.onboarding.title', { defaultValue: 'Poznaj swojego\nkierownika budowy' })}
-            </Text>
-            <Text style={styles.subtitle}>
-              {t('buddy.onboarding.subtitle', { defaultValue: 'Nadaj mu imię — będzie Twoim partnerem przez całą budowę' })}
-            </Text>
-          </Animated.View>
-
-          {/* Name input */}
-          <Animated.View style={[styles.inputSection, { opacity: contentAnim }]}>
-            <Text style={styles.inputLabel}>
-              {t('buddy.onboarding.nameLabel', { defaultValue: 'Imię kierownika' })}
-            </Text>
-            <BlurView intensity={14} tint="dark" style={styles.inputWrap}>
-              <Feather name="user" size={18} color="rgba(37,240,200,0.50)" />
-              <TextInput
-                value={buddyName}
-                onChangeText={(v) => { setBuddyName(v); setError(null) }}
-                placeholder={t('buddy.onboarding.namePlaceholder', { defaultValue: 'np. Andrzej, Max, Tomek...' })}
-                placeholderTextColor="#888888"
-                style={styles.input}
-                maxLength={30}
-                autoCapitalize="words"
-                returnKeyType="done"
-                onSubmitEditing={handleSave}
-              />
-              {buddyName.length > 0 && (
-                <Text style={styles.inputCount}>{buddyName.length}/30</Text>
-              )}
-            </BlurView>
-            {error && (
-              <Text style={styles.errorText}>{error}</Text>
-            )}
-          </Animated.View>
-
-          {/* Features */}
-          <Animated.View style={[styles.featuresWrap, { opacity: contentAnim }]}>
-            <Text style={styles.featuresTitle}>
-              {t('buddy.onboarding.featuresTitle', { defaultValue: 'Co potrafi Twój kierownik?' })}
-            </Text>
-            {FEATURES.map((f, i) => (
-              <View key={i} style={styles.featureRow}>
-                <View style={styles.featureIconWrap}>
-                  <Feather name={f.icon} size={16} color={NEON} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.featureTitle}>
-                    {t(f.titleKey, { defaultValue: f.titleDefault })}
-                  </Text>
-                  <Text style={styles.featureDesc}>
-                    {t(f.descKey, { defaultValue: f.descDefault })}
-                  </Text>
-                </View>
+          <ScrollView
+            contentContainerStyle={[styles.content, { paddingTop: topPad }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Animated.View style={{ opacity: avatarAnim, alignItems: 'center' }}>
+              <View style={styles.eyebrowWrap}>
+                <View style={styles.eyebrowDot} />
+                <Text style={styles.eyebrow}>
+                  {t('buddy.eyebrow', { defaultValue: 'Plan Pro · Kierownik AI' })}
+                </Text>
               </View>
-            ))}
-          </Animated.View>
+            </Animated.View>
 
-          {/* Pro note */}
-          <Animated.View style={[styles.proNote, { opacity: contentAnim }]}>
-            <Feather name="star" size={13} color={NEON} />
-            <Text style={styles.proNoteText}>
-              {t('buddy.onboarding.proNote', { defaultValue: 'Kierownik AI dostępny w planie Standard i Pro' })}
-            </Text>
-          </Animated.View>
-
-          {/* CTA */}
-          <Animated.View style={[{ opacity: contentAnim }, styles.ctaWrap]}>
-            <TouchableOpacity
-              style={[styles.ctaBtn, saving && { opacity: 0.65 }]}
-              onPress={handleSave}
-              disabled={saving}
-              activeOpacity={0.9}
+            <Animated.View
+              style={[
+                styles.avatarWrap,
+                {
+                  opacity: avatarAnim,
+                  transform: [{ scale: avatarScale }, { translateY: floatAnim }],
+                },
+              ]}
             >
-              <Text style={styles.ctaBtnText}>
-                {saving
-                  ? t('buddy.onboarding.saving', { defaultValue: 'Zapisywanie...' })
-                  : t('buddy.onboarding.cta', { defaultValue: 'Poznaj kierownika' })
-                }
-              </Text>
-              {!saving && <Feather name="arrow-right" size={18} color="#0B1120" />}
-            </TouchableOpacity>
-          </Animated.View>
+              <View style={styles.avatarGlowRing} />
+              <View style={styles.avatarGlowRing2} />
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+              <Image
+                source={BUDDY_AVATAR}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+
+              <View style={styles.aiBadge}>
+                <Feather name="cpu" size={10} color="#0B1120" />
+                <Text style={styles.aiBadgeText}>AI</Text>
+              </View>
+            </Animated.View>
+
+            <Animated.View
+              style={[
+                styles.titleWrap,
+                {
+                  opacity: contentAnim,
+                  transform: [{
+                    translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
+                  }],
+                },
+              ]}
+            >
+              <Text style={styles.title}>
+                {t('buddy.onboarding.title', { defaultValue: 'Poznaj swojego\nkierownika budowy' })}
+              </Text>
+              <Text style={styles.subtitle}>
+                {t('buddy.onboarding.subtitle', { defaultValue: 'Nadaj mu imię, będzie Twoim partnerem przez całą budowę' })}
+              </Text>
+            </Animated.View>
+
+            <Animated.View style={[styles.inputSection, { opacity: contentAnim }]}>
+              <Text style={styles.inputLabel}>
+                {t('buddy.onboarding.nameLabel', { defaultValue: 'Imię kierownika' })}
+              </Text>
+              <BlurView intensity={14} tint="dark" style={styles.inputWrap}>
+                <Feather name="user" size={18} color="rgba(37,240,200,0.50)" />
+                <TextInput
+                  value={buddyName}
+                  onChangeText={(v) => {
+                    setBuddyName(v);
+                    setError(null);
+                  }}
+                  placeholder={t('buddy.onboarding.namePlaceholder', { defaultValue: 'np. Andrzej, Max, Tomek...' })}
+                  placeholderTextColor="#888888"
+                  style={styles.input}
+                  maxLength={30}
+                  autoCapitalize="words"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSave}
+                />
+                {buddyName.length > 0 && (
+                  <Text style={styles.inputCount}>{buddyName.length}/30</Text>
+                )}
+              </BlurView>
+              {error && (
+                <Text style={styles.errorText}>{error}</Text>
+              )}
+            </Animated.View>
+
+            <Animated.View style={[styles.featuresWrap, { opacity: contentAnim }]}>
+              <Text style={styles.featuresTitle}>
+                {t('buddy.onboarding.featuresTitle', { defaultValue: 'Co potrafi Twój kierownik?' })}
+              </Text>
+              {FEATURES.map((f, i) => (
+                <View key={i} style={styles.featureRow}>
+                  <View style={styles.featureIconWrap}>
+                    <Feather name={f.icon} size={16} color={NEON} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.featureTitle}>
+                      {t(f.titleKey, { defaultValue: f.titleDefault })}
+                    </Text>
+                    <Text style={styles.featureDesc}>
+                      {t(f.descKey, { defaultValue: f.descDefault })}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </Animated.View>
+
+            <Animated.View style={[styles.proNote, { opacity: contentAnim }]}>
+              <Feather name="star" size={13} color={NEON} />
+              <Text style={styles.proNoteText}>
+                {t('buddy.onboarding.proNote', {
+                  defaultValue: `Kierownik AI dostępny w planie ${aiPlansLabel}`,
+                  plans: aiPlansLabel,
+                })}
+              </Text>
+            </Animated.View>
+
+            <Animated.View style={[{ opacity: contentAnim }, styles.ctaWrap]}>
+              <TouchableOpacity
+                style={[styles.ctaBtn, saving && { opacity: 0.65 }]}
+                onPress={handleSave}
+                disabled={saving}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.ctaBtnText}>
+                  {saving
+                    ? t('buddy.onboarding.saving', { defaultValue: 'Zapisywanie...' })
+                    : t('buddy.onboarding.cta', { defaultValue: 'Poznaj kierownika' })
+                  }
+                </Text>
+                {!saving && <Feather name="arrow-right" size={18} color="#0B1120" />}
+              </TouchableOpacity>
+            </Animated.View>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -290,7 +297,6 @@ const styles = StyleSheet.create({
 
   content: { paddingHorizontal: 24, alignItems: 'center' },
 
-  // Eyebrow
   eyebrowWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999,
@@ -304,7 +310,6 @@ const styles = StyleSheet.create({
   },
   eyebrow: { color: NEON, fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
 
-  // Avatar
   avatarWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 28, position: 'relative' },
   avatarGlowRing: {
     position: 'absolute', width: 200, height: 200, borderRadius: 100,
@@ -326,7 +331,6 @@ const styles = StyleSheet.create({
   },
   aiBadgeText: { color: '#0B1120', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
 
-  // Title
   titleWrap: { alignItems: 'center', marginBottom: 28 },
   title: {
     color: '#FFFFFF', fontSize: 28, fontWeight: '900',
@@ -337,7 +341,6 @@ const styles = StyleSheet.create({
     textAlign: 'center', lineHeight: 20,
   },
 
-  // Input
   inputSection: { width: '100%', marginBottom: 28 },
   inputLabel: {
     color: 'rgba(255,255,255,0.40)', fontSize: 11, fontWeight: '900',
@@ -355,7 +358,6 @@ const styles = StyleSheet.create({
   inputCount: { color: 'rgba(255,255,255,0.25)', fontSize: 11, fontWeight: '700' },
   errorText: { color: '#FCA5A5', fontSize: 12, fontWeight: '700', marginTop: 8, textAlign: 'center' },
 
-  // Features
   featuresWrap: { width: '100%', marginBottom: 16 },
   featuresTitle: {
     color: 'rgba(255,255,255,0.38)', fontSize: 11, fontWeight: '900',
@@ -374,7 +376,6 @@ const styles = StyleSheet.create({
   featureTitle: { color: '#FFFFFF', fontSize: 14, fontWeight: '800', marginBottom: 3 },
   featureDesc: { color: 'rgba(255,255,255,0.45)', fontSize: 12.5, fontWeight: '600', lineHeight: 18 },
 
-  // Pro note
   proNote: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12,
@@ -384,7 +385,6 @@ const styles = StyleSheet.create({
   },
   proNoteText: { color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '600', flex: 1 },
 
-  // CTA
   ctaWrap: { width: '100%' },
   ctaBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -393,4 +393,4 @@ const styles = StyleSheet.create({
     shadowColor: NEON, shadowOpacity: 0.30, shadowRadius: 20, shadowOffset: { width: 0, height: 0 },
   },
   ctaBtnText: { color: '#0B1120', fontSize: 17, fontWeight: '900' },
-})
+});

@@ -37,6 +37,8 @@ function buildStars(count: number): Star[] {
 
 type PlanKey = 'free' | 'pro' | 'pro_plus';
 
+const FREE_PLAN: PlanKey = 'free';
+
 type PlanLimits = {
   plan: PlanKey;
   max_photos: number | null;
@@ -120,14 +122,24 @@ export default function PlanScreen() {
         return;
       }
 
+      if (plan !== FREE_PLAN) {
+        Alert.alert(
+          t('alerts.errorTitle'),
+          t('alerts.paidPlanRequiresActivation', {
+            defaultValue: 'Plan płatny wymaga osobnej aktywacji po potwierdzonym zakupie. Na tym etapie konto pozostaje w planie darmowym.',
+          }),
+          [{ text: 'OK', onPress: () => router.replace('/(app)/(tabs)/dashboard') }]
+        );
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
-          plan,
-          plan_selected: true,
+          plan: FREE_PLAN,
           billing_cycle: null,
-          subscription_source: 'manual',
           plan_expires_at: null,
+          subscription_source: null,
         })
         .eq('user_id', user.id);
 
