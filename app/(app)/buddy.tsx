@@ -20,7 +20,6 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
-import { getPlansWithFeature } from '../src/config/subscriptionPlans';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -63,11 +62,6 @@ export default function BuddyOnboardingScreen() {
   const { t } = useTranslation('settings');
   const { session } = useSupabaseAuth();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
-  const aiPlansLabel = getPlansWithFeature('ai')
-    .map((planKey) =>
-      t(`subscription:plans.${planKey}.name`, { defaultValue: planKey.toUpperCase() })
-    )
-    .join(', ');
 
   const [buddyName, setBuddyName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -150,7 +144,7 @@ export default function BuddyOnboardingScreen() {
               <View style={styles.eyebrowWrap}>
                 <View style={styles.eyebrowDot} />
                 <Text style={styles.eyebrow}>
-                  {t('buddy.eyebrow', { defaultValue: 'Plan Pro · Kierownik AI' })}
+                  {t('buddy.eyebrow', { defaultValue: 'Kierownik AI' })}
                 </Text>
               </View>
             </Animated.View>
@@ -252,8 +246,8 @@ export default function BuddyOnboardingScreen() {
               <Feather name="star" size={13} color={NEON} />
               <Text style={styles.proNoteText}>
                 {t('buddy.onboarding.proNote', {
-                  defaultValue: `Kierownik AI dostępny w planie ${aiPlansLabel}`,
-                  plans: aiPlansLabel,
+                  defaultValue:
+                    'Na premierę kierownik AI jest dostępny dla wszystkich użytkowników. Płatne plany pojawią się w kolejnej aktualizacji.',
                 })}
               </Text>
             </Animated.View>

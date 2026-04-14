@@ -8,6 +8,7 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const OPENAI_MODEL = "gpt-5.4-mini";
 const FREE_TRIAL_MESSAGES_PER_DAY = 5;
 const PAID_MESSAGES_PER_DAY = 50;
+const LAUNCH_AI_OPEN_ACCESS = true;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const MAX_HISTORY_MESSAGES = 16;
 const PAID_PLANS = new Set(["standard", "pro", "pro_plus"]);
@@ -231,6 +232,12 @@ async function getAuthenticatedUser(
 async function getAccessPolicy(
   supabase: ReturnType<typeof createClient>,
 ): Promise<AccessPolicy> {
+  if (LAUNCH_AI_OPEN_ACCESS) {
+    return {
+      dailyLimit: PAID_MESSAGES_PER_DAY,
+    };
+  }
+
   const { data, error } = await supabase
     .from("profiles")
     .select("plan, subscription_source, plan_expires_at")

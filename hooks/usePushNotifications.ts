@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useSupabaseAuth } from './useSupabaseAuth';
-import { removePushToken } from '../app/src/services/notifications/pushService';
+import { removePushToken } from '../src/services/notifications/pushService';
 
 type NotificationPayload = {
   screen?: string;

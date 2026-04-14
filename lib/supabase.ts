@@ -15,6 +15,14 @@ export const publicConfig = {
   supabaseUrl,
   supabaseAnonKey,
   aiChatEndpoint: `${supabaseUrl}/functions/v1/ai-chat`,
+  revenueCat: {
+    iosApiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? null,
+    androidApiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? null,
+    entitlements: {
+      standard: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_STANDARD ?? null,
+      pro: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_PRO ?? null,
+    },
+  },
 } as const;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

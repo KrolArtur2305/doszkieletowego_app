@@ -18,8 +18,10 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
+import { signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
 
 const { width: W, height: H } = Dimensions.get('window');
+const GOOGLE_AUTH_ENABLED = false;
 
 type Star = { left: number; top: number; size: number; opacity: number };
 
@@ -117,14 +119,7 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     try {
       // Requires Google provider enabled in Supabase dashboard
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: 'exp://localhost:19000/--/auth/callback'
-        }
-      });
-
-      if (error) throw error;
+      await signInWithGoogleMobile();
     } catch (err) {
       console.error('Google login error:', err);
       Alert.alert('Błąd logowania Google');
@@ -203,22 +198,24 @@ export default function LoginScreen() {
           {loading ? <ActivityIndicator /> : <Text style={styles.primaryText}>{t('login.form.submit')}</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          disabled={googleLoading}
-          onPress={handleGoogleLogin}
-          style={[styles.googleBtn, googleLoading && { opacity: 0.7 }]}
-          activeOpacity={0.9}
-        >
-          {googleLoading ? (
-            <ActivityIndicator />
-          ) : (
-            <Image
-              source={require('../../assets/google.png')}
-              style={styles.googleLogo}
-              resizeMode="contain"
-            />
-          )}
-        </TouchableOpacity>
+        {GOOGLE_AUTH_ENABLED ? (
+          <TouchableOpacity
+            disabled={googleLoading}
+            onPress={handleGoogleLogin}
+            style={[styles.googleBtn, googleLoading && { opacity: 0.7 }]}
+            activeOpacity={0.9}
+          >
+            {googleLoading ? (
+              <ActivityIndicator />
+            ) : (
+              <Image
+                source={require('../../assets/google.png')}
+                style={styles.googleLogo}
+                resizeMode="contain"
+              />
+            )}
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity onPress={onForgotPassword} style={styles.forgotWrap} activeOpacity={0.85}>
           <Text style={styles.forgotText}>{t('login.form.forgotPassword')}</Text>

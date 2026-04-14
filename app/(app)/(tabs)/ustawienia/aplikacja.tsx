@@ -23,7 +23,7 @@ import Constants from 'expo-constants';
 import { supabase } from '../../../../lib/supabase';
 import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
-import { removePushToken } from '../../../src/services/notifications/pushService';
+import { removePushToken } from '../../../../src/services/notifications/pushService';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';

@@ -10,6 +10,11 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 import { initI18n } from '../lib/i18n';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import {
+  configurePurchases,
+  logInPurchasesUser,
+  logOutPurchasesUser,
+} from '../src/services/subscription/revenuecat';
 
 
 export default function RootLayout() {
@@ -33,6 +38,27 @@ export default function RootLayout() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    configurePurchases().catch(() => {
+      // RevenueCat is optional during local setup; do not block app boot.
+    });
+  }, []);
+
+  useEffect(() => {
+    const appUserId = session?.user?.id;
+
+    if (!appUserId) {
+      logOutPurchasesUser().catch(() => {
+        // Keep auth flow resilient if RevenueCat is unavailable in this environment.
+      });
+      return;
+    }
+
+    logInPurchasesUser(appUserId).catch(() => {
+      // Keep auth flow resilient if RevenueCat is unavailable in this environment.
+    });
+  }, [session?.user?.id]);
 
   const showLoader = loading || !i18nReady;
 

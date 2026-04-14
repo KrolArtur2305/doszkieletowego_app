@@ -22,7 +22,7 @@ import { supabase } from './supabase'
 import {
   registerForPushNotificationsAsync,
   savePushToken,
-} from '../app/src/services/notifications/pushService'
+} from '../src/services/notifications/pushService'
 
 // Konfiguracja globalnego handlera
 // Wywołaj raz na starcie apki (w _layout.tsx)

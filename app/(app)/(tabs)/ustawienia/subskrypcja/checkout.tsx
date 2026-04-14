@@ -21,7 +21,7 @@ import {
   SUBSCRIPTION_PLAN_ORDER,
   SUBSCRIPTION_PLANS,
   type SubscriptionPlanKey,
-} from '../../../../src/config/subscriptionPlans'
+} from '../../../../../src/config/subscriptionPlans'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
@@ -111,10 +111,13 @@ export default function CheckoutScreen() {
         </TouchableOpacity>
 
         <Text style={styles.screenTitle}>
-          {t('checkout.title', { defaultValue: 'Plany subskrypcyjne' })}
+          {t('checkout.title', { defaultValue: 'Plany w przygotowaniu' })}
         </Text>
         <Text style={styles.screenSubtitle}>
-          {t('checkout.subtitle', { defaultValue: 'Porównaj ofertę. Zakupy w aplikacji będą dostępne w kolejnej wersji.' })}
+          {t('checkout.subtitle', {
+            defaultValue:
+              'Porównaj zakres planów Free, Standard i Pro. Zakupy w aplikacji pojawią się dopiero w kolejnej aktualizacji.',
+          })}
         </Text>
 
         <View style={styles.dots}>
@@ -177,11 +180,6 @@ export default function CheckoutScreen() {
                 ? yearlyPrice / 24
                 : null
             const displayPrice = billing === 'monthly' ? monthlyPrice : yearlyPrice
-            const savings =
-              !isThisFree && billing === 'yearly' && monthlyPrice !== null && yearlyPrice !== null
-                ? Math.round((monthlyPrice * 24) - yearlyPrice)
-                : null
-
             return (
               <Animated.View
                 key={key}
@@ -304,18 +302,6 @@ export default function CheckoutScreen() {
                           </Text>
                         )}
 
-                        {savings != null && (
-                          <View style={styles.savingsBadge}>
-                            <Feather name="tag" size={11} color={NEON} />
-                            <Text style={styles.savingsText}>
-                              {t('checkout.savingsNote', {
-                                defaultValue: `Różnica względem rozliczenia miesięcznego: ${savings} zł`,
-                                amount: savings,
-                              })}
-                            </Text>
-                          </View>
-                        )}
-
                         <View style={styles.billingRow}>
                           <TouchableOpacity
                             onPress={() => setBillingPerCard((p) => ({ ...p, [key]: 'monthly' }))}
@@ -358,8 +344,8 @@ export default function CheckoutScreen() {
                       isThisFree && styles.selectBtnTextFree,
                     ]}>
                       {isThisFree
-                        ? t('checkout.freeCta', { defaultValue: 'Wybierz darmowy' })
-                        : t('checkout.selectBtn', { defaultValue: 'Wkrótce dostępne' })}
+                        ? t('checkout.freeCta', { defaultValue: 'Dostępny na start' })
+                        : t('checkout.selectBtn', { defaultValue: 'Płatne plany wkrótce' })}
                     </Text>
                   </TouchableOpacity>
                 </BlurView>
@@ -372,7 +358,8 @@ export default function CheckoutScreen() {
           <Feather name="info" size={12} color="rgba(255,255,255,0.25)" />
           <Text style={styles.securityText}>
             {t('checkout.notice', {
-              defaultValue: 'Ten ekran ma obecnie charakter informacyjny. Zakupy i aktywacja planów będą dostępne w kolejnej wersji.',
+              defaultValue:
+                'Ten ekran ma charakter informacyjny. W tej wersji nie uruchamiasz zakupu i nie aktywujesz płatnego planu.',
             })}
           </Text>
         </View>

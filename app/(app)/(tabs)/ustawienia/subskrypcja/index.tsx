@@ -15,10 +15,11 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../../../../lib/supabase'
 import {
+  isPaidPlanKey,
   SUBSCRIPTION_PLAN_LIST,
   type SubscriptionPlanDefinition,
   type SubscriptionPlanKey,
-} from '../../../../src/config/subscriptionPlans'
+} from '../../../../../src/config/subscriptionPlans'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
@@ -81,7 +82,7 @@ export default function SubskrypcjaScreen() {
   }, [])
 
   const onSelectPlan = (plan: SubscriptionPlanDefinition) => {
-    if (plan.key === 'free') return
+    if (!isPaidPlanKey(plan.key)) return
     router.push({
       pathname: '/(app)/(tabs)/ustawienia/subskrypcja/checkout',
       params: { planKey: plan.key },
@@ -125,9 +126,18 @@ export default function SubskrypcjaScreen() {
             },
           ]}
         >
-          <Text style={styles.eyebrow}>{t('eyebrow')}</Text>
-          <Text style={styles.title}>{t('title')}</Text>
-          <Text style={styles.subtitle}>{t('subtitle')}</Text>
+          <Text style={styles.eyebrow}>
+            {t('eyebrow', { defaultValue: 'Plany w przygotowaniu' })}
+          </Text>
+          <Text style={styles.title}>
+            {t('title', { defaultValue: 'Subskrypcje wkrótce' })}
+          </Text>
+          <Text style={styles.subtitle}>
+            {t('subtitle', {
+              defaultValue:
+                'Plan Free, Standard i Pro są już przygotowane. Płatne aktywacje pojawią się w kolejnej aktualizacji.',
+            })}
+          </Text>
         </Animated.View>
 
         {!loading && (
@@ -173,8 +183,13 @@ export default function SubskrypcjaScreen() {
         </Animated.View>
 
         <BlurView intensity={12} tint="dark" style={styles.savingsNote}>
-          <Feather name="tag" size={14} color={NEON} />
-          <Text style={styles.savingsText}>{t('savingsNote')}</Text>
+          <Feather name="info" size={14} color={NEON} />
+          <Text style={styles.savingsText}>
+            {t('launchInfo', {
+              defaultValue:
+                'Na starcie ekran ma charakter informacyjny. Wybranie planu nie uruchamia zakupu ani nie aktywuje płatnej subskrypcji.',
+            })}
+          </Text>
         </BlurView>
 
         <View style={{ height: 40 }} />
@@ -313,8 +328,8 @@ function PlanCard({
               {isCurrent
                 ? t('currentPlanBtn')
                 : isFree
-                ? t('downgradBtn')
-                : t('selectBtn')}
+                ? t('checkout.freeCta', { defaultValue: 'Plan darmowy' })
+                : t('checkout.selectBtn', { defaultValue: 'Szczegóły planu' })}
             </Text>
           </TouchableOpacity>
         </BlurView>

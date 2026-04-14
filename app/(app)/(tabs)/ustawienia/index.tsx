@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
-import { removePushToken } from '../../../src/services/notifications/pushService';
+import { removePushToken } from '../../../../src/services/notifications/pushService';
 
 function safeEmailPrefix(email?: string | null, fallback = 'User') {
   if (!email) return fallback;

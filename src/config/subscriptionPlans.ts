@@ -1,12 +1,14 @@
 export type SubscriptionPlanKey = 'free' | 'standard' | 'pro'
 
-export type SubscriptionFeatureKey = 'photos' | 'docs' | 'tasks' | 'model3d' | 'ai'
+export type SubscriptionFeatureKey = 'photos' | 'docs' | 'expenses' | 'tasks' | 'model3d' | 'ai'
 
 export type SubscriptionPlanDefinition = {
   key: SubscriptionPlanKey
   nameKey: string
   descKey: string
+  // Temporary marketing copy only. Store pricing must come from RevenueCat/Store offerings.
   monthlyPrice: number | null
+  // Temporary marketing copy only. Store pricing must come from RevenueCat/Store offerings.
   yearlyPrice: number | null
   color: string
   glowColor: string
@@ -14,12 +16,14 @@ export type SubscriptionPlanDefinition = {
   features: {
     photos: number | 'unlimited'
     docs: number | 'unlimited'
+    expenses: number | 'unlimited'
     tasks: number | 'unlimited'
     model3d: boolean
     ai: boolean
   }
 }
 
+export const FREE_PLAN_KEY: SubscriptionPlanKey = 'free'
 export const SUBSCRIPTION_PLAN_ORDER: SubscriptionPlanKey[] = ['free', 'standard', 'pro']
 
 export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDefinition> = {
@@ -35,6 +39,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
     features: {
       photos: 20,
       docs: 5,
+      expenses: 5,
       tasks: 15,
       model3d: false,
       ai: false,
@@ -52,6 +57,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
     features: {
       photos: 50,
       docs: 15,
+      expenses: 'unlimited',
       tasks: 50,
       model3d: true,
       ai: false,
@@ -69,6 +75,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
     features: {
       photos: 'unlimited',
       docs: 'unlimited',
+      expenses: 'unlimited',
       tasks: 'unlimited',
       model3d: true,
       ai: true,
@@ -80,4 +87,8 @@ export const SUBSCRIPTION_PLAN_LIST = SUBSCRIPTION_PLAN_ORDER.map((key) => SUBSC
 
 export function getPlansWithFeature(feature: SubscriptionFeatureKey): SubscriptionPlanKey[] {
   return SUBSCRIPTION_PLAN_ORDER.filter((key) => SUBSCRIPTION_PLANS[key].features[feature])
+}
+
+export function isPaidPlanKey(plan: SubscriptionPlanKey): boolean {
+  return plan !== FREE_PLAN_KEY
 }

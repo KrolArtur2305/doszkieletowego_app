@@ -11,6 +11,13 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
+import {
+  FREE_PLAN_KEY,
+  SUBSCRIPTION_PLAN_LIST,
+  SUBSCRIPTION_PLAN_ORDER,
+  type SubscriptionPlanDefinition,
+  type SubscriptionPlanKey,
+} from '../../src/config/subscriptionPlans';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -35,12 +42,8 @@ function buildStars(count: number): Star[] {
   return stars;
 }
 
-type PlanKey = 'free' | 'pro' | 'pro_plus';
-
-const FREE_PLAN: PlanKey = 'free';
-
 type PlanLimits = {
-  plan: PlanKey;
+  plan: SubscriptionPlanKey;
   max_photos: number | null;
   max_docs: number | null;
   max_expenses: number | null;
@@ -59,6 +62,7 @@ export default function PlanScreen() {
   const stars = useMemo(() => buildStars(90), []);
 
   const { t, i18n } = useTranslation('plan');
+  const { t: ts } = useTranslation('subscription');
   const locale = useMemo(
     () => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
@@ -75,11 +79,11 @@ export default function PlanScreen() {
   const currency = 'PLN';
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<PlanKey | null>(null);
-  const [limits, setLimits] = useState<Record<PlanKey, PlanLimits | null>>({
+  const [saving, setSaving] = useState<SubscriptionPlanKey | null>(null);
+  const [limits, setLimits] = useState<Record<SubscriptionPlanKey, PlanLimits | null>>({
     free: null,
+    standard: null,
     pro: null,
-    pro_plus: null,
   });
 
   useEffect(() => {
@@ -90,11 +94,15 @@ export default function PlanScreen() {
         const { data, error } = await supabase
           .from('plan_limits')
           .select('plan,max_photos,max_docs,max_expenses,can_edit_3d,can_tasks')
-          .in('plan', ['free', 'pro', 'pro_plus']);
+          .in('plan', SUBSCRIPTION_PLAN_ORDER);
 
         if (error) throw error;
 
-        const map: Record<PlanKey, PlanLimits | null> = { free: null, pro: null, pro_plus: null };
+        const map: Record<SubscriptionPlanKey, PlanLimits | null> = {
+          free: null,
+          standard: null,
+          pro: null,
+        };
         (data as PlanLimits[]).forEach((row) => {
           map[row.plan] = row;
         });
@@ -112,7 +120,7 @@ export default function PlanScreen() {
     };
   }, []);
 
-  const pick = async (plan: PlanKey) => {
+  const pick = async (plan: SubscriptionPlanKey) => {
     setSaving(plan);
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -122,7 +130,7 @@ export default function PlanScreen() {
         return;
       }
 
-      if (plan !== FREE_PLAN) {
+      if (plan !== FREE_PLAN_KEY) {
         Alert.alert(
           t('alerts.errorTitle'),
           t('alerts.paidPlanRequiresActivation', {
@@ -136,7 +144,7 @@ export default function PlanScreen() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          plan: FREE_PLAN,
+          plan: FREE_PLAN_KEY,
           billing_cycle: null,
           plan_expires_at: null,
           subscription_source: null,
@@ -157,25 +165,21 @@ export default function PlanScreen() {
 
   const unlimitedLabel = t('labels.unlimited');
 
-  const renderCard = (plan: PlanKey) => {
-    const l = limits[plan];
+  const renderCard = (planDef: SubscriptionPlanDefinition) => {
+    const l = limits[planDef.key];
 
-    const photos = l?.max_photos ?? (plan === 'free' ? 5 : plan === 'pro' ? 500 : 5000);
-    const docs = l?.max_docs ?? (plan === 'free' ? 3 : plan === 'pro' ? 200 : 1000);
-    const expenses = l?.max_expenses ?? (plan === 'free' ? 5 : null);
-    const canEdit3d = (l?.can_edit_3d ?? plan !== 'free') ? true : false;
-    const canTasks = (l?.can_tasks ?? plan !== 'free') ? true : false;
+    const photos = l?.max_photos ?? planDef.features.photos;
+    const docs = l?.max_docs ?? planDef.features.docs;
+    const expenses = l?.max_expenses ?? planDef.features.expenses;
+    const canEdit3d = l?.can_edit_3d ?? planDef.features.model3d;
+    const canTasks = l?.can_tasks ?? (planDef.features.tasks !== 0);
 
-    const title = t(`cards.${plan}.title`);
-    const tagline = t(`cards.${plan}.tagline`);
-
-    const price =
-      plan === 'free'
-        ? fmtMoney(0, currency)
-        : t('labels.priceTbd');
+    const title = ts(planDef.nameKey, { defaultValue: planDef.key.toUpperCase() });
+    const tagline = ts(planDef.descKey);
+    const price = fmtMoney(planDef.monthlyPrice ?? 0, currency);
 
     return (
-      <View style={styles.card} key={plan}>
+      <View style={styles.card} key={planDef.key}>
         <View style={styles.cardTopRow}>
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.cardPrice}>{price}</Text>
@@ -192,15 +196,15 @@ export default function PlanScreen() {
         </View>
 
         <TouchableOpacity
-          onPress={() => pick(plan)}
+          onPress={() => pick(planDef.key)}
           disabled={saving !== null}
           activeOpacity={0.9}
-          style={[styles.cta, plan !== 'free' && styles.ctaStrong, saving && { opacity: 0.7 }]}
+          style={[styles.cta, planDef.key !== FREE_PLAN_KEY && styles.ctaStrong, saving && { opacity: 0.7 }]}
         >
-          {saving === plan ? (
+          {saving === planDef.key ? (
             <ActivityIndicator />
           ) : (
-            <Text style={[styles.ctaText, plan !== 'free' && styles.ctaTextStrong]}>
+            <Text style={[styles.ctaText, planDef.key !== FREE_PLAN_KEY && styles.ctaTextStrong]}>
               {t('actions.choose')}
             </Text>
           )}
@@ -234,9 +238,7 @@ export default function PlanScreen() {
         </View>
       ) : (
         <View style={styles.list}>
-          {renderCard('free')}
-          {renderCard('pro')}
-          {renderCard('pro_plus')}
+          {SUBSCRIPTION_PLAN_LIST.map(renderCard)}
         </View>
       )}
     </View>
