@@ -58,7 +58,7 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // jeśli user zalogowany -> dashboard (na wszelki wypadek)
+    // jesli user zalogowany -> dashboard (na wszelki wypadek)
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -90,7 +90,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
 
-    // Email verification: supabase wyśle maila, jeśli włączone "Confirm email" w panelu Auth
+    // Email verification: supabase wysle maila, jesli wlaczone "Confirm email" w panelu Auth
     const { error } = await supabase.auth.signUp({
       email: e,
       password,
@@ -110,14 +110,25 @@ export default function RegisterScreen() {
     );
   };
 
-  const onGoogle = async () => {
-    // UI jest, integrację dodamy później (build)
+  async function handleGoogleLogin() {
     setGoogleLoading(true);
-    setTimeout(() => {
+    try {
+      // Requires Google provider enabled in Supabase dashboard
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'exp://localhost:19000/--/auth/callback'
+        }
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Google login error:', err);
+      Alert.alert('Błąd logowania Google');
+    } finally {
       setGoogleLoading(false);
-      Alert.alert(t('register.alerts.soonTitle'), t('register.alerts.soonMessage'));
-    }, 450);
-  };
+    }
+  }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -206,7 +217,7 @@ export default function RegisterScreen() {
         {/* Google (UI) */}
         <TouchableOpacity
           disabled={googleLoading}
-          onPress={onGoogle}
+          onPress={handleGoogleLogin}
           style={[styles.googleBtn, googleLoading && { opacity: 0.7 }]}
           activeOpacity={0.9}
         >
@@ -272,7 +283,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // sterujesz wysokością logo:
+  // sterujesz wysokoscia logo:
   logoWrap: { alignItems: 'center', marginTop: -160, marginBottom: 26 },
   logoImg: { width: 96, height: 96 },
 
@@ -301,7 +312,7 @@ const styles = StyleSheet.create({
   },
   primaryText: { color: '#25F0C8', fontWeight: '900', fontSize: 18 },
 
-  // duży przycisk + sensowna ikona (bez walki z paddingiem png)
+  // duzy przycisk + sensowna ikona (bez walki z paddingiem png)
   googleBtn: {
     marginTop: 16,
     height: 56,

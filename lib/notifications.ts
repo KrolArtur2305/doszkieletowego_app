@@ -39,11 +39,18 @@ export function configureNotifications() {
   })
 }
 
+type RegisterPushTokenOptions = {
+  requestPermission?: boolean
+}
+
 // Rejestracja tokenu push
 // Wywołaj raz po zalogowaniu użytkownika (w _layout.tsx)
 // Token zapisujemy wyłącznie w push_devices.
 
-export async function registerPushToken(userId: string): Promise<string | null> {
+export async function registerPushToken(
+  userId: string,
+  options: RegisterPushTokenOptions = {}
+): Promise<string | null> {
   try {
     // Android wymaga kanału
     if (Platform.OS === 'android') {
@@ -68,7 +75,7 @@ export async function registerPushToken(userId: string): Promise<string | null> 
       })
     }
 
-    const token = await registerForPushNotificationsAsync()
+    const token = await registerForPushNotificationsAsync(options)
     if (!token) return null
 
     await savePushToken(token)

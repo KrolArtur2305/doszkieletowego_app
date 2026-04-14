@@ -14,12 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
+      "buildNumber": "1",
       "bundleIdentifier": "pl.buildiq.mobile",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
+      "versionCode": 1,
       "package": "pl.buildiq.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./app/assets/adaptive-icon.png",

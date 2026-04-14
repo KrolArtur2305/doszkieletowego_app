@@ -144,8 +144,9 @@ export default function AppLayout() {
       return;
     }
 
-    // Zalogowanie — zarejestruj token i zsynchronizuj zadania
-    registerPushToken(userId);
+    // Zalogowanie — nie pokazuj prompta automatycznie.
+    // Jeśli zgoda już istnieje, zsynchronizuj token bez pytania.
+    registerPushToken(userId, { requestPermission: false });
     syncAllTaskReminders(userId);
   }, [session?.user?.id]);
 

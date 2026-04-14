@@ -18,13 +18,30 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Notifications from 'expo-notifications';
+import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import { supabase } from '../../../../lib/supabase';
 import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
+import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
 import { removePushToken } from '../../../src/services/notifications/pushService';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
-const APP_VERSION = '1.0.0';
+
+function getAppVersionLabel(): string {
+  const version =
+    Application.nativeApplicationVersion ??
+    Constants.expoConfig?.version ??
+    'unknown';
+  const build =
+    Application.nativeBuildVersion ??
+    Constants.expoConfig?.ios?.buildNumber ??
+    (typeof Constants.expoConfig?.android?.versionCode === 'number'
+      ? String(Constants.expoConfig.android.versionCode)
+      : null);
+
+  return build ? `${version} (${build})` : version;
+}
 
 const LANGUAGES: { key: AppLanguage; labelKey: string; flag: string }[] = [
   { key: 'pl', labelKey: 'appSettings.language.options.pl', flag: '🇵🇱' },
@@ -36,6 +53,7 @@ export default function UstawieniaAplikacjiScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation(['settings', 'common']);
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const appVersionLabel = getAppVersionLabel();
 
   const activeLang = (i18n.resolvedLanguage || i18n.language) as AppLanguage;
 
@@ -52,10 +70,24 @@ export default function UstawieniaAplikacjiScreen() {
 
   const handleNotifToggle = async (value: boolean) => {
     if (value) {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const status =
+        existingStatus === 'granted'
+          ? existingStatus
+          : (await Notifications.requestPermissionsAsync()).status;
+
       setNotifEnabled(status === 'granted');
 
-      if (status !== 'granted') {
+      if (status === 'granted') {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          await registerPushToken(user.id, { requestPermission: false });
+          await syncAllTaskReminders(user.id);
+        }
+      } else {
         Alert.alert(
           t('appSettings.notif.deniedTitle'),
           t('appSettings.notif.deniedMessage')
@@ -295,7 +327,7 @@ export default function UstawieniaAplikacjiScreen() {
           <Text style={styles.versionLabel}>
             {t('appSettings.version')}
           </Text>
-          <Text style={styles.versionNumber}>{APP_VERSION}</Text>
+          <Text style={styles.versionNumber}>{appVersionLabel}</Text>
 
           <View style={styles.linksRow}>
             <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/terms')} activeOpacity={0.7}>

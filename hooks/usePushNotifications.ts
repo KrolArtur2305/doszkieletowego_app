@@ -16,15 +16,20 @@ function handleNotificationNavigation(data: NotificationPayload) {
     return;
   }
 
-  if (!data?.screen) return;
+  if (!data?.screen) {
+    router.push('/(app)/(tabs)/dashboard');
+    return;
+  }
 
   switch (data.screen) {
     case 'stage-detail':
-      if (data.stageCode) {
-        router.push(`/stages/${data.stageCode}`);
-      }
+      router.push({
+        pathname: '/(app)/(tabs)/postepy',
+        params: data.stageCode ? { stageCode: String(data.stageCode) } : undefined,
+      });
       break;
     default:
+      router.push('/(app)/(tabs)/dashboard');
       break;
   }
 }
@@ -46,11 +51,7 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!userId) return;
 
-    foregroundSubRef.current = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        console.log('[Push] Foreground:', notification);
-      }
-    );
+    foregroundSubRef.current = Notifications.addNotificationReceivedListener(() => {});
 
     responseSubRef.current = Notifications.addNotificationResponseReceivedListener(
       (response) => {

@@ -98,7 +98,6 @@ export default function InwestycjaScreen() {
       setLoading(true);
       try {
         const { data: userRes, error: userErr } = await supabase.auth.getUser();
-        console.log('[INV] init getUser', { hasUser: !!userRes?.user, userErr });
 
         if (!alive) return;
 
@@ -116,8 +115,6 @@ export default function InwestycjaScreen() {
           .limit(1)
           .maybeSingle();
 
-        console.log('[INV] fetch inwestycje', { data, error });
-
         if (!alive) return;
 
         if (data) {
@@ -127,8 +124,7 @@ export default function InwestycjaScreen() {
           setDataKoniecISO(data.data_koniec ?? '');
           setBudzet(data.budzet !== null && data.budzet !== undefined ? String(data.budzet) : '');
         }
-      } catch (e) {
-        console.log('[INV] init exception', e);
+      } catch {
       } finally {
         if (alive) setLoading(false);
       }
@@ -141,7 +137,6 @@ export default function InwestycjaScreen() {
 
   const handleSaveAndContinue = async () => {
     try {
-      console.log('[INV] CLICK');
       if (saving) return;
 
       const n = nazwa.trim();
@@ -165,7 +160,6 @@ export default function InwestycjaScreen() {
       setSaving(true);
 
       const { data: userRes, error: userErr } = await supabase.auth.getUser();
-      console.log('[INV] getUser(save)', { hasUser: !!userRes?.user, userErr });
 
       if (userErr || !userRes?.user) {
         Alert.alert(t('alerts.errorTitle'), t('alerts.noSession'));
@@ -192,25 +186,19 @@ export default function InwestycjaScreen() {
         inwestycja_wypelniona: true,
       };
 
-      console.log('[INV] upsert payload', payload);
-
       const { data, error } = await supabase
         .from('inwestycje')
         .upsert(payload, { onConflict: 'user_id' })
         .select('user_id, inwestycja_wypelniona')
         .maybeSingle();
 
-      console.log('[INV] upsert result', { data, error });
-
       if (error) {
         Alert.alert(t('alerts.saveErrorTitle', { defaultValue: 'Save error' }), error.message);
         return;
       }
 
-      console.log('[INV] redirect -> /(app)/(tabs)/dashboard');
       router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
-      console.log('[INV] exception', e);
       Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveFailed'));
     } finally {
       setSaving(false);

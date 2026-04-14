@@ -79,21 +79,12 @@ export default function ProfilScreen() {
   };
 
   useEffect(() => {
-    console.log('[Profil][i18n] render', {
-      language: i18n.language,
-      resolvedLanguage: i18n.resolvedLanguage,
-      isInitialized: i18n.isInitialized,
-    });
-  }, [i18n, i18n.language, i18n.resolvedLanguage, i18n.isInitialized]);
-
-  useEffect(() => {
     let alive = true;
 
     (async () => {
       setLoading(true);
       try {
         const { data: userRes, error: userErr } = await supabase.auth.getUser();
-        console.log('[Profil] getUser:', { hasUser: !!userRes?.user, userErr });
 
         if (!alive) return;
 
@@ -125,8 +116,6 @@ export default function ProfilScreen() {
           .limit(1)
           .maybeSingle();
 
-        console.log('[Profil] fetch profile:', { data, error });
-
         if (!alive) return;
 
         const nextProfile: ProfileCache = {
@@ -139,8 +128,7 @@ export default function ProfilScreen() {
 
         __profileCache = nextProfile;
         applyProfileState(nextProfile);
-      } catch (e) {
-        console.log('[Profil] init exception:', e);
+      } catch {
       } finally {
         if (alive) setLoading(false);
       }

@@ -13,11 +13,11 @@ export function useSupabaseAuth() {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (!alive) return;
-        if (error) console.log('[auth] getSession error:', error.message);
+        if (error) console.error('[auth] getSession error:', error.message);
         setSession(data.session ?? null);
       } catch (e: any) {
         if (!alive) return;
-        console.log('[auth] getSession exception:', e?.message ?? e);
+        console.error('[auth] getSession exception:', e?.message ?? e);
       } finally {
         if (alive) setLoading(false);
       }

@@ -181,7 +181,7 @@ export default function ProjektScreen() {
         if (!alive) return
         setLoading(false)
       } catch (e: any) {
-        console.log('[Projekt] load error:', e?.message || e)
+        console.error('[Projekt] load error:', e?.message || e)
         if (!alive) return
         setLoading(false)
         Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('loadError'))
@@ -322,7 +322,7 @@ export default function ProjektScreen() {
 
       setRzuty((prev) => [row as any, ...prev])
     } catch (e: any) {
-      console.log('[Projekt] uploadRzutAndSave error:', e?.message || e)
+      console.error('[Projekt] uploadRzutAndSave error:', e?.message || e)
       Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('addPlanError'))
     }
   }

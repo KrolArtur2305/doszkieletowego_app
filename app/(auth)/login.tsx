@@ -56,7 +56,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // jeśli user zalogowany -> dashboard
+    // jesli user zalogowany -> dashboard
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -113,14 +113,25 @@ export default function LoginScreen() {
     Alert.alert(t('login.alerts.doneTitle'), t('login.alerts.doneMessage'));
   };
 
-  const onGoogle = async () => {
-    // UI jest, integrację dodamy później (build)
+  async function handleGoogleLogin() {
     setGoogleLoading(true);
-    setTimeout(() => {
+    try {
+      // Requires Google provider enabled in Supabase dashboard
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'exp://localhost:19000/--/auth/callback'
+        }
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Google login error:', err);
+      Alert.alert('Błąd logowania Google');
+    } finally {
       setGoogleLoading(false);
-      Alert.alert(t('login.alerts.soonTitle'), t('login.alerts.soonMessage'));
-    }, 450);
-  };
+    }
+  }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -153,7 +164,7 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       <View style={styles.content}>
-        {/* logo (pływa lekko) */}
+        {/* logo (plywa lekko) */}
         <Animated.View style={[styles.logoWrap, { transform: [{ translateY: floatY }] }]}>
           <Image
             source={require('../../assets/logo.png')}
@@ -194,7 +205,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           disabled={googleLoading}
-          onPress={onGoogle}
+          onPress={handleGoogleLogin}
           style={[styles.googleBtn, googleLoading && { opacity: 0.7 }]}
           activeOpacity={0.9}
         >
@@ -263,7 +274,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // logo WYŻEJ: tu sterujesz wysokością
+  // logo WYZEJ: tu sterujesz wysokoscia
   logoWrap: { alignItems: 'center', marginTop: -160, marginBottom: 26 },
   logoImg: { width: 96, height: 96 },
 

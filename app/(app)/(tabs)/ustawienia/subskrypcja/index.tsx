@@ -18,7 +18,7 @@ import {
   SUBSCRIPTION_PLAN_LIST,
   type SubscriptionPlanDefinition,
   type SubscriptionPlanKey,
-} from '../../../../../src/config/subscriptionPlans'
+} from '../../../../src/config/subscriptionPlans'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'

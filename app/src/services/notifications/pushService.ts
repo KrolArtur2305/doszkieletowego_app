@@ -5,29 +5,43 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '../../../../lib/supabase';
 
-export async function registerForPushNotificationsAsync(): Promise<string | null> {
+type RegisterForPushNotificationsOptions = {
+  requestPermission?: boolean;
+};
+
+function getExpoProjectId(): string | null {
+  return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? null;
+}
+
+export async function registerForPushNotificationsAsync(
+  options: RegisterForPushNotificationsOptions = {}
+): Promise<string | null> {
+  const { requestPermission = true } = options;
+
   if (!Device.isDevice) {
-    console.warn('[Push] Działa tylko na fizycznym urządzeniu.');
+    console.warn('[Push] Dziala tylko na fizycznym urzadzeniu.');
     return null;
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
-  if (existingStatus !== 'granted') {
+  if (existingStatus !== 'granted' && requestPermission) {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
 
   if (finalStatus !== 'granted') {
+    if (!requestPermission) return null;
     console.warn('[Push] Brak zgody na powiadomienia.');
     return null;
   }
 
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ??
-    Constants.easConfig?.projectId ??
-    'WKLEJ_TUTAJ_EXPO_PROJECT_ID';
+  const projectId = getExpoProjectId();
+  if (!projectId) {
+    console.warn('[Push] Brak Expo projectId w konfiguracji. Pomijam rejestracje tokenu.');
+    return null;
+  }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
   return tokenData.data;
@@ -48,12 +62,12 @@ export async function savePushToken(token: string): Promise<void> {
   } = await supabase.auth.getUser();
 
   if (userError) {
-    console.error('[Push] Nie udało się pobrać użytkownika:', userError.message);
+    console.error('[Push] Nie udalo sie pobrac uzytkownika:', userError.message);
     throw userError;
   }
 
   if (!user) {
-    console.warn('[Push] Pomijam zapis tokenu — brak zalogowanego użytkownika.');
+    console.warn('[Push] Pomijam zapis tokenu - brak zalogowanego uzytkownika.');
     return;
   }
 
@@ -74,7 +88,7 @@ export async function savePushToken(token: string): Promise<void> {
   );
 
   if (error) {
-    console.error('[Push] Błąd zapisu tokenu:', error.message);
+    console.error('[Push] Blad zapisu tokenu:', error.message);
     throw error;
   }
 }
@@ -89,6 +103,6 @@ export async function removePushToken(userId: string): Promise<void> {
     .eq('installation_id', installationId);
 
   if (error) {
-    console.error('[Push] Błąd usuwania tokenu:', error.message);
+    console.error('[Push] Blad usuwania tokenu:', error.message);
   }
 }
