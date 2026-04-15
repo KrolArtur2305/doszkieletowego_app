@@ -28,12 +28,13 @@ import { supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
+import { AppButton, AppCard, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components';
+import { colors, radius, spacing, typography } from '../../../../src/ui/theme';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
-const ACCENT = '#19705C';
-const NEON = '#25F0C8';
+const ACCENT = colors.accent;
+const NEON = colors.accentBright;
 const logo = require('../../../assets/logo.png');
-
 const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
 
@@ -144,7 +145,7 @@ export default function BudzetScreen() {
   }, [i18n.language, i18n.resolvedLanguage]);
 
   const scrollRef = useRef<ScrollView>(null);
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const topPad = 0;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -412,8 +413,7 @@ export default function BudzetScreen() {
   const maxCat = useMemo(() => Math.max(1, ...topCats.map((x) => x.v)), [topCats]);
 
   return (
-    // Wrapper View żeby FAB mógł być position:absolute
-    <View style={{ flex: 1, backgroundColor: '#000000' }}>
+    <AppScreen>
       <ScrollView
         ref={scrollRef}
         style={styles.container}
@@ -423,9 +423,15 @@ export default function BudzetScreen() {
       >
         {/* HEADER — logo po lewej */}
         <View style={[styles.topBar, { paddingTop: topPad }]}>
-          <Image source={logo} style={styles.logoImg} resizeMode="contain" />
-          <Text style={styles.headerTitle}>{t('header.title')}</Text>
-          <View style={{ width: 44 }} />
+          <View style={styles.headerSide}>
+            <Image source={logo} style={styles.headerLogoLarge} resizeMode="contain" />
+          </View>
+          <View style={styles.headerTitleWrap}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.headerTitleLarge}>
+              {t('header.title')}
+            </Text>
+          </View>
+          <View style={styles.headerSide} />
         </View>
 
         {/* BŁĘDY */}
@@ -500,11 +506,12 @@ export default function BudzetScreen() {
 
         {/* WYKRES KATEGORII */}
         <View style={styles.chartOuter}>
-          <BlurView intensity={60} tint="dark" style={styles.chartCard}>
-            <View style={styles.chartHeaderRow}>
-              <Text style={styles.chartTitle}>{t('chart.categoriesTitle')}</Text>
-              <Text style={styles.chartSub}>{t('chart.spentSubtitle')}</Text>
-            </View>
+          <AppCard contentStyle={styles.chartCard} glow>
+            <SectionHeader
+              title={t('chart.categoriesTitle')}
+              subtitle={t('chart.spentSubtitle')}
+              style={styles.chartHeaderRow}
+            />
             <View style={styles.vChartWrap}>
               {topCats.map(({ k, v }) => {
                 const h = Math.max(6, Math.round((v / maxCat) * 120));
@@ -519,11 +526,11 @@ export default function BudzetScreen() {
                 );
               })}
             </View>
-          </BlurView>
+          </AppCard>
         </View>
 
         {/* LISTA WYDATKÓW */}
-        <BlurView intensity={70} tint="dark" style={styles.card}>
+        <AppCard contentStyle={styles.card}>
           {/* Header + filtry */}
           <View style={styles.listHeaderRow}>
             <Text style={styles.listTitle}>{t('list.recentTitle')}</Text>
@@ -624,19 +631,19 @@ export default function BudzetScreen() {
               )}
             </>
           )}
-        </BlurView>
+        </AppCard>
 
         {/* MODAL */}
         <Modal visible={addOpen} animationType="slide" transparent onRequestClose={() => setAddOpen(false)}>
           <View style={styles.modalBackdrop}>
-            <BlurView intensity={90} tint="dark" style={styles.modalCard}>
+            <AppCard contentStyle={styles.modalCard} style={styles.modalCardOuter} withShadow>
               <Text style={styles.modalTitle}>{t('modal.title')}</Text>
 
               <Text style={styles.lbl}>{t('modal.nameLabel')}</Text>
-              <TextInput value={fNazwa} onChangeText={setFNazwa} style={styles.input} placeholder={t('modal.namePlaceholder')} placeholderTextColor="rgba(148,163,184,0.7)" />
+              <AppInput value={fNazwa} onChangeText={setFNazwa} style={styles.input} placeholder={t('modal.namePlaceholder')} />
 
               <Text style={styles.lbl}>{t('modal.amountLabel')}</Text>
-              <TextInput value={fKwota} onChangeText={setFKwota} style={styles.input} keyboardType="numeric" placeholder={t('modal.amountPlaceholder')} placeholderTextColor="rgba(148,163,184,0.7)" />
+              <AppInput value={fKwota} onChangeText={setFKwota} style={styles.input} keyboardType="numeric" placeholder={t('modal.amountPlaceholder')} />
 
               <View style={styles.row2}>
                 <TouchableOpacity style={[styles.pill, fStatus === STATUS_SPENT && styles.pillOn]} onPress={() => setFStatus(STATUS_SPENT)}>
@@ -662,7 +669,7 @@ export default function BudzetScreen() {
 
               <Text style={styles.lbl}>{t('modal.dateOptional')}</Text>
               <View style={styles.dateRow}>
-                <TextInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" placeholderTextColor="rgba(148,163,184,0.7)" />
+                <AppInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" />
                 <TouchableOpacity style={styles.calBtn} onPress={openDatePicker} activeOpacity={0.85}>
                   <Text style={styles.calIcon}>📅</Text>
                 </TouchableOpacity>
@@ -682,24 +689,20 @@ export default function BudzetScreen() {
               )}
 
               <Text style={styles.lbl}>{t('modal.descriptionOptional')}</Text>
-              <TextInput value={fOpis} onChangeText={setFOpis} style={styles.input} placeholder={t('modal.descriptionPlaceholder')} placeholderTextColor="rgba(148,163,184,0.7)" />
+              <AppInput value={fOpis} onChangeText={setFOpis} style={styles.input} placeholder={t('modal.descriptionPlaceholder')} />
 
               <Text style={styles.lbl}>{t('modal.storeOptional')}</Text>
-              <TextInput value={fSklep} onChangeText={setFSklep} style={styles.input} placeholder={t('modal.storePlaceholder')} placeholderTextColor="rgba(148,163,184,0.7)" />
+              <AppInput value={fSklep} onChangeText={setFSklep} style={styles.input} placeholder={t('modal.storePlaceholder')} />
 
               <TouchableOpacity style={styles.fileBtn} onPress={pickFile}>
                 <Text style={styles.fileBtnText}>{picked ? t('modal.fileSelected', { name: picked.name }) : t('modal.fileOptional')}</Text>
               </TouchableOpacity>
 
               <View style={styles.modalActions}>
-                <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={() => setAddOpen(false)} disabled={saving}>
-                  <Text style={styles.btnGhostText}>{t('common.cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.btn, styles.btnMain, saving && { opacity: 0.7 }]} onPress={addExpense} disabled={saving}>
-                  <Text style={styles.btnMainText}>{saving ? t('common.saving') : t('common.save')}</Text>
-                </TouchableOpacity>
+                <AppButton title={t('common.cancel')} variant="secondary" onPress={() => setAddOpen(false)} disabled={saving} style={styles.modalBtn} />
+                <AppButton title={saving ? t('common.saving') : t('common.save')} onPress={addExpense} disabled={saving} style={styles.modalBtn} />
               </View>
-            </BlurView>
+            </AppCard>
           </View>
         </Modal>
 
@@ -708,31 +711,48 @@ export default function BudzetScreen() {
 
       {/* FAB — przyklejony na dole po prawej, zawsze widoczny */}
       <FloatingAddButton onPress={openAddExpense} />
-    </View>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000', padding: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    paddingTop: 0,
+  },
 
   topBar: {
-    paddingHorizontal: 2,
-    paddingBottom: 10,
+    paddingHorizontal: 0,
+    marginTop: 0,
+    paddingBottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  logoImg: { width: 36, height: 36 },
-  headerTitle: {
-    color: '#19705C',
-    fontSize: 34,
-    fontWeight: '900',
-    letterSpacing: -0.2,
-    textShadowColor: 'rgba(25,112,92,0.18)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 18,
-    textAlign: 'center',
+  headerSide: {
+    width: 116,
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleWrap: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  headerTitleLarge: {
+    ...typography.screenTitle,
+    fontSize: 42,
+    lineHeight: 48,
+    color: colors.accent,
+    textAlign: 'center',
+  },
+  headerLogoLarge: {
+    width: 108,
+    height: 108,
   },
 
   errorText: { color: '#FCA5A5', marginBottom: 10, textAlign: 'center', fontWeight: '800' },
@@ -789,9 +809,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.026)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  chartHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  chartTitle: { color: '#F8FAFC', fontWeight: '900', fontSize: 16, letterSpacing: -0.2 },
-  chartSub: { color: '#94A3B8', fontSize: 12, fontWeight: '700' },
+  chartHeaderRow: { marginBottom: 0 },
   vChartWrap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 12 },
   vCol: { width: 62, alignItems: 'center' },
   vBarTrack: {
@@ -856,14 +874,11 @@ const styles = StyleSheet.create({
 
   // ── Modal ──
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
-  modalCard: { padding: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  modalCardOuter: { marginBottom: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+  modalCard: { padding: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 0 },
   modalTitle: { color: NEON, fontWeight: '900', fontSize: 18, marginBottom: 12, textAlign: 'center' },
   lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
-  input: {
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    paddingHorizontal: 12, paddingVertical: 10, color: '#FFFFFF',
-  },
+  input: {},
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingVertical: 2 },
   catTile: {
     width: '30%',
@@ -909,9 +924,5 @@ const styles = StyleSheet.create({
   },
   fileBtnText: { color: '#E2E8F0', fontWeight: '800', fontSize: 12 },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  btn: { flex: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
-  btnGhost: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)' },
-  btnGhostText: { color: '#E2E8F0', fontWeight: '900' },
-  btnMain: { borderWidth: 1, borderColor: 'rgba(37,240,200,0.38)', backgroundColor: 'rgba(37,240,200,0.14)', borderRadius: RADIUS.button, paddingVertical: 13 },
-  btnMainText: { color: THEME_COLORS.neon, fontWeight: '900' },
+  modalBtn: { flex: 1 },
 });

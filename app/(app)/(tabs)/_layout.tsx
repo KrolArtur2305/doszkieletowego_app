@@ -1,10 +1,10 @@
 import React from 'react';
-import { Image, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { colors, typography } from '../../../src/ui/theme';
 
-const NEON = '#25F0C8';
 const BUDDY_AVATAR = require('../../../assets/buddy_avatar.png');
 
 export default function TabsLayout() {
@@ -16,18 +16,10 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: 'transparent' },
-
-        tabBarStyle: {
-          backgroundColor: '#000000',
-          borderTopColor: 'rgba(37,240,200,0.35)',
-          borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 10,
-          paddingTop: 10,
-        },
-        tabBarActiveTintColor: '#5EEAD4',
-        tabBarInactiveTintColor: 'rgba(148,163,184,0.70)',
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '700' },
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: colors.accentBright,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: styles.tabBarLabel,
       }}
     >
       <Tabs.Screen
@@ -55,35 +47,14 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.buddy', { defaultValue: 'Kierownik' }),
           tabBarIcon: ({ focused }) => (
-            <View style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              borderWidth: 2,
-              borderColor: focused ? NEON : 'rgba(37,240,200,0.35)',
-              overflow: 'hidden',
-              marginBottom: 2,
-              shadowColor: NEON,
-              shadowOpacity: focused ? 0.55 : 0.20,
-              shadowRadius: 10,
-              shadowOffset: { width: 0, height: 0 },
-            }}>
+            <View style={[styles.buddyAvatarWrap, focused && styles.buddyAvatarWrapFocused]}>
               <Image
                 source={BUDDY_AVATAR}
-                style={{ width: '100%', height: '100%' }}
+                style={styles.buddyAvatar}
                 resizeMode="cover"
               />
             </View>
           ),
-          tabBarLabelStyle: { fontSize: 12, fontWeight: '700', color: NEON },
-          tabBarStyle: {
-            backgroundColor: '#000000',
-            borderTopColor: 'rgba(255,255,255,0.08)',
-            borderTopWidth: 1,
-            height: 72,
-            paddingBottom: 10,
-            paddingTop: 4,
-          },
         }}
       />
 
@@ -116,3 +87,34 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: colors.bg,
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    height: 64,
+    paddingBottom: 10,
+    paddingTop: 10,
+  },
+  tabBarLabel: {
+    ...typography.label,
+  },
+  buddyAvatarWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    overflow: 'hidden',
+    marginBottom: 2,
+    backgroundColor: colors.surfaceAlt,
+  },
+  buddyAvatarWrapFocused: {
+    borderColor: colors.borderFocus,
+  },
+  buddyAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+});

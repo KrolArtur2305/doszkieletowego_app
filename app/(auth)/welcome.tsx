@@ -1,55 +1,35 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   Animated,
-  Image,
   Dimensions,
-  Pressable,
-  ScrollView,
+  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
+import type { ScrollView as ScrollViewType } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
+
+import { supabase } from '../../lib/supabase';
 import { setAppLanguage, type AppLanguage } from '../../lib/i18n';
+import { AppButton, AppScreen } from '../../src/ui/components';
+import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
-const { width: W, height: H } = Dimensions.get('window');
-
-type Star = { left: number; top: number; size: number; opacity: number };
-
-function buildStars(count: number): Star[] {
-  const stars: Star[] = [];
-  let seed = 1337;
-  const rnd = () => {
-    seed = (seed * 9301 + 49297) % 233280;
-    return seed / 233280;
-  };
-
-  for (let i = 0; i < count; i++) {
-    const size = 1 + Math.floor(rnd() * 2);
-    stars.push({
-      left: Math.floor(rnd() * W),
-      top: Math.floor(rnd() * H),
-      size,
-      opacity: 0.2 + rnd() * 0.8,
-    });
-  }
-  return stars;
-}
+const { width: W } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('auth');
 
   const floatY = useRef(new Animated.Value(0)).current;
-  const stars = useMemo(() => buildStars(90), []);
+  const sliderRef = useRef<ScrollViewType | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // ✅ WAŻNE: zależne od języka (wymusza przeliczenie t())
   const slides = useMemo(
     () => [
       {
@@ -83,7 +63,7 @@ export default function WelcomeScreen() {
         icon: require('../../assets/icons/welcome/photos.png'),
       },
     ],
-    [i18n.language] // <- najpewniejsza zależność
+    [i18n.language, t]
   );
 
   useEffect(() => {
@@ -94,33 +74,36 @@ export default function WelcomeScreen() {
       if (data.session) router.replace('/(app)');
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) router.replace('/(app)');
     });
 
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(floatY, { toValue: -5, duration: 1600, useNativeDriver: true }),
         Animated.timing(floatY, { toValue: 0, duration: 1600, useNativeDriver: true }),
       ])
-    ).start();
+    );
+
+    loop.start();
 
     return () => {
       mounted = false;
+      loop.stop();
       sub.subscription.unsubscribe();
     };
-  }, [router, floatY]);
+  }, [floatY, router]);
 
   const activeLang = (i18n.resolvedLanguage || i18n.language) as AppLanguage;
 
   const renderLangButton = (lng: AppLanguage, label: string) => {
     const isActive = activeLang === lng;
+
     return (
       <Pressable
         onPress={async () => {
           await setAppLanguage(lng);
-
-          // ✅ UX: po zmianie języka wróć na pierwszy slajd, żeby było widać efekt
+          sliderRef.current?.scrollTo({ x: 0, animated: false });
           setActiveIndex(0);
         }}
         style={[styles.langBtn, isActive && styles.langBtnActive]}
@@ -130,208 +113,185 @@ export default function WelcomeScreen() {
     );
   };
 
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(e.nativeEvent.contentOffset.x / W);
-    setActiveIndex(index);
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / W);
+    const clampedIndex = Math.max(0, Math.min(slides.length - 1, nextIndex));
+    setActiveIndex(clampedIndex);
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.bgBase} />
+    <AppScreen>
+      <View style={styles.container}>
+        <View style={styles.topBlock}>
+          <Animated.View style={[styles.logoWrap, { transform: [{ translateY: floatY }] }]}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logoImg}
+              resizeMode="contain"
+            />
+          </Animated.View>
 
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {stars.map((s, idx) => (
-          <View
-            key={idx}
-            style={[
-              styles.star,
-              { left: s.left, top: s.top, width: s.size, height: s.size, opacity: s.opacity },
-            ]}
+          <Text style={styles.brand}>BuildIQ</Text>
+
+          <View style={styles.langRow}>
+            {renderLangButton('pl', 'PL')}
+            {renderLangButton('en', 'EN')}
+            {renderLangButton('de', 'DE')}
+          </View>
+        </View>
+
+        <View style={styles.sliderWrap} key={`slider-${i18n.language}`}>
+          <ScrollView
+            ref={sliderRef}
+            horizontal
+            pagingEnabled
+            decelerationRate="fast"
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={onScroll}
+            contentContainerStyle={styles.sliderTrack}
+          >
+            {slides.map((slide) => (
+              <View key={slide.key} style={styles.slide}>
+                <Image source={slide.icon} style={styles.slideIcon} resizeMode="contain" />
+                <Text style={styles.slideTitle}>{slide.title}</Text>
+                <Text style={styles.slideText}>{slide.text}</Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={styles.pagination}>
+            {slides.map((_, index) => (
+              <View key={index} style={[styles.dot, activeIndex === index && styles.dotActive]} />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.actions}>
+          <AppButton
+            title={t('welcome.loginCta')}
+            onPress={() => router.push('/(auth)/login')}
+            style={styles.primaryBtn}
           />
-        ))}
-      </View>
 
-      <Animated.View style={[styles.logoWrap, { transform: [{ translateY: floatY }] }]}>
-        <Image
-          source={require('../../assets/logo.png')}
-          style={styles.logoImg}
-          resizeMode="contain"
-        />
-      </Animated.View>
-
-      <Text style={styles.brand}>BuildIQ</Text>
-
-      <View style={styles.langRow}>
-        {renderLangButton('pl', 'PL')}
-        {renderLangButton('en', 'EN')}
-        {renderLangButton('de', 'DE')}
-      </View>
-
-      {/* ✅ klucz na języku: ScrollView przebuduje się po zmianie języka */}
-      <View style={styles.sliderWrap} key={`slider-${i18n.language}`}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={onScroll}
-        >
-          {slides.map((slide, index) => (
-            <View key={slide.key} style={styles.slide}>
-              <Image source={slide.icon} style={styles.slideIcon} resizeMode="contain" />
-              <Text style={styles.slideTitle}>{slide.title}</Text>
-              <Text style={styles.slideText}>{slide.text}</Text>
-            </View>
-          ))}
-        </ScrollView>
-
-        <View style={styles.pagination}>
-          {slides.map((_, i) => (
-            <View key={i} style={[styles.dot, activeIndex === i && styles.dotActive]} />
-          ))}
+          <AppButton
+            title={t('welcome.registerCta')}
+            onPress={() => router.push('/(auth)/register')}
+            variant="secondary"
+            style={styles.secondaryBtn}
+          />
         </View>
       </View>
-
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => router.push('/(auth)/login')}
-        style={styles.primaryBtn}
-      >
-        <Text style={styles.primaryText}>{t('welcome.loginCta')}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => router.push('/(auth)/register')}
-        style={styles.secondaryBtn}
-      >
-        <Text style={styles.secondaryText}>{t('welcome.registerCta')}</Text>
-      </TouchableOpacity>
-    </View>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 22,
+    paddingHorizontal: spacing.xl + 2,
+    paddingTop: spacing['2xl'] + 12,
+    paddingBottom: spacing.xl,
+    backgroundColor: colors.bg,
   },
-  bgBase: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
-  },
-  star: {
-    position: 'absolute',
-    borderRadius: 99,
-    backgroundColor: '#FFFFFF',
+  topBlock: {
+    width: '100%',
+    alignItems: 'center',
   },
   logoWrap: {
     alignItems: 'center',
-    marginBottom: 10,
-    marginTop: -100,
+    marginBottom: spacing.sm,
   },
   logoImg: {
-    width: 120,
-    height: 120,
+    width: 140,
+    height: 140,
   },
   brand: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#10B981',
-    marginBottom: 18,
+    ...typography.screenTitle,
+    color: colors.accentBright,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
   },
   langRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
+    justifyContent: 'center',
+    gap: spacing.sm + 2,
   },
   langBtn: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 999,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceAlt,
   },
   langBtnActive: {
-    borderColor: '#25F0C8',
+    borderColor: colors.borderFocus,
+    backgroundColor: colors.accentFill,
   },
   langText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '800',
+    ...typography.label,
+    color: colors.textSoft,
   },
   langTextActive: {
-    color: '#25F0C8',
+    color: colors.accentBright,
   },
   sliderWrap: {
-    height: 320,
-    marginBottom: 30,
+    width: W,
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  sliderTrack: {
+    alignItems: 'stretch',
   },
   slide: {
-    width: W - 44,
+    width: W,
     alignItems: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl + 6,
   },
   slideIcon: {
-    width: 160,
-    height: 160,
-    marginBottom: 20,
+    width: 210,
+    height: 210,
+    marginBottom: spacing.md,
   },
   slideTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#25F0C8',
+    ...typography.sectionTitle,
+    color: colors.accentBright,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: spacing.sm + 2,
   },
   slideText: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.85)',
-    textAlign: 'center',
     lineHeight: 22,
+    color: colors.textSoft,
+    textAlign: 'center',
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 99,
-    backgroundColor: 'rgba(255,255,255,0.3)',
     marginHorizontal: 4,
+    borderRadius: 99,
+    backgroundColor: colors.textFaint,
   },
   dotActive: {
-    backgroundColor: '#25F0C8',
+    backgroundColor: colors.accentBright,
+  },
+  actions: {
+    width: '100%',
+    marginTop: spacing.sm,
   },
   primaryBtn: {
     width: '100%',
-    paddingVertical: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16,185,129,0.12)',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  primaryText: {
-    color: '#25F0C8',
-    fontWeight: '900',
-    fontSize: 18,
+    marginBottom: spacing.md,
   },
   secondaryBtn: {
     width: '100%',
-    paddingVertical: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    alignItems: 'center',
-  },
-  secondaryText: {
-    color: 'rgba(255,255,255,0.95)',
-    fontWeight: '900',
-    fontSize: 18,
   },
 });

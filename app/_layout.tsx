@@ -67,12 +67,12 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="light" translucent />
 
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#050915' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
           {showLoader ? (
             <View
               style={{
                 flex: 1,
-                backgroundColor: '#050915',
+                backgroundColor: '#000000',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}

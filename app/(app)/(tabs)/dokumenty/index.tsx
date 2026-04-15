@@ -26,6 +26,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
+import { AppHeader } from '../../../../src/ui/components';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -70,7 +71,6 @@ const COLORS = {
 };
 
 const bucketName = 'dokumenty';
-const logo = require('../../../assets/logo.png');
 
 function localeFromLng(lng?: string) {
   const base = (lng || 'en').split('-')[0];
@@ -169,7 +169,7 @@ export default function DokumentyScreen() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const topPad = 0;
 
   const getUserId = useCallback(async (): Promise<string | null> => {
     const {
@@ -534,15 +534,7 @@ export default function DokumentyScreen() {
       <View pointerEvents="none" style={styles.glowTwo} />
 
       <View style={[styles.topBar, { paddingTop: topPad }]}>
-        <View style={styles.logoWrap}>
-          <Image source={logo} style={styles.logoImg} contentFit="contain" />
-        </View>
-
-        <View style={styles.topTitleWrap}>
-          <Text style={styles.title}>{tt('documents:screen.title')}</Text>
-        </View>
-
-        <View style={styles.headerSpacer} />
+        <AppHeader title={tt('documents:screen.title')} />
       </View>
 
       <View style={styles.controlsBar}>
@@ -914,35 +906,6 @@ const styles = StyleSheet.create({
   topBar: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  logoWrap: {
-    width: 58,
-    height: 58,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoImg: {
-    width: 42,
-    height: 42,
-  },
-  topTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-
-  headerSpacer: {
-    width: 58,
-  },
-
-  title: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#19705C',
-    textAlign: 'center',
-    textShadowColor: 'rgba(25,112,92,0.18)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 18,
-    letterSpacing: -0.2,
   },
 
   controlsBar: {

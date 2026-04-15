@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
+import { AppHeader } from '../../../../src/ui/components';
 
 type EtapRow = {
   id: string;
@@ -167,6 +168,10 @@ export default function PostepyScreen() {
       contentContainerStyle={{ paddingBottom: 140 }}
       showsVerticalScrollIndicator={false}
     >
+      <View style={styles.header}>
+        <AppHeader title={t('screenTitle', { defaultValue: 'Postępy' })} />
+      </View>
+
       {/* POSTĘP */}
       <BlurView intensity={16} tint="dark" style={styles.card}>
         <Text style={styles.cardLabel}>{t('progress.cardLabel')}</Text>
@@ -279,6 +284,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 16,
     backgroundColor: 'transparent',
+  },
+  header: {
+    minHeight: 120,
+    marginBottom: 10,
   },
 
   card: {

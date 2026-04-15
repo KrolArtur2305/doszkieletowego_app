@@ -25,10 +25,10 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { useTranslation } from 'react-i18next'
 
 import Model3DView from '../../../../components/Model3DView'
-const logo = require('../../../assets/logo.png')
-
-const ACCENT = '#19705C'
-const NEON = '#25F0C8'
+import { AppButton, AppCard, AppHeader, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components'
+import { colors, radius, spacing, typography } from '../../../../src/ui/theme'
+const ACCENT = colors.accent
+const NEON = colors.accentBright
 const DEFAULT_MODEL_URL = 'https://pkgeautweumkupfxfjoo.supabase.co/storage/v1/object/public/models/dom_small.glb'
 const BUCKET_RZUTY = 'rzuty_projektu'
 
@@ -55,6 +55,8 @@ type Rzut = {
   url: string
   nazwa?: string | null
   created_at: string
+  display_url?: string | null
+  storage_path?: string | null
 }
 
 function fmtNum(v: any, suffix: string) {
@@ -72,10 +74,41 @@ function safeNumberOrNull(v: string) {
   return Number.isFinite(n) ? n : null
 }
 
-function keyFromPublicUrl(publicUrl: string) {
-  const idx = publicUrl.indexOf(`/storage/v1/object/public/${BUCKET_RZUTY}/`)
-  if (idx === -1) return null
-  return publicUrl.slice(idx + `/storage/v1/object/public/${BUCKET_RZUTY}/`.length)
+function keyFromStoredUrl(storedUrl: string) {
+  const publicMarker = `/storage/v1/object/public/${BUCKET_RZUTY}/`
+  const signedMarker = `/storage/v1/object/sign/${BUCKET_RZUTY}/`
+
+  const publicIdx = storedUrl.indexOf(publicMarker)
+  if (publicIdx !== -1) {
+    return storedUrl.slice(publicIdx + publicMarker.length).split('?')[0]
+  }
+
+  const signedIdx = storedUrl.indexOf(signedMarker)
+  if (signedIdx !== -1) {
+    return storedUrl.slice(signedIdx + signedMarker.length).split('?')[0]
+  }
+
+  return null
+}
+
+async function withSignedUrls(rows: Rzut[]): Promise<Rzut[]> {
+  return Promise.all(
+    rows.map(async (row) => {
+      const storagePath = keyFromStoredUrl(row.url)
+      if (!storagePath) return row
+
+      const { data, error } = await supabase.storage.from(BUCKET_RZUTY).createSignedUrl(storagePath, 60 * 60)
+      if (error || !data?.signedUrl) {
+        return { ...row, storage_path: storagePath, display_url: row.url }
+      }
+
+      return {
+        ...row,
+        storage_path: storagePath,
+        display_url: data.signedUrl,
+      }
+    })
+  )
 }
 
 function base64ToUint8Array(base64: string) {
@@ -173,7 +206,7 @@ export default function ProjektScreen() {
 
           if (rzutyErr) throw rzutyErr
           if (!alive) return
-          setRzuty((rzutyData as any) ?? [])
+          setRzuty(await withSignedUrls(((rzutyData as any) ?? []) as Rzut[]))
         } else {
           setRzuty([])
         }
@@ -320,7 +353,15 @@ export default function ProjektScreen() {
         return
       }
 
-      setRzuty((prev) => [row as any, ...prev])
+      const { data: signedData } = await supabase.storage.from(BUCKET_RZUTY).createSignedUrl(path, 60 * 60)
+      setRzuty((prev) => [
+        {
+          ...(row as any),
+          storage_path: path,
+          display_url: signedData?.signedUrl ?? pub.publicUrl,
+        },
+        ...prev,
+      ])
     } catch (e: any) {
       console.error('[Projekt] uploadRzutAndSave error:', e?.message || e)
       Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('addPlanError'))
@@ -353,7 +394,7 @@ export default function ProjektScreen() {
               return
             }
 
-            const path = r.url ? keyFromPublicUrl(r.url) : null
+            const path = r.storage_path || (r.url ? keyFromStoredUrl(r.url) : null)
             if (path) await supabase.storage.from(BUCKET_RZUTY).remove([path])
 
             setRzuty((prev) => prev.filter((x) => x.id !== r.id))
@@ -433,21 +474,17 @@ export default function ProjektScreen() {
     }
   }
 
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8
+  const topPad = 0
 
   return (
-    <View style={styles.screen}>
+    <AppScreen style={styles.screen}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
         <View style={[styles.safeTop, { height: topPad }]} />
 
         <View style={styles.headerBlock}>
-          <Image source={logo} style={styles.logoHugeLeft} resizeMode="contain" />
+          <AppHeader title={t('screenTitle', { defaultValue: i18n.language?.startsWith('pl') ? 'Projekt' : 'Project' })} />
 
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.screenTitle}>
-              {t('screenTitle', { defaultValue: i18n.language?.startsWith('pl') ? 'Projekt' : 'Project' })}
-            </Text>
-
             <Text style={styles.projectTitle} numberOfLines={2}>
               {projekt?.nazwa || '—'}
             </Text>
@@ -469,10 +506,7 @@ export default function ProjektScreen() {
               <Model3DView url={modelUrl} />
             </View>
 
-            <TouchableOpacity style={styles.modelCta} onPress={handleChangeModel} activeOpacity={0.9}>
-              <Feather name="refresh-cw" size={16} color="#0B1120" />
-              <Text style={styles.modelCtaText}>{t('change3dModel')}</Text>
-            </TouchableOpacity>
+            <AppButton title={t('change3dModel')} onPress={handleChangeModel} style={styles.modelCta} />
 
             <Text style={styles.modelHint}>
               {t('modelHint', {
@@ -485,14 +519,17 @@ export default function ProjektScreen() {
         </View>
 
         <View style={styles.sectionOuter}>
-          <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitleNeon}>{t('buildingParams')}</Text>
-              <TouchableOpacity onPress={openEditParams} style={styles.editBtn} hitSlop={12} activeOpacity={0.85}>
-                <Feather name="sliders" size={13} color={NEON} />
-                <Text style={styles.editBtnText}>{t('edit', { defaultValue: 'Edytuj' })}</Text>
-              </TouchableOpacity>
-            </View>
+          <AppCard contentStyle={styles.sectionGlass}>
+            <SectionHeader
+              title={t('buildingParams')}
+              right={
+                <TouchableOpacity onPress={openEditParams} style={styles.editBtn} hitSlop={12} activeOpacity={0.85}>
+                  <Feather name="sliders" size={13} color={NEON} />
+                  <Text style={styles.editBtnText}>{t('edit', { defaultValue: 'Edytuj' })}</Text>
+                </TouchableOpacity>
+              }
+              style={styles.sectionHeaderRow}
+            />
 
             {loading ? (
               <ActivityIndicator color={NEON} style={{ marginVertical: 16 }} />
@@ -503,18 +540,21 @@ export default function ProjektScreen() {
                 ))}
               </View>
             )}
-          </BlurView>
+          </AppCard>
         </View>
 
         <View style={styles.sectionOuter}>
-          <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitleNeon}>{t('projectPlans')}</Text>
-              <TouchableOpacity onPress={uploadRzutAndSave} style={styles.editBtn} activeOpacity={0.9}>
-                <Feather name="plus" size={14} color={NEON} />
-                <Text style={styles.editBtnText}>{t('addPlan', { defaultValue: 'Dodaj' })}</Text>
-              </TouchableOpacity>
-            </View>
+          <AppCard contentStyle={styles.sectionGlass}>
+            <SectionHeader
+              title={t('projectPlans')}
+              right={
+                <TouchableOpacity onPress={uploadRzutAndSave} style={styles.editBtn} activeOpacity={0.9}>
+                  <Feather name="plus" size={14} color={NEON} />
+                  <Text style={styles.editBtnText}>{t('addPlan', { defaultValue: 'Dodaj' })}</Text>
+                </TouchableOpacity>
+              }
+              style={styles.sectionHeaderRow}
+            />
 
             {loading ? (
               <ActivityIndicator color={NEON} style={{ marginVertical: 16 }} />
@@ -528,7 +568,7 @@ export default function ProjektScreen() {
               <View style={{ marginTop: 8, gap: 12 }}>
                 {rzuty.map((r) => (
                   <Pressable key={r.id} onPress={() => openPreview(r)} onLongPress={() => deleteRzut(r)} style={styles.rzutCard}>
-                    <Image source={{ uri: r.url }} style={styles.rzutImg} resizeMode="cover" />
+                    <Image source={{ uri: r.display_url || r.url }} style={styles.rzutImg} resizeMode="cover" />
                     <View style={styles.rzutFooter}>
                       <View style={{ flex: 1, paddingRight: 10 }}>
                         <Text style={styles.rzutName} numberOfLines={1}>
@@ -546,7 +586,7 @@ export default function ProjektScreen() {
                 ))}
               </View>
             )}
-          </BlurView>
+          </AppCard>
         </View>
 
         <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
@@ -570,7 +610,7 @@ export default function ProjektScreen() {
             </View>
 
             <View style={styles.previewImgWrap}>
-              {previewRzut?.url ? <Image source={{ uri: previewRzut.url }} style={styles.previewImg} resizeMode="contain" /> : null}
+              {previewRzut?.url ? <Image source={{ uri: previewRzut.display_url || previewRzut.url }} style={styles.previewImg} resizeMode="contain" /> : null}
             </View>
           </View>
         </Modal>
@@ -663,24 +703,16 @@ export default function ProjektScreen() {
                 </ScrollView>
 
                 <View style={styles.modalActions}>
-                  <TouchableOpacity onPress={() => setEditOpen(false)} style={styles.modalBtnGhost} disabled={saving} activeOpacity={0.85}>
-                    <Text style={styles.modalBtnGhostText}>{t('cancel', { defaultValue: 'Anuluj' })}</Text>
-                  </TouchableOpacity>
+                  <AppButton title={t('cancel', { defaultValue: 'Anuluj' })} variant="secondary" onPress={() => setEditOpen(false)} disabled={saving} style={styles.modalBtnGhost} />
 
-                  <TouchableOpacity onPress={saveParams} style={styles.modalBtnPrimary} disabled={saving} activeOpacity={0.9}>
-                    {saving ? (
-                      <ActivityIndicator color={NEON} />
-                    ) : (
-                      <Text style={styles.modalBtnPrimaryText}>{t('save', { defaultValue: 'Zapisz zmiany' })}</Text>
-                    )}
-                  </TouchableOpacity>
+                  <AppButton title={t('save', { defaultValue: 'Zapisz zmiany' })} loading={saving} onPress={saveParams} style={styles.modalBtnPrimary} />
                 </View>
               </View>
             </View>
           </KeyboardAvoidingView>
         </Modal>
       </ScrollView>
-    </View>
+    </AppScreen>
   )
 }
 
@@ -738,7 +770,7 @@ function FieldText({ label, value, onChange }: { label: string; value: string; o
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput value={value} onChangeText={onChange} placeholder="—" placeholderTextColor="#64748B" style={styles.input} />
+      <AppInput value={value} onChangeText={onChange} placeholder="—" style={styles.input} />
     </View>
   )
 }
@@ -747,7 +779,7 @@ function FieldNum({ label, value, onChange }: { label: string; value: string; on
   return (
     <View style={[styles.field, { flex: 1 }]}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput value={value} onChangeText={onChange} placeholder="—" placeholderTextColor="#64748B" keyboardType="decimal-pad" style={styles.input} />
+      <AppInput value={value} onChangeText={onChange} placeholder="—" keyboardType="decimal-pad" style={styles.input} />
     </View>
   )
 }
@@ -755,13 +787,13 @@ function FieldNum({ label, value, onChange }: { label: string; value: string; on
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: 'transparent',
   },
 
   container: {
     flex: 1,
-    backgroundColor: '#000000',
-    paddingHorizontal: 16,
+    backgroundColor: 'transparent',
+    paddingHorizontal: spacing.lg,
   },
 
   safeTop: {
@@ -769,42 +801,22 @@ const styles = StyleSheet.create({
   },
 
   headerBlock: {
-    position: 'relative',
-    minHeight: 112,
+    minHeight: 120,
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 0,
   },
 
   headerTitleWrap: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  logoHugeLeft: {
-    position: 'absolute',
-    left: 0,
-    top: '50%',
-    width: 112,
-    height: 112,
-    marginTop: -56,
-  },
-
-  screenTitle: {
-    color: ACCENT,
-    fontSize: 34,
-    fontWeight: '900',
-    textAlign: 'center',
-    letterSpacing: -0.2,
-    textShadowColor: 'rgba(25,112,92,0.18)',
-    textShadowRadius: 18,
-    marginBottom: 6,
+    marginTop: -4,
   },
 
   projectTitle: {
-    color: '#F8FAFC',
+    color: colors.text,
     fontSize: 26,
-    fontWeight: '900',
+    fontWeight: '800',
     textAlign: 'center',
   },
 
@@ -818,9 +830,9 @@ const styles = StyleSheet.create({
   },
 
   projectLocation: {
-    color: 'rgba(148,163,184,0.95)',
+    color: colors.textMuted,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   modelHeroWrap: {
@@ -848,18 +860,7 @@ const styles = StyleSheet.create({
   modelCta: {
     marginTop: 10,
     alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 16,
-    backgroundColor: NEON,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-
-  modelCtaText: {
-    color: '#0B1120',
-    fontWeight: '900',
+    minWidth: 180,
   },
 
   modelHint: {
@@ -883,7 +884,7 @@ const styles = StyleSheet.create({
   sectionGlass: {
     borderRadius: 28,
     padding: 18,
-    backgroundColor: 'rgba(255,255,255,0.026)',
+    backgroundColor: 'transparent',
   },
 
   sectionHeaderRow: {
@@ -1172,13 +1173,6 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
   },
@@ -1197,33 +1191,9 @@ const styles = StyleSheet.create({
 
   modalBtnGhost: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 18,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-
-  modalBtnGhostText: {
-    color: 'rgba(255,255,255,0.65)',
-    fontWeight: '900',
-    fontSize: 15,
   },
 
   modalBtnPrimary: {
     flex: 2,
-    paddingVertical: 14,
-    borderRadius: 18,
-    alignItems: 'center',
-    backgroundColor: 'rgba(37,240,200,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.38)',
-  },
-
-  modalBtnPrimaryText: {
-    color: NEON,
-    fontWeight: '900',
-    fontSize: 15,
   },
 })

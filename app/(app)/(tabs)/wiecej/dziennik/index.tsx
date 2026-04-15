@@ -23,12 +23,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
+import { AppHeader } from '../../../../../src/ui/components';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
 const { width: W } = Dimensions.get('window');
-const BUILDIQ_LOGO = require('../../../../../assets/logo.png');
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Etap = {
@@ -101,7 +100,7 @@ function getCurrentEtapId(etapy: Etap[]) {
 export default function DziennikScreen() {
   const { session } = useSupabaseAuth();
   const { i18n } = useTranslation();
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const topPad = 0;
   const dateLocale = useMemo(
     () => localeFromLng(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
@@ -354,17 +353,7 @@ export default function DziennikScreen() {
 
       {/* Header */}
       <Animated.View style={[styles.header, { paddingTop: topPad, opacity: headerAnim }]}>
-        <View style={styles.headerTopRow}>
-          <View style={styles.headerLogoWrap}>
-            <Image source={BUILDIQ_LOGO} style={styles.headerLogo} resizeMode="contain" />
-          </View>
-
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>Dziennik budowy</Text>
-          </View>
-
-          <View style={styles.headerRightSpacer} />
-        </View>
+        <AppHeader title="Dziennik budowy" style={styles.headerTopRow} />
 
         <View style={styles.headerMetaRow}>
           <TouchableOpacity
@@ -832,35 +821,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 54,
-  },
-  headerLogoWrap: {
-    width: 56,
-    height: 56,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  headerLogo: {
-    width: 48,
-    height: 48,
-  },
-  headerTitleWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerRightSpacer: {
-    width: 56,
-    height: 56,
-  },
-  headerTitle: {
-    color: ACCENT,
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.25,
-    textAlign: 'center',
+    minHeight: 120,
   },
   headerMetaRow: {
     flexDirection: 'row',

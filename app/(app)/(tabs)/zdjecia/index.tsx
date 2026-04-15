@@ -26,6 +26,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
+import { AppHeader } from '../../../../src/ui/components';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -66,7 +67,6 @@ const COLORS = {
 };
 
 const bucketName = 'zdjecia';
-const logo = require('../../../assets/logo.png');
 
 function sanitizeFolderName(input: string) {
   return input
@@ -517,7 +517,7 @@ export default function ZdjeciaScreen() {
       : tt('photos:sort.oldest', { defaultValue: 'Najstarsze' });
   }, [sortOrder, tt]);
 
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const topPad = 0;
 
   if (loading) {
     return (
@@ -546,15 +546,11 @@ export default function ZdjeciaScreen() {
 
       {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: topPad }]}>
-        <View style={styles.logoWrap}>
-          <Image source={logo} style={styles.logoImg} contentFit="contain" />
-        </View>
+        <AppHeader title={tt('photos:title', { defaultValue: 'Zdjęcia' })} />
+        <View style={styles.headerControlsRow}>
 
-        <View style={styles.topTitleWrap}>
           <Text style={styles.title}>{tt('photos:title', { defaultValue: 'Zdjęcia' })}</Text>
-        </View>
-
-        <View style={styles.headerRight}>
+          <View style={styles.headerRight}>
           <TouchableOpacity
             style={[styles.toggleButton, viewMode === 'grid' && styles.toggleButtonActive]}
             onPress={() => setViewMode('grid')}
@@ -574,6 +570,7 @@ export default function ZdjeciaScreen() {
               color={viewMode === 'carousel' ? COLORS.brand : 'rgba(255,255,255,0.45)'}
             />
           </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -958,18 +955,20 @@ const styles = StyleSheet.create({
   topBar: {
     paddingHorizontal: 16,
     paddingBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
 
-  logoWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  logoWrap: { display: 'none' },
   logoImg: { width: 30, height: 30 },
 
-  topTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  topTitleWrap: { display: 'none' },
+  headerControlsRow: { alignItems: 'flex-end', marginTop: 8 },
 
   headerRight: { flexDirection: 'row', gap: 8 },
 
   title: {
+    display: 'none',
     fontSize: 34,
     fontWeight: '900',
     color: '#19705C',

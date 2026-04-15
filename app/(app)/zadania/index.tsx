@@ -24,6 +24,7 @@ import { supabase } from '../../../lib/supabase';
 import { syncAllTaskReminders } from '../../../lib/notifications';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../components/FloatingAddButton';
+import { AppHeader } from '../../../src/ui/components';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -124,7 +125,7 @@ function getMonthMatrix(baseDate: Date) {
 export default function ZadaniaScreen() {
   const { session } = useSupabaseAuth();
   const { i18n } = useTranslation();
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const topPad = 0;
   const dateLocale = useMemo(
     () => localeFromLng(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
@@ -418,17 +419,7 @@ export default function ZadaniaScreen() {
           }}
         >
           <View style={styles.headerRow}>
-            <Image
-              source={require('../../../assets/logo.png')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
-
-            <View style={styles.headerTitleWrap}>
-              <Text style={styles.heading}>Zadania</Text>
-            </View>
-
-            <View style={styles.headerRightSpacer} />
+            <AppHeader title="Zadania" />
           </View>
 
           <View style={styles.statsRow}>
@@ -950,32 +941,9 @@ const styles = StyleSheet.create({
   },
 
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    minHeight: 120,
     marginBottom: 22,
   },
-  headerLogo: {
-    width: 46,
-    height: 46,
-    opacity: 0.98,
-  },
-  headerTitleWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -46,
-  },
-  heading: {
-    color: ACCENT,
-    fontSize: 32,
-    fontWeight: '900',
-    letterSpacing: -0.3,
-    textAlign: 'center',
-  },
-  headerRightSpacer: {
-    width: 46,
-  },
-
   statsRow: {
     flexDirection: 'row',
     gap: 12,

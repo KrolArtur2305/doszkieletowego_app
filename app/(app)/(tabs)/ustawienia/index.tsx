@@ -8,13 +8,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { removePushToken } from '../../../../src/services/notifications/pushService';
+import { AppCard, AppHeader, AppScreen } from '../../../../src/ui/components';
+import { colors, radius, shadows, spacing, typography } from '../../../../src/ui/theme';
 
 function safeEmailPrefix(email?: string | null, fallback = 'User') {
   if (!email) return fallback;
@@ -160,20 +161,21 @@ export default function UstawieniaScreen() {
   );
 
   return (
-    <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.blackBase} />
-      <View pointerEvents="none" style={styles.orbTop} />
-      <View pointerEvents="none" style={styles.orbMid} />
-
+    <AppScreen
+      background={
+        <>
+          <View pointerEvents="none" style={styles.orbTop} />
+          <View pointerEvents="none" style={styles.orbMid} />
+        </>
+      }
+    >
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 170 }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.headerMainTitle}>
-            {loading ? t('common:loading') : t('settings:title')}
-          </Text>
+          <AppHeader title={loading ? t('common:loading') : t('settings:title')} />
           <Text style={styles.headerName}>{displayName}</Text>
         </View>
 
@@ -184,24 +186,20 @@ export default function UstawieniaScreen() {
               onPress={item.onPress}
               style={({ pressed }) => [styles.tileOuter, pressed && styles.tileOuterPressed]}
             >
-              <View style={styles.tileFrame}>
-                <View pointerEvents="none" style={styles.tileUnderlay} />
-
-                <BlurView intensity={18} tint="dark" style={styles.tile}>
-                  <View style={styles.iconRing}>
-                    <View style={styles.iconInner}>
-                      <Feather name={item.icon} size={20} color={COLORS.accent} />
-                    </View>
+              <AppCard style={styles.tileFrame} contentStyle={styles.tile} withShadow={false}>
+                <View style={styles.iconRing}>
+                  <View style={styles.iconInner}>
+                    <Feather name={item.icon} size={20} color={colors.accent} />
                   </View>
+                </View>
 
-                  <View style={styles.tileTextWrap}>
-                    <Text style={styles.tileTitle}>{item.title}</Text>
-                    {!!item.subtitle && <Text style={styles.tileSubtitle}>{item.subtitle}</Text>}
-                  </View>
+                <View style={styles.tileTextWrap}>
+                  <Text style={styles.tileTitle}>{item.title}</Text>
+                  {!!item.subtitle && <Text style={styles.tileSubtitle}>{item.subtitle}</Text>}
+                </View>
 
-                  <Feather name="chevron-right" size={20} color={COLORS.chevron} />
-                </BlurView>
-              </View>
+                <Feather name="chevron-right" size={20} color={colors.textFaint} />
+              </AppCard>
             </Pressable>
           ))}
         </View>
@@ -210,40 +208,20 @@ export default function UstawieniaScreen() {
       <View style={styles.logoutDock}>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.9}>
           <View style={styles.logoutIcon}>
-            <Feather name="log-out" size={19} color={COLORS.danger} />
+            <Feather name="log-out" size={19} color={colors.danger} />
           </View>
           <Text style={styles.logoutText}>{t('settings:logout')}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </AppScreen>
   );
 }
 
-const COLORS = {
-  text: '#FFFFFF',
-  border: 'rgba(255,255,255,0.08)',
-  border2: 'rgba(255,255,255,0.14)',
-  cardFill: 'rgba(255,255,255,0.035)',
-  accent: '#19705C',
-  accentSoft: 'rgba(25,112,92,0.26)',
-  accentFill: 'rgba(25,112,92,0.07)',
-  chevron: 'rgba(255,255,255,0.34)',
-  danger: '#FF4747',
-  dangerBorder: 'rgba(255,71,71,0.30)',
-};
-
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: 'transparent' },
-
-  blackBase: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
-  },
-
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 26,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 0,
     backgroundColor: 'transparent',
   },
 
@@ -252,8 +230,8 @@ const styles = StyleSheet.create({
     width: 460,
     height: 460,
     borderRadius: 999,
-    backgroundColor: COLORS.accent,
-    opacity: 0.10,
+    backgroundColor: colors.accent,
+    opacity: 0.08,
     top: -250,
     right: -230,
   },
@@ -262,64 +240,40 @@ const styles = StyleSheet.create({
     width: 340,
     height: 340,
     borderRadius: 999,
-    backgroundColor: COLORS.accent,
-    opacity: 0.06,
+    backgroundColor: colors.accent,
+    opacity: 0.05,
     top: 160,
     left: -210,
   },
 
-  header: { paddingTop: 12, paddingBottom: 18, alignItems: 'center' },
-  headerMainTitle: {
-    color: '#19705C',
-    fontSize: 34,
-    fontWeight: '900',
-    letterSpacing: -0.2,
-    textAlign: 'center',
-  },
+  header: { paddingTop: 0, paddingBottom: spacing.lg, alignItems: 'center' },
   headerName: {
-    marginTop: 10,
-    color: 'rgba(255,255,255,0.86)',
-    fontSize: 18,
+    marginTop: spacing.sm,
+    color: colors.textSoft,
+    ...typography.button,
     fontWeight: '600',
     letterSpacing: -0.1,
     textAlign: 'center',
   },
 
-  menuWrap: { gap: 12, marginTop: 18 },
+  menuWrap: { gap: spacing.md, marginTop: spacing.lg },
 
   tileOuter: {
-    borderRadius: 22,
-    shadowColor: '#000',
-    shadowOpacity: 0.38,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 3,
+    borderRadius: radius.lg,
+    ...shadows.card,
   },
-  tileOuterPressed: { transform: [{ scale: 1.01 }] },
+  tileOuterPressed: { transform: [{ scale: 1.005 }] },
 
   tileFrame: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.22)',
-    backgroundColor: 'rgba(255,255,255,0.01)',
-    padding: 1,
-    overflow: 'hidden',
-  },
-
-  tileUnderlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: radius.lg,
   },
 
   tile: {
     height: 72,
-    borderRadius: 21,
-    paddingHorizontal: 16,
+    borderRadius: radius.lg - 1,
+    paddingHorizontal: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.cardFill,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     overflow: 'hidden',
   },
 
@@ -328,62 +282,57 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: COLORS.accentSoft,
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: colors.accentSoft,
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   iconInner: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: COLORS.accentFill,
+    backgroundColor: colors.accentFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   tileTextWrap: { flex: 1 },
   tileTitle: {
-    color: COLORS.text,
-    fontSize: 17.5,
-    fontWeight: '700',
-    letterSpacing: -0.1,
+    color: colors.text,
+    ...typography.cardTitle,
   },
   tileSubtitle: {
-    marginTop: 4,
-    color: 'rgba(255,255,255,0.44)',
-    fontSize: 13,
-    fontWeight: '500',
+    marginTop: spacing.xs,
+    color: colors.textMuted,
+    ...typography.meta,
   },
 
-  logoutDock: { position: 'absolute', left: 20, right: 20, bottom: 24 },
+  logoutDock: { position: 'absolute', left: spacing.xl, right: spacing.xl, bottom: spacing['2xl'] },
 
   logoutButton: {
     height: 58,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceOverlay,
     borderWidth: 1,
-    borderColor: COLORS.border2,
+    borderColor: colors.borderStrong,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: spacing.sm + 2,
   },
   logoutIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: COLORS.dangerBorder,
+    borderColor: colors.dangerBorder,
     backgroundColor: 'rgba(255,71,71,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoutText: {
-    fontSize: 16.5,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.78)',
-    letterSpacing: -0.1,
+    color: colors.textSoft,
+    ...typography.button,
   },
 });

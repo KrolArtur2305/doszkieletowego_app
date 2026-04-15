@@ -11,17 +11,16 @@ import {
   Text,
   View,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-const ACCENT = '#19705C';
 const NEON = '#25F0C8';
 const { width: W } = Dimensions.get('window');
 const H_PAD = 18;
 const TILE_GAP = 14;
 const TILE_W = (W - H_PAD * 2 - TILE_GAP) / 2;
+const TILE_BOX = TILE_W - 28;
 const WIDE_TILE_W = W - H_PAD * 2;
 
 type Tile = {
@@ -88,7 +87,7 @@ export default function WiecejScreen() {
       label: 'Zadania',
       icon: 'check-square',
       color: '#22C55E',
-      onPress: () => router.push('/(app)/(tabs)/zadania'),
+      onPress: () => router.push('/zadania'),
     },
     {
       key: 'dziennik',
@@ -100,8 +99,8 @@ export default function WiecejScreen() {
     {
       key: 'ustawienia',
       label: 'Ustawienia',
-      icon: 'settings',
-      color: 'rgba(148,163,184,0.95)',
+      icon: 'sliders',
+      color: NEON,
       onPress: () => router.push('/ustawienia'),
       wide: true,
     },
@@ -110,7 +109,6 @@ export default function WiecejScreen() {
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
-      <View pointerEvents="none" style={styles.glowTop} />
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
@@ -122,12 +120,7 @@ export default function WiecejScreen() {
             style={styles.headerLogo}
             resizeMode="contain"
           />
-
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.heading}>Więcej</Text>
-          </View>
-
-          <View style={styles.headerRightSpacer} />
+          <Text style={styles.heading}>Więcej</Text>
         </View>
 
         <View style={styles.grid}>
@@ -155,26 +148,16 @@ export default function WiecejScreen() {
                   onPress={tile.onPress}
                   style={({ pressed }) => [
                     isWide ? styles.wideTile : styles.tile,
-                    pressed && { opacity: 0.82, transform: [{ scale: 0.985 }] },
+                    pressed && styles.tilePressed,
                   ]}
                 >
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      styles.tileGlow,
-                      isWide ? styles.tileGlowWide : styles.tileGlowNormal,
-                      { shadowColor: tile.color },
-                    ]}
-                  />
-
-                  <BlurView intensity={16} tint="dark" style={styles.tileBlur}>
+                  <View style={styles.tileInner}>
                     <View
                       style={[
                         styles.tileIconWrap,
                         {
                           backgroundColor: `${tile.color}18`,
                           borderColor: `${tile.color}35`,
-                          shadowColor: tile.color,
                         },
                       ]}
                     >
@@ -184,7 +167,7 @@ export default function WiecejScreen() {
                     <Text style={[styles.tileLabel, isWide && styles.wideTileLabel]}>
                       {tile.label}
                     </Text>
-                  </BlurView>
+                  </View>
                 </Pressable>
               </Animated.View>
             );
@@ -204,113 +187,78 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000000',
   },
-  glowTop: {
-    position: 'absolute',
-    width: 380,
-    height: 380,
-    borderRadius: 999,
-    backgroundColor: ACCENT,
-    opacity: 0.06,
-    top: -200,
-    right: -150,
-  },
-
   content: {
     paddingHorizontal: H_PAD,
     paddingBottom: 120,
   },
-
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 28,
   },
   headerLogo: {
-    width: 46,
-    height: 46,
-    opacity: 0.98,
-  },
-  headerTitleWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -46,
+    width: 54,
+    height: 54,
   },
   heading: {
-    color: ACCENT,
-    fontSize: 32,
+    color: NEON,
+    fontSize: 34,
     fontWeight: '900',
     letterSpacing: -0.3,
     textAlign: 'center',
   },
-  headerRightSpacer: {
-    width: 46,
-  },
-
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: TILE_GAP,
   },
-
   tileWrap: {
     width: TILE_W,
+    alignItems: 'center',
   },
   wideTileWrap: {
     width: WIDE_TILE_W,
+    alignItems: 'center',
   },
-
   tile: {
-    width: TILE_W,
-    height: TILE_W * 0.9,
+    width: TILE_BOX,
+    height: TILE_BOX,
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: '#19705c',
+    backgroundColor: '#000000',
     shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
   wideTile: {
     width: WIDE_TILE_W,
-    height: 88,
+    height: 102,
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: '#19705c',
+    backgroundColor: '#000000',
     shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
-
-  tileGlow: {
-    position: 'absolute',
-    inset: 0,
-    borderRadius: 24,
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
+  tilePressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.985 }],
   },
-  tileGlowNormal: {
-    borderRadius: 24,
-  },
-  tileGlowWide: {
-    borderRadius: 24,
-  },
-
-  tileBlur: {
+  tileInner: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: '#000000',
   },
-
   tileIconWrap: {
     width: 56,
     height: 56,
@@ -318,11 +266,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
   },
-
   tileLabel: {
     color: 'rgba(255,255,255,0.82)',
     fontSize: 13.5,
@@ -331,5 +275,7 @@ const styles = StyleSheet.create({
   },
   wideTileLabel: {
     fontSize: 15,
+    textAlign: 'center',
+    paddingHorizontal: 12,
   },
 });

@@ -24,6 +24,7 @@ import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../../../components/FloatingAddButton';
+import { AppHeader } from '../../../../../src/ui/components';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -75,7 +76,7 @@ const isValidPhone = (phone: string) => {
 
 export default function KontaktyScreen() {
   const { session } = useSupabaseAuth();
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const topPad = 0;
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -275,15 +276,7 @@ export default function KontaktyScreen() {
             }}
           >
             <View style={styles.headerRow}>
-              <Image
-                source={require('../../../../assets/logo.png')}
-                style={styles.headerLogo}
-                resizeMode="contain"
-              />
-
-              <Text style={styles.heading}>Kontakty</Text>
-
-              <View style={styles.headerRightSpacer} />
+              <AppHeader title="Kontakty" />
             </View>
           </Animated.View>
 
@@ -686,33 +679,8 @@ const styles = StyleSheet.create({
   },
 
   headerRow: {
-    position: 'relative',
-    justifyContent: 'center',
+    minHeight: 120,
     marginBottom: 18,
-    minHeight: 40,
-  },
-  headerLogo: {
-    position: 'absolute',
-    left: 0,
-    width: 30,
-    height: 30,
-    top: 5,
-    opacity: 0.98,
-  },
-  headerRightSpacer: {
-    width: 30,
-    height: 30,
-    position: 'absolute',
-    right: 0,
-    top: 5,
-  },
-  heading: {
-    color: ACCENT,
-    fontSize: 30,
-    fontWeight: '900',
-    letterSpacing: -0.3,
-    textAlign: 'center',
-    lineHeight: 40,
   },
 
   listContent: {

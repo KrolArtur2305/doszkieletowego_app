@@ -1,54 +1,29 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
   Keyboard,
   Platform,
   Image,
   Alert,
-  Dimensions,
   Animated,
   TouchableWithoutFeedback,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
+import { AppButton, AppInput, AppScreen } from '../../src/ui/components';
+import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
-const { width: W, height: H } = Dimensions.get('window');
 const GOOGLE_AUTH_ENABLED = false;
-
-type Star = { left: number; top: number; size: number; opacity: number };
-
-function buildStars(count: number): Star[] {
-  const stars: Star[] = [];
-  let seed = 1337;
-  const rnd = () => {
-    seed = (seed * 9301 + 49297) % 233280;
-    return seed / 233280;
-  };
-
-  for (let i = 0; i < count; i++) {
-    const size = 1 + Math.floor(rnd() * 2);
-    stars.push({
-      left: Math.floor(rnd() * W),
-      top: Math.floor(rnd() * H),
-      size,
-      opacity: 0.2 + rnd() * 0.8,
-    });
-  }
-  return stars;
-}
 
 export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation('auth');
-  const stars = useMemo(() => buildStars(90), []);
   const floatY = useRef(new Animated.Value(0)).current;
 
   const [email, setEmail] = useState('');
@@ -134,20 +109,7 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.container}
       >
-        <View style={styles.bgBase} />
-
-      {/* gwiazdki */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {stars.map((s, idx) => (
-          <View
-            key={idx}
-            style={[
-              styles.star,
-              { left: s.left, top: s.top, width: s.size, height: s.size, opacity: s.opacity },
-            ]}
-          />
-        ))}
-      </View>
+        <AppScreen>
 
       {/* back */}
       <TouchableOpacity
@@ -158,7 +120,7 @@ export default function LoginScreen() {
         <Text style={styles.backText}>←</Text>
       </TouchableOpacity>
 
-      <View style={styles.content}>
+        <View style={styles.content}>
         {/* logo (plywa lekko) */}
         <Animated.View style={[styles.logoWrap, { transform: [{ translateY: floatY }] }]}>
           <Image
@@ -168,53 +130,42 @@ export default function LoginScreen() {
           />
         </Animated.View>
 
+        <Text style={styles.brand}>BuildIQ</Text>
+
         <View>
-          <TextInput
+          <AppInput
             placeholder={t('login.form.emailPlaceholder')}
-            placeholderTextColor="#888888"
-            style={styles.input}
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
+            containerStyle={styles.inputWrap}
           />
-          <TextInput
+          <AppInput
             placeholder={t('login.form.passwordPlaceholder')}
-            placeholderTextColor="#888888"
-            style={styles.input}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
+            containerStyle={styles.inputWrap}
           />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <TouchableOpacity
-          disabled={loading}
+        <AppButton
+          title={t('login.form.submit')}
+          loading={loading}
           onPress={onLogin}
-          style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
-          activeOpacity={0.9}
-        >
-          {loading ? <ActivityIndicator /> : <Text style={styles.primaryText}>{t('login.form.submit')}</Text>}
-        </TouchableOpacity>
+          style={styles.primaryBtn}
+        />
 
         {GOOGLE_AUTH_ENABLED ? (
-          <TouchableOpacity
+          <AppButton
+            title={googleLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : 'Google'}
             disabled={googleLoading}
             onPress={handleGoogleLogin}
-            style={[styles.googleBtn, googleLoading && { opacity: 0.7 }]}
-            activeOpacity={0.9}
-          >
-            {googleLoading ? (
-              <ActivityIndicator />
-            ) : (
-              <Image
-                source={require('../../assets/google.png')}
-                style={styles.googleLogo}
-                resizeMode="contain"
-              />
-            )}
-          </TouchableOpacity>
+            variant="secondary"
+            style={styles.googleBtn}
+          />
         ) : null}
 
         <TouchableOpacity onPress={onForgotPassword} style={styles.forgotWrap} activeOpacity={0.85}>
@@ -232,6 +183,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
         </View>
       </View>
+      </AppScreen>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
@@ -245,9 +197,7 @@ function mapError(msg: string, t: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
-  bgBase: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000' },
-  star: { position: 'absolute', borderRadius: 99, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: colors.bg },
 
   backBtn: {
     position: 'absolute',
@@ -256,66 +206,45 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.border,
   },
-  backText: { color: 'rgba(255,255,255,0.9)', fontSize: 22, fontWeight: '900' },
+  backText: { color: colors.textSoft, fontSize: 22, fontWeight: '800' },
 
   content: {
     flex: 1,
-    paddingHorizontal: 22,
+    paddingHorizontal: spacing.xl + 2,
     justifyContent: 'center',
+    backgroundColor: colors.bg,
   },
 
-  // logo WYZEJ: tu sterujesz wysokoscia
-  logoWrap: { alignItems: 'center', marginTop: -160, marginBottom: 26 },
-  logoImg: { width: 96, height: 96 },
-
-  input: {
-    backgroundColor: '#0B0F14',
-    color: 'rgba(255,255,255,0.92)',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    marginBottom: 12,
+  logoWrap: { alignItems: 'center', marginTop: -140, marginBottom: spacing.sm },
+  logoImg: { width: 140, height: 140 },
+  brand: {
+    ...typography.screenTitle,
+    color: colors.accentBright,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
   },
 
-  error: { color: '#FCA5A5', marginBottom: 8, textAlign: 'center' },
+  inputWrap: { marginBottom: spacing.md },
 
-  primaryBtn: {
-    marginTop: 6,
-    paddingVertical: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.95)',
-    backgroundColor: 'rgba(16,185,129,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryText: { color: '#25F0C8', fontWeight: '900', fontSize: 18 },
+  error: { color: colors.danger, marginBottom: spacing.sm, textAlign: 'center' },
+
+  primaryBtn: { marginTop: spacing.xs + 2 },
 
   googleBtn: {
-    marginTop: 16,
-    height: 56,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: spacing.lg,
   },
-  googleLogo: { width: 160, height: 160 },
 
-  forgotWrap: { marginTop: 14, alignItems: 'center' },
-  forgotText: { color: 'rgba(255,255,255,0.75)', fontWeight: '800' },
+  forgotWrap: { marginTop: spacing.lg - 2, alignItems: 'center' },
+  forgotText: { color: colors.textSoft, ...typography.label },
 
-  bottomLinkWrap: { marginTop: 18, alignItems: 'center' },
-  bottomLink: { color: 'rgba(255,255,255,0.65)' },
-  bottomLinkStrong: { color: '#10B981', fontWeight: '900' },
+  bottomLinkWrap: { marginTop: spacing.lg + 2, alignItems: 'center' },
+  bottomLink: { color: colors.textMuted, ...typography.body },
+  bottomLinkStrong: { color: colors.accentBright, fontWeight: '700' },
 });

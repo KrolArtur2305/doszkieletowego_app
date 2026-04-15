@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
   Modal,
-  TextInput,
   Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -21,11 +20,13 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { useTranslation } from 'react-i18next';
+import { AppButton, AppCard, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components';
+import { colors } from '../../../../src/ui/theme';
 
 const { width: W } = Dimensions.get('window');
 
-const ACCENT = '#19705C';
-const NEON = '#25F0C8';
+const ACCENT = colors.accent;
+const NEON = colors.accentBright;
 const BG = 'transparent';
 const PHOTOS_BUCKET = 'zdjecia';
 
@@ -812,7 +813,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <View style={styles.screen}>
+    <AppScreen style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {/* ── HERO — ZMIANA: logo po lewej, tytuł, pogoda chipy po prawej, subtitle pełna szerokość ── */}
@@ -861,7 +862,7 @@ export default function DashboardScreen() {
 
         {/* ── PROGRESS CARD (etapy) ── */}
         <View style={styles.progressCardOuter}>
-          <BlurView intensity={18} tint="dark" style={styles.progressCard}>
+          <AppCard contentStyle={styles.progressCard} glow>
             <Animated.View pointerEvents="none" style={[styles.progressScan, { transform: [{ translateX: scanX }, { rotate: '-12deg' }] }]} />
 
             <View style={styles.progressRow}>
@@ -907,7 +908,7 @@ export default function DashboardScreen() {
                 <Text style={styles.centerBtnText}>{t('common:checkMore')}</Text>
               </View>
             </TouchableOpacity>
-          </BlurView>
+          </AppCard>
         </View>
 
         {/* ── DONUT CAROUSEL ── */}
@@ -994,7 +995,7 @@ export default function DashboardScreen() {
 
         {/* ── QUICK ACTIONS ── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitleCenterNeon}>{t('quickActions.title')}</Text>
+          <SectionHeader title={t('quickActions.title')} style={styles.sectionTitleWrap} />
           <View style={styles.qaRow}>
             {([
               { icon: '💸', label: t('quickActions.addExpense'), route: '/(app)/(tabs)/budzet' },
@@ -1019,9 +1020,9 @@ export default function DashboardScreen() {
 
         {/* ── MONTHLY CALENDAR + TASKS ── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitleCenterNeon}>{t('calendar.title')}</Text>
+          <SectionHeader title={t('calendar.title')} style={styles.sectionTitleWrap} />
           <View style={styles.sectionOuter}>
-            <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
+            <AppCard contentStyle={styles.sectionGlass}>
 
               <View style={styles.calendarTop}>
                 <TouchableOpacity onPress={goPrevMonth} style={styles.calNavBtn} activeOpacity={0.85}>
@@ -1129,15 +1130,15 @@ export default function DashboardScreen() {
                   </View>
                 )}
               </View>
-            </BlurView>
+            </AppCard>
           </View>
         </View>
 
         {/* ── LAST ACTIVITY ── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitleCenterNeon}>{t('activity.title')}</Text>
+          <SectionHeader title={t('activity.title')} style={styles.sectionTitleWrap} />
           <View style={styles.sectionOuter}>
-            <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
+            <AppCard contentStyle={styles.sectionGlass}>
               {activityLoading ? (
                 <ActivityIndicator color={NEON} />
               ) : activity.length === 0 ? (
@@ -1157,15 +1158,15 @@ export default function DashboardScreen() {
                   ))}
                 </View>
               )}
-            </BlurView>
+            </AppCard>
           </View>
         </View>
 
         {/* ── PHOTOS (compact: 3 thumbnails + button) ── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitleCenterNeon}>{t('photos.latestTitle')}</Text>
+          <SectionHeader title={t('photos.latestTitle')} style={styles.sectionTitleWrap} />
           <View style={styles.sectionOuter}>
-            <BlurView intensity={16} tint="dark" style={styles.sectionGlass}>
+            <AppCard contentStyle={styles.sectionGlass}>
               {photosLoading ? (
                 <ActivityIndicator color={NEON} />
               ) : photos.length === 0 ? (
@@ -1193,7 +1194,7 @@ export default function DashboardScreen() {
                   <Text style={styles.centerBtnText}>{t('common:checkMore')}</Text>
                 </View>
               </TouchableOpacity>
-            </BlurView>
+            </AppCard>
           </View>
         </View>
 
@@ -1207,19 +1208,17 @@ export default function DashboardScreen() {
             <Text style={styles.modalTitle}>{t('modal.addTaskTitle')}</Text>
             <Text style={styles.modalSubtitle}>{t('modal.selectedDate', { date: selectedYMD })}</Text>
 
-            <TextInput
+            <AppInput
               value={newTitle}
               onChangeText={setNewTitle}
               placeholder={t('modal.titlePlaceholder')}
-              placeholderTextColor="rgba(255,255,255,0.35)"
               style={styles.modalInput}
               maxLength={80}
             />
-            <TextInput
+            <AppInput
               value={newDesc}
               onChangeText={setNewDesc}
               placeholder={t('modal.descriptionPlaceholder')}
-              placeholderTextColor="rgba(255,255,255,0.35)"
               style={styles.modalInput}
               maxLength={120}
             />
@@ -1272,19 +1271,15 @@ export default function DashboardScreen() {
             )}
 
             <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setTaskModalOpen(false)} style={styles.modalBtnGhost} activeOpacity={0.9}>
-                <Text style={styles.modalBtnGhostTxt}>{t('common:cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={addTask} style={styles.modalBtnPrimary} activeOpacity={0.9}>
-                <Text style={styles.modalBtnPrimaryTxt}>{t('common:save')}</Text>
-              </TouchableOpacity>
+              <AppButton title={t('common:cancel')} variant="secondary" onPress={() => setTaskModalOpen(false)} style={styles.modalBtnGhost} />
+              <AppButton title={t('common:save')} onPress={addTask} style={styles.modalBtnPrimary} />
             </View>
 
             <Text style={styles.modalHint}>{t('modal.hint')}</Text>
           </View>
         </View>
       </Modal>
-    </View>
+    </AppScreen>
   );
 }
 
@@ -1314,12 +1309,12 @@ const styles = StyleSheet.create({
   },
   heroTitleGlow: {
     position: 'absolute',
-    left: -12, right: -12, top: 8, height: 28,
+    left: -10, right: -10, top: 9, height: 24,
     borderRadius: 999,
-    backgroundColor: 'rgba(37,240,200,0.22)',
+    backgroundColor: 'rgba(37,240,200,0.14)',
     shadowColor: NEON,
-    shadowOpacity: 0.55,
-    shadowRadius: 18,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
   },
   heroTitle: {
@@ -1383,12 +1378,12 @@ const styles = StyleSheet.create({
   briefIcon: { fontSize: 16, marginTop: 1 },
   briefText: { flex: 1, color: 'rgba(255,255,255,0.80)', fontSize: 13.5, fontWeight: '700', lineHeight: 20 },
 
-  progressCardOuter: { marginTop: 14, borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 26, shadowOffset: { width: 0, height: 14 } },
-  progressCard: { borderRadius: 28, padding: 18, backgroundColor: 'rgba(255,255,255,0.026)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.12)' },
+  progressCardOuter: { marginTop: 14, borderRadius: 28 },
+  progressCard: { borderRadius: 28, padding: 18, backgroundColor: 'transparent', borderWidth: 0 },
   progressScan: {
     position: 'absolute', top: -40, width: 120, height: 120, borderRadius: 999,
-    backgroundColor: 'rgba(37,240,200,0.06)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.14)',
-    shadowColor: NEON, shadowOpacity: 0.35, shadowRadius: 22, shadowOffset: { width: 0, height: 0 },
+    backgroundColor: 'rgba(37,240,200,0.04)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.10)',
+    shadowColor: NEON, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 0 },
   },
   progressRow: { paddingVertical: 10 },
   progressLabel: { color: 'rgba(255,255,255,0.42)', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.8 },
@@ -1405,8 +1400,8 @@ const styles = StyleSheet.create({
   sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
 
   centerBtnWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  centerBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: 'rgba(37,240,200,0.12)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.32)', shadowColor: NEON, shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
-  centerBtnText: { color: NEON, fontSize: 12.5, fontWeight: '900', letterSpacing: 0.2, textShadowColor: 'rgba(37,240,200,0.22)', textShadowRadius: 10 },
+  centerBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: 'rgba(37,240,200,0.10)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.22)' },
+  centerBtnText: { color: NEON, fontSize: 12.5, fontWeight: '800', letterSpacing: 0.2 },
 
   carouselHintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
   carouselHintText: { display: 'none' } as any,
@@ -1421,7 +1416,7 @@ const styles = StyleSheet.create({
   donutDotActive: { backgroundColor: NEON, shadowColor: NEON, shadowOpacity: 0.6, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
 
   sectionWrap: { marginTop: 18 },
-  sectionTitleCenterNeon: { textAlign: 'center', color: NEON, fontSize: 20, fontWeight: '900', letterSpacing: -0.2, marginBottom: 12, textShadowColor: 'rgba(37,240,200,0.18)', textShadowRadius: 16 },
+  sectionTitleWrap: { justifyContent: 'center', marginBottom: 12 },
   sectionOuter: { borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 26, shadowOffset: { width: 0, height: 14 } },
   sectionGlass: { borderRadius: 28, padding: 16, backgroundColor: 'rgba(255,255,255,0.026)' },
 
@@ -1469,12 +1464,10 @@ const styles = StyleSheet.create({
   modalCard: { width: '100%', borderRadius: 24, padding: 16, backgroundColor: 'rgba(12,12,12,0.92)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.18)', shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 26, shadowOffset: { width: 0, height: 14 } },
   modalTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
   modalSubtitle: { marginTop: 4, color: 'rgba(255,255,255,0.55)', fontSize: 12.5, fontWeight: '700' },
-  modalInput: { marginTop: 12, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', color: '#FFFFFF', fontWeight: '800' } as any,
+  modalInput: { marginTop: 12 } as any,
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  modalBtnGhost: { flex: 1, paddingVertical: 11, borderRadius: 18, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  modalBtnGhostTxt: { color: 'rgba(255,255,255,0.75)', fontSize: 12.5, fontWeight: '900' },
-  modalBtnPrimary: { flex: 1, paddingVertical: 11, borderRadius: 18, alignItems: 'center', backgroundColor: 'rgba(37,240,200,0.14)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.38)' },
-  modalBtnPrimaryTxt: { color: NEON, fontSize: 12.5, fontWeight: '900' },
+  modalBtnGhost: { flex: 1 },
+  modalBtnPrimary: { flex: 1 },
   modalHint: { marginTop: 10, color: 'rgba(255,255,255,0.35)', fontSize: 11.5, fontWeight: '700', lineHeight: 16 },
   pickerRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   pickerBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
