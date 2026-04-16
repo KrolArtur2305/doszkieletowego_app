@@ -26,7 +26,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
-import { AppHeader } from '../../../../src/ui/components';
+import { colors as uiColors, typography } from '../../../../src/ui/theme';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -71,6 +71,7 @@ const COLORS = {
 };
 
 const bucketName = 'dokumenty';
+const APP_LOGO = require('../../../assets/logo.png');
 
 function localeFromLng(lng?: string) {
   const base = (lng || 'en').split('-')[0];
@@ -534,7 +535,20 @@ export default function DokumentyScreen() {
       <View pointerEvents="none" style={styles.glowTwo} />
 
       <View style={[styles.topBar, { paddingTop: topPad }]}>
-        <AppHeader title={tt('documents:screen.title')} />
+        <View style={styles.headerSide}>
+          <Image source={APP_LOGO} style={styles.headerLogoLarge} contentFit="contain" cachePolicy="memory-disk" />
+        </View>
+        <View style={styles.headerTitleWrap}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            style={styles.headerTitleLarge}
+          >
+            {tt('documents:screen.title')}
+          </Text>
+        </View>
+        <View style={styles.headerSide} />
       </View>
 
       <View style={styles.controlsBar}>
@@ -904,14 +918,39 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
 
   topBar: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerSide: {
+    width: 116,
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  headerTitleLarge: {
+    ...typography.screenTitle,
+    fontSize: 42,
+    lineHeight: 48,
+    color: uiColors.accent,
+    textAlign: 'center',
+  },
+  headerLogoLarge: {
+    width: 108,
+    height: 108,
   },
 
   controlsBar: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    paddingTop: 12,
+    paddingHorizontal: 18,
+    paddingBottom: 10,
+    paddingTop: 8,
     zIndex: 40,
   },
 
@@ -1084,7 +1123,7 @@ const styles = StyleSheet.create({
   },
   docDate: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700' },
 
-  listContainer: { paddingHorizontal: 16, paddingBottom: 110 },
+  listContainer: { paddingHorizontal: 18, paddingBottom: 110 },
   listRow: { marginBottom: 12, borderRadius: 18, overflow: 'hidden' },
   listBlur: {
     flexDirection: 'row',

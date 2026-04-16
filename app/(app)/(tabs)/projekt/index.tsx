@@ -622,10 +622,7 @@ export default function ProjektScreen() {
                 <View style={styles.modalHandle} />
 
                 <View style={styles.modalHeader}>
-                  <View>
-                    <Text style={styles.modalTitle}>{t('editParamsTitle', { defaultValue: 'Parametry budynku' })}</Text>
-                    <Text style={styles.modalSubtitle}>{t('editParamsSubtitle', { defaultValue: 'Uzupełnij dane swojego projektu' })}</Text>
-                  </View>
+                  <Text style={styles.modalTitle}>{t('editParamsTitle', { defaultValue: 'Edytuj parametry' })}</Text>
 
                   <TouchableOpacity onPress={() => setEditOpen(false)} style={styles.modalCloseBtn} activeOpacity={0.85}>
                     <Feather name="x" size={18} color="rgba(255,255,255,0.6)" />
@@ -1086,17 +1083,20 @@ const styles = StyleSheet.create({
 
   modalBackdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.60)',
+    paddingTop: 28,
+    paddingBottom: 28,
   },
 
   modalSheet: {
-    backgroundColor: '#0A0F1E',
+    backgroundColor: '#000000',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.15)',
-    borderBottomWidth: 0,
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 8,
@@ -1117,27 +1117,25 @@ const styles = StyleSheet.create({
   },
 
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 20,
+    minHeight: 34,
   },
 
   modalTitle: {
-    color: '#FFFFFF',
+    color: NEON,
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.2,
-  },
-
-  modalSubtitle: {
-    marginTop: 4,
-    color: 'rgba(255,255,255,0.40)',
-    fontSize: 13,
-    fontWeight: '600',
+    textAlign: 'center',
   },
 
   modalCloseBtn: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
     width: 34,
     height: 34,
     borderRadius: 12,
@@ -1194,6 +1192,6 @@ const styles = StyleSheet.create({
   },
 
   modalBtnPrimary: {
-    flex: 2,
+    flex: 1,
   },
 })

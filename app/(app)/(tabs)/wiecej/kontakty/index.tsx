@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
 
   headerRow: {
     minHeight: 120,
-    marginBottom: 18,
+    marginBottom: 14,
   },
 
   listContent: {

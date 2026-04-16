@@ -1,16 +1,17 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleProp, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 const NEON = '#25F0C8';
 
 type FloatingAddButtonProps = {
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
-export function FloatingAddButton({ onPress }: FloatingAddButtonProps) {
+export function FloatingAddButton({ onPress, style }: FloatingAddButtonProps) {
   return (
-    <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.88}>
+    <TouchableOpacity style={[styles.fab, style]} onPress={onPress} activeOpacity={0.88}>
       <Feather name="plus" size={24} color="#0B1120" />
     </TouchableOpacity>
   );

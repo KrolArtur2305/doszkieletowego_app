@@ -1,7 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -21,6 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
+import { AppHeader } from '../../../src/ui/components';
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -233,11 +233,7 @@ export default function InwestycjaScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.logoWrap}>
-            <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          </View>
-
-          <Text style={styles.header}>{t('screen.title')}</Text>
+          <AppHeader title={t('screen.title')} style={styles.screenHeader} />
 
           <BlurView intensity={70} tint="dark" style={styles.card}>
             <View style={styles.form}>
@@ -389,21 +385,7 @@ const styles = StyleSheet.create({
   glowC: { position: 'absolute', width: 360, height: 360, borderRadius: 9999, backgroundColor: '#22C55E', opacity: 0, top: 240, left: -160 },
 
   content: { paddingTop: 22, paddingHorizontal: 16, paddingBottom: 140 },
-
-  logoWrap: { alignItems: 'center', marginBottom: 10, marginTop: 18 },
-  logo: { width: 160, height: 64, opacity: 0.98 },
-
-  header: {
-    textAlign: 'center',
-    color: '#5EEAD4',
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-    marginTop: 2,
-    textShadowColor: 'rgba(94,234,212,0.65)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 14,
-  },
+  screenHeader: { marginBottom: 12 },
 
   card: {
     borderRadius: 28,

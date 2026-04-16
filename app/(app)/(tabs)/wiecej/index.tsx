@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Dimensions,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -14,6 +13,8 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+
+import { AppHeader } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
 const { width: W } = Dimensions.get('window');
@@ -114,14 +115,7 @@ export default function WiecejScreen() {
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerRow}>
-          <Image
-            source={require('../../../assets/logo.png')}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
-          <Text style={styles.heading}>Więcej</Text>
-        </View>
+        <AppHeader title="Więcej" style={styles.screenHeader} />
 
         <View style={styles.grid}>
           {tiles.map((tile, i) => {
@@ -191,23 +185,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: H_PAD,
     paddingBottom: 120,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 28,
-  },
-  headerLogo: {
-    width: 54,
-    height: 54,
-  },
-  heading: {
-    color: NEON,
-    fontSize: 34,
-    fontWeight: '900',
-    letterSpacing: -0.3,
-    textAlign: 'center',
+  screenHeader: {
+    marginBottom: 14,
   },
   grid: {
     flexDirection: 'row',

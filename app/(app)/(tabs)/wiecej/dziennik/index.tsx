@@ -19,15 +19,17 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Feather } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
-import { AppHeader } from '../../../../../src/ui/components';
+import { colors as uiColors, typography } from '../../../../../src/ui/theme';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
 const { width: W } = Dimensions.get('window');
+const APP_LOGO = require('../../../../assets/logo.png');
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Etap = {
@@ -353,7 +355,22 @@ export default function DziennikScreen() {
 
       {/* Header */}
       <Animated.View style={[styles.header, { paddingTop: topPad, opacity: headerAnim }]}>
-        <AppHeader title="Dziennik budowy" style={styles.headerTopRow} />
+        <View style={styles.topBar}>
+          <View style={styles.headerSideCompact}>
+            <ExpoImage source={APP_LOGO} style={styles.headerLogoCompact} contentFit="contain" cachePolicy="memory-disk" />
+          </View>
+          <View style={styles.headerTitleWrap}>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.9}
+              style={styles.headerTitleLarge}
+            >
+              Dziennik budowy
+            </Text>
+          </View>
+          <View style={styles.headerSideCompact} />
+        </View>
 
         <View style={styles.headerMetaRow}>
           <TouchableOpacity
@@ -816,18 +833,43 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    gap: 10,
+    paddingHorizontal: 0,
+    paddingBottom: 10,
+    gap: 8,
   },
-  headerTopRow: {
-    minHeight: 120,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerSideCompact: {
+    width: 96,
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  headerTitleLarge: {
+    ...typography.screenTitle,
+    fontSize: 38,
+    lineHeight: 42,
+    color: uiColors.accent,
+    textAlign: 'center',
+  },
+  headerLogoCompact: {
+    width: 88,
+    height: 88,
   },
   headerMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+    paddingHorizontal: 18,
   },
   headerCount: {
     color: 'rgba(255,255,255,0.34)',

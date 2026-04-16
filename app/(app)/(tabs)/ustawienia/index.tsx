@@ -175,7 +175,7 @@ export default function UstawieniaScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <AppHeader title={loading ? t('common:loading') : t('settings:title')} />
+          <AppHeader title="Ustawienia" style={styles.screenHeader} />
           <Text style={styles.headerName}>{displayName}</Text>
         </View>
 
@@ -246,9 +246,13 @@ const styles = StyleSheet.create({
     left: -210,
   },
 
-  header: { paddingTop: 0, paddingBottom: spacing.lg, alignItems: 'center' },
+  header: { paddingTop: 0, paddingBottom: spacing.md, alignItems: 'center' },
+  screenHeader: {
+    alignSelf: 'stretch',
+    marginHorizontal: -spacing.xl,
+  },
   headerName: {
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     color: colors.textSoft,
     ...typography.button,
     fontWeight: '600',
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  menuWrap: { gap: spacing.md, marginTop: spacing.lg },
+  menuWrap: { gap: spacing.md, marginTop: spacing.md },
 
   tileOuter: {
     borderRadius: radius.lg,

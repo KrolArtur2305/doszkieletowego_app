@@ -15,6 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { Image as ExpoImage } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
@@ -208,29 +209,6 @@ function buildBrief(
   return parts.join(' • ');
 }
 
-function buildMonthGrid(base: Date) {
-  const year = base.getFullYear();
-  const month = base.getMonth();
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
-  const firstDay = (first.getDay() + 6) % 7;
-  const daysInMonth = last.getDate();
-  const cells: Array<{ day?: number; isToday?: boolean }> = [];
-  for (let i = 0; i < firstDay; i++) cells.push({});
-  const todayD = new Date();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const isToday = d === todayD.getDate() && month === todayD.getMonth() && year === todayD.getFullYear();
-    cells.push({ day: d, isToday });
-  }
-  while (cells.length % 7 !== 0) cells.push({});
-  while (cells.length < 42) cells.push({});
-  return cells;
-}
-
-function addMonths(d: Date, delta: number) {
-  return new Date(d.getFullYear(), d.getMonth() + delta, 1);
-}
-
 export default function DashboardScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('dashboard');
@@ -332,103 +310,53 @@ export default function DashboardScreen() {
   const [photosLoading, setPhotosLoading] = useState(true);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
 
-  // ── Monthly calendar ──
+  // ── Today tasks ──
   const today = useMemo(() => new Date(), []);
-  const [calBase, setCalBase] = useState(() => new Date());
   const [selectedYMD, setSelectedYMD] = useState(() => toYMD(new Date()));
 
-  const calCells = useMemo(() => buildMonthGrid(calBase), [calBase]);
-  const monthLabel = useMemo(
-    () => calBase.toLocaleDateString(appLocale, { month: 'long', year: 'numeric' }),
-    [appLocale, calBase]
-  );
-
-  const goPrevMonth = () => setCalBase((d) => addMonths(d, -1));
-  const goNextMonth = () => setCalBase((d) => addMonths(d, +1));
-
-  const onPressDay = (day: number) => {
-    setSelectedYMD(toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), day)));
-  };
-
-  useEffect(() => {
-    setSelectedYMD(toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), 1)));
-  }, [calBase]);
-
   const [tasksLoading, setTasksLoading] = useState(false);
-  const [monthTasks, setMonthTasks] = useState<TaskRow[]>([]);
-  const [nearestTasks, setNearestTasks] = useState<TaskRow[]>([]);
-
-  const tasksByYMD = useMemo(() => {
-    const m = new Map<string, TaskRow[]>();
-    for (const task of monthTasks) {
-      const ymd = task.data;
-      if (!ymd) continue;
-      const arr = m.get(ymd) ?? [];
-      arr.push(task);
-      m.set(ymd, arr);
-    }
-    return m;
-  }, [monthTasks]);
-
-  const daysWithTasks = useMemo(() => {
-    const s = new Set<number>();
-    for (const task of monthTasks) {
-      const d = new Date(task.data);
-      if (d.getFullYear() === calBase.getFullYear() && d.getMonth() === calBase.getMonth()) {
-        s.add(d.getDate());
-      }
-    }
-    return s;
-  }, [monthTasks, calBase]);
-
-  const selectedTasks = useMemo(
-    () => (tasksByYMD.get(selectedYMD) ?? []).sort(sortByDateTime),
-    [tasksByYMD, selectedYMD]
-  );
+  const [todayTasks, setTodayTasks] = useState<TaskRow[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<TaskRow[]>([]);
 
   const todayTaskCount = useMemo(
-    () => (tasksByYMD.get(toYMD(today)) ?? []).length,
-    [tasksByYMD, today]
+    () => todayTasks.length,
+    [todayTasks]
   );
 
-  const loadTasksForMonth = async () => {
+  const loadTasksOverview = async () => {
     try {
       setTasksLoading(true);
       const { data: userData } = await supabase.auth.getUser();
       const user = userData?.user;
-      if (!user) { setMonthTasks([]); setNearestTasks([]); return; }
+      if (!user) { setTodayTasks([]); setUpcomingTasks([]); return; }
 
-      const from = toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), 1));
-      const to = toYMD(new Date(calBase.getFullYear(), calBase.getMonth() + 1, 0));
+      const todayYMD = toYMD(today);
+      const { data, error } = await supabase
+        .from(TASKS_TABLE)
+        .select('id,user_id,data,godzina,nazwa,opis,utworzone_at')
+        .eq('user_id', user.id)
+        .gte('data', todayYMD)
+        .order('data', { ascending: true })
+        .order('godzina', { ascending: true, nullsFirst: false })
+        .limit(24);
 
-      const [monthRes, nearestRes] = await Promise.all([
-        supabase
-          .from(TASKS_TABLE)
-          .select('id,user_id,data,godzina,nazwa,opis,utworzone_at')
-          .eq('user_id', user.id)
-          .gte('data', from)
-          .lte('data', to),
-        supabase
-          .from(TASKS_TABLE)
-          .select('id,user_id,data,godzina,nazwa,opis,utworzone_at')
-          .eq('user_id', user.id)
-          .gte('data', toYMD(today))
-          .limit(25),
-      ]);
+      if (error) throw error;
 
-      const monthList = (monthRes.data ?? []) as TaskRow[];
-      const nearestList = [...((nearestRes.data ?? []) as TaskRow[])].sort(sortByDateTime);
-
-      setMonthTasks(monthList);
-      setNearestTasks(nearestList.slice(0, 3));
+      const list = [...((data ?? []) as TaskRow[])].sort(sortByDateTime);
+      setTodayTasks(list.filter((task) => task.data === todayYMD));
+      setUpcomingTasks(list.filter((task) => task.data !== todayYMD).slice(0, 3));
     } catch {
-      setMonthTasks([]); setNearestTasks([]);
+      setTodayTasks([]); setUpcomingTasks([]);
     } finally {
       setTasksLoading(false);
     }
   };
 
-  useEffect(() => { loadTasksForMonth(); }, [calBase]); // eslint-disable-line
+  useFocusEffect(
+    React.useCallback(() => {
+      loadTasksOverview();
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   // ── Add task modal ──
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -442,8 +370,9 @@ export default function DashboardScreen() {
 
   const openAddTask = () => {
     setNewTitle(''); setNewDesc(''); setHasTime(false);
-    const base = new Date(selectedYMD + 'T00:00:00');
-    setPickDate(isNaN(base.getTime()) ? new Date() : base);
+    const base = new Date();
+    setSelectedYMD(toYMD(base));
+    setPickDate(base);
     setPickTime(roundTo5Min(new Date()));
     setShowDatePicker(false); setShowTimePicker(false);
     setTaskModalOpen(true);
@@ -471,7 +400,7 @@ export default function DashboardScreen() {
       if (ins.error) throw ins.error;
 
       setTaskModalOpen(false);
-      await loadTasksForMonth();
+      await loadTasksOverview();
     } catch (e) {
       console.warn('addTask error:', e);
       Alert.alert('Błąd', 'Nie udało się dodać zadania.');
@@ -820,10 +749,11 @@ export default function DashboardScreen() {
         <View style={styles.hero}>
           {/* Linia 1: logo | tytuł | pogoda */}
           <View style={styles.heroTopRow}>
-            <Image
+            <ExpoImage
               source={require('../../../assets/logo.png')}
               style={styles.heroLogo}
-              resizeMode="contain"
+              contentFit="contain"
+              cachePolicy="memory-disk"
             />
             <View style={styles.heroTitleWrap}>
               <Animated.View
@@ -995,7 +925,6 @@ export default function DashboardScreen() {
 
         {/* ── QUICK ACTIONS ── */}
         <View style={styles.sectionWrap}>
-          <SectionHeader title={t('quickActions.title')} style={styles.sectionTitleWrap} />
           <View style={styles.qaRow}>
             {([
               { icon: '💸', label: t('quickActions.addExpense'), route: '/(app)/(tabs)/budzet' },
@@ -1018,41 +947,112 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ── MONTHLY CALENDAR + TASKS ── */}
+        {/* ── TODAY TASKS ── */}
         <View style={styles.sectionWrap}>
-          <SectionHeader title={t('calendar.title')} style={styles.sectionTitleWrap} />
           <View style={styles.sectionOuter}>
             <AppCard contentStyle={styles.sectionGlass}>
-
-              <View style={styles.calendarTop}>
-                <TouchableOpacity onPress={goPrevMonth} style={styles.calNavBtn} activeOpacity={0.85}>
-                  <Text style={styles.calNavTxt}>‹</Text>
-                </TouchableOpacity>
-                <View style={{ alignItems: 'center', gap: 2 }}>
-                  <Text style={styles.calendarMonth}>{monthLabel}</Text>
-                  <Text style={styles.calendarHint}>
-                    {tasksLoading ? t('calendar.loadingTasks') : t('calendar.clickDayHint')}
+              <View style={styles.todayTasksHero}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.todayTasksDate}>
+                    {formatDateLongByLocale(today, appLocale)}
+                  </Text>
+                  <Text style={styles.todayTasksLead}>
+                    {todayTaskCount > 0
+                      ? t('todayTasks.summary', {
+                          count: todayTaskCount,
+                          defaultValue: 'Na dziś masz {{count}} zadań.',
+                        })
+                      : t('todayTasks.emptySummary', {
+                          defaultValue: 'Na dziś nie masz jeszcze nic zaplanowanego.',
+                        })}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={goNextMonth} style={styles.calNavBtn} activeOpacity={0.85}>
-                  <Text style={styles.calNavTxt}>›</Text>
+                <View style={styles.todayTasksBadge}>
+                  <Text style={styles.todayTasksBadgeValue}>{todayTaskCount}</Text>
+                  <Text style={styles.todayTasksBadgeLabel}>
+                    {t('todayTasks.badge', { defaultValue: 'dziś' })}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.todayTasksActions}>
+                <TouchableOpacity
+                  onPress={openAddTask}
+                  style={[styles.todayTasksActionBtn, styles.todayTasksActionPrimary]}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.todayTasksActionPrimaryText}>
+                    {t('todayTasks.add', { defaultValue: '+ Dodaj zadanie' })}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => router.push('/(app)/zadania')}
+                  style={styles.todayTasksActionBtn}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.todayTasksActionText}>
+                    {t('todayTasks.openAll', { defaultValue: 'Zobacz wszystkie' })}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.nearestWrap}>
+              <View style={styles.todayTasksListWrap}>
                 <View style={styles.nearestHeader}>
-                  <Text style={styles.nearestTitle}>{t('calendar.nearestTasks')}</Text>
-                  <TouchableOpacity onPress={openAddTask} style={styles.addTaskBtn} activeOpacity={0.9}>
-                    <Text style={styles.addTaskBtnText}>{t('calendar.addTaskPlus')}</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.nearestTitle}>
+                    {t('todayTasks.listTitle', { defaultValue: 'Plan na dziś' })}
+                  </Text>
+                  <Text style={styles.todayTasksListCount}>
+                    {todayTaskCount > 0
+                      ? t('todayTasks.countLabel', {
+                          count: todayTaskCount,
+                          defaultValue: '{{count}} pozycji',
+                        })
+                      : t('todayTasks.countEmpty', { defaultValue: '0 pozycji' })}
+                  </Text>
                 </View>
                 {tasksLoading ? (
                   <ActivityIndicator color={NEON} />
-                ) : nearestTasks.length === 0 ? (
-                  <Text style={styles.mutedText}>{t('calendar.noTasks')}</Text>
+                ) : todayTasks.length === 0 ? (
+                  <View style={styles.todayTasksEmpty}>
+                    <Text style={styles.todayTasksEmptyTitle}>
+                      {t('todayTasks.emptyTitle', { defaultValue: 'Spokojny dzień' })}
+                    </Text>
+                    <Text style={styles.mutedText}>
+                      {t('todayTasks.emptyText', {
+                        defaultValue: 'Nie masz dziś żadnych zadań. Możesz dodać nowe albo sprawdzić kolejne terminy.',
+                      })}
+                    </Text>
+                  </View>
                 ) : (
                   <View style={{ gap: 8 }}>
-                    {nearestTasks.map((task) => (
+                    {todayTasks.map((task) => (
+                      <View key={task.id} style={styles.taskRow}>
+                        <View style={styles.taskDot} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.taskTitle} numberOfLines={2}>{task.nazwa}</Text>
+                          <Text style={styles.taskMeta}>
+                            {task.godzina ? prettyTime(task.godzina) : t('calendar.allDay')}
+                            {task.opis ? ` • ${task.opis}` : ''}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {upcomingTasks.length > 0 ? (
+                <View style={styles.upcomingTasksWrap}>
+                  <View style={styles.nearestHeader}>
+                    <Text style={styles.nearestTitle}>
+                      {t('todayTasks.upcomingTitle', { defaultValue: 'Dalej w kolejce' })}
+                    </Text>
+                    <Text style={styles.todayTasksListCount}>
+                      {t('todayTasks.upcomingHint', { defaultValue: 'następne terminy' })}
+                    </Text>
+                  </View>
+                  <View style={{ gap: 8 }}>
+                    {upcomingTasks.map((task) => (
                       <View key={task.id} style={styles.taskRow}>
                         <View style={styles.taskDot} />
                         <View style={{ flex: 1 }}>
@@ -1065,71 +1065,8 @@ export default function DashboardScreen() {
                       </View>
                     ))}
                   </View>
-                )}
-              </View>
-
-              <View style={styles.weekRow}>
-                {[
-                  t('calendar.weekdays.mon'), t('calendar.weekdays.tue'), t('calendar.weekdays.wed'),
-                  t('calendar.weekdays.thu'), t('calendar.weekdays.fri'), t('calendar.weekdays.sat'), t('calendar.weekdays.sun'),
-                ].map((d) => (
-                  <Text key={d} style={styles.weekDay}>{d}</Text>
-                ))}
-              </View>
-
-              <View style={styles.grid}>
-                {calCells.map((c, idx) => {
-                  const hasDay = !!c.day;
-                  const hasTasks = hasDay ? daysWithTasks.has(c.day as number) : false;
-                  const isSelected = hasDay && selectedYMD === toYMD(new Date(calBase.getFullYear(), calBase.getMonth(), c.day as number));
-                  return (
-                    <TouchableOpacity
-                      key={idx}
-                      activeOpacity={hasDay ? 0.85 : 1}
-                      disabled={!hasDay}
-                      onPress={() => hasDay && onPressDay(c.day as number)}
-                      style={[
-                        styles.cell,
-                        c.isToday && styles.cellToday,
-                        hasTasks && styles.cellHasTask,
-                        isSelected && styles.cellSelected,
-                      ]}
-                    >
-                      <Text style={[styles.cellText, c.isToday && styles.cellTextToday, isSelected && styles.cellTextSelected]}>
-                        {c.day ? String(c.day) : ''}
-                      </Text>
-                      {hasTasks ? <View pointerEvents="none" style={styles.cellDot} /> : null}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <View style={styles.dayTasksWrap}>
-                <View style={styles.dayTasksHeader}>
-                  <Text style={styles.dayTasksTitle}>{t('calendar.tasksForDay', { date: selectedYMD })}</Text>
-                  <TouchableOpacity onPress={openAddTask} style={styles.addTaskMiniBtn} activeOpacity={0.9}>
-                    <Text style={styles.addTaskMiniBtnText}>{t('calendar.addTask')}</Text>
-                  </TouchableOpacity>
                 </View>
-                {selectedTasks.length === 0 ? (
-                  <Text style={styles.mutedText}>{t('calendar.noTasksForDay')}</Text>
-                ) : (
-                  <View style={{ gap: 8 }}>
-                    {selectedTasks.map((task) => (
-                      <View key={task.id} style={styles.taskRow}>
-                        <View style={styles.taskDot} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.taskTitle} numberOfLines={2}>{task.nazwa}</Text>
-                          <Text style={styles.taskMeta}>
-                            {task.godzina ? `${prettyTime(task.godzina)} • ` : `${t('calendar.allDay')} • `}
-                            {task.opis ?? t('common:dash')}
-                          </Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
+              ) : null}
             </AppCard>
           </View>
         </View>
@@ -1357,21 +1294,6 @@ const styles = StyleSheet.create({
   },
   // ── koniec zmian hero ──
 
-  calendarTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 10 },
-  calendarMonth: { color: '#FFFFFF', fontSize: 16, fontWeight: '900', textTransform: 'capitalize' },
-  calendarHint: { color: 'rgba(255,255,255,0.45)', fontSize: 12.5, fontWeight: '700' },
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 4 },
-  weekDay: { width: (W - 18 * 2 - 16 * 2) / 7, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontWeight: '800', fontSize: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 6 },
-  cell: { width: (W - 18 * 2 - 16 * 2 - 8 * 6) / 7, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', position: 'relative' },
-  cellToday: { backgroundColor: 'rgba(25,112,92,0.12)', borderColor: 'rgba(37,240,200,0.22)', shadowColor: NEON, shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
-  cellHasTask: { borderColor: 'rgba(37,240,200,0.28)', shadowColor: NEON, shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  cellSelected: { backgroundColor: 'rgba(37,240,200,0.10)', borderColor: 'rgba(37,240,200,0.45)', shadowColor: NEON, shadowOpacity: 0.32, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
-  cellDot: { position: 'absolute', bottom: 5, width: 6, height: 6, borderRadius: 99, backgroundColor: NEON, opacity: 0.95 },
-  cellText: { color: 'rgba(255,255,255,0.70)', fontWeight: '800', fontSize: 12.5 },
-  cellTextToday: { color: '#E9FFF7' },
-  cellTextSelected: { color: '#E9FFF7' },
-
   briefOuter: { marginTop: 10, borderRadius: 20, overflow: 'hidden' },
   briefCard: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'rgba(37,240,200,0.04)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.14)' },
   briefRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -1428,25 +1350,113 @@ const styles = StyleSheet.create({
   qaIcon: { fontSize: 26, marginBottom: 8 },
   qaLabel: { color: 'rgba(255,255,255,0.80)', fontSize: 11, fontWeight: '800', textAlign: 'center', lineHeight: 15 },
 
-  calNavBtn: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-  calNavTxt: { color: NEON, fontSize: 20, fontWeight: '900', marginTop: -2 },
+  todayTasksHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 14,
+    borderRadius: 22,
+    backgroundColor: 'rgba(37,240,200,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    shadowColor: NEON,
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  todayTasksDate: {
+    color: 'rgba(255,255,255,0.46)',
+    fontSize: 11.5,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+  todayTasksLead: {
+    marginTop: 6,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 22,
+  },
+  todayTasksBadge: {
+    width: 76,
+    minHeight: 76,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.26)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.24)',
+  },
+  todayTasksBadgeValue: {
+    color: NEON,
+    fontSize: 28,
+    fontWeight: '900',
+    lineHeight: 30,
+  },
+  todayTasksBadgeLabel: {
+    marginTop: 2,
+    color: 'rgba(255,255,255,0.52)',
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  todayTasksActions: { flexDirection: 'row', gap: 10, marginTop: 12, marginBottom: 14 },
+  todayTasksActionBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  todayTasksActionPrimary: {
+    backgroundColor: 'rgba(37,240,200,0.12)',
+    borderColor: 'rgba(37,240,200,0.30)',
+  },
+  todayTasksActionText: { color: 'rgba(255,255,255,0.76)', fontSize: 12.5, fontWeight: '900' },
+  todayTasksActionPrimaryText: { color: NEON, fontSize: 12.5, fontWeight: '900' },
+  todayTasksListWrap: {
+    padding: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.10)',
+  },
+  todayTasksListCount: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  todayTasksEmpty: {
+    paddingVertical: 6,
+    gap: 6,
+  },
+  todayTasksEmptyTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  upcomingTasksWrap: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
 
-  nearestWrap: { marginBottom: 12, padding: 12, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.10)' },
   nearestHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   nearestTitle: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '900', letterSpacing: 0.2 },
-  addTaskBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: 'rgba(37,240,200,0.12)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.30)' },
-  addTaskBtnText: { color: NEON, fontSize: 12, fontWeight: '900' },
 
   taskRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
   taskDot: { width: 8, height: 8, borderRadius: 99, backgroundColor: NEON, marginTop: 5, shadowColor: NEON, shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
   taskTitle: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '900' },
   taskMeta: { marginTop: 3, color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '700' },
-
-  dayTasksWrap: { marginTop: 4, padding: 12, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-  dayTasksHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  dayTasksTitle: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '900' },
-  addTaskMiniBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.25)' },
-  addTaskMiniBtnText: { color: NEON, fontSize: 11.5, fontWeight: '900' },
 
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   activityIconWrap: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(37,240,200,0.08)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.14)', alignItems: 'center', justifyContent: 'center' },

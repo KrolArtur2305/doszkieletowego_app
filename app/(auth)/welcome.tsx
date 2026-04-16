@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated,
   Dimensions,
   Image,
   NativeScrollEvent,
@@ -17,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
 import { setAppLanguage, type AppLanguage } from '../../lib/i18n';
-import { AppButton, AppScreen } from '../../src/ui/components';
+import { AppButton, AppHeader, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
 const { width: W } = Dimensions.get('window');
@@ -26,7 +25,6 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('auth');
 
-  const floatY = useRef(new Animated.Value(0)).current;
   const sliderRef = useRef<ScrollViewType | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -78,21 +76,11 @@ export default function WelcomeScreen() {
       if (session) router.replace('/(app)');
     });
 
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatY, { toValue: -5, duration: 1600, useNativeDriver: true }),
-        Animated.timing(floatY, { toValue: 0, duration: 1600, useNativeDriver: true }),
-      ])
-    );
-
-    loop.start();
-
     return () => {
       mounted = false;
-      loop.stop();
       sub.subscription.unsubscribe();
     };
-  }, [floatY, router]);
+  }, [router]);
 
   const activeLang = (i18n.resolvedLanguage || i18n.language) as AppLanguage;
 
@@ -123,15 +111,7 @@ export default function WelcomeScreen() {
     <AppScreen>
       <View style={styles.container}>
         <View style={styles.topBlock}>
-          <Animated.View style={[styles.logoWrap, { transform: [{ translateY: floatY }] }]}>
-            <Image
-              source={require('../../assets/logo.png')}
-              style={styles.logoImg}
-              resizeMode="contain"
-            />
-          </Animated.View>
-
-          <Text style={styles.brand}>BuildIQ</Text>
+          <AppHeader title="BuildIQ" style={styles.header} />
 
           <View style={styles.langRow}>
             {renderLangButton('pl', 'PL')}
@@ -197,20 +177,9 @@ const styles = StyleSheet.create({
   },
   topBlock: {
     width: '100%',
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
-  logoWrap: {
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  logoImg: {
-    width: 140,
-    height: 140,
-  },
-  brand: {
-    ...typography.screenTitle,
-    color: colors.accentBright,
-    textAlign: 'center',
+  header: {
     marginBottom: spacing.lg,
   },
   langRow: {

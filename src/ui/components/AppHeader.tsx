@@ -1,7 +1,10 @@
 import React from 'react';
-import { Image, ImageStyle, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+import { ImageStyle, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 
 import { colors, header, typography } from '../tokens';
+
+const APP_LOGO = require('../../../assets/logo.png');
 
 type AppHeaderProps = {
   title: string;
@@ -25,10 +28,11 @@ export function AppHeader({
   return (
     <View style={[styles.root, { height }, style]}>
       <View style={[styles.sideSlot, { width: sideSlotWidth, height }]}>
-        <Image
-          source={require('../../../assets/logo.png')}
+        <ExpoImage
+          source={APP_LOGO}
           style={[styles.logo, logoStyle]}
-          resizeMode="contain"
+          contentFit="contain"
+          cachePolicy="memory-disk"
         />
       </View>
 
@@ -72,7 +76,6 @@ const styles = StyleSheet.create({
     ...typography.screenTitle,
     fontSize: 42,
     lineHeight: 48,
-    fontWeight: '700',
     textAlign: 'center',
   },
 });

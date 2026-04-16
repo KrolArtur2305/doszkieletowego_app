@@ -942,7 +942,7 @@ const styles = StyleSheet.create({
 
   headerRow: {
     minHeight: 120,
-    marginBottom: 22,
+    marginBottom: 14,
   },
   statsRow: {
     flexDirection: 'row',

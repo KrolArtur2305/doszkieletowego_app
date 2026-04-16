@@ -118,6 +118,7 @@ export default function ZdjeciaScreen() {
   const [selectedEtapForUpload, setSelectedEtapForUpload] = useState<string>('');
   const [takenAt, setTakenAt] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerValue, setDatePickerValue] = useState<Date>(new Date());
   const [opis, setOpis] = useState('');
   const [tagsInput, setTagsInput] = useState('');
 
@@ -212,10 +213,6 @@ export default function ZdjeciaScreen() {
         setSelectedEtap('all');
       }
 
-      // ✅ jeśli wybrany etap do uploadu przestał istnieć w użyciu – wyczyść
-      if (!isInitial && selectedEtapForUpload && !s.has(selectedEtapForUpload)) {
-        setSelectedEtapForUpload('');
-      }
     } catch (e) {
       console.error('Błąd ładowania etapUsage:', e);
     }
@@ -272,7 +269,7 @@ export default function ZdjeciaScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortOrder, selectedEtap]);
 
-  const canPick = useMemo(() => Boolean(selectedEtapForUpload), [selectedEtapForUpload]);
+  const canPick = useMemo(() => true, []);
 
   // ✅ etapy w filtrze: tylko te, które realnie mają zdjęcia (plus all)
   const filterEtapy = useMemo(() => {
@@ -280,22 +277,9 @@ export default function ZdjeciaScreen() {
     return etapy.filter((e) => etapUsageSet.has(e.id));
   }, [etapy, etapUsageSet]);
 
-  // ✅ etapy w MODALU DODAWANIA: tylko te, które realnie mają zdjęcia
-  //    (fallback: jeśli user ma 0 zdjęć, pokaż wszystkie żeby dało się dodać pierwsze)
-  const uploadEtapy = useMemo(() => {
-    if (!etapUsageSet.size) return etapy; // fallback, bo inaczej nie dodasz pierwszych zdjęć
-    return etapy.filter((e) => etapUsageSet.has(e.id));
-  }, [etapy, etapUsageSet]);
+  const uploadEtapy = useMemo(() => etapy, [etapy]);
 
   const handlePickAndUpload = async () => {
-    if (!selectedEtapForUpload) {
-      Alert.alert(
-        tt('photos:alerts.pickStageTitle', { defaultValue: 'Wybierz etap' }),
-        tt('photos:alerts.pickStageMessage', { defaultValue: 'Najpierw wybierz etap zdjęcia.' }),
-      );
-      return;
-    }
-
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
       Alert.alert(
@@ -319,6 +303,19 @@ export default function ZdjeciaScreen() {
     if (!uris.length) return;
 
     await uploadPhotosBatch(uris);
+  };
+
+  const openDatePicker = () => {
+    setDatePickerValue(takenAt ?? new Date());
+    setShowDatePicker(true);
+  };
+
+  const onDatePicked = (event: any, selected?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (event?.type === 'dismissed') return;
+    const nextDate = selected ?? datePickerValue;
+    setDatePickerValue(nextDate);
+    setTakenAt(nextDate);
   };
 
   const uploadPhotosBatch = async (uris: string[]) => {
@@ -363,12 +360,8 @@ export default function ZdjeciaScreen() {
       throw new Error(tt('photos:alerts.loginRequired', { defaultValue: 'Zaloguj się ponownie.' }));
     }
 
-    const etap = etapy.find((e) => e.id === selectedEtapForUpload);
-    if (!etap) {
-      throw new Error(tt('photos:alerts.stageNotFound', { defaultValue: 'Nie znaleziono etapu.' }));
-    }
-
-    const etapFolder = sanitizeFolderName(etap.nazwa);
+    const etap = selectedEtapForUpload ? etapy.find((e) => e.id === selectedEtapForUpload) ?? null : null;
+    const etapFolder = etap ? sanitizeFolderName(etap.nazwa) : 'bez_etapu';
     const timestamp = Date.now() + Math.floor(Math.random() * 999);
 
     const extGuess = uri.split('.').pop()?.toLowerCase();
@@ -394,7 +387,7 @@ export default function ZdjeciaScreen() {
 
     const { error: insertError } = await supabase.from('zdjecia').insert({
       user_id: userId,
-      etap_zdjecia_id: etap.id,
+      etap_zdjecia_id: etap?.id ?? null,
       file_path,
       taken_at: takenAt ? takenAt.toISOString() : null,
       komentarz: opis ? opis : null,
@@ -507,7 +500,7 @@ export default function ZdjeciaScreen() {
   }, [selectedEtap, getEtapName, tt]);
 
   const selectedUploadEtapLabel = useMemo(() => {
-    if (!selectedEtapForUpload) return tt('photos:addModal.pickStage', { defaultValue: 'Wybierz etap' });
+    if (!selectedEtapForUpload) return tt('photos:addModal.pickStage', { defaultValue: 'Bez etapu' });
     return getEtapName(selectedEtapForUpload);
   }, [selectedEtapForUpload, getEtapName, tt]);
 
@@ -548,8 +541,6 @@ export default function ZdjeciaScreen() {
       <View style={[styles.topBar, { paddingTop: topPad }]}>
         <AppHeader title={tt('photos:title', { defaultValue: 'Zdjęcia' })} />
         <View style={styles.headerControlsRow}>
-
-          <Text style={styles.title}>{tt('photos:title', { defaultValue: 'Zdjęcia' })}</Text>
           <View style={styles.headerRight}>
           <TouchableOpacity
             style={[styles.toggleButton, viewMode === 'grid' && styles.toggleButtonActive]}
@@ -755,6 +746,19 @@ export default function ZdjeciaScreen() {
             {uploadDropdownOpen && (
               <View style={styles.dropdownPanel}>
                 <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+                  <TouchableOpacity
+                    style={[styles.dropdownItem, !selectedEtapForUpload && styles.dropdownItemActive]}
+                    onPress={() => {
+                      setSelectedEtapForUpload('');
+                      setUploadDropdownOpen(false);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.dropdownItemText, !selectedEtapForUpload && styles.dropdownItemTextActive]}>
+                      {tt('photos:addModal.pickStage', { defaultValue: 'Bez etapu' })}
+                    </Text>
+                    {!selectedEtapForUpload && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
+                  </TouchableOpacity>
                   {uploadEtapy.map((etap) => {
                     const active = selectedEtapForUpload === etap.id;
                     return (
@@ -777,7 +781,7 @@ export default function ZdjeciaScreen() {
             )}
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.dateLabel', { defaultValue: 'Data' })}</Text>
-            <TouchableOpacity style={styles.dateButton} activeOpacity={0.85} onPress={() => setShowDatePicker(true)}>
+            <TouchableOpacity style={styles.dateButton} activeOpacity={0.85} onPress={openDatePicker}>
               <Ionicons name="calendar-outline" size={18} color={COLORS.brand} />
               <Text style={styles.dateButtonText}>
                 {takenAt ? takenAt.toLocaleDateString(dateLocale) : tt('photos:addModal.pickDate', { defaultValue: 'Wybierz datę' })}
@@ -790,16 +794,35 @@ export default function ZdjeciaScreen() {
             </TouchableOpacity>
 
             {showDatePicker && (
-              <DateTimePicker
-                value={takenAt ?? new Date()}
-                mode="date"
-                display="default"
-                locale={dateLocale}
-                onChange={(_, date) => {
-                  setShowDatePicker(false);
-                  if (date) setTakenAt(date);
-                }}
-              />
+              Platform.OS === 'ios' ? (
+                <View style={styles.iosDateWrap}>
+                  <DateTimePicker
+                    value={datePickerValue}
+                    mode="date"
+                    display="spinner"
+                    locale={dateLocale}
+                    onChange={onDatePicked}
+                  />
+                  <TouchableOpacity
+                    style={styles.iosDateOk}
+                    onPress={() => {
+                      setShowDatePicker(false);
+                      setTakenAt(datePickerValue);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.iosDateOkText}>{tt('photos:addModal.setDate', { defaultValue: 'Ustaw datę' })}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <DateTimePicker
+                  value={datePickerValue}
+                  mode="date"
+                  display="default"
+                  locale={dateLocale}
+                  onChange={onDatePicked}
+                />
+              )
             )}
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.descLabel', { defaultValue: 'Opis' })}</Text>
@@ -959,25 +982,9 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
 
-  logoWrap: { display: 'none' },
-  logoImg: { width: 30, height: 30 },
-
-  topTitleWrap: { display: 'none' },
-  headerControlsRow: { alignItems: 'flex-end', marginTop: 8 },
+  headerControlsRow: { alignItems: 'flex-end', marginTop: 6 },
 
   headerRight: { flexDirection: 'row', gap: 8 },
-
-  title: {
-    display: 'none',
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#19705C',
-    textAlign: 'center',
-    textShadowColor: 'rgba(25,112,92,0.18)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 18,
-    letterSpacing: -0.2,
-  },
 
   toggleButton: {
     width: 44,
@@ -1021,7 +1028,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(25,112,92,0.30)',
-    backgroundColor: 'rgba(10,15,30,0.96)',
+    backgroundColor: '#000000',
   },
   dropdownItem: {
     paddingHorizontal: 14,
@@ -1073,18 +1080,35 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: 'rgba(10,15,30,0.96)',
+    backgroundColor: '#000000',
     borderRadius: 26,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(37,240,200,0.18)',
   },
-  modalTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text, marginBottom: 18, textAlign: 'center' },
+  modalTitle: { fontSize: 22, fontWeight: '900', color: THEME_COLORS.neon, marginBottom: 18, textAlign: 'center' },
   modalLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.6, marginTop: 12, marginBottom: 10 },
 
   dateButton: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(25,112,92,0.28)', backgroundColor: 'rgba(255,255,255,0.03)' },
   dateButtonText: { color: COLORS.text, fontWeight: '800', flex: 1 },
   dateClear: { paddingHorizontal: 6, paddingVertical: 2 },
+  iosDateWrap: {
+    marginTop: 8,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.28)',
+    overflow: 'hidden',
+  },
+  iosDateOk: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(37,240,200,0.12)',
+    backgroundColor: 'rgba(25,112,92,0.16)',
+  },
+  iosDateOkText: { color: THEME_COLORS.neon, fontWeight: '900' },
 
   textArea: { minHeight: 78, borderRadius: RADIUS.input, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12, paddingVertical: 10, color: '#FFFFFF', fontWeight: '800' },
   input: { borderRadius: RADIUS.input, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12, paddingVertical: 10, color: '#FFFFFF', fontWeight: '800' },

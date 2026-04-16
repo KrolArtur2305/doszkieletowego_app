@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  Image,
   Modal,
   Platform,
   RefreshControl,
@@ -17,6 +16,7 @@ import {
   Linking,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -424,7 +424,7 @@ export default function BudzetScreen() {
         {/* HEADER — logo po lewej */}
         <View style={[styles.topBar, { paddingTop: topPad }]}>
           <View style={styles.headerSide}>
-            <Image source={logo} style={styles.headerLogoLarge} resizeMode="contain" />
+            <ExpoImage source={logo} style={styles.headerLogoLarge} contentFit="contain" cachePolicy="memory-disk" />
           </View>
           <View style={styles.headerTitleWrap}>
             <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.headerTitleLarge}>
@@ -636,7 +636,7 @@ export default function BudzetScreen() {
         {/* MODAL */}
         <Modal visible={addOpen} animationType="slide" transparent onRequestClose={() => setAddOpen(false)}>
           <View style={styles.modalBackdrop}>
-            <AppCard contentStyle={styles.modalCard} style={styles.modalCardOuter} withShadow>
+            <AppCard contentStyle={styles.modalCard} style={styles.modalCardOuter} withShadow={false}>
               <Text style={styles.modalTitle}>{t('modal.title')}</Text>
 
               <Text style={styles.lbl}>{t('modal.nameLabel')}</Text>
@@ -710,7 +710,7 @@ export default function BudzetScreen() {
       </ScrollView>
 
       {/* FAB — przyklejony na dole po prawej, zawsze widoczny */}
-      <FloatingAddButton onPress={openAddExpense} />
+      <FloatingAddButton onPress={openAddExpense} style={styles.budgetFab} />
     </AppScreen>
   );
 }
@@ -758,16 +758,16 @@ const styles = StyleSheet.create({
   errorText: { color: '#FCA5A5', marginBottom: 10, textAlign: 'center', fontWeight: '800' },
 
   // ── Pasek czasu ──
-  timeBarWrap: { marginBottom: 14 },
-  timeBarLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
-  timeBarText: { color: 'rgba(255,255,255,0.30)', fontSize: 11, fontWeight: '700' },
-  timeBarPct: { color: 'rgba(255,255,255,0.30)', fontSize: 11, fontWeight: '700' },
+  timeBarWrap: { marginBottom: 16 },
+  timeBarLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 },
+  timeBarText: { color: 'rgba(255,255,255,0.44)', fontSize: 13, fontWeight: '800' },
+  timeBarPct: { color: 'rgba(255,255,255,0.44)', fontSize: 13, fontWeight: '800' },
   timeBarTrack: {
-    height: 4, borderRadius: 99,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    height: 8, borderRadius: 99,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
   },
-  timeBarFill: { height: 4, borderRadius: 99, backgroundColor: 'rgba(25,112,92,0.50)' },
+  timeBarFill: { height: 8, borderRadius: 99, backgroundColor: 'rgba(25,112,92,0.70)' },
 
   // ── Donut ──
   donutOnlyWrap: { alignItems: 'center', marginTop: 6, marginBottom: 10 },
@@ -777,8 +777,12 @@ const styles = StyleSheet.create({
   heroStats: { flexDirection: 'row', marginTop: 10, gap: 12 },
   statBox: {
     flex: 1, padding: 12, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(25,112,92,0.10)',
+    borderWidth: 1, borderColor: 'rgba(37,240,200,0.28)',
+    shadowColor: NEON,
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
   },
   statLabel: { color: '#94A3B8', fontSize: 12, fontWeight: '700' },
   statValue: { color: '#F8FAFC', fontSize: 16, fontWeight: '900', marginTop: 4 },
@@ -802,12 +806,12 @@ const styles = StyleSheet.create({
   // ── Chart ──
   chartOuter: {
     marginTop: 14, borderRadius: RADIUS.card, overflow: 'hidden',
-    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 22, shadowOffset: { width: 0, height: 12 },
+    shadowColor: NEON, shadowOpacity: 0.14, shadowRadius: 22, shadowOffset: { width: 0, height: 0 },
   },
   chartCard: {
     borderRadius: RADIUS.card, padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.026)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(25,112,92,0.08)',
+    borderWidth: 1, borderColor: 'rgba(37,240,200,0.24)',
   },
   chartHeaderRow: { marginBottom: 0 },
   vChartWrap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 12 },
@@ -825,8 +829,12 @@ const styles = StyleSheet.create({
   // ── Lista ──
   card: {
     marginTop: 14, borderRadius: RADIUS.card, padding: 16, overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.026)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(25,112,92,0.08)',
+    borderWidth: 1, borderColor: 'rgba(37,240,200,0.24)',
+    shadowColor: NEON,
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
   },
   listHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
   listTitle: { color: '#F8FAFC', fontWeight: '900', fontSize: 16 },
@@ -873,9 +881,15 @@ const styles = StyleSheet.create({
   trashText: { color: '#FCA5A5', fontWeight: '900', fontSize: 12 },
 
   // ── Modal ──
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingTop: 28,
+    paddingBottom: 28,
+  },
   modalCardOuter: { marginBottom: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
-  modalCard: { padding: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 0 },
+  modalCard: { padding: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 0, backgroundColor: '#000000' },
   modalTitle: { color: NEON, fontWeight: '900', fontSize: 18, marginBottom: 12, textAlign: 'center' },
   lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
   input: {},
@@ -925,4 +939,5 @@ const styles = StyleSheet.create({
   fileBtnText: { color: '#E2E8F0', fontWeight: '800', fontSize: 12 },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   modalBtn: { flex: 1 },
+  budgetFab: { bottom: 74 },
 });

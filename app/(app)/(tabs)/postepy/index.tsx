@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   header: {
     minHeight: 120,
-    marginBottom: 10,
+    marginBottom: 14,
   },
 
   card: {

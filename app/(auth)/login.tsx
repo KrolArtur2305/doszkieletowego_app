@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,17 +6,16 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
-  Image,
   Alert,
-  Animated,
   TouchableWithoutFeedback,
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
+
+import { supabase } from '../../lib/supabase';
 import { signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
-import { AppButton, AppInput, AppScreen } from '../../src/ui/components';
+import { AppButton, AppHeader, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
 const GOOGLE_AUTH_ENABLED = false;
@@ -24,7 +23,6 @@ const GOOGLE_AUTH_ENABLED = false;
 export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation('auth');
-  const floatY = useRef(new Animated.Value(0)).current;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +31,6 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // jesli user zalogowany -> dashboard
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -45,31 +42,22 @@ export default function LoginScreen() {
       if (session) router.replace('/(app)');
     });
 
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatY, { toValue: -4, duration: 1600, useNativeDriver: true }),
-        Animated.timing(floatY, { toValue: 0, duration: 1600, useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
-      anim.stop();
     };
-  }, [router, floatY]);
+  }, [router]);
 
   const onLogin = async () => {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: loginError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
 
-    if (error) setError(mapError(error.message, t));
+    if (loginError) setError(mapError(loginError.message, t));
     setLoading(false);
   };
 
@@ -80,10 +68,10 @@ export default function LoginScreen() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(e);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(e);
     setLoading(false);
 
-    if (error) {
+    if (resetError) {
       Alert.alert(t('login.alerts.errorTitle'), t('login.alerts.errorMessage'));
       return;
     }
@@ -93,7 +81,6 @@ export default function LoginScreen() {
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     try {
-      // Requires Google provider enabled in Supabase dashboard
       await signInWithGoogleMobile();
     } catch (err) {
       console.error('Google login error:', err);
@@ -110,80 +97,75 @@ export default function LoginScreen() {
         style={styles.container}
       >
         <AppScreen>
+          <View style={styles.content}>
+            <AppHeader
+              title="BuildIQ"
+              style={styles.header}
+              rightSlot={
+                <TouchableOpacity
+                  onPress={() => router.replace('/(auth)/welcome')}
+                  style={styles.headerBackBtn}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.backText}>←</Text>
+                </TouchableOpacity>
+              }
+            />
 
-      {/* back */}
-      <TouchableOpacity
-        onPress={() => router.replace('/(auth)/welcome')}
-        style={styles.backBtn}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.backText}>←</Text>
-      </TouchableOpacity>
+            <View style={styles.formBlock}>
+              <View>
+                <AppInput
+                  placeholder={t('login.form.emailPlaceholder')}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                  containerStyle={styles.inputWrap}
+                />
+                <AppInput
+                  placeholder={t('login.form.passwordPlaceholder')}
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  containerStyle={styles.inputWrap}
+                />
 
-        <View style={styles.content}>
-        {/* logo (plywa lekko) */}
-        <Animated.View style={[styles.logoWrap, { transform: [{ translateY: floatY }] }]}>
-          <Image
-            source={require('../../assets/logo.png')}
-            style={styles.logoImg}
-            resizeMode="contain"
-          />
-        </Animated.View>
+                {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Text style={styles.brand}>BuildIQ</Text>
+                <AppButton
+                  title={t('login.form.submit')}
+                  loading={loading}
+                  onPress={onLogin}
+                  style={styles.primaryBtn}
+                />
 
-        <View>
-          <AppInput
-            placeholder={t('login.form.emailPlaceholder')}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-            containerStyle={styles.inputWrap}
-          />
-          <AppInput
-            placeholder={t('login.form.passwordPlaceholder')}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            containerStyle={styles.inputWrap}
-          />
+                {GOOGLE_AUTH_ENABLED ? (
+                  <AppButton
+                    title={googleLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : 'Google'}
+                    disabled={googleLoading}
+                    onPress={handleGoogleLogin}
+                    variant="secondary"
+                    style={styles.googleBtn}
+                  />
+                ) : null}
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+                <TouchableOpacity onPress={onForgotPassword} style={styles.forgotWrap} activeOpacity={0.85}>
+                  <Text style={styles.forgotText}>{t('login.form.forgotPassword')}</Text>
+                </TouchableOpacity>
 
-        <AppButton
-          title={t('login.form.submit')}
-          loading={loading}
-          onPress={onLogin}
-          style={styles.primaryBtn}
-        />
-
-        {GOOGLE_AUTH_ENABLED ? (
-          <AppButton
-            title={googleLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : 'Google'}
-            disabled={googleLoading}
-            onPress={handleGoogleLogin}
-            variant="secondary"
-            style={styles.googleBtn}
-          />
-        ) : null}
-
-        <TouchableOpacity onPress={onForgotPassword} style={styles.forgotWrap} activeOpacity={0.85}>
-          <Text style={styles.forgotText}>{t('login.form.forgotPassword')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push('/(auth)/register')}
-          style={styles.bottomLinkWrap}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.bottomLink}>
-            {t('login.form.noAccount')} <Text style={styles.bottomLinkStrong}>{t('login.form.createAccount')}</Text>
-          </Text>
-        </TouchableOpacity>
-        </View>
-      </View>
-      </AppScreen>
+                <TouchableOpacity
+                  onPress={() => router.push('/(auth)/register')}
+                  style={styles.bottomLinkWrap}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.bottomLink}>
+                    {t('login.form.noAccount')} <Text style={styles.bottomLinkStrong}>{t('login.form.createAccount')}</Text>
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </AppScreen>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
@@ -198,12 +180,16 @@ function mapError(msg: string, t: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-
-  backBtn: {
-    position: 'absolute',
-    top: 16,
-    left: 14,
-    zIndex: 10,
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.xl + 2,
+    backgroundColor: colors.bg,
+  },
+  header: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  headerBackBtn: {
     width: 44,
     height: 44,
     borderRadius: radius.sm,
@@ -214,36 +200,19 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   backText: { color: colors.textSoft, fontSize: 22, fontWeight: '800' },
-
-  content: {
+  formBlock: {
     flex: 1,
-    paddingHorizontal: spacing.xl + 2,
     justifyContent: 'center',
-    backgroundColor: colors.bg,
+    paddingBottom: spacing['2xl'],
   },
-
-  logoWrap: { alignItems: 'center', marginTop: -140, marginBottom: spacing.sm },
-  logoImg: { width: 140, height: 140 },
-  brand: {
-    ...typography.screenTitle,
-    color: colors.accentBright,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-
   inputWrap: { marginBottom: spacing.md },
-
   error: { color: colors.danger, marginBottom: spacing.sm, textAlign: 'center' },
-
   primaryBtn: { marginTop: spacing.xs + 2 },
-
   googleBtn: {
     marginTop: spacing.lg,
   },
-
   forgotWrap: { marginTop: spacing.lg - 2, alignItems: 'center' },
   forgotText: { color: colors.textSoft, ...typography.label },
-
   bottomLinkWrap: { marginTop: spacing.lg + 2, alignItems: 'center' },
   bottomLink: { color: colors.textMuted, ...typography.body },
   bottomLinkStrong: { color: colors.accentBright, fontWeight: '700' },

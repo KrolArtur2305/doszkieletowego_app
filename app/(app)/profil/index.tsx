@@ -11,7 +11,6 @@ import {
   TouchableWithoutFeedback,
   View,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -19,6 +18,7 @@ import { BlurView } from 'expo-blur';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
+import { AppHeader } from '../../../src/ui/components';
 
 type ProfileCache = {
   userId: string | null;
@@ -214,12 +214,7 @@ export default function ProfilScreen() {
         </View>
 
         <View style={styles.container}>
-          {/* ✅ LOGO większe jak w inwestycji/profilu */}
-          <View style={styles.logoWrap}>
-            <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          </View>
-
-          <Text style={styles.title}>{t('header.title')}</Text>
+          <AppHeader title={t('header.title')} style={styles.screenHeader} />
 
           <BlurView intensity={70} tint="dark" style={styles.card}>
             {/* ✅ header wyśrodkowany: badge + imię + mail */}
@@ -368,21 +363,7 @@ const styles = StyleSheet.create({
   },
 
   container: { paddingTop: 28, paddingHorizontal: 16, paddingBottom: 24 },
-
-  logoWrap: { alignItems: 'center', marginBottom: 10, marginTop: 10 },
-  logo: { width: 160, height: 64, opacity: 0.98 },
-
-  title: {
-    textAlign: 'center',
-    color: '#5EEAD4',
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: 1,
-    marginBottom: 14,
-    textShadowColor: 'rgba(94,234,212,0.65)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 14,
-  },
+  screenHeader: { marginBottom: 14 },
 
   card: {
     borderRadius: 28,
