@@ -15,6 +15,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 
 const BG = '#000000';
@@ -27,6 +28,7 @@ function normalizePhone(v: string) {
 
 export default function OnboardingProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation('onboarding');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -63,7 +65,7 @@ export default function OnboardingProfileScreen() {
         setNazwisko(data?.nazwisko ?? '');
         setTelefon(data?.telefon ?? '');
       } catch (e: any) {
-        Alert.alert('Błąd', e?.message ?? 'Nie udało się pobrać profilu.');
+        Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadProfileError'));
       } finally {
         if (alive) setLoading(false);
       }
@@ -73,7 +75,7 @@ export default function OnboardingProfileScreen() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [t]);
 
   const handleSave = async () => {
     if (!userId || saving) return;
@@ -83,12 +85,12 @@ export default function OnboardingProfileScreen() {
     const phone = telefon.trim() ? normalizePhone(telefon.trim()) : '';
 
     if (!first) {
-      Alert.alert('Błąd', 'Podaj imię.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.firstNameRequired'));
       return;
     }
 
     if (phone && phone.replace(/\D/g, '').length < 7) {
-      Alert.alert('Błąd', 'Podaj poprawny numer telefonu.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.invalidPhone'));
       return;
     }
 
@@ -111,7 +113,7 @@ export default function OnboardingProfileScreen() {
       if (error) throw error;
       router.replace('/(app)/onboarding/inwestycja');
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać profilu.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveProfileError'));
     } finally {
       setSaving(false);
     }
@@ -128,23 +130,23 @@ export default function OnboardingProfileScreen() {
         <View pointerEvents="none" style={styles.glowBottom} />
 
         <View style={styles.content}>
-          <Text style={styles.title}>Profil</Text>
+          <Text style={styles.title}>{t('steps.profileTitle')}</Text>
 
           <BlurView intensity={18} tint="dark" style={styles.card}>
             {loading ? (
               <View style={styles.loadingWrap}>
                 <ActivityIndicator color={NEON} />
-                <Text style={styles.loadingText}>Ładuję dane...</Text>
+                <Text style={styles.loadingText}>{t('loading.profile')}</Text>
               </View>
             ) : (
               <>
-                <Field label="Imię *" value={imie} onChangeText={setImie} placeholder="np. Adam" icon="edit-3" />
-                <Field label="Nazwisko" value={nazwisko} onChangeText={setNazwisko} placeholder="np. Kowalski" icon="edit-3" />
+                <Field label={t('profile.firstName')} value={imie} onChangeText={setImie} placeholder={t('profile.firstNamePlaceholder')} icon="edit-3" />
+                <Field label={t('profile.lastName')} value={nazwisko} onChangeText={setNazwisko} placeholder={t('profile.lastNamePlaceholder')} icon="edit-3" />
                 <Field
-                  label="Telefon"
+                  label={t('profile.phone')}
                   value={telefon}
                   onChangeText={setTelefon}
-                  placeholder="np. 600123456"
+                  placeholder={t('profile.phonePlaceholder')}
                   icon="phone"
                   keyboardType="phone-pad"
                 />
@@ -155,7 +157,7 @@ export default function OnboardingProfileScreen() {
                   disabled={saving}
                   activeOpacity={0.9}
                 >
-                  {saving ? <ActivityIndicator color="#0B1120" /> : <Text style={styles.primaryBtnText}>Dalej</Text>}
+                  {saving ? <ActivityIndicator color="#0B1120" /> : <Text style={styles.primaryBtnText}>{t('actions.next')}</Text>}
                 </TouchableOpacity>
               </>
             )}

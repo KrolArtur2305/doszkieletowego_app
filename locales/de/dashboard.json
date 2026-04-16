@@ -96,6 +96,25 @@
     "addDocument": "Dokument hinzufügen",
     "stages": "Fortschritt"
   },
+  "todayTasks": {
+    "title": "Aufgaben für heute",
+    "summary": "Sie haben heute {{count}} Aufgaben.",
+    "summary_one": "Sie haben heute {{count}} Aufgabe.",
+    "summary_other": "Sie haben heute {{count}} Aufgaben.",
+    "emptySummary": "Für heute ist noch nichts geplant.",
+    "badge": "heute",
+    "add": "+ Aufgabe hinzufügen",
+    "openAll": "Alle anzeigen",
+    "listTitle": "Plan für heute",
+    "countLabel": "{{count}} Einträge",
+    "countLabel_one": "{{count}} Eintrag",
+    "countLabel_other": "{{count}} Einträge",
+    "countEmpty": "0 Einträge",
+    "emptyTitle": "Ruhiger Tag",
+    "emptyText": "Sie haben heute keine Aufgaben. Sie können neue hinzufügen oder kommende Termine prüfen.",
+    "upcomingTitle": "Als Nächstes",
+    "upcomingHint": "nächste Termine"
+  },
   "buddy": {
     "analyzing": "KI-Bauleiter",
     "placeholder": "Budgetanalyse demnächst verfügbar..."

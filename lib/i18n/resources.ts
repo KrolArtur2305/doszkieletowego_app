@@ -13,6 +13,11 @@ import en_profile from '../../locales/en/profile.json';
 import en_settings from '../../locales/en/settings.json';
 import en_stages from '../../locales/en/stages.json';
 import en_photos from '../../locales/en/photos.json';
+import en_tasks from '../../locales/en/tasks.json';
+import en_contacts from '../../locales/en/contacts.json';
+import en_onboarding from '../../locales/en/onboarding.json';
+import en_buddy from '../../locales/en/buddy.json';
+import en_journal from '../../locales/en/journal.json';
 
 import de_auth from '../../locales/de/auth.json';
 import de_project from '../../locales/de/project.json';
@@ -29,6 +34,11 @@ import de_profile from '../../locales/de/profile.json';
 import de_settings from '../../locales/de/settings.json';
 import de_stages from '../../locales/de/stages.json';
 import de_photos from '../../locales/de/photos.json';
+import de_tasks from '../../locales/de/tasks.json';
+import de_contacts from '../../locales/de/contacts.json';
+import de_onboarding from '../../locales/de/onboarding.json';
+import de_buddy from '../../locales/de/buddy.json';
+import de_journal from '../../locales/de/journal.json';
 
 import pl_auth from '../../locales/pl/auth.json';
 import pl_project from '../../locales/pl/project.json';
@@ -45,6 +55,11 @@ import pl_profile from '../../locales/pl/profile.json';
 import pl_settings from '../../locales/pl/settings.json';
 import pl_stages from '../../locales/pl/stages.json';
 import pl_photos from '../../locales/pl/photos.json';
+import pl_tasks from '../../locales/pl/tasks.json';
+import pl_contacts from '../../locales/pl/contacts.json';
+import pl_onboarding from '../../locales/pl/onboarding.json';
+import pl_buddy from '../../locales/pl/buddy.json';
+import pl_journal from '../../locales/pl/journal.json';
 
 export const resources = {
   en: {
@@ -58,6 +73,11 @@ export const resources = {
     profile: en_profile,
     settings: en_settings,
     photos: en_photos,
+    tasks: en_tasks,
+    contacts: en_contacts,
+    onboarding: en_onboarding,
+    buddy: en_buddy,
+    journal: en_journal,
     project: en_project,
     investment: en_investment,
     plan: en_plan,
@@ -74,6 +94,11 @@ export const resources = {
     profile: pl_profile,
     settings: pl_settings,
     photos: pl_photos,
+    tasks: pl_tasks,
+    contacts: pl_contacts,
+    onboarding: pl_onboarding,
+    buddy: pl_buddy,
+    journal: pl_journal,
     project: pl_project,
     investment: pl_investment,
     plan: pl_plan,
@@ -90,6 +115,11 @@ export const resources = {
     profile: de_profile,
     settings: de_settings,
     photos: de_photos,
+    tasks: de_tasks,
+    contacts: de_contacts,
+    onboarding: de_onboarding,
+    buddy: de_buddy,
+    journal: de_journal,
     project: de_project,
     investment: de_investment,
     plan: de_plan,

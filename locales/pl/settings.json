@@ -1,5 +1,5 @@
 {
-  "title": "Ustawienia konta",
+  "title": "Ustawienia",
   "fallbackUser": "Użytkownik",
   "placeholderMessage": "Ta funkcja zostanie dodana później.",
   "logout": "Wyloguj się",
@@ -19,9 +19,13 @@
   "report": {
     "title": "Zgłoś problem",
     "categoryTitle": "Kategoria",
-    "descriptionTitle": "Opis",
-    "descriptionPlaceholder": "Co dokładnie się wydarzyło? Co kliknąłeś? Jaki był efekt?",
+    "descriptionTitle": "Opis problemu",
+    "descriptionPlaceholder": "Opisz dokładnie co się stało, w którym miejscu aplikacji i kiedy problem wystąpił...",
+    "chars": "znaków",
     "categories": {
+      "login": "Problem z logowaniem",
+      "photos": "Zdjęcia / dokumenty",
+      "budget": "Budżet / wydatki",
       "loginSession": "Logowanie / sesja",
       "supabaseData": "Supabase / dane",
       "uiScreen": "UI / ekran",
@@ -29,14 +33,20 @@
       "other": "Inne"
     },
     "alerts": {
-      "warningTitle": "Uwaga",
+      "warningTitle": "Za krótki opis",
       "minLength": "Opisz problem co najmniej na 10 znaków.",
       "thanksTitle": "Dzięki!",
+      "sent": "Twoje zgłoszenie zostało wysłane. Odpiszemy najszybciej jak to możliwe.",
+      "errorTitle": "Błąd",
+      "sendFailed": "Nie udało się wysłać zgłoszenia. Spróbuj ponownie.",
       "savedLocalDemo": "Zgłoszenie zapisane lokalnie (demo)."
     },
     "actions": {
-      "send": "Wyślij"
+      "ok": "OK",
+      "send": "Wyślij zgłoszenie",
+      "sending": "Wysyłanie..."
     },
+    "hint": "Zgłoszenia są rozpatrywane w ciągu 24–48 godzin.",
     "hintDemo": "To wersja demo. Później podłączymy Supabase Storage lub webhook."
   },
   "appSettings": {

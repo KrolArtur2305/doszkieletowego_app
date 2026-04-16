@@ -124,7 +124,7 @@ function getMonthMatrix(baseDate: Date) {
 
 export default function ZadaniaScreen() {
   const { session } = useSupabaseAuth();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('tasks');
   const topPad = 0;
   const dateLocale = useMemo(
     () => localeFromLng(i18n.resolvedLanguage || i18n.language),
@@ -193,11 +193,11 @@ export default function ZadaniaScreen() {
       setTasks((data ?? []) as Task[]);
     } catch (e: any) {
       setTasks([]);
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się pobrać zadań.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -295,13 +295,13 @@ export default function ZadaniaScreen() {
 
   const saveTask = async () => {
     if (!form.nazwa.trim()) {
-      Alert.alert('Błąd', 'Podaj nazwę zadania.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.nameRequired'));
       return;
     }
 
     const userId = session?.user?.id;
     if (!userId) {
-      Alert.alert('Błąd', 'Brak aktywnej sesji użytkownika.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.noSession'));
       return;
     }
 
@@ -336,7 +336,7 @@ export default function ZadaniaScreen() {
       closeModal();
       await Promise.all([loadTasks(), syncAllTaskReminders(userId)]);
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać zadania.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
     } finally {
       setSaving(false);
     }
@@ -360,19 +360,15 @@ export default function ZadaniaScreen() {
         await loadTasks();
       }
     } catch (e: any) {
-      Alert.alert(
-        'Błąd',
-        e?.message ??
-          'Nie udało się zmienić statusu zadania. Sprawdź, czy tabela ma kolumnę "wykonane".'
-      );
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.toggleError'));
     }
   };
 
   const deleteTask = (task: Task) => {
-    Alert.alert('Usuń zadanie', `Usunąć "${task.nazwa}"?`, [
-      { text: 'Anuluj', style: 'cancel' },
+    Alert.alert(t('alerts.deleteTitle'), t('alerts.deleteConfirm', { name: task.nazwa }), [
+      { text: t('common:cancel'), style: 'cancel' },
       {
-        text: 'Usuń',
+        text: t('alerts.deleteAction'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -385,7 +381,7 @@ export default function ZadaniaScreen() {
               await loadTasks();
             }
           } catch (e: any) {
-            Alert.alert('Błąd', e?.message ?? 'Nie udało się usunąć zadania.');
+            Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.deleteError'));
           }
         },
       },
@@ -419,7 +415,7 @@ export default function ZadaniaScreen() {
           }}
         >
           <View style={styles.headerRow}>
-            <AppHeader title="Zadania" />
+            <AppHeader title={t('screenTitle')} />
           </View>
 
           <View style={styles.statsRow}>
@@ -437,7 +433,7 @@ export default function ZadaniaScreen() {
                     color="rgba(255,255,255,0.55)"
                   />
                 </View>
-                <Text style={styles.statLabel}>Nadchodzące</Text>
+                <Text style={styles.statLabel}>{t('stats.upcoming')}</Text>
               </BlurView>
             </TouchableOpacity>
 
@@ -455,7 +451,7 @@ export default function ZadaniaScreen() {
                     color="rgba(255,255,255,0.55)"
                   />
                 </View>
-                <Text style={styles.statLabel}>Zaległe</Text>
+                <Text style={styles.statLabel}>{t('stats.overdue')}</Text>
               </BlurView>
             </TouchableOpacity>
           </View>
@@ -464,7 +460,7 @@ export default function ZadaniaScreen() {
             <View style={styles.expandListWrap}>
               {upcomingTasks.length === 0 ? (
                 <View style={styles.emptyMiniCard}>
-                  <Text style={styles.emptyMiniText}>Brak nadchodzących zadań</Text>
+                  <Text style={styles.emptyMiniText}>{t('stats.noUpcoming')}</Text>
                 </View>
               ) : (
                 upcomingTasks.map((task) => (
@@ -483,7 +479,7 @@ export default function ZadaniaScreen() {
             <View style={styles.expandListWrap}>
               {overdueTasks.length === 0 ? (
                 <View style={styles.emptyMiniCard}>
-                  <Text style={styles.emptyMiniText}>Brak zaległych zadań</Text>
+                  <Text style={styles.emptyMiniText}>{t('stats.noOverdue')}</Text>
                 </View>
               ) : (
                 overdueTasks.map((task) => (
@@ -505,15 +501,15 @@ export default function ZadaniaScreen() {
             transform: [{ scale: bodyScale }],
           }}
         >
-          <SectionTitle title="3 najbliższe zadania" />
+          <SectionTitle title={t('sections.nearestThree')} />
 
           {loading ? (
             <View style={styles.loadingWrap}>
-              <Text style={styles.loadingText}>Ładowanie...</Text>
+              <Text style={styles.loadingText}>{t('loading')}</Text>
             </View>
           ) : nextThreeTasks.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>Brak nadchodzących zadań</Text>
+              <Text style={styles.emptyText}>{t('empty.noUpcoming')}</Text>
             </View>
           ) : (
             <View style={styles.stack}>
@@ -529,7 +525,7 @@ export default function ZadaniaScreen() {
             </View>
           )}
 
-          <SectionTitle title="Kalendarz" />
+          <SectionTitle title={t('sections.calendar')} />
 
           <BlurView intensity={14} tint="dark" style={styles.calendarCard}>
             <View style={styles.calendarHeader}>
@@ -602,11 +598,11 @@ export default function ZadaniaScreen() {
             </View>
           </BlurView>
 
-          <SectionTitle title={`Zadania na ${prettyDate(selectedDate)}`} />
+          <SectionTitle title={t('sections.tasksForDate', { date: prettyDate(selectedDate) })} />
 
           {selectedDateTasks.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>Brak zadań na ten dzień</Text>
+              <Text style={styles.emptyText}>{t('empty.noTasksForDate')}</Text>
             </View>
           ) : (
             <View style={styles.stack}>
@@ -637,7 +633,7 @@ export default function ZadaniaScreen() {
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderSide} />
               <Text style={styles.modalTitle}>
-                {editingTask ? 'Edytuj zadanie' : 'Nowe zadanie'}
+                {editingTask ? t('modal.editTitle') : t('modal.newTitle')}
               </Text>
               <TouchableOpacity onPress={closeModal} activeOpacity={0.88} style={styles.modalCloseBtn}>
                 <Feather name="x" size={22} color="rgba(255,255,255,0.55)" />
@@ -650,17 +646,17 @@ export default function ZadaniaScreen() {
               showsVerticalScrollIndicator={false}
             >
               <FormField
-                label="Nazwa zadania *"
+                label={t('modal.nameLabel')}
                 value={form.nazwa}
                 onChangeText={(v) => setForm({ ...form, nazwa: v })}
-                placeholder="np. Zadzwonić do elektryka"
+                placeholder={t('modal.namePlaceholder')}
               />
 
               <FormField
-                label="Opis"
+                label={t('modal.descLabel')}
                 value={form.opis}
                 onChangeText={(v) => setForm({ ...form, opis: v })}
-                placeholder="Dodatkowe informacje..."
+                placeholder={t('modal.descPlaceholder')}
                 multiline
               />
 
@@ -674,7 +670,7 @@ export default function ZadaniaScreen() {
                   }}
                   activeOpacity={0.88}
                 >
-                  <Text style={fieldStyles.label}>Data</Text>
+                  <Text style={fieldStyles.label}>{t('modal.dateLabel')}</Text>
                   <View style={styles.pickerValueRow}>
                     <Feather name="calendar" size={15} color={NEON} />
                     <Text style={fieldStyles.pickerText}>{prettyDateLong(form.data, dateLocale)}</Text>
@@ -690,11 +686,11 @@ export default function ZadaniaScreen() {
                   }}
                   activeOpacity={0.88}
                 >
-                  <Text style={fieldStyles.label}>Godzina</Text>
+                  <Text style={fieldStyles.label}>{t('modal.timeLabel')}</Text>
                   <View style={styles.pickerValueRow}>
                     <Feather name="clock" size={15} color={NEON} />
                     <Text style={fieldStyles.pickerText}>
-                      {form.godzina ? form.godzina : 'Bez godziny'}
+                      {form.godzina ? form.godzina : t('allDay')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -702,7 +698,7 @@ export default function ZadaniaScreen() {
 
               {showDatePicker && (
                 <View style={styles.inlinePickerWrap}>
-                  <Text style={styles.inlinePickerTitle}>Wybierz datę</Text>
+                  <Text style={styles.inlinePickerTitle}>{t('modal.pickDate')}</Text>
                   <DateTimePicker
                     value={(() => {
                       const [year, month, day] = form.data.split('-').map(Number);
@@ -723,7 +719,7 @@ export default function ZadaniaScreen() {
                       onPress={() => setShowDatePicker(false)}
                       activeOpacity={0.88}
                     >
-                      <Text style={styles.inlinePickerDoneText}>Gotowe</Text>
+                      <Text style={styles.inlinePickerDoneText}>{t('modal.done')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -731,7 +727,7 @@ export default function ZadaniaScreen() {
 
               {showTimePicker && (
                 <View style={styles.inlinePickerWrap}>
-                  <Text style={styles.inlinePickerTitle}>Wybierz godzinę</Text>
+                  <Text style={styles.inlinePickerTitle}>{t('modal.pickTime')}</Text>
                   <DateTimePicker
                     value={
                       form.godzina
@@ -760,7 +756,7 @@ export default function ZadaniaScreen() {
                       onPress={() => setShowTimePicker(false)}
                       activeOpacity={0.88}
                     >
-                      <Text style={styles.inlinePickerDoneText}>Gotowe</Text>
+                      <Text style={styles.inlinePickerDoneText}>{t('modal.done')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -772,7 +768,7 @@ export default function ZadaniaScreen() {
                   style={styles.clearTimeBtn}
                   activeOpacity={0.88}
                 >
-                  <Text style={styles.clearTimeBtnText}>Usuń godzinę</Text>
+                  <Text style={styles.clearTimeBtnText}>{t('modal.clearTime')}</Text>
                 </TouchableOpacity>
               )}
 
@@ -783,7 +779,7 @@ export default function ZadaniaScreen() {
                 activeOpacity={0.9}
               >
                 <Text style={styles.saveBtnText}>
-                  {saving ? 'Zapisywanie...' : 'Zapisz zadanie'}
+                  {saving ? t('modal.saving') : t('modal.save')}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -809,6 +805,7 @@ function TaskCard({
   onDelete: () => void;
   onToggleDone: () => void;
 }) {
+  const { t } = useTranslation('tasks');
   return (
     <BlurView intensity={14} tint="dark" style={[cardStyles.card, !!task.wykonane && cardStyles.cardDone]}>
       <TouchableOpacity onPress={onToggleDone} style={cardStyles.checkBtn} activeOpacity={0.85}>
@@ -829,7 +826,7 @@ function TaskCard({
         </Text>
 
         <Text style={cardStyles.meta} numberOfLines={1}>
-          {prettyDate(task.data)} · {prettyTime(task.godzina)}
+          {prettyDate(task.data)} · {task.godzina ? prettyTime(task.godzina) : t('allDay')}
         </Text>
 
         {!!task.opis && (
@@ -860,6 +857,7 @@ function TaskListItem({
   onToggleDone: () => void;
   onEdit: () => void;
 }) {
+  const { t } = useTranslation('tasks');
   return (
     <View style={[listStyles.row, !!task.wykonane && listStyles.rowDone]}>
       <TouchableOpacity onPress={onToggleDone} style={listStyles.checkBtn} activeOpacity={0.85}>
@@ -875,7 +873,7 @@ function TaskListItem({
           {task.nazwa}
         </Text>
         <Text style={listStyles.meta} numberOfLines={1}>
-          {prettyDate(task.data)} · {prettyTime(task.godzina)}
+          {prettyDate(task.data)} · {task.godzina ? prettyTime(task.godzina) : t('allDay')}
         </Text>
       </TouchableOpacity>
 

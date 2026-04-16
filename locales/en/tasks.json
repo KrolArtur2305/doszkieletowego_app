@@ -1,0 +1,48 @@
+{
+  "screenTitle": "Tasks",
+  "loading": "Loading...",
+  "allDay": "No time",
+  "stats": {
+    "upcoming": "Upcoming",
+    "overdue": "Overdue",
+    "noUpcoming": "No upcoming tasks",
+    "noOverdue": "No overdue tasks"
+  },
+  "sections": {
+    "nearestThree": "3 nearest tasks",
+    "calendar": "Calendar",
+    "tasksForDate": "Tasks for {{date}}"
+  },
+  "empty": {
+    "noUpcoming": "No upcoming tasks",
+    "noTasksForDate": "No tasks for this day"
+  },
+  "alerts": {
+    "errorTitle": "Error",
+    "loadError": "Failed to fetch tasks.",
+    "nameRequired": "Enter a task name.",
+    "noSession": "No active user session.",
+    "saveError": "Failed to save the task.",
+    "toggleError": "Failed to change task status. Check whether the table has a \"wykonane\" column.",
+    "deleteTitle": "Delete task",
+    "deleteConfirm": "Delete \"{{name}}\"?",
+    "deleteAction": "Delete",
+    "deleteError": "Failed to delete the task."
+  },
+  "modal": {
+    "editTitle": "Edit task",
+    "newTitle": "New task",
+    "nameLabel": "Task name *",
+    "namePlaceholder": "e.g. Call the electrician",
+    "descLabel": "Description",
+    "descPlaceholder": "Additional information...",
+    "dateLabel": "Date",
+    "timeLabel": "Time",
+    "pickDate": "Choose a date",
+    "pickTime": "Choose a time",
+    "done": "Done",
+    "clearTime": "Remove time",
+    "save": "Save task",
+    "saving": "Saving..."
+  }
+}

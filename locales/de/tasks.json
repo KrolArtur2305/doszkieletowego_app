@@ -1,0 +1,48 @@
+{
+  "screenTitle": "Aufgaben",
+  "loading": "Wird geladen...",
+  "allDay": "Keine Uhrzeit",
+  "stats": {
+    "upcoming": "Bevorstehend",
+    "overdue": "Überfällig",
+    "noUpcoming": "Keine bevorstehenden Aufgaben",
+    "noOverdue": "Keine überfälligen Aufgaben"
+  },
+  "sections": {
+    "nearestThree": "3 nächste Aufgaben",
+    "calendar": "Kalender",
+    "tasksForDate": "Aufgaben für {{date}}"
+  },
+  "empty": {
+    "noUpcoming": "Keine bevorstehenden Aufgaben",
+    "noTasksForDate": "Keine Aufgaben für diesen Tag"
+  },
+  "alerts": {
+    "errorTitle": "Fehler",
+    "loadError": "Aufgaben konnten nicht geladen werden.",
+    "nameRequired": "Bitte geben Sie einen Aufgabennamen ein.",
+    "noSession": "Keine aktive Benutzersitzung.",
+    "saveError": "Aufgabe konnte nicht gespeichert werden.",
+    "toggleError": "Der Aufgabenstatus konnte nicht geändert werden. Prüfen Sie, ob die Tabelle eine Spalte „wykonane“ hat.",
+    "deleteTitle": "Aufgabe löschen",
+    "deleteConfirm": "\"{{name}}\" löschen?",
+    "deleteAction": "Löschen",
+    "deleteError": "Die Aufgabe konnte nicht gelöscht werden."
+  },
+  "modal": {
+    "editTitle": "Aufgabe bearbeiten",
+    "newTitle": "Neue Aufgabe",
+    "nameLabel": "Aufgabenname *",
+    "namePlaceholder": "z. B. Elektriker anrufen",
+    "descLabel": "Beschreibung",
+    "descPlaceholder": "Zusätzliche Informationen...",
+    "dateLabel": "Datum",
+    "timeLabel": "Uhrzeit",
+    "pickDate": "Datum auswählen",
+    "pickTime": "Uhrzeit auswählen",
+    "done": "Fertig",
+    "clearTime": "Uhrzeit entfernen",
+    "save": "Aufgabe speichern",
+    "saving": "Wird gespeichert..."
+  }
+}

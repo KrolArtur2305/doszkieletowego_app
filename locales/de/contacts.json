@@ -1,0 +1,52 @@
+{
+  "screenTitle": "Kontakte",
+  "loading": "Wird geladen...",
+  "empty": {
+    "title": "Keine Kontakte",
+    "cta": "+ Ersten Kontakt hinzufügen"
+  },
+  "alerts": {
+    "errorTitle": "Fehler",
+    "loadError": "Kontakte konnten nicht geladen werden.",
+    "nameRequired": "Bitte Vor- und Nachnamen eingeben.",
+    "invalidEmail": "Bitte eine gültige E-Mail-Adresse eingeben.",
+    "invalidPhone": "Bitte eine gültige Telefonnummer eingeben.",
+    "noSession": "Keine aktive Benutzersitzung.",
+    "saveError": "Kontakt konnte nicht gespeichert werden.",
+    "deleteTitle": "Kontakt löschen",
+    "deleteConfirm": "{{name}} löschen?",
+    "deleteAction": "Löschen",
+    "deleteError": "Kontakt konnte nicht gelöscht werden."
+  },
+  "modal": {
+    "editTitle": "Kontakt bearbeiten",
+    "newTitle": "Neuer Kontakt",
+    "save": "Kontakt speichern",
+    "saving": "Wird gespeichert..."
+  },
+  "fields": {
+    "name": "Vor- und Nachname *",
+    "company": "Firma",
+    "role": "Rolle",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "notes": "Notizen"
+  },
+  "placeholders": {
+    "name": "z. B. Jan Kowalski",
+    "company": "z. B. Doszkieletowego",
+    "role": "z. B. Bauleiter, Elektriker...",
+    "phone": "+48 600 000 000",
+    "email": "jan@firma.pl",
+    "notes": "Zusätzliche Informationen..."
+  },
+  "details": {
+    "company": "Firma",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "notes": "Beschreibung / Notizen",
+    "call": "Anrufen",
+    "sms": "SMS",
+    "emailAction": "E-Mail"
+  }
+}

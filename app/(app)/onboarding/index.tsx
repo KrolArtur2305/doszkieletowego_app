@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 
@@ -26,17 +27,17 @@ const NEON = '#25F0C8';
 type OnboardingStep = 'build_type' | 'build_stage' | 'budget';
 
 const BUILD_TYPES = [
-  { value: 'szkieletowy', title: 'Szkieletową' },
-  { value: 'murowany', title: 'Murowaną' },
-  { value: 'inny', title: 'Inną' },
+  { value: 'szkieletowy', key: 'buildTypes.szkieletowy' },
+  { value: 'murowany', key: 'buildTypes.murowany' },
+  { value: 'inny', key: 'buildTypes.inny' },
 ] as const;
 
 const BUILD_STAGES = [
-  { value: 'planowanie', title: 'Planowanie' },
-  { value: 'stan_zero', title: 'Stan zero' },
-  { value: 'stan_surowy_otwarty', title: 'SSO' },
-  { value: 'stan_surowy_zamkniety', title: 'SSZ' },
-  { value: 'wykonczenie', title: 'Wykończenie' },
+  { value: 'planowanie', key: 'buildStages.planowanie' },
+  { value: 'stan_zero', key: 'buildStages.stan_zero' },
+  { value: 'stan_surowy_otwarty', key: 'buildStages.stan_surowy_otwarty' },
+  { value: 'stan_surowy_zamkniety', key: 'buildStages.stan_surowy_zamkniety' },
+  { value: 'wykonczenie', key: 'buildStages.wykonczenie' },
 ] as const;
 
 function toNumber(value: string) {
@@ -51,6 +52,7 @@ function todayYMD() {
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { t } = useTranslation('onboarding');
   const { session } = useSupabaseAuth();
   const userId = session?.user?.id;
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
@@ -105,7 +107,7 @@ export default function OnboardingScreen() {
           setPlannedBudget(String(investmentRes.data.budzet));
         }
       } catch (e: any) {
-        Alert.alert('Błąd', e?.message ?? 'Nie udało się przygotować onboardingu.');
+        Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.prepareError'));
       } finally {
         if (alive) setLoading(false);
       }
@@ -115,7 +117,7 @@ export default function OnboardingScreen() {
     return () => {
       alive = false;
     };
-  }, [userId]);
+  }, [userId, t]);
 
   const saveBuildType = async (value: string) => {
     if (!userId || saving) return;
@@ -137,7 +139,7 @@ export default function OnboardingScreen() {
       setBuildType(value);
       setStep('build_stage');
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać wyboru.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveBuildTypeError'));
     } finally {
       setSaving(false);
     }
@@ -163,7 +165,7 @@ export default function OnboardingScreen() {
       setBuildStage(value);
       setStep('budget');
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać etapu.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveBuildStageError'));
     } finally {
       setSaving(false);
     }
@@ -176,12 +178,12 @@ export default function OnboardingScreen() {
     const spent = toNumber(spentBudget) ?? 0;
 
     if (budget === null || budget < 0) {
-      Alert.alert('Błąd', 'Podaj poprawny planowany budżet.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.invalidBudget'));
       return;
     }
 
     if (spent < 0) {
-      Alert.alert('Błąd', 'Kwota poniesionych wydatków nie może być ujemna.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.negativeSpent'));
       return;
     }
 
@@ -236,7 +238,7 @@ export default function OnboardingScreen() {
 
       router.replace('/(app)/onboarding/profile');
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać budżetu.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveBudgetError'));
     } finally {
       setSaving(false);
     }
@@ -244,7 +246,7 @@ export default function OnboardingScreen() {
 
   const renderBuildType = () => (
     <>
-      <Text style={styles.title}>Jaką budowę prowadzisz?</Text>
+      <Text style={styles.title}>{t('steps.buildTypeTitle')}</Text>
 
       <View style={styles.tileGrid}>
         {BUILD_TYPES.map((item) => (
@@ -256,7 +258,7 @@ export default function OnboardingScreen() {
             style={styles.tileOuter}
           >
             <BlurView intensity={18} tint="dark" style={styles.tile}>
-              <Text style={styles.tileTitle}>{item.title}</Text>
+              <Text style={styles.tileTitle}>{t(item.key)}</Text>
             </BlurView>
           </TouchableOpacity>
         ))}
@@ -266,7 +268,7 @@ export default function OnboardingScreen() {
 
   const renderBuildStage = () => (
     <>
-      <Text style={styles.title}>Na jakim etapie budowy jesteś?</Text>
+      <Text style={styles.title}>{t('steps.buildStageTitle')}</Text>
 
       <View style={styles.tileGrid}>
         {BUILD_STAGES.map((item) => (
@@ -278,7 +280,7 @@ export default function OnboardingScreen() {
             style={styles.tileOuter}
           >
             <BlurView intensity={18} tint="dark" style={styles.tile}>
-              <Text style={styles.tileTitle}>{item.title}</Text>
+              <Text style={styles.tileTitle}>{t(item.key)}</Text>
             </BlurView>
           </TouchableOpacity>
         ))}
@@ -288,17 +290,17 @@ export default function OnboardingScreen() {
 
   const renderBudget = () => (
     <>
-      <Text style={styles.title}>Budżet</Text>
+      <Text style={styles.title}>{t('steps.budgetTitle')}</Text>
 
       <BlurView intensity={18} tint="dark" style={styles.formCard}>
         <View style={styles.fieldWrap}>
-          <Text style={styles.fieldLabel}>Planowany budżet</Text>
+          <Text style={styles.fieldLabel}>{t('budget.plannedLabel')}</Text>
           <View style={styles.inputWrap}>
-            <Text style={styles.inputPrefix}>PLN</Text>
+            <Text style={styles.inputPrefix}>{t('budget.currency')}</Text>
             <TextInput
               value={plannedBudget}
               onChangeText={setPlannedBudget}
-              placeholder="np. 450000"
+              placeholder={t('budget.plannedPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.26)"
               keyboardType="numeric"
               style={styles.input}
@@ -307,13 +309,13 @@ export default function OnboardingScreen() {
         </View>
 
         <View style={styles.fieldWrapLast}>
-          <Text style={styles.fieldLabel}>Już poniesione wydatki</Text>
+          <Text style={styles.fieldLabel}>{t('budget.spentLabel')}</Text>
           <View style={styles.inputWrap}>
-            <Text style={styles.inputPrefix}>PLN</Text>
+            <Text style={styles.inputPrefix}>{t('budget.currency')}</Text>
             <TextInput
               value={spentBudget}
               onChangeText={setSpentBudget}
-              placeholder="np. 25000"
+              placeholder={t('budget.spentPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.26)"
               keyboardType="numeric"
               style={styles.input}
@@ -328,7 +330,7 @@ export default function OnboardingScreen() {
         activeOpacity={0.9}
         style={[styles.primaryBtn, saving && styles.primaryBtnDisabled]}
       >
-        {saving ? <ActivityIndicator color="#0B1120" /> : <Text style={styles.primaryBtnText}>Dalej</Text>}
+        {saving ? <ActivityIndicator color="#0B1120" /> : <Text style={styles.primaryBtnText}>{t('actions.next')}</Text>}
       </TouchableOpacity>
     </>
   );
@@ -351,7 +353,7 @@ export default function OnboardingScreen() {
           {loading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={NEON} />
-              <Text style={styles.loadingText}>Przygotowuję onboarding...</Text>
+              <Text style={styles.loadingText}>{t('loading.prepare')}</Text>
             </View>
           ) : step === 'build_type' ? (
             renderBuildType()

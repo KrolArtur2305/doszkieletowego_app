@@ -1,0 +1,52 @@
+{
+  "screenTitle": "Contacts",
+  "loading": "Loading...",
+  "empty": {
+    "title": "No contacts",
+    "cta": "+ Add your first contact"
+  },
+  "alerts": {
+    "errorTitle": "Error",
+    "loadError": "Failed to fetch contacts.",
+    "nameRequired": "Enter first and last name.",
+    "invalidEmail": "Enter a valid email address.",
+    "invalidPhone": "Enter a valid phone number.",
+    "noSession": "No active user session.",
+    "saveError": "Failed to save the contact.",
+    "deleteTitle": "Delete contact",
+    "deleteConfirm": "Delete {{name}}?",
+    "deleteAction": "Delete",
+    "deleteError": "Failed to delete the contact."
+  },
+  "modal": {
+    "editTitle": "Edit contact",
+    "newTitle": "New contact",
+    "save": "Save contact",
+    "saving": "Saving..."
+  },
+  "fields": {
+    "name": "Full name *",
+    "company": "Company",
+    "role": "Role",
+    "phone": "Phone",
+    "email": "Email",
+    "notes": "Notes"
+  },
+  "placeholders": {
+    "name": "e.g. John Smith",
+    "company": "e.g. Doszkieletowego",
+    "role": "e.g. Site manager, Electrician...",
+    "phone": "+48 600 000 000",
+    "email": "john@company.com",
+    "notes": "Additional information..."
+  },
+  "details": {
+    "company": "Company",
+    "phone": "Phone",
+    "email": "Email",
+    "notes": "Description / notes",
+    "call": "Call",
+    "sms": "SMS",
+    "emailAction": "Email"
+  }
+}

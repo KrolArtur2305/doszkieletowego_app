@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { publicConfig, supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 
@@ -44,22 +45,15 @@ type ConversationItem = {
   created_at: string;
 };
 
-const QUICK_QUESTIONS = [
-  { key: 'q1', label: 'Jak idzie budżet?' },
-  { key: 'q2', label: 'Który etap teraz?' },
-  { key: 'q3', label: 'Co dziś mam?' },
-  { key: 'q4', label: 'Kiedy koniec?' },
-];
-
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now();
 }
 
-function formatConversationDate(value?: string | null) {
+function formatConversationDate(value: string | null | undefined, locale: string) {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('pl-PL', {
+  return d.toLocaleDateString(locale, {
     day: '2-digit',
     month: '2-digit',
   });
@@ -67,9 +61,15 @@ function formatConversationDate(value?: string | null) {
 
 export default function BuddyChatScreen() {
   const { session } = useSupabaseAuth();
+  const { t, i18n } = useTranslation('buddy');
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 44) + 8;
+  const uiLocale = (i18n.resolvedLanguage || i18n.language || 'en').startsWith('de')
+    ? 'de-DE'
+    : (i18n.resolvedLanguage || i18n.language || 'en').startsWith('pl')
+      ? 'pl-PL'
+      : 'en-US';
 
-  const [buddyName, setBuddyName] = useState('Kierownik');
+  const [buddyName, setBuddyName] = useState(t('chat.fallbackName'));
   const [loadingInitial, setLoadingInitial] = useState(true);
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -83,6 +83,13 @@ export default function BuddyChatScreen() {
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+
+  const QUICK_QUESTIONS = [
+    { key: 'q1', label: t('chat.quickQuestions.q1') },
+    { key: 'q2', label: t('chat.quickQuestions.q2') },
+    { key: 'q3', label: t('chat.quickQuestions.q3') },
+    { key: 'q4', label: t('chat.quickQuestions.q4') },
+  ];
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -139,7 +146,7 @@ export default function BuddyChatScreen() {
 
         if (error) throw error;
 
-        const name = String(data?.ai_buddy_name ?? '').trim() || 'Kierownik';
+        const name = String(data?.ai_buddy_name ?? '').trim() || t('chat.fallbackName');
         setBuddyName(name);
 
         await loadConversations();
@@ -148,7 +155,7 @@ export default function BuddyChatScreen() {
           {
             id: uid(),
             role: 'assistant',
-            content: 'Cześć! Nie udało się pobrać danych. Spróbuj ponownie.',
+            content: t('chat.messages.loadDataError'),
           },
         ]);
       } finally {
@@ -157,14 +164,14 @@ export default function BuddyChatScreen() {
     };
 
     loadInitial();
-  }, [session?.user?.id]);
+  }, [session?.user?.id, t]);
 
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }, [messages]);
 
   const currentConversationTitle =
-    conversations.find((c) => c.id === currentConversationId)?.title || 'Nowa rozmowa';
+    conversations.find((c) => c.id === currentConversationId)?.title || t('chat.newConversation');
 
   const loadConversations = async () => {
     try {
@@ -191,13 +198,12 @@ export default function BuddyChatScreen() {
           {
             id: uid(),
             role: 'assistant',
-            content:
-              'Cześć! Jestem gotowy. Pytaj o budżet, etapy, harmonogram albo cokolwiek związanego z budową.',
+            content: t('chat.messages.emptyHistoryIntro'),
           },
         ]);
       }
     } catch {
-      setError('Nie udało się pobrać historii rozmów.');
+      setError(t('chat.errors.fetchHistory'));
     } finally {
       setLoadingHistory(false);
     }
@@ -219,7 +225,7 @@ export default function BuddyChatScreen() {
       setMessages(rows);
       setCurrentConversationId(conversationId);
     } catch {
-      setError('Nie udało się pobrać wiadomości.');
+      setError(t('chat.errors.fetchMessages'));
     } finally {
       setLoadingMessages(false);
     }
@@ -232,7 +238,7 @@ export default function BuddyChatScreen() {
       {
         id: uid(),
         role: 'assistant',
-        content: 'Nowa rozmowa rozpoczęta. O co chcesz zapytać?',
+        content: t('chat.messages.newConversationStarted'),
       },
     ]);
     setHistoryVisible(false);
@@ -252,7 +258,7 @@ export default function BuddyChatScreen() {
       } = await supabase.auth.getSession();
 
       const accessToken = activeSession?.access_token;
-      if (!accessToken) throw new Error('Brak aktywnej sesji');
+      if (!accessToken) throw new Error(t('chat.errors.noSession'));
 
       const tempUserId = `tmp-user-${Date.now()}`;
       const tempAssistantId = `tmp-ai-${Date.now()}`;
@@ -290,7 +296,7 @@ export default function BuddyChatScreen() {
         } catch {
           errorText = '';
         }
-        throw new Error(errorText || 'Błąd połączenia z AI');
+        throw new Error(errorText || t('chat.errors.aiConnection'));
       }
 
       const payload = (await response.json()) as {
@@ -307,7 +313,7 @@ export default function BuddyChatScreen() {
         {
           id: payload?.assistant_message_id || tempAssistantId,
           role: 'assistant',
-          content: finalAssistantText || 'Nie udało mi się wygenerować odpowiedzi.',
+          content: finalAssistantText || t('chat.messages.generateFallback'),
           created_at: new Date().toISOString(),
           pending: false,
           status: 'completed',
@@ -320,7 +326,7 @@ export default function BuddyChatScreen() {
         await loadMessages(resolvedConversationId);
       }
     } catch (e: any) {
-      const msg = e?.message ?? 'Przepraszam, wystąpił błąd połączenia. Spróbuj ponownie.';
+      const msg = e?.message ?? t('chat.messages.connectionError');
 
       setMessages((prev) =>
         prev.map((m) =>
@@ -352,7 +358,7 @@ export default function BuddyChatScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.headerName}>{buddyName}</Text>
           <Text style={styles.headerSub}>
-            {currentConversationId ? currentConversationTitle : 'Kierownik budowy AI'}
+            {currentConversationId ? currentConversationTitle : t('chat.headerDefault')}
           </Text>
         </View>
 
@@ -393,7 +399,7 @@ export default function BuddyChatScreen() {
           {loadingInitial || loadingMessages ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={NEON} />
-              <Text style={styles.loadingText}>Ładuję rozmowę...</Text>
+              <Text style={styles.loadingText}>{t('chat.loading.conversation')}</Text>
             </View>
           ) : (
             messages.map((msg) => (
@@ -491,7 +497,7 @@ export default function BuddyChatScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder={`Zapytaj ${buddyName}...`}
+              placeholder={t('chat.inputPlaceholder', { name: buddyName })}
               placeholderTextColor="#888888"
               style={styles.input}
               multiline
@@ -522,7 +528,7 @@ export default function BuddyChatScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Historia rozmów</Text>
+              <Text style={styles.modalTitle}>{t('chat.historyTitle')}</Text>
               <TouchableOpacity
                 onPress={() => setHistoryVisible(false)}
                 style={styles.modalCloseBtn}
@@ -538,7 +544,7 @@ export default function BuddyChatScreen() {
               activeOpacity={0.9}
             >
               <Feather name="plus" size={16} color="#0B1120" />
-              <Text style={styles.newChatBtnText}>Nowa rozmowa</Text>
+              <Text style={styles.newChatBtnText}>{t('chat.newConversation')}</Text>
             </TouchableOpacity>
 
             <ScrollView
@@ -548,10 +554,10 @@ export default function BuddyChatScreen() {
               {loadingHistory ? (
                 <View style={styles.loadingWrap}>
                   <ActivityIndicator color={NEON} />
-                  <Text style={styles.loadingText}>Ładuję historię...</Text>
+                  <Text style={styles.loadingText}>{t('chat.loading.history')}</Text>
                 </View>
               ) : conversations.length === 0 ? (
-                <Text style={styles.emptyHistoryText}>Brak wcześniejszych rozmów.</Text>
+                <Text style={styles.emptyHistoryText}>{t('chat.emptyHistory')}</Text>
               ) : (
                 conversations.map((conv) => {
                   const active = conv.id === currentConversationId;
@@ -567,10 +573,10 @@ export default function BuddyChatScreen() {
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={styles.historyTitle} numberOfLines={1}>
-                          {conv.title || 'Rozmowa z AI'}
+                          {conv.title || t('chat.conversationFallback')}
                         </Text>
                         <Text style={styles.historyMeta}>
-                          {formatConversationDate(conv.last_message_at || conv.created_at)}
+                          {formatConversationDate(conv.last_message_at || conv.created_at, uiLocale)}
                         </Text>
                       </View>
                       {active && <Feather name="check" size={16} color={NEON} />}

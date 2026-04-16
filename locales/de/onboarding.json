@@ -1,0 +1,55 @@
+{
+  "loading": {
+    "prepare": "Onboarding wird vorbereitet...",
+    "profile": "Daten werden geladen..."
+  },
+  "alerts": {
+    "errorTitle": "Fehler",
+    "prepareError": "Onboarding konnte nicht vorbereitet werden.",
+    "saveBuildTypeError": "Auswahl konnte nicht gespeichert werden.",
+    "saveBuildStageError": "Phase konnte nicht gespeichert werden.",
+    "invalidBudget": "Bitte ein gültiges geplantes Budget eingeben.",
+    "negativeSpent": "Bereits entstandene Kosten dürfen nicht negativ sein.",
+    "saveBudgetError": "Budget konnte nicht gespeichert werden.",
+    "loadProfileError": "Profil konnte nicht geladen werden.",
+    "firstNameRequired": "Bitte Vornamen eingeben.",
+    "invalidPhone": "Bitte eine gültige Telefonnummer eingeben.",
+    "saveProfileError": "Profil konnte nicht gespeichert werden."
+  },
+  "steps": {
+    "buildTypeTitle": "Welche Art von Bau führen Sie durch?",
+    "buildStageTitle": "In welcher Bauphase befinden Sie sich?",
+    "budgetTitle": "Budget",
+    "profileTitle": "Profil"
+  },
+  "buildTypes": {
+    "szkieletowy": "Holzrahmenbau",
+    "murowany": "Massivbau",
+    "inny": "Andere"
+  },
+  "buildStages": {
+    "planowanie": "Planung",
+    "stan_zero": "Fundament",
+    "stan_surowy_otwarty": "Rohbau offen",
+    "stan_surowy_zamkniety": "Rohbau geschlossen",
+    "wykonczenie": "Ausbau"
+  },
+  "budget": {
+    "plannedLabel": "Geplantes Budget",
+    "spentLabel": "Bereits entstandene Kosten",
+    "currency": "PLN",
+    "plannedPlaceholder": "z. B. 450000",
+    "spentPlaceholder": "z. B. 25000"
+  },
+  "profile": {
+    "firstName": "Vorname *",
+    "lastName": "Nachname",
+    "phone": "Telefon",
+    "firstNamePlaceholder": "z. B. Adam",
+    "lastNamePlaceholder": "z. B. Kowalski",
+    "phonePlaceholder": "z. B. 600123456"
+  },
+  "actions": {
+    "next": "Weiter"
+  }
+}

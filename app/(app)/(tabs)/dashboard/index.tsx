@@ -958,19 +958,14 @@ export default function DashboardScreen() {
                   </Text>
                   <Text style={styles.todayTasksLead}>
                     {todayTaskCount > 0
-                      ? t('todayTasks.summary', {
-                          count: todayTaskCount,
-                          defaultValue: 'Na dziś masz {{count}} zadań.',
-                        })
-                      : t('todayTasks.emptySummary', {
-                          defaultValue: 'Na dziś nie masz jeszcze nic zaplanowanego.',
-                        })}
+                      ? t('todayTasks.summary', { count: todayTaskCount })
+                      : t('todayTasks.emptySummary')}
                   </Text>
                 </View>
                 <View style={styles.todayTasksBadge}>
                   <Text style={styles.todayTasksBadgeValue}>{todayTaskCount}</Text>
                   <Text style={styles.todayTasksBadgeLabel}>
-                    {t('todayTasks.badge', { defaultValue: 'dziś' })}
+                    {t('todayTasks.badge')}
                   </Text>
                 </View>
               </View>
@@ -982,7 +977,7 @@ export default function DashboardScreen() {
                   activeOpacity={0.9}
                 >
                   <Text style={styles.todayTasksActionPrimaryText}>
-                    {t('todayTasks.add', { defaultValue: '+ Dodaj zadanie' })}
+                    {t('todayTasks.add')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -991,7 +986,7 @@ export default function DashboardScreen() {
                   activeOpacity={0.9}
                 >
                   <Text style={styles.todayTasksActionText}>
-                    {t('todayTasks.openAll', { defaultValue: 'Zobacz wszystkie' })}
+                    {t('todayTasks.openAll')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -999,15 +994,12 @@ export default function DashboardScreen() {
               <View style={styles.todayTasksListWrap}>
                 <View style={styles.nearestHeader}>
                   <Text style={styles.nearestTitle}>
-                    {t('todayTasks.listTitle', { defaultValue: 'Plan na dziś' })}
+                    {t('todayTasks.listTitle')}
                   </Text>
                   <Text style={styles.todayTasksListCount}>
                     {todayTaskCount > 0
-                      ? t('todayTasks.countLabel', {
-                          count: todayTaskCount,
-                          defaultValue: '{{count}} pozycji',
-                        })
-                      : t('todayTasks.countEmpty', { defaultValue: '0 pozycji' })}
+                      ? t('todayTasks.countLabel', { count: todayTaskCount })
+                      : t('todayTasks.countEmpty')}
                   </Text>
                 </View>
                 {tasksLoading ? (
@@ -1015,12 +1007,10 @@ export default function DashboardScreen() {
                 ) : todayTasks.length === 0 ? (
                   <View style={styles.todayTasksEmpty}>
                     <Text style={styles.todayTasksEmptyTitle}>
-                      {t('todayTasks.emptyTitle', { defaultValue: 'Spokojny dzień' })}
+                      {t('todayTasks.emptyTitle')}
                     </Text>
                     <Text style={styles.mutedText}>
-                      {t('todayTasks.emptyText', {
-                        defaultValue: 'Nie masz dziś żadnych zadań. Możesz dodać nowe albo sprawdzić kolejne terminy.',
-                      })}
+                      {t('todayTasks.emptyText')}
                     </Text>
                   </View>
                 ) : (
@@ -1045,10 +1035,10 @@ export default function DashboardScreen() {
                 <View style={styles.upcomingTasksWrap}>
                   <View style={styles.nearestHeader}>
                     <Text style={styles.nearestTitle}>
-                      {t('todayTasks.upcomingTitle', { defaultValue: 'Dalej w kolejce' })}
+                      {t('todayTasks.upcomingTitle')}
                     </Text>
                     <Text style={styles.todayTasksListCount}>
-                      {t('todayTasks.upcomingHint', { defaultValue: 'następne terminy' })}
+                      {t('todayTasks.upcomingHint')}
                     </Text>
                   </View>
                   <View style={{ gap: 8 }}>

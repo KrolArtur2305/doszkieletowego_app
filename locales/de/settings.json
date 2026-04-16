@@ -1,5 +1,5 @@
 {
-  "title": "Kontoeinstellungen",
+  "title": "Einstellungen",
   "fallbackUser": "Benutzer",
   "placeholderMessage": "Diese Funktion wird später hinzugefügt.",
   "logout": "Abmelden",
@@ -19,9 +19,13 @@
   "report": {
     "title": "Problem melden",
     "categoryTitle": "Kategorie",
-    "descriptionTitle": "Beschreibung",
-    "descriptionPlaceholder": "Was genau ist passiert? Was hast du angetippt? Was war das Ergebnis?",
+    "descriptionTitle": "Problembeschreibung",
+    "descriptionPlaceholder": "Beschreibe genau, was passiert ist, an welcher Stelle der App und wann das Problem aufgetreten ist...",
+    "chars": "Zeichen",
     "categories": {
+      "login": "Anmeldeproblem",
+      "photos": "Fotos / Dokumente",
+      "budget": "Budget / Ausgaben",
       "loginSession": "Anmeldung / Sitzung",
       "supabaseData": "Supabase / Daten",
       "uiScreen": "UI / Bildschirm",
@@ -29,14 +33,20 @@
       "other": "Andere"
     },
     "alerts": {
-      "warningTitle": "Hinweis",
+      "warningTitle": "Beschreibung zu kurz",
       "minLength": "Bitte beschreibe das Problem mit mindestens 10 Zeichen.",
       "thanksTitle": "Danke!",
+      "sent": "Ihre Meldung wurde gesendet. Wir antworten so schnell wie möglich.",
+      "errorTitle": "Fehler",
+      "sendFailed": "Die Meldung konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
       "savedLocalDemo": "Deine Meldung wurde lokal gespeichert (Demo)."
     },
     "actions": {
-      "send": "Senden"
+      "ok": "OK",
+      "send": "Meldung senden",
+      "sending": "Wird gesendet..."
     },
+    "hint": "Meldungen werden innerhalb von 24–48 Stunden bearbeitet.",
     "hintDemo": "Dies ist eine Demo-Version. Später verbinden wir Supabase Storage oder einen Webhook."
   },
   "appSettings": {

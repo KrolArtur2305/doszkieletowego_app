@@ -175,7 +175,7 @@ export default function UstawieniaScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <AppHeader title="Ustawienia" style={styles.screenHeader} />
+          <AppHeader title={t('settings:title')} style={styles.screenHeader} />
           <Text style={styles.headerName}>{displayName}</Text>
         </View>
 

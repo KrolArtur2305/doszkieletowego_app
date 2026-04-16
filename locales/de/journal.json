@@ -1,0 +1,43 @@
+{
+  "screenTitle": "Bautagebuch",
+  "sort": {
+    "newest": "Neueste",
+    "oldest": "Älteste",
+    "count_one": "1 Eintrag",
+    "count_other": "{{count}} Einträge",
+    "count": "{{count}} Einträge"
+  },
+  "empty": {
+    "title": "Keine Einträge",
+    "subtitle": "Beginnen Sie, Ihren Bau zu dokumentieren.\nJeder Eintrag wird Teil der Geschichte Ihres Hauses.",
+    "cta": "+ Ersten Eintrag hinzufügen"
+  },
+  "modal": {
+    "editTitle": "Eintrag bearbeiten",
+    "newTitle": "Neuer Eintrag",
+    "date": "DATUM",
+    "done": "Fertig",
+    "stage": "BAUPHASE",
+    "collapse": "Einklappen",
+    "expand": "Alle anzeigen",
+    "selectedStage": "Ausgewählte Phase",
+    "none": "Keine",
+    "current": "aktuell",
+    "note": "NOTIZ",
+    "notePlaceholder": "Was ist heute auf der Baustelle passiert? Welche Arbeiten wurden durchgeführt? Gab es Probleme?",
+    "photo": "FOTO (optional)",
+    "pickPhoto": "Foto des Tages hinzufügen",
+    "saving": "Wird gespeichert...",
+    "saveChanges": "Änderungen speichern",
+    "addEntry": "Eintrag hinzufügen"
+  },
+  "detail": {
+    "deleteTitle": "Eintrag löschen",
+    "deleteConfirm": "Möchten Sie diesen Tagebucheintrag wirklich löschen?"
+  },
+  "alerts": {
+    "errorTitle": "Fehler",
+    "noteRequired": "Bitte geben Sie den Inhalt der Notiz ein.",
+    "saveError": "Der Eintrag konnte nicht gespeichert werden."
+  }
+}

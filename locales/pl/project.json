@@ -1,5 +1,6 @@
 {
   "myProject": "Mój projekt",
+  "screenTitle": "Projekt",
   "projectLocationPlaceholder": "—",
   "buildingParams": "Parametry budynku",
   "projectPlans": "Rzuty projektu",
@@ -37,6 +38,10 @@
 
   "editParamsTitle": "Edytuj parametry",
   "saveErrorTitle": "Błąd zapisu",
+  "fieldGroupGeneral": "Ogólne",
+  "fieldGroupSurfaces": "Powierzchnie",
+  "fieldGroupStructure": "Bryła",
+  "fieldGroupFacade": "Elewacja",
 
   "fieldProjectName": "Nazwa projektu",
   "fieldPowU": "Pow. użytkowa (m²)",

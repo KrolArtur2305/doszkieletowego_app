@@ -1,0 +1,44 @@
+{
+  "screenTitle": "Dziennik budowy",
+  "sort": {
+    "newest": "Najnowsze",
+    "oldest": "Najstarsze",
+    "count_one": "1 wpis",
+    "count_few": "{{count}} wpisy",
+    "count_many": "{{count}} wpisów",
+    "count": "{{count}} wpisów"
+  },
+  "empty": {
+    "title": "Brak wpisów",
+    "subtitle": "Zacznij dokumentować swoją budowę.\nKażdy wpis to historia Twojego domu.",
+    "cta": "+ Dodaj pierwszy wpis"
+  },
+  "modal": {
+    "editTitle": "Edytuj wpis",
+    "newTitle": "Nowy wpis",
+    "date": "DATA",
+    "done": "Gotowe",
+    "stage": "ETAP BUDOWY",
+    "collapse": "Zwiń",
+    "expand": "Pokaż wszystkie",
+    "selectedStage": "Wybrany etap",
+    "none": "Brak",
+    "current": "obecny",
+    "note": "NOTATKA",
+    "notePlaceholder": "Co się dziś działo na budowie? Jakie prace wykonano? Czy były jakieś problemy?",
+    "photo": "ZDJĘCIE (opcjonalne)",
+    "pickPhoto": "Dodaj zdjęcie z dnia",
+    "saving": "Zapisywanie...",
+    "saveChanges": "Zapisz zmiany",
+    "addEntry": "Dodaj wpis"
+  },
+  "detail": {
+    "deleteTitle": "Usuń wpis",
+    "deleteConfirm": "Na pewno usunąć ten wpis z dziennika?"
+  },
+  "alerts": {
+    "errorTitle": "Błąd",
+    "noteRequired": "Wpisz treść notatki.",
+    "saveError": "Nie udało się zapisać wpisu."
+  }
+}

@@ -21,6 +21,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../../../components/FloatingAddButton';
@@ -76,6 +77,7 @@ const isValidPhone = (phone: string) => {
 
 export default function KontaktyScreen() {
   const { session } = useSupabaseAuth();
+  const { t } = useTranslation('contacts');
   const topPad = 0;
 
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -129,11 +131,11 @@ export default function KontaktyScreen() {
       setContacts((data ?? []) as Contact[]);
     } catch (e: any) {
       setContacts([]);
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się pobrać kontaktów.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -167,23 +169,23 @@ export default function KontaktyScreen() {
 
   const saveContact = async () => {
     if (!form.imie_nazwisko.trim()) {
-      Alert.alert('Błąd', 'Podaj imię i nazwisko.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.nameRequired'));
       return;
     }
 
     if (!isValidEmail(form.email ?? '')) {
-      Alert.alert('Błąd', 'Podaj poprawny adres e-mail.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.invalidEmail'));
       return;
     }
 
     if (!isValidPhone(form.telefon ?? '')) {
-      Alert.alert('Błąd', 'Podaj poprawny numer telefonu.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.invalidPhone'));
       return;
     }
 
     const userId = session?.user?.id;
     if (!userId) {
-      Alert.alert('Błąd', 'Brak aktywnej sesji użytkownika.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.noSession'));
       return;
     }
 
@@ -217,17 +219,17 @@ export default function KontaktyScreen() {
       setForm(emptyContact());
       await loadContacts();
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać kontaktu.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
     } finally {
       setSaving(false);
     }
   };
 
   const deleteContact = (c: Contact) => {
-    Alert.alert('Usuń kontakt', `Usunąć ${c.imie_nazwisko}?`, [
-      { text: 'Anuluj', style: 'cancel' },
+    Alert.alert(t('alerts.deleteTitle'), t('alerts.deleteConfirm', { name: c.imie_nazwisko }), [
+      { text: t('common:cancel'), style: 'cancel' },
       {
-        text: 'Usuń',
+        text: t('alerts.deleteAction'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -241,7 +243,7 @@ export default function KontaktyScreen() {
 
             await loadContacts();
           } catch (e: any) {
-            Alert.alert('Błąd', e?.message ?? 'Nie udało się usunąć kontaktu.');
+            Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.deleteError'));
           }
         },
       },
@@ -276,7 +278,7 @@ export default function KontaktyScreen() {
             }}
           >
             <View style={styles.headerRow}>
-              <AppHeader title="Kontakty" />
+              <AppHeader title={t('screenTitle')} />
             </View>
           </Animated.View>
 
@@ -288,18 +290,18 @@ export default function KontaktyScreen() {
           >
             {loading ? (
               <View style={styles.emptyWrap}>
-                <Text style={styles.emptyText}>Ładowanie...</Text>
+                <Text style={styles.emptyText}>{t('loading')}</Text>
               </View>
             ) : contacts.length === 0 ? (
               <View style={styles.emptyWrap}>
                 <Feather name="users" size={44} color="rgba(255,255,255,0.15)" />
-                <Text style={styles.emptyText}>Brak kontaktów</Text>
+                <Text style={styles.emptyText}>{t('empty.title')}</Text>
                 <TouchableOpacity
                   onPress={openNew}
                   style={styles.emptyAddBtn}
                   activeOpacity={0.88}
                 >
-                  <Text style={styles.emptyAddBtnText}>+ Dodaj pierwszy kontakt</Text>
+                  <Text style={styles.emptyAddBtnText}>{t('empty.cta')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -337,7 +339,7 @@ export default function KontaktyScreen() {
                   <View style={styles.modalHeader}>
                     <View style={styles.modalHeaderSide} />
                     <Text style={styles.modalTitle}>
-                      {editingContact ? 'Edytuj kontakt' : 'Nowy kontakt'}
+                      {editingContact ? t('modal.editTitle') : t('modal.newTitle')}
                     </Text>
                     <TouchableOpacity onPress={() => setEditOpen(false)} activeOpacity={0.88}>
                       <Feather name="x" size={22} color="rgba(255,255,255,0.55)" />
@@ -350,47 +352,47 @@ export default function KontaktyScreen() {
                     showsVerticalScrollIndicator={false}
                   >
                     <FormField
-                      label="Imię i nazwisko *"
+                      label={t('fields.name')}
                       value={form.imie_nazwisko}
                       onChangeText={(v) => setForm({ ...form, imie_nazwisko: v })}
-                      placeholder="np. Jan Kowalski"
+                      placeholder={t('placeholders.name')}
                     />
 
                     <FormField
-                      label="Firma"
+                      label={t('fields.company')}
                       value={form.firma ?? ''}
                       onChangeText={(v) => setForm({ ...form, firma: v })}
-                      placeholder="np. doszkieletowego"
+                      placeholder={t('placeholders.company')}
                     />
 
                     <FormField
-                      label="Rola"
+                      label={t('fields.role')}
                       value={form.rola ?? ''}
                       onChangeText={(v) => setForm({ ...form, rola: v })}
-                      placeholder="np. Kierownik budowy, Elektryk..."
+                      placeholder={t('placeholders.role')}
                     />
 
                     <FormField
-                      label="Telefon"
+                      label={t('fields.phone')}
                       value={form.telefon ?? ''}
                       onChangeText={(v) => setForm({ ...form, telefon: v })}
-                      placeholder="+48 600 000 000"
+                      placeholder={t('placeholders.phone')}
                       keyboardType="phone-pad"
                     />
 
                     <FormField
-                      label="Email"
+                      label={t('fields.email')}
                       value={form.email ?? ''}
                       onChangeText={(v) => setForm({ ...form, email: v })}
-                      placeholder="jan@firma.pl"
+                      placeholder={t('placeholders.email')}
                       keyboardType="email-address"
                     />
 
                     <FormField
-                      label="Notatki"
+                      label={t('fields.notes')}
                       value={form.notatki ?? ''}
                       onChangeText={(v) => setForm({ ...form, notatki: v })}
-                      placeholder="Dodatkowe informacje..."
+                      placeholder={t('placeholders.notes')}
                       multiline
                     />
 
@@ -401,7 +403,7 @@ export default function KontaktyScreen() {
                       activeOpacity={0.9}
                     >
                       <Text style={styles.saveBtnText}>
-                        {saving ? 'Zapisywanie...' : 'Zapisz kontakt'}
+                        {saving ? t('modal.saving') : t('modal.save')}
                       </Text>
                     </TouchableOpacity>
 
@@ -468,28 +470,28 @@ export default function KontaktyScreen() {
 
                         {!!selectedContact.firma && (
                           <View style={styles.detailsInfoBox}>
-                            <Text style={styles.detailsInfoLabel}>Firma</Text>
+                            <Text style={styles.detailsInfoLabel}>{t('details.company')}</Text>
                             <Text style={styles.detailsInfoValue}>{selectedContact.firma}</Text>
                           </View>
                         )}
 
                         {!!selectedContact.telefon && (
                           <View style={styles.detailsInfoBox}>
-                            <Text style={styles.detailsInfoLabel}>Telefon</Text>
+                            <Text style={styles.detailsInfoLabel}>{t('details.phone')}</Text>
                             <Text style={styles.detailsInfoValue}>{selectedContact.telefon}</Text>
                           </View>
                         )}
 
                         {!!selectedContact.email && (
                           <View style={styles.detailsInfoBox}>
-                            <Text style={styles.detailsInfoLabel}>Email</Text>
+                            <Text style={styles.detailsInfoLabel}>{t('details.email')}</Text>
                             <Text style={styles.detailsInfoValue}>{selectedContact.email}</Text>
                           </View>
                         )}
 
                         {!!selectedContact.notatki && (
                           <View style={styles.detailsInfoBox}>
-                            <Text style={styles.detailsInfoLabel}>Opis / notatki</Text>
+                            <Text style={styles.detailsInfoLabel}>{t('details.notes')}</Text>
                             <Text style={styles.detailsInfoValueMultiline}>{selectedContact.notatki}</Text>
                           </View>
                         )}
@@ -503,7 +505,7 @@ export default function KontaktyScreen() {
                                 activeOpacity={0.88}
                               >
                                 <Feather name="phone" size={22} color={NEON} />
-                                <Text style={styles.detailsActionText}>Zadzwoń</Text>
+                                <Text style={styles.detailsActionText}>{t('details.call')}</Text>
                               </TouchableOpacity>
 
                               <TouchableOpacity
@@ -512,7 +514,7 @@ export default function KontaktyScreen() {
                                 activeOpacity={0.88}
                               >
                                 <Feather name="message-circle" size={22} color={NEON} />
-                                <Text style={styles.detailsActionText}>SMS</Text>
+                                <Text style={styles.detailsActionText}>{t('details.sms')}</Text>
                               </TouchableOpacity>
                             </>
                           )}
@@ -524,7 +526,7 @@ export default function KontaktyScreen() {
                               activeOpacity={0.88}
                             >
                               <Feather name="mail" size={22} color={NEON} />
-                              <Text style={styles.detailsActionText}>Email</Text>
+                              <Text style={styles.detailsActionText}>{t('details.emailAction')}</Text>
                             </TouchableOpacity>
                           )}
                         </View>

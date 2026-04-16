@@ -96,6 +96,25 @@
     "addDocument": "Add document",
     "stages": "Progress"
   },
+  "todayTasks": {
+    "title": "Today's tasks",
+    "summary": "You have {{count}} tasks today.",
+    "summary_one": "You have {{count}} task today.",
+    "summary_other": "You have {{count}} tasks today.",
+    "emptySummary": "You do not have anything planned for today yet.",
+    "badge": "today",
+    "add": "+ Add task",
+    "openAll": "See all",
+    "listTitle": "Plan for today",
+    "countLabel": "{{count}} items",
+    "countLabel_one": "{{count}} item",
+    "countLabel_other": "{{count}} items",
+    "countEmpty": "0 items",
+    "emptyTitle": "Quiet day",
+    "emptyText": "You do not have any tasks today. You can add new ones or check upcoming dates.",
+    "upcomingTitle": "Coming up next",
+    "upcomingHint": "next deadlines"
+  },
   "buddy": {
     "analyzing": "AI Construction Manager",
     "placeholder": "Budget analysis coming soon..."

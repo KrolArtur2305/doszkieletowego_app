@@ -16,8 +16,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 
-const NEON = '#25F0C8'
-const ACCENT = '#19705C'
+const NEON = '#25F0C8';
+const ACCENT = '#19705C';
 
 type Category = { key: string; label: string; icon: keyof typeof Feather.glyphMap };
 
@@ -29,11 +29,11 @@ export default function ZglosProblemScreen() {
 
   const categories: Category[] = useMemo(
     () => [
-      { key: 'crash',     label: t('report.categories.crash',    { defaultValue: 'Błąd aplikacji' }),    icon: 'alert-octagon' },
-      { key: 'login',     label: t('report.categories.login',    { defaultValue: 'Problem z logowaniem' }), icon: 'lock' },
-      { key: 'photos',    label: t('report.categories.photos',   { defaultValue: 'Zdjęcia / dokumenty' }), icon: 'image' },
-      { key: 'budget',    label: t('report.categories.budget',   { defaultValue: 'Budżet / wydatki' }),  icon: 'dollar-sign' },
-      { key: 'other',     label: t('report.categories.other',    { defaultValue: 'Inne' }),               icon: 'more-horizontal' },
+      { key: 'crash', label: t('report.categories.crash'), icon: 'alert-octagon' },
+      { key: 'login', label: t('report.categories.login'), icon: 'lock' },
+      { key: 'photos', label: t('report.categories.photos'), icon: 'image' },
+      { key: 'budget', label: t('report.categories.budget'), icon: 'dollar-sign' },
+      { key: 'other', label: t('report.categories.other'), icon: 'more-horizontal' },
     ],
     [t]
   );
@@ -45,10 +45,7 @@ export default function ZglosProblemScreen() {
   const handleSubmit = async () => {
     const trimmed = (message || '').trim();
     if (trimmed.length < 10) {
-      Alert.alert(
-        t('report.alerts.warningTitle', { defaultValue: 'Za krótki opis' }),
-        t('report.alerts.minLength', { defaultValue: 'Opisz problem w co najmniej 10 znakach.' })
-      );
+      Alert.alert(t('report.alerts.warningTitle'), t('report.alerts.minLength'));
       return;
     }
 
@@ -66,16 +63,13 @@ export default function ZglosProblemScreen() {
       if (error) throw error;
 
       Alert.alert(
-        t('report.alerts.thanksTitle', { defaultValue: 'Dziękujemy!' }),
-        t('report.alerts.sent', { defaultValue: 'Twoje zgłoszenie zostało wysłane. Odpiszemy najszybciej jak to możliwe.' }),
-        [{ text: 'OK', onPress: () => router.back() }]
+        t('report.alerts.thanksTitle'),
+        t('report.alerts.sent'),
+        [{ text: t('report.actions.ok'), onPress: () => router.back() }]
       );
       setMessage('');
-    } catch (e: any) {
-      Alert.alert(
-        t('report.alerts.errorTitle', { defaultValue: 'Błąd' }),
-        t('report.alerts.sendFailed', { defaultValue: 'Nie udało się wysłać zgłoszenia. Spróbuj ponownie.' })
-      );
+    } catch {
+      Alert.alert(t('report.alerts.errorTitle'), t('report.alerts.sendFailed'));
     } finally {
       setSending(false);
     }
@@ -90,25 +84,17 @@ export default function ZglosProblemScreen() {
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
             <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.70)" />
           </TouchableOpacity>
-          <Text style={styles.screenTitle}>
-            {t('report.title', { defaultValue: 'Zgłoś problem' })}
-          </Text>
+          <Text style={styles.screenTitle}>{t('report.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Card */}
         <View style={styles.cardOuter}>
           <BlurView intensity={16} tint="dark" style={styles.card}>
-
-            {/* Category */}
-            <Text style={styles.sectionLabel}>
-              {t('report.categoryTitle', { defaultValue: 'Kategoria' })}
-            </Text>
+            <Text style={styles.sectionLabel}>{t('report.categoryTitle')}</Text>
             <View style={styles.chips}>
               {categories.map((c) => {
                 const active = c.key === category.key;
@@ -134,14 +120,11 @@ export default function ZglosProblemScreen() {
 
             <View style={styles.divider} />
 
-            {/* Description */}
-            <Text style={styles.sectionLabel}>
-              {t('report.descriptionTitle', { defaultValue: 'Opis problemu' })}
-            </Text>
+            <Text style={styles.sectionLabel}>{t('report.descriptionTitle')}</Text>
             <TextInput
               value={message}
               onChangeText={setMessage}
-              placeholder={t('report.descriptionPlaceholder', { defaultValue: 'Opisz dokładnie co się stało, w którym miejscu aplikacji i kiedy problem wystąpił...' })}
+              placeholder={t('report.descriptionPlaceholder')}
               placeholderTextColor="rgba(255,255,255,0.28)"
               style={styles.textarea}
               multiline
@@ -149,10 +132,9 @@ export default function ZglosProblemScreen() {
             />
 
             <Text style={styles.charCount}>
-              {message.length} {t('report.chars', { defaultValue: 'znaków' })}
+              {message.length} {t('report.chars')}
             </Text>
 
-            {/* Submit */}
             <TouchableOpacity
               style={[styles.submitBtn, sending && { opacity: 0.65 }]}
               onPress={handleSubmit}
@@ -161,18 +143,11 @@ export default function ZglosProblemScreen() {
             >
               <Feather name="send" size={15} color={NEON} />
               <Text style={styles.submitBtnText}>
-                {sending
-                  ? t('report.actions.sending', { defaultValue: 'Wysyłanie...' })
-                  : t('report.actions.send', { defaultValue: 'Wyślij zgłoszenie' })
-                }
+                {sending ? t('report.actions.sending') : t('report.actions.send')}
               </Text>
             </TouchableOpacity>
 
-            {/* Hint */}
-            <Text style={styles.hint}>
-              {t('report.hint', { defaultValue: 'Zgłoszenia są rozpatrywane w ciągu 24–48 godzin.' })}
-            </Text>
-
+            <Text style={styles.hint}>{t('report.hint')}</Text>
           </BlurView>
         </View>
 

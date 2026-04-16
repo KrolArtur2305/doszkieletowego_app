@@ -1,0 +1,48 @@
+{
+  "screenTitle": "Zadania",
+  "loading": "Ładowanie...",
+  "allDay": "Bez godziny",
+  "stats": {
+    "upcoming": "Nadchodzące",
+    "overdue": "Zaległe",
+    "noUpcoming": "Brak nadchodzących zadań",
+    "noOverdue": "Brak zaległych zadań"
+  },
+  "sections": {
+    "nearestThree": "3 najbliższe zadania",
+    "calendar": "Kalendarz",
+    "tasksForDate": "Zadania na {{date}}"
+  },
+  "empty": {
+    "noUpcoming": "Brak nadchodzących zadań",
+    "noTasksForDate": "Brak zadań na ten dzień"
+  },
+  "alerts": {
+    "errorTitle": "Błąd",
+    "loadError": "Nie udało się pobrać zadań.",
+    "nameRequired": "Podaj nazwę zadania.",
+    "noSession": "Brak aktywnej sesji użytkownika.",
+    "saveError": "Nie udało się zapisać zadania.",
+    "toggleError": "Nie udało się zmienić statusu zadania. Sprawdź, czy tabela ma kolumnę „wykonane”.",
+    "deleteTitle": "Usuń zadanie",
+    "deleteConfirm": "Usunąć \"{{name}}\"?",
+    "deleteAction": "Usuń",
+    "deleteError": "Nie udało się usunąć zadania."
+  },
+  "modal": {
+    "editTitle": "Edytuj zadanie",
+    "newTitle": "Nowe zadanie",
+    "nameLabel": "Nazwa zadania *",
+    "namePlaceholder": "np. Zadzwonić do elektryka",
+    "descLabel": "Opis",
+    "descPlaceholder": "Dodatkowe informacje...",
+    "dateLabel": "Data",
+    "timeLabel": "Godzina",
+    "pickDate": "Wybierz datę",
+    "pickTime": "Wybierz godzinę",
+    "done": "Gotowe",
+    "clearTime": "Usuń godzinę",
+    "save": "Zapisz zadanie",
+    "saving": "Zapisywanie..."
+  }
+}

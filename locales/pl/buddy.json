@@ -1,0 +1,61 @@
+{
+  "settings": {
+    "fallbackName": "Kierownik AI",
+    "back": "Wróć",
+    "eyebrow": "USTAWIENIA · KIEROWNIK AI",
+    "title": "Kierownik AI",
+    "subtitle": "Ustaw imię swojego cyfrowego kierownika budowy. To tylko warstwa personalizacji bez zbędnych opcji.",
+    "loading": "Ładowanie ustawień...",
+    "sections": {
+      "name": "Imię kierownika",
+      "preview": "Podgląd",
+      "avatar": "Avatar"
+    },
+    "placeholder": "np. Andrzej, Max, Adam...",
+    "previewRole": "Twój cyfrowy kierownik budowy",
+    "previewBubble": "Cześć, jestem {{name}}. Pomogę Ci pilnować budżetu, etapów i najważniejszych rzeczy na budowie.",
+    "avatarInfo": "Obecnie dostępny jest 1 avatar. W przyszłości możesz dodać kolejne warianty.",
+    "save": "Zapisz ustawienia",
+    "savedTitle": "Zapisano",
+    "savedMessage": "Ustawienia kierownika AI zostały zapisane.",
+    "errors": {
+      "load": "Nie udało się pobrać ustawień kierownika AI",
+      "noSession": "Brak aktywnej sesji użytkownika",
+      "nameRequired": "Podaj imię kierownika",
+      "nameTooLong": "Imię może mieć maksymalnie 30 znaków",
+      "save": "Nie udało się zapisać zmian"
+    }
+  },
+  "chat": {
+    "fallbackName": "Kierownik",
+    "headerDefault": "Kierownik budowy AI",
+    "newConversation": "Nowa rozmowa",
+    "quickQuestions": {
+      "q1": "Jak idzie budżet?",
+      "q2": "Który etap teraz?",
+      "q3": "Co dziś mam?",
+      "q4": "Kiedy koniec?"
+    },
+    "messages": {
+      "loadDataError": "Cześć! Nie udało się pobrać danych. Spróbuj ponownie.",
+      "emptyHistoryIntro": "Cześć! Jestem gotowy. Pytaj o budżet, etapy, harmonogram albo cokolwiek związanego z budową.",
+      "newConversationStarted": "Nowa rozmowa rozpoczęta. O co chcesz zapytać?",
+      "generateFallback": "Nie udało mi się wygenerować odpowiedzi.",
+      "connectionError": "Przepraszam, wystąpił błąd połączenia. Spróbuj ponownie."
+    },
+    "errors": {
+      "noSession": "Brak aktywnej sesji",
+      "fetchHistory": "Nie udało się pobrać historii rozmów.",
+      "fetchMessages": "Nie udało się pobrać wiadomości.",
+      "aiConnection": "Błąd połączenia z AI"
+    },
+    "loading": {
+      "conversation": "Ładuję rozmowę...",
+      "history": "Ładuję historię..."
+    },
+    "inputPlaceholder": "Zapytaj {{name}}...",
+    "historyTitle": "Historia rozmów",
+    "emptyHistory": "Brak wcześniejszych rozmów.",
+    "conversationFallback": "Rozmowa z AI"
+  }
+}

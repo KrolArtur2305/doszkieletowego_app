@@ -1,5 +1,6 @@
 {
   "myProject": "Mein Projekt",
+  "screenTitle": "Projekt",
   "projectLocationPlaceholder": "—",
   "buildingParams": "Gebäudeparameter",
   "projectPlans": "Projektgrundrisse",
@@ -37,6 +38,10 @@
 
   "editParamsTitle": "Parameter bearbeiten",
   "saveErrorTitle": "Speicherfehler",
+  "fieldGroupGeneral": "Allgemein",
+  "fieldGroupSurfaces": "Flächen",
+  "fieldGroupStructure": "Struktur",
+  "fieldGroupFacade": "Fassade",
 
   "fieldProjectName": "Projektname",
   "fieldPowU": "Nutzfläche (m²)",

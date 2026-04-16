@@ -1,5 +1,5 @@
 {
-  "title": "Account settings",
+  "title": "Settings",
   "fallbackUser": "User",
   "placeholderMessage": "This feature will be added later.",
   "logout": "Log out",
@@ -19,9 +19,13 @@
   "report": {
     "title": "Report a problem",
     "categoryTitle": "Category",
-    "descriptionTitle": "Description",
-    "descriptionPlaceholder": "What exactly happened? What did you tap? What was the result?",
+    "descriptionTitle": "Problem description",
+    "descriptionPlaceholder": "Describe exactly what happened, where in the app it occurred, and when the issue appeared...",
+    "chars": "characters",
     "categories": {
+      "login": "Login problem",
+      "photos": "Photos / documents",
+      "budget": "Budget / expenses",
       "loginSession": "Login / session",
       "supabaseData": "Supabase / data",
       "uiScreen": "UI / screen",
@@ -29,14 +33,20 @@
       "other": "Other"
     },
     "alerts": {
-      "warningTitle": "Notice",
+      "warningTitle": "Description too short",
       "minLength": "Please describe the problem with at least 10 characters.",
       "thanksTitle": "Thanks!",
+      "sent": "Your report has been sent. We will reply as soon as possible.",
+      "errorTitle": "Error",
+      "sendFailed": "Failed to send the report. Please try again.",
       "savedLocalDemo": "Your report has been saved locally (demo)."
     },
     "actions": {
-      "send": "Send"
+      "ok": "OK",
+      "send": "Send report",
+      "sending": "Sending..."
     },
+    "hint": "Reports are reviewed within 24–48 hours.",
     "hintDemo": "This is a demo version. Later we will connect Supabase Storage or a webhook."
   },
   "appSettings": {

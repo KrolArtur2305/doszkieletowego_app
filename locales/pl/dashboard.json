@@ -97,6 +97,27 @@
     "addDocument": "Dodaj dokument",
     "stages": "Postępy"
   },
+  "todayTasks": {
+    "title": "Zadania na dziś",
+    "summary": "Na dziś masz {{count}} zadań.",
+    "summary_one": "Na dziś masz {{count}} zadanie.",
+    "summary_few": "Na dziś masz {{count}} zadania.",
+    "summary_many": "Na dziś masz {{count}} zadań.",
+    "emptySummary": "Na dziś nie masz jeszcze nic zaplanowanego.",
+    "badge": "dziś",
+    "add": "+ Dodaj zadanie",
+    "openAll": "Zobacz wszystkie",
+    "listTitle": "Plan na dziś",
+    "countLabel": "{{count}} pozycji",
+    "countLabel_one": "{{count}} pozycja",
+    "countLabel_few": "{{count}} pozycje",
+    "countLabel_many": "{{count}} pozycji",
+    "countEmpty": "0 pozycji",
+    "emptyTitle": "Spokojny dzień",
+    "emptyText": "Nie masz dziś żadnych zadań. Możesz dodać nowe albo sprawdzić kolejne terminy.",
+    "upcomingTitle": "Dalej w kolejce",
+    "upcomingHint": "następne terminy"
+  },
   "buddy": {
     "analyzing": "Kierownik budowy AI",
     "placeholder": "Analiza budżetu będzie dostępna wkrótce..."

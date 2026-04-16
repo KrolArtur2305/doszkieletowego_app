@@ -1,0 +1,55 @@
+{
+  "loading": {
+    "prepare": "Preparing onboarding...",
+    "profile": "Loading data..."
+  },
+  "alerts": {
+    "errorTitle": "Error",
+    "prepareError": "Failed to prepare onboarding.",
+    "saveBuildTypeError": "Failed to save the selection.",
+    "saveBuildStageError": "Failed to save the stage.",
+    "invalidBudget": "Enter a valid planned budget.",
+    "negativeSpent": "Spent amount cannot be negative.",
+    "saveBudgetError": "Failed to save the budget.",
+    "loadProfileError": "Failed to load the profile.",
+    "firstNameRequired": "Enter first name.",
+    "invalidPhone": "Enter a valid phone number.",
+    "saveProfileError": "Failed to save the profile."
+  },
+  "steps": {
+    "buildTypeTitle": "What type of build are you managing?",
+    "buildStageTitle": "What stage is your build at?",
+    "budgetTitle": "Budget",
+    "profileTitle": "Profile"
+  },
+  "buildTypes": {
+    "szkieletowy": "Timber frame",
+    "murowany": "Masonry",
+    "inny": "Other"
+  },
+  "buildStages": {
+    "planowanie": "Planning",
+    "stan_zero": "Foundations",
+    "stan_surowy_otwarty": "Shell open",
+    "stan_surowy_zamkniety": "Shell closed",
+    "wykonczenie": "Finishing"
+  },
+  "budget": {
+    "plannedLabel": "Planned budget",
+    "spentLabel": "Already incurred expenses",
+    "currency": "PLN",
+    "plannedPlaceholder": "e.g. 450000",
+    "spentPlaceholder": "e.g. 25000"
+  },
+  "profile": {
+    "firstName": "First name *",
+    "lastName": "Last name",
+    "phone": "Phone",
+    "firstNamePlaceholder": "e.g. Adam",
+    "lastNamePlaceholder": "e.g. Smith",
+    "phonePlaceholder": "e.g. 600123456"
+  },
+  "actions": {
+    "next": "Next"
+  }
+}

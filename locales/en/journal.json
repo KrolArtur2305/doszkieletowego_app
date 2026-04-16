@@ -1,0 +1,43 @@
+{
+  "screenTitle": "Construction journal",
+  "sort": {
+    "newest": "Newest",
+    "oldest": "Oldest",
+    "count_one": "1 entry",
+    "count_other": "{{count}} entries",
+    "count": "{{count}} entries"
+  },
+  "empty": {
+    "title": "No entries",
+    "subtitle": "Start documenting your build.\nEach entry becomes part of your home's story.",
+    "cta": "+ Add your first entry"
+  },
+  "modal": {
+    "editTitle": "Edit entry",
+    "newTitle": "New entry",
+    "date": "DATE",
+    "done": "Done",
+    "stage": "BUILD STAGE",
+    "collapse": "Collapse",
+    "expand": "Show all",
+    "selectedStage": "Selected stage",
+    "none": "None",
+    "current": "current",
+    "note": "NOTE",
+    "notePlaceholder": "What happened on site today? What work was done? Were there any issues?",
+    "photo": "PHOTO (optional)",
+    "pickPhoto": "Add a photo from the day",
+    "saving": "Saving...",
+    "saveChanges": "Save changes",
+    "addEntry": "Add entry"
+  },
+  "detail": {
+    "deleteTitle": "Delete entry",
+    "deleteConfirm": "Are you sure you want to delete this journal entry?"
+  },
+  "alerts": {
+    "errorTitle": "Error",
+    "noteRequired": "Enter the note content.",
+    "saveError": "Failed to save the entry."
+  }
+}

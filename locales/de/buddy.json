@@ -1,0 +1,61 @@
+{
+  "settings": {
+    "fallbackName": "KI-Bauleiter",
+    "back": "Zurück",
+    "eyebrow": "EINSTELLUNGEN · KI-BAULEITER",
+    "title": "KI-Bauleiter",
+    "subtitle": "Legen Sie den Namen Ihres digitalen Bauleiters fest. Das ist nur eine Personalisierungsebene ohne unnötige Optionen.",
+    "loading": "Einstellungen werden geladen...",
+    "sections": {
+      "name": "Name des Bauleiters",
+      "preview": "Vorschau",
+      "avatar": "Avatar"
+    },
+    "placeholder": "z. B. Andreas, Max, Adam...",
+    "previewRole": "Ihr digitaler Bauleiter",
+    "previewBubble": "Hallo, ich bin {{name}}. Ich helfe Ihnen dabei, Budget, Bauphasen und die wichtigsten Dinge auf der Baustelle im Blick zu behalten.",
+    "avatarInfo": "Derzeit ist 1 Avatar verfügbar. Weitere Varianten können später hinzugefügt werden.",
+    "save": "Einstellungen speichern",
+    "savedTitle": "Gespeichert",
+    "savedMessage": "Die Einstellungen des KI-Bauleiters wurden gespeichert.",
+    "errors": {
+      "load": "Die Einstellungen des KI-Bauleiters konnten nicht geladen werden",
+      "noSession": "Keine aktive Benutzersitzung",
+      "nameRequired": "Bitte den Namen des Bauleiters eingeben",
+      "nameTooLong": "Der Name darf maximal 30 Zeichen haben",
+      "save": "Änderungen konnten nicht gespeichert werden"
+    }
+  },
+  "chat": {
+    "fallbackName": "Bauleiter",
+    "headerDefault": "KI-Bauleiter",
+    "newConversation": "Neue Unterhaltung",
+    "quickQuestions": {
+      "q1": "Wie läuft das Budget?",
+      "q2": "In welcher Phase sind wir jetzt?",
+      "q3": "Was habe ich heute?",
+      "q4": "Wann ist es fertig?"
+    },
+    "messages": {
+      "loadDataError": "Hallo! Die Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "emptyHistoryIntro": "Hallo! Ich bin bereit. Fragen Sie mich nach Budget, Bauphasen, Zeitplan oder allem rund um den Bau.",
+      "newConversationStarted": "Eine neue Unterhaltung wurde gestartet. Was möchten Sie fragen?",
+      "generateFallback": "Ich konnte keine Antwort generieren.",
+      "connectionError": "Entschuldigung, es ist ein Verbindungsfehler aufgetreten. Bitte versuchen Sie es erneut."
+    },
+    "errors": {
+      "noSession": "Keine aktive Sitzung",
+      "fetchHistory": "Der Gesprächsverlauf konnte nicht geladen werden.",
+      "fetchMessages": "Die Nachrichten konnten nicht geladen werden.",
+      "aiConnection": "Verbindungsfehler mit der KI"
+    },
+    "loading": {
+      "conversation": "Unterhaltung wird geladen...",
+      "history": "Verlauf wird geladen..."
+    },
+    "inputPlaceholder": "{{name}} fragen...",
+    "historyTitle": "Gesprächsverlauf",
+    "emptyHistory": "Keine früheren Unterhaltungen.",
+    "conversationFallback": "KI-Unterhaltung"
+  }
+}

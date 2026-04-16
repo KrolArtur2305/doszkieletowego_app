@@ -101,7 +101,7 @@ function getCurrentEtapId(etapy: Etap[]) {
 
 export default function DziennikScreen() {
   const { session } = useSupabaseAuth();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('journal');
   const topPad = 0;
   const dateLocale = useMemo(
     () => localeFromLng(i18n.resolvedLanguage || i18n.language),
@@ -287,7 +287,7 @@ export default function DziennikScreen() {
   // ── Save ──
   const save = async () => {
     if (!formTresc.trim()) {
-      Alert.alert('Błąd', 'Wpisz treść notatki.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.noteRequired'));
       return;
     }
 
@@ -320,7 +320,7 @@ export default function DziennikScreen() {
       setModalOpen(false);
       await loadWpisy();
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać wpisu.');
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
     } finally {
       setSaving(false);
     }
@@ -328,10 +328,10 @@ export default function DziennikScreen() {
 
   // ── Delete ──
   const deleteWpis = (w: Wpis) => {
-    Alert.alert('Usuń wpis', 'Na pewno usunąć ten wpis z dziennika?', [
-      { text: 'Anuluj', style: 'cancel' },
+    Alert.alert(t('detail.deleteTitle'), t('detail.deleteConfirm'), [
+      { text: t('common:cancel'), style: 'cancel' },
       {
-        text: 'Usuń',
+        text: t('common:delete'),
         style: 'destructive',
         onPress: async () => {
           setDetailOpen(false);
@@ -366,7 +366,7 @@ export default function DziennikScreen() {
               minimumFontScale={0.9}
               style={styles.headerTitleLarge}
             >
-              Dziennik budowy
+              {t('screenTitle')}
             </Text>
           </View>
           <View style={styles.headerSideCompact} />
@@ -384,12 +384,12 @@ export default function DziennikScreen() {
               color={NEON}
             />
             <Text style={styles.sortBtnText}>
-              {sortOrder === 'desc' ? 'Najnowsze' : 'Najstarsze'}
+              {sortOrder === 'desc' ? t('sort.newest') : t('sort.oldest')}
             </Text>
           </TouchableOpacity>
 
           <Text style={styles.headerCount}>
-            {wpisy.length === 1 ? '1 wpis' : `${wpisy.length} wpisów`}
+            {t('sort.count', { count: wpisy.length })}
           </Text>
         </View>
       </Animated.View>
@@ -404,12 +404,10 @@ export default function DziennikScreen() {
           <View style={styles.emptyIcon}>
             <Feather name="book-open" size={36} color="rgba(37,240,200,0.25)" />
           </View>
-          <Text style={styles.emptyTitle}>Brak wpisów</Text>
-          <Text style={styles.emptySubtitle}>
-            Zacznij dokumentować swoją budowę.{'\n'}Każdy wpis to historia Twojego domu.
-          </Text>
+          <Text style={styles.emptyTitle}>{t('empty.title')}</Text>
+          <Text style={styles.emptySubtitle}>{t('empty.subtitle')}</Text>
           <TouchableOpacity onPress={openAdd} style={styles.emptyBtn} activeOpacity={0.88}>
-            <Text style={styles.emptyBtnText}>+ Dodaj pierwszy wpis</Text>
+            <Text style={styles.emptyBtnText}>{t('empty.cta')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -455,7 +453,7 @@ export default function DziennikScreen() {
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderSide} />
               <Text style={[styles.modalTitle, !editingWpis && styles.modalTitleNeon]}>
-                {editingWpis ? 'Edytuj wpis' : 'Nowy wpis'}
+                {editingWpis ? t('modal.editTitle') : t('modal.newTitle')}
               </Text>
               <TouchableOpacity
                 onPress={() => setModalOpen(false)}
@@ -473,7 +471,7 @@ export default function DziennikScreen() {
             >
               {/* Data */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>DATA</Text>
+                <Text style={styles.formLabel}>{t('modal.date')}</Text>
 
                 <TouchableOpacity
                   style={styles.datePickerBtn}
@@ -510,7 +508,7 @@ export default function DziennikScreen() {
                     style={styles.dateDoneBtn}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.dateDoneBtnText}>Gotowe</Text>
+                    <Text style={styles.dateDoneBtnText}>{t('modal.done')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -519,7 +517,7 @@ export default function DziennikScreen() {
               {etapy.length > 0 && (
                 <View style={styles.formGroup}>
                   <View style={styles.formGroupRow}>
-                    <Text style={styles.formLabel}>ETAP BUDOWY</Text>
+                    <Text style={styles.formLabel}>{t('modal.stage')}</Text>
 
                     <TouchableOpacity
                       onPress={() => setShowAllEtapy((p) => !p)}
@@ -527,7 +525,7 @@ export default function DziennikScreen() {
                       activeOpacity={0.85}
                     >
                       <Text style={styles.expandEtapyBtnText}>
-                        {showAllEtapy ? 'Zwiń' : 'Pokaż wszystkie'}
+                        {showAllEtapy ? t('modal.collapse') : t('modal.expand')}
                       </Text>
                       <Feather
                         name={showAllEtapy ? 'chevron-up' : 'chevron-down'}
@@ -538,15 +536,15 @@ export default function DziennikScreen() {
                   </View>
 
                   <View style={styles.selectedEtapWrap}>
-                    <Text style={styles.selectedEtapLabel}>Wybrany etap</Text>
+                    <Text style={styles.selectedEtapLabel}>{t('modal.selectedStage')}</Text>
                     <View style={styles.selectedEtapMain}>
                       <Text style={styles.selectedEtapText}>
-                        {selectedEtap?.nazwa ?? 'Brak'}
+                        {selectedEtap?.nazwa ?? t('modal.none')}
                       </Text>
 
                       {formEtapId === currentEtapId && selectedEtap && (
                         <View style={styles.currentBadge}>
-                          <Text style={styles.currentBadgeText}>obecny</Text>
+                          <Text style={styles.currentBadgeText}>{t('modal.current')}</Text>
                         </View>
                       )}
                     </View>
@@ -565,7 +563,7 @@ export default function DziennikScreen() {
                             !formEtapId && styles.etapTileTextActive,
                           ]}
                         >
-                          Brak
+                          {t('modal.none')}
                         </Text>
                       </TouchableOpacity>
 
@@ -594,7 +592,7 @@ export default function DziennikScreen() {
                               {e.nazwa}
                             </Text>
 
-                            {isCurrent && <Text style={styles.etapTileHint}>obecny</Text>}
+                            {isCurrent && <Text style={styles.etapTileHint}>{t('modal.current')}</Text>}
                           </TouchableOpacity>
                         );
                       })}
@@ -605,11 +603,11 @@ export default function DziennikScreen() {
 
               {/* Treść */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>NOTATKA</Text>
+                <Text style={styles.formLabel}>{t('modal.note')}</Text>
                 <TextInput
                   value={formTresc}
                   onChangeText={setFormTresc}
-                  placeholder="Co się dziś działo na budowie? Jakie prace wykonano? Czy były jakieś problemy?"
+                  placeholder={t('modal.notePlaceholder')}
                   placeholderTextColor="rgba(255,255,255,0.22)"
                   style={styles.trescInput}
                   multiline
@@ -621,7 +619,7 @@ export default function DziennikScreen() {
 
               {/* Zdjęcie */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>ZDJĘCIE (opcjonalne)</Text>
+                <Text style={styles.formLabel}>{t('modal.photo')}</Text>
                 {formZdjecieUri || formZdjecieUrl ? (
                   <View style={styles.imagePreviewWrap}>
                     <Image
@@ -644,7 +642,7 @@ export default function DziennikScreen() {
                     activeOpacity={0.8}
                   >
                     <Feather name="camera" size={20} color="rgba(37,240,200,0.60)" />
-                    <Text style={styles.imagePickText}>Dodaj zdjęcie z dnia</Text>
+                    <Text style={styles.imagePickText}>{t('modal.pickPhoto')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -657,7 +655,7 @@ export default function DziennikScreen() {
                 activeOpacity={0.9}
               >
                 <Text style={styles.saveBtnText}>
-                  {saving ? 'Zapisywanie...' : editingWpis ? 'Zapisz zmiany' : 'Dodaj wpis'}
+                  {saving ? t('modal.saving') : editingWpis ? t('modal.saveChanges') : t('modal.addEntry')}
                 </Text>
               </TouchableOpacity>
 

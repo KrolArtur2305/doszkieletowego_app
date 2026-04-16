@@ -1,5 +1,6 @@
 {
   "myProject": "My project",
+  "screenTitle": "Project",
   "projectLocationPlaceholder": "—",
   "buildingParams": "Building parameters",
   "projectPlans": "Project floor plans",
@@ -37,6 +38,10 @@
 
   "editParamsTitle": "Edit parameters",
   "saveErrorTitle": "Save error",
+  "fieldGroupGeneral": "General",
+  "fieldGroupSurfaces": "Surfaces",
+  "fieldGroupStructure": "Structure",
+  "fieldGroupFacade": "Facade",
 
   "fieldProjectName": "Project name",
   "fieldPowU": "Usable area (m²)",

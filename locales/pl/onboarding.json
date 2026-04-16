@@ -1,0 +1,55 @@
+{
+  "loading": {
+    "prepare": "Przygotowuję onboarding...",
+    "profile": "Ładuję dane..."
+  },
+  "alerts": {
+    "errorTitle": "Błąd",
+    "prepareError": "Nie udało się przygotować onboardingu.",
+    "saveBuildTypeError": "Nie udało się zapisać wyboru.",
+    "saveBuildStageError": "Nie udało się zapisać etapu.",
+    "invalidBudget": "Podaj poprawny planowany budżet.",
+    "negativeSpent": "Kwota poniesionych wydatków nie może być ujemna.",
+    "saveBudgetError": "Nie udało się zapisać budżetu.",
+    "loadProfileError": "Nie udało się pobrać profilu.",
+    "firstNameRequired": "Podaj imię.",
+    "invalidPhone": "Podaj poprawny numer telefonu.",
+    "saveProfileError": "Nie udało się zapisać profilu."
+  },
+  "steps": {
+    "buildTypeTitle": "Jaką budowę prowadzisz?",
+    "buildStageTitle": "Na jakim etapie budowy jesteś?",
+    "budgetTitle": "Budżet",
+    "profileTitle": "Profil"
+  },
+  "buildTypes": {
+    "szkieletowy": "Szkieletową",
+    "murowany": "Murowaną",
+    "inny": "Inną"
+  },
+  "buildStages": {
+    "planowanie": "Planowanie",
+    "stan_zero": "Stan zero",
+    "stan_surowy_otwarty": "SSO",
+    "stan_surowy_zamkniety": "SSZ",
+    "wykonczenie": "Wykończenie"
+  },
+  "budget": {
+    "plannedLabel": "Planowany budżet",
+    "spentLabel": "Już poniesione wydatki",
+    "currency": "PLN",
+    "plannedPlaceholder": "np. 450000",
+    "spentPlaceholder": "np. 25000"
+  },
+  "profile": {
+    "firstName": "Imię *",
+    "lastName": "Nazwisko",
+    "phone": "Telefon",
+    "firstNamePlaceholder": "np. Adam",
+    "lastNamePlaceholder": "np. Kowalski",
+    "phonePlaceholder": "np. 600123456"
+  },
+  "actions": {
+    "next": "Dalej"
+  }
+}

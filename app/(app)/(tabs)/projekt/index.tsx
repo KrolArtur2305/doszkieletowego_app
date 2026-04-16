@@ -482,7 +482,7 @@ export default function ProjektScreen() {
         <View style={[styles.safeTop, { height: topPad }]} />
 
         <View style={styles.headerBlock}>
-          <AppHeader title={t('screenTitle', { defaultValue: i18n.language?.startsWith('pl') ? 'Projekt' : 'Project' })} />
+          <AppHeader title={t('screenTitle')} />
 
           <View style={styles.headerTitleWrap}>
             <Text style={styles.projectTitle} numberOfLines={2}>
@@ -630,14 +630,14 @@ export default function ProjektScreen() {
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupGeneral', { defaultValue: 'Ogólne' })}</Text>
+                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupGeneral')}</Text>
                   <FieldText
                     label={t('fieldProjectName', { defaultValue: 'Nazwa projektu' })}
                     value={form.nazwa}
                     onChange={(txt) => setForm((p) => ({ ...p, nazwa: txt }))}
                   />
 
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupSurfaces', { defaultValue: 'Powierzchnie' })}</Text>
+                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupSurfaces')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
                       label={t('fieldPowU', { defaultValue: 'Użytkowa (m²)' })}
@@ -657,7 +657,7 @@ export default function ProjektScreen() {
                     onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_dachu: txt }))}
                   />
 
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupStructure', { defaultValue: 'Bryła' })}</Text>
+                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupStructure')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
                       label={t('fieldFloors', { defaultValue: 'Kondygnacje' })}
@@ -684,7 +684,7 @@ export default function ProjektScreen() {
                     />
                   </View>
 
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupFacade', { defaultValue: 'Elewacja' })}</Text>
+                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupFacade')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
                       label={t('fieldFacadeWidth', { defaultValue: 'Szerokość (m)' })}

@@ -1,0 +1,61 @@
+{
+  "settings": {
+    "fallbackName": "AI Supervisor",
+    "back": "Back",
+    "eyebrow": "SETTINGS · AI SUPERVISOR",
+    "title": "AI Supervisor",
+    "subtitle": "Set the name of your digital site supervisor. This is just a personalization layer without unnecessary options.",
+    "loading": "Loading settings...",
+    "sections": {
+      "name": "Supervisor name",
+      "preview": "Preview",
+      "avatar": "Avatar"
+    },
+    "placeholder": "e.g. Andrew, Max, Adam...",
+    "previewRole": "Your digital site supervisor",
+    "previewBubble": "Hi, I’m {{name}}. I’ll help you keep track of the budget, stages, and the most important things on site.",
+    "avatarInfo": "Currently, 1 avatar is available. More variants can be added in the future.",
+    "save": "Save settings",
+    "savedTitle": "Saved",
+    "savedMessage": "AI supervisor settings have been saved.",
+    "errors": {
+      "load": "Failed to load AI supervisor settings",
+      "noSession": "No active user session",
+      "nameRequired": "Enter the supervisor name",
+      "nameTooLong": "Name can have up to 30 characters",
+      "save": "Failed to save changes"
+    }
+  },
+  "chat": {
+    "fallbackName": "Supervisor",
+    "headerDefault": "AI Construction Supervisor",
+    "newConversation": "New conversation",
+    "quickQuestions": {
+      "q1": "How is the budget going?",
+      "q2": "Which stage are we in now?",
+      "q3": "What do I have today?",
+      "q4": "When will it finish?"
+    },
+    "messages": {
+      "loadDataError": "Hi! I couldn't load the data. Please try again.",
+      "emptyHistoryIntro": "Hi! I'm ready. Ask me about budget, stages, schedule, or anything related to the build.",
+      "newConversationStarted": "A new conversation has started. What would you like to ask?",
+      "generateFallback": "I couldn't generate a response.",
+      "connectionError": "Sorry, a connection error occurred. Please try again."
+    },
+    "errors": {
+      "noSession": "No active session",
+      "fetchHistory": "Failed to fetch conversation history.",
+      "fetchMessages": "Failed to fetch messages.",
+      "aiConnection": "AI connection error"
+    },
+    "loading": {
+      "conversation": "Loading conversation...",
+      "history": "Loading history..."
+    },
+    "inputPlaceholder": "Ask {{name}}...",
+    "historyTitle": "Conversation history",
+    "emptyHistory": "No previous conversations.",
+    "conversationFallback": "AI conversation"
+  }
+}

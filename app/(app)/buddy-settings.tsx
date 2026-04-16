@@ -19,6 +19,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 
@@ -31,6 +32,7 @@ const BUDDY_AVATAR = require('../../assets/buddy_avatar.png');
 export default function BuddySettingsScreen() {
   const router = useRouter();
   const { session } = useSupabaseAuth();
+  const { t } = useTranslation('buddy');
 
   const topPad =
     (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
@@ -104,7 +106,7 @@ export default function BuddySettingsScreen() {
         setInitialName(savedName);
       } catch (e: any) {
         if (!mounted) return;
-        setError(e?.message ?? 'Nie udało się pobrać ustawień kierownika AI');
+        setError(e?.message ?? t('settings.errors.load'));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -115,27 +117,27 @@ export default function BuddySettingsScreen() {
     return () => {
       mounted = false;
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, t]);
 
   const trimmedName = buddyName.trim();
-  const previewName = trimmedName || 'Kierownik AI';
+  const previewName = trimmedName || t('settings.fallbackName');
   const hasChanges = trimmedName !== initialName.trim();
 
   const handleSave = async () => {
     const userId = session?.user?.id;
 
     if (!userId) {
-      setError('Brak aktywnej sesji użytkownika');
+      setError(t('settings.errors.noSession'));
       return;
     }
 
     if (!trimmedName) {
-      setError('Podaj imię kierownika');
+      setError(t('settings.errors.nameRequired'));
       return;
     }
 
     if (trimmedName.length > 30) {
-      setError('Imię może mieć maksymalnie 30 znaków');
+      setError(t('settings.errors.nameTooLong'));
       return;
     }
 
@@ -152,9 +154,9 @@ export default function BuddySettingsScreen() {
 
       setInitialName(trimmedName);
 
-      Alert.alert('Zapisano', 'Ustawienia kierownika AI zostały zapisane.');
+      Alert.alert(t('settings.savedTitle'), t('settings.savedMessage'));
     } catch (e: any) {
-      setError(e?.message ?? 'Nie udało się zapisać zmian');
+      setError(e?.message ?? t('settings.errors.save'));
     } finally {
       setSaving(false);
     }
@@ -189,7 +191,7 @@ export default function BuddySettingsScreen() {
               style={styles.backBtn}
             >
               <Feather name="chevron-left" size={18} color="#FFFFFF" />
-              <Text style={styles.backText}>Wróć</Text>
+              <Text style={styles.backText}>{t('settings.back')}</Text>
             </TouchableOpacity>
           </Animated.View>
 
@@ -204,7 +206,7 @@ export default function BuddySettingsScreen() {
           >
             <View style={styles.eyebrowWrap}>
               <View style={styles.eyebrowDot} />
-              <Text style={styles.eyebrow}>USTAWIENIA · KIEROWNIK AI</Text>
+              <Text style={styles.eyebrow}>{t('settings.eyebrow')}</Text>
             </View>
 
             <Animated.View
@@ -230,17 +232,16 @@ export default function BuddySettingsScreen() {
               </View>
             </Animated.View>
 
-            <Text style={styles.title}>Kierownik AI</Text>
+            <Text style={styles.title}>{t('settings.title')}</Text>
             <Text style={styles.subtitle}>
-              Ustaw imię swojego cyfrowego kierownika budowy. To tylko warstwa
-              personalizacji — bez zbędnych opcji.
+              {t('settings.subtitle')}
             </Text>
           </Animated.View>
 
           {loading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator size="small" color={NEON} />
-              <Text style={styles.loadingText}>Ładowanie ustawień...</Text>
+              <Text style={styles.loadingText}>{t('settings.loading')}</Text>
             </View>
           ) : (
             <>
@@ -253,7 +254,7 @@ export default function BuddySettingsScreen() {
                   },
                 ]}
               >
-                <Text style={styles.sectionLabel}>Imię kierownika</Text>
+                <Text style={styles.sectionLabel}>{t('settings.sections.name')}</Text>
 
                 <BlurView intensity={16} tint="dark" style={styles.inputWrap}>
                   <Feather name="user" size={18} color="rgba(37,240,200,0.55)" />
@@ -264,7 +265,7 @@ export default function BuddySettingsScreen() {
                       setBuddyName(v);
                       if (error) setError(null);
                     }}
-                    placeholder="np. Andrzej, Max, Adam..."
+                    placeholder={t('settings.placeholder')}
                     placeholderTextColor="#888888"
                     style={styles.input}
                     maxLength={30}
@@ -288,7 +289,7 @@ export default function BuddySettingsScreen() {
                   },
                 ]}
               >
-                <Text style={styles.sectionLabel}>Podgląd</Text>
+                <Text style={styles.sectionLabel}>{t('settings.sections.preview')}</Text>
 
                 <BlurView intensity={14} tint="dark" style={styles.previewCard}>
                   <View style={styles.previewHeader}>
@@ -303,15 +304,14 @@ export default function BuddySettingsScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.previewName}>{previewName}</Text>
                       <Text style={styles.previewRole}>
-                        Twój cyfrowy kierownik budowy
+                        {t('settings.previewRole')}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.previewBubble}>
                     <Text style={styles.previewBubbleText}>
-                      Cześć, jestem {previewName}. Pomogę Ci pilnować budżetu,
-                      etapów i najważniejszych rzeczy na budowie.
+                      {t('settings.previewBubble', { name: previewName })}
                     </Text>
                   </View>
                 </BlurView>
@@ -326,13 +326,12 @@ export default function BuddySettingsScreen() {
                   },
                 ]}
               >
-                <Text style={styles.sectionLabel}>Avatar</Text>
+                <Text style={styles.sectionLabel}>{t('settings.sections.avatar')}</Text>
 
                 <BlurView intensity={14} tint="dark" style={styles.singleInfo}>
                   <Feather name="image" size={16} color={NEON} />
                   <Text style={styles.singleInfoText}>
-                    Obecnie dostępny jest 1 avatar. W przyszłości możesz dodać
-                    kolejne warianty.
+                    {t('settings.avatarInfo')}
                   </Text>
                 </BlurView>
               </Animated.View>
@@ -359,7 +358,7 @@ export default function BuddySettingsScreen() {
                     <ActivityIndicator size="small" color="#0B1120" />
                   ) : (
                     <>
-                      <Text style={styles.saveBtnText}>Zapisz ustawienia</Text>
+                      <Text style={styles.saveBtnText}>{t('settings.save')}</Text>
                       <Feather name="check" size={18} color="#0B1120" />
                     </>
                   )}

@@ -1,0 +1,52 @@
+{
+  "screenTitle": "Kontakty",
+  "loading": "Ładowanie...",
+  "empty": {
+    "title": "Brak kontaktów",
+    "cta": "+ Dodaj pierwszy kontakt"
+  },
+  "alerts": {
+    "errorTitle": "Błąd",
+    "loadError": "Nie udało się pobrać kontaktów.",
+    "nameRequired": "Podaj imię i nazwisko.",
+    "invalidEmail": "Podaj poprawny adres e-mail.",
+    "invalidPhone": "Podaj poprawny numer telefonu.",
+    "noSession": "Brak aktywnej sesji użytkownika.",
+    "saveError": "Nie udało się zapisać kontaktu.",
+    "deleteTitle": "Usuń kontakt",
+    "deleteConfirm": "Usunąć {{name}}?",
+    "deleteAction": "Usuń",
+    "deleteError": "Nie udało się usunąć kontaktu."
+  },
+  "modal": {
+    "editTitle": "Edytuj kontakt",
+    "newTitle": "Nowy kontakt",
+    "save": "Zapisz kontakt",
+    "saving": "Zapisywanie..."
+  },
+  "fields": {
+    "name": "Imię i nazwisko *",
+    "company": "Firma",
+    "role": "Rola",
+    "phone": "Telefon",
+    "email": "Email",
+    "notes": "Notatki"
+  },
+  "placeholders": {
+    "name": "np. Jan Kowalski",
+    "company": "np. doszkieletowego",
+    "role": "np. Kierownik budowy, Elektryk...",
+    "phone": "+48 600 000 000",
+    "email": "jan@firma.pl",
+    "notes": "Dodatkowe informacje..."
+  },
+  "details": {
+    "company": "Firma",
+    "phone": "Telefon",
+    "email": "Email",
+    "notes": "Opis / notatki",
+    "call": "Zadzwoń",
+    "sms": "SMS",
+    "emailAction": "Email"
+  }
+}
