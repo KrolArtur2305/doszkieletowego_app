@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -20,6 +19,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { useTranslation } from 'react-i18next';
+import { AppButton, AppInput } from '../../../src/ui/components';
 
 const BG = '#000000';
 const ACCENT = '#19705C';
@@ -67,7 +67,10 @@ export default function OnboardingInvestmentScreen() {
   const router = useRouter();
   const { i18n } = useTranslation();
 
-  const locale = useMemo(() => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language), [i18n.language, i18n.resolvedLanguage]);
+  const locale = useMemo(
+    () => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  );
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -120,7 +123,7 @@ export default function OnboardingInvestmentScreen() {
         setDataKoniecISO(data?.data_koniec ?? '');
         setBudzet(data?.budzet !== null && data?.budzet !== undefined ? String(data.budzet) : '');
       } catch (e: any) {
-        Alert.alert('Błąd', e?.message ?? 'Nie udało się pobrać inwestycji.');
+        Alert.alert('Blad', e?.message ?? 'Nie udalo sie pobrac inwestycji.');
       } finally {
         if (alive) setLoading(false);
       }
@@ -157,17 +160,17 @@ export default function OnboardingInvestmentScreen() {
     const trimmedLocation = lokalizacja.trim();
 
     if (!trimmedName) {
-      Alert.alert('Błąd', 'Podaj nazwę inwestycji.');
+      Alert.alert('Blad', 'Podaj nazwe inwestycji.');
       return;
     }
 
     if (!trimmedLocation) {
-      Alert.alert('Błąd', 'Podaj lokalizację inwestycji.');
+      Alert.alert('Blad', 'Podaj lokalizacje inwestycji.');
       return;
     }
 
     if (budget !== null && budget < 0) {
-      Alert.alert('Błąd', 'Budżet nie może być ujemny.');
+      Alert.alert('Blad', 'Budzet nie moze byc ujemny.');
       return;
     }
 
@@ -201,7 +204,7 @@ export default function OnboardingInvestmentScreen() {
 
       router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zapisać inwestycji.');
+      Alert.alert('Blad', e?.message ?? 'Nie udalo sie zapisac inwestycji.');
     } finally {
       setSaving(false);
     }
@@ -221,56 +224,51 @@ export default function OnboardingInvestmentScreen() {
             {loading ? (
               <View style={styles.loadingWrap}>
                 <ActivityIndicator color={NEON} />
-                <Text style={styles.loadingText}>Ładuję inwestycję...</Text>
+                <Text style={styles.loadingText}>Laduje inwestycje...</Text>
               </View>
             ) : (
               <>
-                <Field label="Nazwa inwestycji *" value={nazwa} onChangeText={setNazwa} placeholder="np. Dom pod Krakowem" icon="home" />
-                <Field label="Lokalizacja *" value={lokalizacja} onChangeText={setLokalizacja} placeholder="np. Wieliczka" icon="map-pin" />
+                <Field label="Nazwa inwestycji *" value={nazwa} onChangeText={setNazwa} placeholder="np. Dom pod Krakowem" />
+                <Field label="Lokalizacja *" value={lokalizacja} onChangeText={setLokalizacja} placeholder="np. Wieliczka" />
 
                 <View style={styles.row}>
                   <View style={[styles.fieldBlock, { flex: 1 }]}>
                     <Text style={styles.fieldLabel}>Data startu</Text>
                     <TouchableOpacity style={styles.pickerWrap} onPress={() => openPicker('start')} activeOpacity={0.88}>
                       <Feather name="calendar" size={16} color="rgba(37,240,200,0.55)" />
-                      <Text style={styles.pickerText}>{startDisplay || 'Wybierz datę'}</Text>
+                      <Text style={styles.pickerText}>{startDisplay || 'Wybierz date'}</Text>
                     </TouchableOpacity>
                   </View>
 
                   <View style={{ width: 10 }} />
 
                   <View style={[styles.fieldBlock, { flex: 1 }]}>
-                    <Text style={styles.fieldLabel}>Data końca</Text>
+                    <Text style={styles.fieldLabel}>Data konca</Text>
                     <TouchableOpacity style={styles.pickerWrap} onPress={() => openPicker('koniec')} activeOpacity={0.88}>
                       <Feather name="calendar" size={16} color="rgba(37,240,200,0.55)" />
-                      <Text style={styles.pickerText}>{koniecDisplay || 'Wybierz datę'}</Text>
+                      <Text style={styles.pickerText}>{koniecDisplay || 'Wybierz date'}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 <View style={styles.fieldBlock}>
-                  <Text style={styles.fieldLabel}>Planowany budżet</Text>
-                  <View style={styles.inputWrap}>
-                    <Text style={styles.prefix}>PLN</Text>
-                    <TextInput
-                      value={budzet}
-                      onChangeText={setBudzet}
-                      placeholder="np. 450000"
-                      placeholderTextColor="rgba(255,255,255,0.26)"
-                      keyboardType="numeric"
-                      style={styles.input}
-                    />
-                  </View>
+                  <Text style={styles.fieldLabel}>Planowany budzet</Text>
+                  <AppInput
+                    value={budzet}
+                    onChangeText={setBudzet}
+                    placeholder="np. 450000"
+                    keyboardType="numeric"
+                    style={styles.input}
+                  />
                 </View>
 
-                <TouchableOpacity
-                  style={[styles.primaryBtn, saving && styles.primaryBtnDisabled]}
+                <AppButton
+                  title="Zapisz i przejdz do aplikacji"
                   onPress={handleSave}
                   disabled={saving}
-                  activeOpacity={0.9}
-                >
-                  {saving ? <ActivityIndicator color="#0B1120" /> : <Text style={styles.primaryBtnText}>Zapisz i przejdź do aplikacji</Text>}
-                </TouchableOpacity>
+                  loading={saving}
+                  style={styles.primaryBtn}
+                />
               </>
             )}
           </BlurView>
@@ -280,7 +278,7 @@ export default function OnboardingInvestmentScreen() {
           <View style={styles.modalBackdrop}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>
-                {pickerOpen === 'start' ? 'Wybierz datę startu' : 'Wybierz datę końca'}
+                {pickerOpen === 'start' ? 'Wybierz date startu' : 'Wybierz date konca'}
               </Text>
 
               <View style={styles.modalPickerWrap}>
@@ -297,12 +295,8 @@ export default function OnboardingInvestmentScreen() {
               </View>
 
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.modalBtnGhost} onPress={closePicker} activeOpacity={0.85}>
-                  <Text style={styles.modalBtnGhostText}>Anuluj</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalBtnPrimary} onPress={confirmPicker} activeOpacity={0.85}>
-                  <Text style={styles.modalBtnPrimaryText}>Zapisz</Text>
-                </TouchableOpacity>
+                <AppButton title="Anuluj" variant="secondary" onPress={closePicker} style={styles.modalBtnGhost} />
+                <AppButton title="Zapisz" onPress={confirmPicker} style={styles.modalBtnPrimary} />
               </View>
             </View>
           </View>
@@ -317,24 +311,18 @@ function Field(props: {
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
-  icon?: keyof typeof Feather.glyphMap;
 }) {
-  const { label, value, onChangeText, placeholder, icon = 'edit-3' } = props;
+  const { label, value, onChangeText, placeholder } = props;
 
   return (
-    <View style={styles.fieldBlock}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.inputWrap}>
-        <Feather name={icon} size={16} color="rgba(37,240,200,0.55)" />
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.26)"
-          style={styles.input}
-        />
-      </View>
-    </View>
+    <AppInput
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      containerStyle={styles.fieldBlock}
+      style={styles.input}
+    />
   );
 }
 
@@ -407,28 +395,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
   },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
   input: {
-    flex: 1,
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-  },
-  prefix: {
-    color: 'rgba(255,255,255,0.42)',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.6,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   pickerWrap: {
     flexDirection: 'row',
@@ -449,19 +421,6 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     marginTop: 6,
-    minHeight: 54,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: NEON,
-  },
-  primaryBtnDisabled: {
-    opacity: 0.68,
-  },
-  primaryBtnText: {
-    color: '#0B1120',
-    fontSize: 15,
-    fontWeight: '900',
   },
   modalBackdrop: {
     flex: 1,
@@ -497,26 +456,10 @@ const styles = StyleSheet.create({
   },
   modalBtnGhost: {
     flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    paddingVertical: 12,
-    alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  modalBtnGhostText: {
-    color: '#F8FAFC',
-    fontWeight: '900',
+    borderColor: 'rgba(255,255,255,0.14)',
   },
   modalBtnPrimary: {
     flex: 1,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    backgroundColor: '#5EEAD4',
-  },
-  modalBtnPrimaryText: {
-    color: '#071818',
-    fontWeight: '900',
   },
 });

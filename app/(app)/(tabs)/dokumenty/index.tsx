@@ -12,7 +12,6 @@ import {
   Dimensions,
   ScrollView,
   Platform,
-  TextInput,
   Pressable,
   StatusBar,
   Keyboard,
@@ -26,6 +25,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
+import { AppButton, AppInput } from '../../../../src/ui/components';
 import { colors as uiColors, typography } from '../../../../src/ui/theme';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
@@ -762,7 +762,7 @@ export default function DokumentyScreen() {
               <Text style={styles.modalTitle}>Dodaj dokument</Text>
 
               <Text style={styles.modalLabel}>{tt('documents:addModal.labels.titleOptional')}</Text>
-              <TextInput
+              <AppInput
                 value={title}
                 onChangeText={setTitle}
                 placeholder={tt('documents:addModal.placeholders.title')}
@@ -820,7 +820,7 @@ export default function DokumentyScreen() {
               )}
 
               <Text style={styles.modalLabel}>{tt('documents:addModal.labels.descriptionOptional')}</Text>
-              <TextInput
+              <AppInput
                 value={desc}
                 onChangeText={setDesc}
                 placeholder={tt('documents:addModal.placeholders.description')}
@@ -846,7 +846,9 @@ export default function DokumentyScreen() {
               )}
 
               <View style={styles.modalButtons}>
-                <TouchableOpacity
+                <AppButton
+                  title={tt('common:cancel', { defaultValue: 'Cancel' })}
+                  variant="secondary"
                   style={[styles.modalButton, styles.modalButtonSecondary]}
                   onPress={() => {
                     setAddModalVisible(false);
@@ -855,27 +857,15 @@ export default function DokumentyScreen() {
                     closeAllDropdowns();
                   }}
                   disabled={saving}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.modalButtonTextSecondary}>
-                    {tt('common:cancel', { defaultValue: 'Cancel' })}
-                  </Text>
-                </TouchableOpacity>
+                />
 
-                <TouchableOpacity
+                <AppButton
+                  title={tt('common:save', { defaultValue: 'Save' })}
                   style={[styles.modalButton, styles.modalButtonPrimary, !file?.uri && { opacity: 0.55 }]}
                   onPress={addDoc}
-                  disabled={saving || !file?.uri}
-                  activeOpacity={0.85}
-                >
-                  {saving ? (
-                    <ActivityIndicator color={COLORS.bg} />
-                  ) : (
-                    <Text style={styles.modalButtonTextPrimary}>
-                      {tt('common:save', { defaultValue: 'Save' })}
-                    </Text>
-                  )}
-                </TouchableOpacity>
+                  disabled={!file?.uri}
+                  loading={saving}
+                />
               </View>
             </Pressable>
           </KeyboardAvoidingView>

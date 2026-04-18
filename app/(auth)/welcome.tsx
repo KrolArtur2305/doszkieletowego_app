@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
 import { setAppLanguage, type AppLanguage } from '../../lib/i18n';
-import { AppButton, AppHeader, AppScreen } from '../../src/ui/components';
+import { AppButton, AppCard, AppHeader, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
 const { width: W } = Dimensions.get('window');
@@ -111,7 +111,12 @@ export default function WelcomeScreen() {
     <AppScreen>
       <View style={styles.container}>
         <View style={styles.topBlock}>
-          <AppHeader title="BuildIQ" style={styles.header} />
+          <AppHeader title="BuildIQ" style={styles.header} height={92} />
+
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroTitle}>Przejmij kontrolę nad swoją budową</Text>
+          </View>
+
 
           <View style={styles.langRow}>
             {renderLangButton('pl', 'PL')}
@@ -146,20 +151,22 @@ export default function WelcomeScreen() {
           </View>
         </View>
 
-        <View style={styles.actions}>
-          <AppButton
-            title={t('welcome.loginCta')}
-            onPress={() => router.push('/(auth)/login')}
-            style={styles.primaryBtn}
-          />
+        <AppCard style={styles.actionsCard} contentStyle={styles.actionsCardContent} withShadow={false}>
+          <View style={styles.actions}>
+            <AppButton
+              title={t('welcome.loginCta')}
+              onPress={() => router.push('/(auth)/login')}
+              style={styles.primaryBtn}
+            />
 
-          <AppButton
-            title={t('welcome.registerCta')}
-            onPress={() => router.push('/(auth)/register')}
-            variant="secondary"
-            style={styles.secondaryBtn}
-          />
-        </View>
+            <AppButton
+              title={t('welcome.registerCta')}
+              onPress={() => router.push('/(auth)/register')}
+              variant="secondary"
+              style={styles.secondaryBtn}
+            />
+          </View>
+        </AppCard>
       </View>
     </AppScreen>
   );
@@ -177,15 +184,28 @@ const styles = StyleSheet.create({
   },
   topBlock: {
     width: '100%',
-    alignItems: 'stretch',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   header: {
-    marginBottom: spacing.lg,
+    width: '100%',
+  },
+  heroCopy: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  heroTitle: {
+    ...typography.sectionTitle,
+    color: colors.text,
+    textAlign: 'center',
+    lineHeight: 28,
   },
   langRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: spacing.sm + 2,
+    alignSelf: 'center',
   },
   langBtn: {
     paddingVertical: 8,
@@ -208,8 +228,8 @@ const styles = StyleSheet.create({
   },
   sliderWrap: {
     width: W,
-    marginTop: spacing.xl,
-    marginBottom: spacing.lg,
+    alignSelf: 'center',
+    marginBottom: spacing.xs,
   },
   sliderTrack: {
     alignItems: 'stretch',
@@ -218,23 +238,23 @@ const styles = StyleSheet.create({
     width: W,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl + 6,
+    paddingHorizontal: spacing.xl + spacing.lg,
   },
   slideIcon: {
-    width: 210,
-    height: 210,
+    width: 196,
+    height: 196,
     marginBottom: spacing.md,
   },
   slideTitle: {
     ...typography.sectionTitle,
-    color: colors.accentBright,
+    color: colors.text,
     textAlign: 'center',
     marginBottom: spacing.sm + 2,
   },
   slideText: {
-    fontSize: 15,
+    ...typography.body,
     lineHeight: 22,
-    color: colors.textSoft,
+    color: colors.textMuted,
     textAlign: 'center',
   },
   pagination: {
@@ -250,11 +270,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.textFaint,
   },
   dotActive: {
-    backgroundColor: colors.accentBright,
+    backgroundColor: colors.textSoft,
+  },
+  actionsCard: {
+    width: '100%',
+    marginTop: 0,
+  },
+  actionsCardContent: {
+    padding: spacing.lg,
   },
   actions: {
     width: '100%',
-    marginTop: spacing.sm,
   },
   primaryBtn: {
     width: '100%',

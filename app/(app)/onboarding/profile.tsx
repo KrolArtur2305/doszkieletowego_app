@@ -7,16 +7,14 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
+import { AppButton, AppInput } from '../../../src/ui/components';
 
 const BG = '#000000';
 const ACCENT = '#19705C';
@@ -140,25 +138,23 @@ export default function OnboardingProfileScreen() {
               </View>
             ) : (
               <>
-                <Field label={t('profile.firstName')} value={imie} onChangeText={setImie} placeholder={t('profile.firstNamePlaceholder')} icon="edit-3" />
-                <Field label={t('profile.lastName')} value={nazwisko} onChangeText={setNazwisko} placeholder={t('profile.lastNamePlaceholder')} icon="edit-3" />
+                <Field label={t('profile.firstName')} value={imie} onChangeText={setImie} placeholder={t('profile.firstNamePlaceholder')} />
+                <Field label={t('profile.lastName')} value={nazwisko} onChangeText={setNazwisko} placeholder={t('profile.lastNamePlaceholder')} />
                 <Field
                   label={t('profile.phone')}
                   value={telefon}
                   onChangeText={setTelefon}
                   placeholder={t('profile.phonePlaceholder')}
-                  icon="phone"
                   keyboardType="phone-pad"
                 />
 
-                <TouchableOpacity
-                  style={[styles.primaryBtn, saving && styles.primaryBtnDisabled]}
+                <AppButton
+                  title={t('actions.next')}
                   onPress={handleSave}
                   disabled={saving}
-                  activeOpacity={0.9}
-                >
-                  {saving ? <ActivityIndicator color="#0B1120" /> : <Text style={styles.primaryBtnText}>{t('actions.next')}</Text>}
-                </TouchableOpacity>
+                  loading={saving}
+                  style={styles.primaryBtn}
+                />
               </>
             )}
           </BlurView>
@@ -173,27 +169,21 @@ function Field(props: {
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
-  icon?: keyof typeof Feather.glyphMap;
   keyboardType?: 'default' | 'phone-pad';
 }) {
-  const { label, value, onChangeText, placeholder, icon = 'edit-3', keyboardType = 'default' } = props;
+  const { label, value, onChangeText, placeholder, keyboardType = 'default' } = props;
 
   return (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.inputWrap}>
-        <Feather name={icon} size={16} color="rgba(37,240,200,0.55)" />
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.26)"
-          keyboardType={keyboardType}
-          autoCapitalize={keyboardType === 'phone-pad' ? 'none' : 'words'}
-          style={styles.input}
-        />
-      </View>
-    </View>
+    <AppInput
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      keyboardType={keyboardType}
+      autoCapitalize={keyboardType === 'phone-pad' ? 'none' : 'words'}
+      containerStyle={styles.fieldWrap}
+      style={styles.input}
+    />
   );
 }
 
@@ -254,45 +244,14 @@ const styles = StyleSheet.create({
   fieldWrap: {
     marginBottom: 14,
   },
-  fieldLabel: {
-    color: 'rgba(255,255,255,0.42)',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
   input: {
-    flex: 1,
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   primaryBtn: {
     marginTop: 6,
-    minHeight: 54,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: NEON,
-  },
-  primaryBtnDisabled: {
-    opacity: 0.68,
-  },
-  primaryBtnText: {
-    color: '#0B1120',
-    fontSize: 15,
-    fontWeight: '900',
   },
 });

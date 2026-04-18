@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -24,6 +23,7 @@ import { supabase } from '../../../../lib/supabase';
 import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
 import { removePushToken } from '../../../../src/services/notifications/pushService';
+import { AppButton, AppInput } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -382,14 +382,14 @@ export default function UstawieniaAplikacjiScreen() {
               {t('appSettings.password.newLabel')}
             </Text>
             <View style={styles.inputWrap}>
-              <TextInput
+              <AppInput
                 value={newPwd}
                 onChangeText={setNewPwd}
                 placeholder="••••••••"
-                placeholderTextColor="rgba(255,255,255,0.25)"
                 secureTextEntry={!showNew}
                 style={styles.input}
                 autoCapitalize="none"
+                containerStyle={styles.inputField}
               />
               <TouchableOpacity onPress={() => setShowNew((v) => !v)} hitSlop={8}>
                 <Feather name={showNew ? 'eye-off' : 'eye'} size={18} color="rgba(255,255,255,0.35)" />
@@ -400,14 +400,14 @@ export default function UstawieniaAplikacjiScreen() {
               {t('appSettings.password.confirmLabel')}
             </Text>
             <View style={styles.inputWrap}>
-              <TextInput
+              <AppInput
                 value={confirmPwd}
                 onChangeText={setConfirmPwd}
                 placeholder="••••••••"
-                placeholderTextColor="rgba(255,255,255,0.25)"
                 secureTextEntry={!showConfirm}
                 style={styles.input}
                 autoCapitalize="none"
+                containerStyle={styles.inputField}
               />
               <TouchableOpacity onPress={() => setShowConfirm((v) => !v)} hitSlop={8}>
                 <Feather name={showConfirm ? 'eye-off' : 'eye'} size={18} color="rgba(255,255,255,0.35)" />
@@ -415,29 +415,25 @@ export default function UstawieniaAplikacjiScreen() {
             </View>
 
             <View style={styles.modalActions}>
-              <TouchableOpacity
+              <AppButton
+                title={t('common:cancel')}
+                variant="secondary"
                 onPress={() => setPwdModalOpen(false)}
+                disabled={pwdSaving}
                 style={styles.modalBtnGhost}
-                disabled={pwdSaving}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.modalBtnGhostText}>
-                  {t('common:cancel')}
-                </Text>
-              </TouchableOpacity>
+              />
 
-              <TouchableOpacity
-                onPress={handleChangePassword}
-                style={[styles.modalBtnPrimary, pwdSaving && { opacity: 0.65 }]}
-                disabled={pwdSaving}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.modalBtnPrimaryText}>
-                  {pwdSaving
+              <AppButton
+                title={
+                  pwdSaving
                     ? t('appSettings.password.saving')
-                    : t('appSettings.password.saveBtn')}
-                </Text>
-              </TouchableOpacity>
+                    : t('appSettings.password.saveBtn')
+                }
+                onPress={handleChangePassword}
+                disabled={pwdSaving}
+                loading={pwdSaving}
+                style={styles.modalBtnPrimary}
+              />
             </View>
           </View>
         </View>
@@ -564,7 +560,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16, gap: 10,
   },
-  input: { flex: 1, color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  inputField: { flex: 1 },
+  input: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    minHeight: 0,
+  },
 
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   modalBtnGhost: {
@@ -572,11 +578,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  modalBtnGhostText: { color: 'rgba(255,255,255,0.60)', fontWeight: '900', fontSize: 15 },
   modalBtnPrimary: {
     flex: 2, paddingVertical: 14, borderRadius: 18, alignItems: 'center',
     backgroundColor: 'rgba(37,240,200,0.14)',
     borderWidth: 1.5, borderColor: 'rgba(37,240,200,0.38)',
   },
-  modalBtnPrimaryText: { color: NEON, fontWeight: '900', fontSize: 15 },
 });

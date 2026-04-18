@@ -6,8 +6,6 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
   ActivityIndicator,
@@ -18,7 +16,7 @@ import { BlurView } from 'expo-blur';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
-import { AppHeader } from '../../../src/ui/components';
+import { AppButton, AppHeader, AppInput } from '../../../src/ui/components';
 
 type ProfileCache = {
   userId: string | null;
@@ -45,7 +43,7 @@ function resetProfileCache() {
 
 export default function ProfilScreen() {
   // ✅ trzymamy jeden namespace jako bazę
-  const { t, i18n } = useTranslation('profile');
+  const { t } = useTranslation('profile');
   // ✅ i bierzemy też common jako "fallback" na proste teksty (dash/saving)
   const { t: tc } = useTranslation('common');
 
@@ -244,7 +242,6 @@ export default function ProfilScreen() {
                     value={imie}
                     onChangeText={setImie}
                     placeholder={t('form.firstNamePlaceholder')}
-                    icon="edit-3"
                     autoCapitalize="words"
                   />
                   <Field
@@ -252,7 +249,6 @@ export default function ProfilScreen() {
                     value={nazwisko}
                     onChangeText={setNazwisko}
                     placeholder={t('form.lastNamePlaceholder')}
-                    icon="edit-3"
                     autoCapitalize="words"
                   />
                   <Field
@@ -260,20 +256,16 @@ export default function ProfilScreen() {
                     value={telefon}
                     onChangeText={setTelefon}
                     placeholder={t('form.phonePlaceholder')}
-                    icon="phone"
                     keyboardType="phone-pad"
                   />
 
-                  <TouchableOpacity
-                    style={[styles.ctaButton, (saving || loading) && styles.ctaButtonDisabled]}
-                    activeOpacity={0.85}
+                  <AppButton
+                    title={saving ? tc('saving') : t('form.saveAndContinue')}
                     onPress={handleSaveAndContinue}
                     disabled={saving || loading}
-                  >
-                    <Text style={styles.ctaText}>
-                      {saving ? tc('saving') : t('form.saveAndContinue')}
-                    </Text>
-                  </TouchableOpacity>
+                    loading={saving}
+                    style={styles.ctaButton}
+                  />
                 </View>
               </View>
             )}
@@ -290,7 +282,6 @@ function Field(props: {
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
-  icon?: keyof typeof Feather.glyphMap;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
@@ -299,29 +290,21 @@ function Field(props: {
     value,
     onChangeText,
     placeholder,
-    icon = 'edit-3',
     keyboardType = 'default',
     autoCapitalize = 'none',
   } = props;
 
   return (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputRow}>
-        <View style={styles.iconBox}>
-          <Feather name={icon} size={16} color="#5EEAD4" />
-        </View>
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="rgba(148,163,184,0.55)"
-          style={styles.input}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-        />
-      </View>
-    </View>
+    <AppInput
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize}
+      containerStyle={styles.fieldWrap}
+      style={styles.input}
+    />
   );
 }
 
@@ -401,46 +384,15 @@ const styles = StyleSheet.create({
   form: { gap: 12 },
 
   fieldWrap: { gap: 6 },
-  label: { color: '#CBD5E1', fontSize: 12, fontWeight: '800', letterSpacing: 0.6 },
-
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#222',
-    backgroundColor: '#111',
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  iconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0B0B0B',
-    borderWidth: 1,
-    borderColor: '#222',
-  },
   input: {
-    flex: 1,
     color: '#F8FAFC',
     fontSize: 15,
     fontWeight: '700',
-    paddingVertical: 4,
+    backgroundColor: '#111',
+    borderColor: '#222',
   },
 
   ctaButton: {
     marginTop: 18,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.45)',
-    paddingVertical: 13,
-    alignItems: 'center',
-    backgroundColor: 'rgba(94,234,212,0.12)',
   },
-  ctaButtonDisabled: { opacity: 0.65 },
-  ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center' },
 });

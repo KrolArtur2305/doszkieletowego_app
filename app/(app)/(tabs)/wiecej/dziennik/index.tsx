@@ -13,7 +13,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -24,6 +23,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
+import { AppButton, AppInput } from '../../../../../src/ui/components';
 import { colors as uiColors, typography } from '../../../../../src/ui/theme';
 
 const ACCENT = '#19705C';
@@ -603,10 +603,10 @@ export default function DziennikScreen() {
 
               {/* Treść */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>{t('modal.note')}</Text>
-                <TextInput
+                <AppInput
                   value={formTresc}
                   onChangeText={setFormTresc}
+                  label={t('modal.note')}
                   placeholder={t('modal.notePlaceholder')}
                   placeholderTextColor="rgba(255,255,255,0.22)"
                   style={styles.trescInput}
@@ -648,16 +648,12 @@ export default function DziennikScreen() {
               </View>
 
               {/* Save */}
-              <TouchableOpacity
-                style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+              <AppButton
+                title={saving ? t('modal.saving') : editingWpis ? t('modal.saveChanges') : t('modal.addEntry')}
                 onPress={save}
-                disabled={saving}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.saveBtnText}>
-                  {saving ? t('modal.saving') : editingWpis ? t('modal.saveChanges') : t('modal.addEntry')}
-                </Text>
-              </TouchableOpacity>
+                loading={saving}
+                style={styles.saveBtn}
+              />
 
               <View style={{ height: 40 }} />
             </ScrollView>

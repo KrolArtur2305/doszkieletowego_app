@@ -6,7 +6,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  TextInput,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
@@ -14,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { AppInput } from '../../../../src/ui/components';
 
 type EtapRow = {
   id: string;
@@ -256,7 +256,7 @@ export default function WszystkieEtapyScreen() {
                         {saving ? <ActivityIndicator size="small" color={NEON} /> : null}
                       </View>
 
-                      <TextInput
+                      <AppInput
                         value={noteDraft[row.id] ?? ''}
                         onChangeText={(text) => onChangeNote(row.id, text)}
                         placeholder={t('all.notePlaceholder')}

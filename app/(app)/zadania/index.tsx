@@ -11,7 +11,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -24,7 +23,7 @@ import { supabase } from '../../../lib/supabase';
 import { syncAllTaskReminders } from '../../../lib/notifications';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../components/FloatingAddButton';
-import { AppHeader } from '../../../src/ui/components';
+import { AppButton, AppHeader, AppInput } from '../../../src/ui/components';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -772,16 +771,12 @@ export default function ZadaniaScreen() {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity
-                style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+              <AppButton
+                title={saving ? t('modal.saving') : t('modal.save')}
                 onPress={saveTask}
-                disabled={saving}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.saveBtnText}>
-                  {saving ? t('modal.saving') : t('modal.save')}
-                </Text>
-              </TouchableOpacity>
+                loading={saving}
+                style={styles.saveBtn}
+              />
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -899,10 +894,10 @@ function FormField({
 }) {
   return (
     <View>
-      <Text style={fieldStyles.label}>{label}</Text>
-      <TextInput
+      <AppInput
         value={value}
         onChangeText={onChangeText}
+        label={label}
         placeholder={placeholder}
         placeholderTextColor="rgba(255,255,255,0.25)"
         style={[fieldStyles.inputDark, multiline && { height: 88, textAlignVertical: 'top' }]}

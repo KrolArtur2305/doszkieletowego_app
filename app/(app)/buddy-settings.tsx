@@ -11,7 +11,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -22,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
+import { AppButton, AppInput } from '../../src/ui/components';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -259,7 +259,7 @@ export default function BuddySettingsScreen() {
                 <BlurView intensity={16} tint="dark" style={styles.inputWrap}>
                   <Feather name="user" size={18} color="rgba(37,240,200,0.55)" />
 
-                  <TextInput
+                  <AppInput
                     value={buddyName}
                     onChangeText={(v) => {
                       setBuddyName(v);
@@ -267,11 +267,11 @@ export default function BuddySettingsScreen() {
                     }}
                     placeholder={t('settings.placeholder')}
                     placeholderTextColor="#888888"
-                    style={styles.input}
                     maxLength={30}
                     autoCapitalize="words"
                     returnKeyType="done"
                     onSubmitEditing={handleSave}
+                    style={styles.inputField}
                   />
 
                   <Text style={styles.inputCount}>{buddyName.length}/30</Text>
@@ -345,24 +345,13 @@ export default function BuddySettingsScreen() {
                   },
                 ]}
               >
-                <TouchableOpacity
-                  style={[
-                    styles.saveBtn,
-                    (!hasChanges || saving) && styles.saveBtnDisabled,
-                  ]}
+                <AppButton
+                  title={t('settings.save')}
                   onPress={handleSave}
-                  disabled={!hasChanges || saving}
-                  activeOpacity={0.9}
-                >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="#0B1120" />
-                  ) : (
-                    <>
-                      <Text style={styles.saveBtnText}>{t('settings.save')}</Text>
-                      <Feather name="check" size={18} color="#0B1120" />
-                    </>
-                  )}
-                </TouchableOpacity>
+                  disabled={!hasChanges}
+                  loading={saving}
+                  style={styles.saveBtn}
+                />
               </Animated.View>
             </>
           )}
@@ -585,6 +574,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  inputField: {
+    flex: 1,
+    minHeight: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
 
   inputCount: {
     color: 'rgba(255,255,255,0.24)',
@@ -686,11 +686,6 @@ const styles = StyleSheet.create({
   saveBtn: {
     minHeight: 58,
     borderRadius: 20,
-    backgroundColor: NEON,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
     shadowColor: NEON,
     shadowOpacity: 0.28,
     shadowRadius: 18,
@@ -701,9 +696,4 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 
-  saveBtnText: {
-    color: '#0B1120',
-    fontSize: 16,
-    fontWeight: '900',
-  },
 });

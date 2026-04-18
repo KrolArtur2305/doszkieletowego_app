@@ -13,7 +13,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -25,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../../../components/FloatingAddButton';
-import { AppHeader } from '../../../../../src/ui/components';
+import { AppButton, AppHeader, AppInput } from '../../../../../src/ui/components';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -396,16 +395,12 @@ export default function KontaktyScreen() {
                       multiline
                     />
 
-                    <TouchableOpacity
-                      style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+                    <AppButton
+                      title={saving ? t('modal.saving') : t('modal.save')}
                       onPress={saveContact}
-                      disabled={saving}
-                      activeOpacity={0.9}
-                    >
-                      <Text style={styles.saveBtnText}>
-                        {saving ? t('modal.saving') : t('modal.save')}
-                      </Text>
-                    </TouchableOpacity>
+                      loading={saving}
+                      style={styles.saveBtn}
+                    />
 
                     <View style={{ height: 8 }} />
                   </ScrollView>
@@ -639,10 +634,10 @@ function FormField({
 }) {
   return (
     <View>
-      <Text style={fieldStyles.label}>{label}</Text>
-      <TextInput
+      <AppInput
         value={value}
         onChangeText={onChangeText}
+        label={label}
         placeholder={placeholder}
         placeholderTextColor="rgba(255,255,255,0.25)"
         style={[fieldStyles.input, multiline && { height: 88, textAlignVertical: 'top' }]}

@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -20,7 +19,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
-import { AppHeader } from '../../../src/ui/components';
+import { AppButton, AppHeader, AppInput } from '../../../src/ui/components';
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -239,32 +238,24 @@ export default function InwestycjaScreen() {
             <View style={styles.form}>
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>{t('form.nameLabel')} *</Text>
-                <View style={styles.inputWrap}>
-                  <Feather name="home" color="rgba(148,163,184,0.95)" size={16} />
-                  <TextInput
-                    value={nazwa}
-                    onChangeText={setNazwa}
-                    placeholder={t('form.namePlaceholder')}
-                    placeholderTextColor="rgba(148,163,184,0.7)"
-                    style={styles.input}
-                    editable={!loading && !saving}
-                  />
-                </View>
+                <AppInput
+                  value={nazwa}
+                  onChangeText={setNazwa}
+                  placeholder={t('form.namePlaceholder')}
+                  editable={!loading && !saving}
+                  style={styles.input}
+                />
               </View>
 
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>{t('form.locationLabel')} *</Text>
-                <View style={styles.inputWrap}>
-                  <Feather name="map-pin" color="rgba(148,163,184,0.95)" size={16} />
-                  <TextInput
-                    value={lokalizacja}
-                    onChangeText={setLokalizacja}
-                    placeholder={t('form.locationPlaceholder')}
-                    placeholderTextColor="rgba(148,163,184,0.7)"
-                    style={styles.input}
-                    editable={!loading && !saving}
-                  />
-                </View>
+                <AppInput
+                  value={lokalizacja}
+                  onChangeText={setLokalizacja}
+                  placeholder={t('form.locationPlaceholder')}
+                  editable={!loading && !saving}
+                  style={styles.input}
+                />
               </View>
 
               <View style={styles.row}>
@@ -307,31 +298,24 @@ export default function InwestycjaScreen() {
 
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>{t('form.plannedBudgetLabel')}</Text>
-                <View style={styles.inputWrap}>
-                  <Text style={styles.prefix}>PLN</Text>
-                  <TextInput
-                    value={budzet}
-                    onChangeText={setBudzet}
-                    placeholder={t('form.plannedBudgetPlaceholder')}
-                    placeholderTextColor="rgba(148,163,184,0.7)"
-                    style={[styles.input, { fontWeight: '800' }]}
-                    editable={!loading && !saving}
-                    keyboardType="numeric"
-                  />
-                </View>
+                <AppInput
+                  value={budzet}
+                  onChangeText={setBudzet}
+                  placeholder={t('form.plannedBudgetPlaceholder')}
+                  editable={!loading && !saving}
+                  keyboardType="numeric"
+                  style={[styles.input, { fontWeight: '800' }]}
+                />
               </View>
             </View>
 
-            <TouchableOpacity
-              style={[styles.ctaButton, (loading || saving) && styles.ctaButtonDisabled]}
+            <AppButton
+              title={saving ? t('actions.saving') : t('actions.saveAndContinue')}
               onPress={handleSaveAndContinue}
               disabled={loading || saving}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.ctaText}>
-                {saving ? t('actions.saving') : t('actions.saveAndContinue')}
-              </Text>
-            </TouchableOpacity>
+              loading={saving}
+              style={styles.ctaButton}
+            />
           </BlurView>
         </ScrollView>
 
@@ -357,13 +341,14 @@ export default function InwestycjaScreen() {
               </View>
 
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.modalBtnGhost} onPress={closePicker} activeOpacity={0.85}>
-                  <Text style={styles.modalBtnGhostText}>{t('actions.cancel', { defaultValue: 'Cancel' })}</Text>
-                </TouchableOpacity>
+                <AppButton
+                  title={t('actions.cancel', { defaultValue: 'Cancel' })}
+                  variant="secondary"
+                  onPress={closePicker}
+                  style={styles.modalBtnGhost}
+                />
 
-                <TouchableOpacity style={styles.modalBtnPrimary} onPress={confirmPicker} activeOpacity={0.85}>
-                  <Text style={styles.modalBtnPrimaryText}>{t('actions.save')}</Text>
-                </TouchableOpacity>
+                <AppButton title={t('actions.save')} onPress={confirmPicker} style={styles.modalBtnPrimary} />
               </View>
             </View>
           </View>
@@ -414,28 +399,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
 
-  input: { flex: 1, color: '#F8FAFC', fontSize: 16, fontWeight: '700' },
+  input: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '700',
+    backgroundColor: '#111',
+    borderColor: '#222',
+  },
 
   iconBtn: { paddingLeft: 6, paddingVertical: 2 },
 
-  prefix: {
-    color: 'rgba(148,163,184,0.95)',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-
   ctaButton: {
     marginTop: 18,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(94,234,212,0.45)',
-    paddingVertical: 16,
-    alignItems: 'center',
-    backgroundColor: 'rgba(94,234,212,0.12)',
   },
-  ctaButtonDisabled: { opacity: 0.65 },
-  ctaText: { color: '#5EEAD4', fontWeight: '900', textAlign: 'center', fontSize: 15 },
 
   // ---- modal styles ----
   modalBackdrop: {
@@ -472,26 +448,10 @@ const styles = StyleSheet.create({
   },
   modalBtnGhost: {
     flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    paddingVertical: 12,
-    alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  modalBtnGhostText: {
-    color: '#F8FAFC',
-    fontWeight: '900',
+    borderColor: 'rgba(255,255,255,0.14)',
   },
   modalBtnPrimary: {
     flex: 1,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    backgroundColor: '#5EEAD4',
-  },
-  modalBtnPrimaryText: {
-    color: '#071818',
-    fontWeight: '900',
   },
 });

@@ -8,7 +8,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -20,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
+import { AppButton, AppInput } from '../../src/ui/components';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -198,7 +198,7 @@ export default function BuddyOnboardingScreen() {
               </Text>
               <BlurView intensity={14} tint="dark" style={styles.inputWrap}>
                 <Feather name="user" size={18} color="rgba(37,240,200,0.50)" />
-                <TextInput
+                <AppInput
                   value={buddyName}
                   onChangeText={(v) => {
                     setBuddyName(v);
@@ -206,11 +206,11 @@ export default function BuddyOnboardingScreen() {
                   }}
                   placeholder={t('buddy.onboarding.namePlaceholder', { defaultValue: 'np. Andrzej, Max, Tomek...' })}
                   placeholderTextColor="#888888"
-                  style={styles.input}
                   maxLength={30}
                   autoCapitalize="words"
                   returnKeyType="done"
                   onSubmitEditing={handleSave}
+                  style={styles.inputField}
                 />
                 {buddyName.length > 0 && (
                   <Text style={styles.inputCount}>{buddyName.length}/30</Text>
@@ -253,20 +253,16 @@ export default function BuddyOnboardingScreen() {
             </Animated.View>
 
             <Animated.View style={[{ opacity: contentAnim }, styles.ctaWrap]}>
-              <TouchableOpacity
-                style={[styles.ctaBtn, saving && { opacity: 0.65 }]}
-                onPress={handleSave}
-                disabled={saving}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.ctaBtnText}>
-                  {saving
+              <AppButton
+                title={
+                  saving
                     ? t('buddy.onboarding.saving', { defaultValue: 'Zapisywanie...' })
                     : t('buddy.onboarding.cta', { defaultValue: 'Poznaj kierownika' })
-                  }
-                </Text>
-                {!saving && <Feather name="arrow-right" size={18} color="#0B1120" />}
-              </TouchableOpacity>
+                }
+                onPress={handleSave}
+                loading={saving}
+                style={styles.ctaBtn}
+              />
             </Animated.View>
 
             <View style={{ height: 40 }} />
@@ -349,6 +345,17 @@ const styles = StyleSheet.create({
   input: {
     flex: 1, color: '#FFFFFF', fontSize: 18, fontWeight: '700',
   },
+  inputField: {
+    flex: 1,
+    minHeight: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
   inputCount: { color: 'rgba(255,255,255,0.25)', fontSize: 11, fontWeight: '700' },
   errorText: { color: '#FCA5A5', fontSize: 12, fontWeight: '700', marginTop: 8, textAlign: 'center' },
 
@@ -381,10 +388,8 @@ const styles = StyleSheet.create({
 
   ctaWrap: { width: '100%' },
   ctaBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, borderRadius: 20, paddingVertical: 17,
-    backgroundColor: NEON,
+    borderRadius: 20,
+    minHeight: 58,
     shadowColor: NEON, shadowOpacity: 0.30, shadowRadius: 20, shadowOffset: { width: 0, height: 0 },
   },
-  ctaBtnText: { color: '#0B1120', fontSize: 17, fontWeight: '900' },
 });

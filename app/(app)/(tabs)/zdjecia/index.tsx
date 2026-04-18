@@ -12,7 +12,6 @@ import {
   Dimensions,
   ScrollView,
   Platform,
-  TextInput,
   Pressable,
   StatusBar,
 } from 'react-native';
@@ -26,7 +25,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
-import { AppHeader } from '../../../../src/ui/components';
+import { AppButton, AppHeader, AppInput } from '../../../../src/ui/components';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -826,7 +825,7 @@ export default function ZdjeciaScreen() {
             )}
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.descLabel', { defaultValue: 'Opis' })}</Text>
-            <TextInput
+            <AppInput
               value={opis}
               onChangeText={setOpis}
               placeholder={tt('photos:addModal.descPlaceholder', { defaultValue: 'Dodaj opis (opcjonalnie)' })}
@@ -836,7 +835,7 @@ export default function ZdjeciaScreen() {
             />
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.tagsLabel', { defaultValue: 'Tagi' })}</Text>
-            <TextInput
+            <AppInput
               value={tagsInput}
               onChangeText={setTagsInput}
               placeholder={tt('photos:addModal.tagsPlaceholder', { defaultValue: 'np. okna, elewacja, dach' })}
@@ -854,7 +853,9 @@ export default function ZdjeciaScreen() {
             )}
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity
+              <AppButton
+                title={tt('photos:addModal.cancel', { defaultValue: 'Anuluj' })}
+                variant="secondary"
                 style={[styles.modalButton, styles.modalButtonSecondary]}
                 onPress={() => {
                   setAddModalVisible(false);
@@ -865,10 +866,7 @@ export default function ZdjeciaScreen() {
                   setUploadDropdownOpen(false);
                 }}
                 disabled={uploading}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.modalButtonTextSecondary}>{tt('photos:addModal.cancel', { defaultValue: 'Anuluj' })}</Text>
-              </TouchableOpacity>
+              />
 
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonPrimary, !canPick && { opacity: 0.55 }]}

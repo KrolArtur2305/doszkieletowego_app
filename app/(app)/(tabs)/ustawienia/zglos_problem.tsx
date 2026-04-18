@@ -6,7 +6,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { AppButton, AppInput } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -121,11 +121,10 @@ export default function ZglosProblemScreen() {
             <View style={styles.divider} />
 
             <Text style={styles.sectionLabel}>{t('report.descriptionTitle')}</Text>
-            <TextInput
+            <AppInput
               value={message}
               onChangeText={setMessage}
               placeholder={t('report.descriptionPlaceholder')}
-              placeholderTextColor="rgba(255,255,255,0.28)"
               style={styles.textarea}
               multiline
               textAlignVertical="top"
@@ -135,17 +134,13 @@ export default function ZglosProblemScreen() {
               {message.length} {t('report.chars')}
             </Text>
 
-            <TouchableOpacity
-              style={[styles.submitBtn, sending && { opacity: 0.65 }]}
+            <AppButton
+              title={sending ? t('report.actions.sending') : t('report.actions.send')}
               onPress={handleSubmit}
               disabled={sending}
-              activeOpacity={0.9}
-            >
-              <Feather name="send" size={15} color={NEON} />
-              <Text style={styles.submitBtnText}>
-                {sending ? t('report.actions.sending') : t('report.actions.send')}
-              </Text>
-            </TouchableOpacity>
+              loading={sending}
+              style={styles.submitBtn}
+            />
 
             <Text style={styles.hint}>{t('report.hint')}</Text>
           </BlurView>
@@ -230,13 +225,10 @@ const styles = StyleSheet.create({
   },
 
   submitBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, borderRadius: 18, paddingVertical: 14,
     backgroundColor: 'rgba(37,240,200,0.14)',
     borderWidth: 1.5, borderColor: 'rgba(37,240,200,0.38)',
     marginBottom: 12,
   },
-  submitBtnText: { color: NEON, fontSize: 15, fontWeight: '900' },
 
   hint: {
     color: 'rgba(255,255,255,0.28)', fontSize: 12,

@@ -9,7 +9,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -19,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
+import { AppButton, AppInput } from '../../../src/ui/components';
 
 const BG = '#000000';
 const ACCENT = '#19705C';
@@ -295,43 +295,34 @@ export default function OnboardingScreen() {
       <BlurView intensity={18} tint="dark" style={styles.formCard}>
         <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>{t('budget.plannedLabel')}</Text>
-          <View style={styles.inputWrap}>
-            <Text style={styles.inputPrefix}>{t('budget.currency')}</Text>
-            <TextInput
-              value={plannedBudget}
-              onChangeText={setPlannedBudget}
-              placeholder={t('budget.plannedPlaceholder')}
-              placeholderTextColor="rgba(255,255,255,0.26)"
-              keyboardType="numeric"
-              style={styles.input}
-            />
-          </View>
+          <AppInput
+            value={plannedBudget}
+            onChangeText={setPlannedBudget}
+            placeholder={t('budget.plannedPlaceholder')}
+            keyboardType="numeric"
+            style={styles.input}
+          />
         </View>
 
         <View style={styles.fieldWrapLast}>
           <Text style={styles.fieldLabel}>{t('budget.spentLabel')}</Text>
-          <View style={styles.inputWrap}>
-            <Text style={styles.inputPrefix}>{t('budget.currency')}</Text>
-            <TextInput
-              value={spentBudget}
-              onChangeText={setSpentBudget}
-              placeholder={t('budget.spentPlaceholder')}
-              placeholderTextColor="rgba(255,255,255,0.26)"
-              keyboardType="numeric"
-              style={styles.input}
-            />
-          </View>
+          <AppInput
+            value={spentBudget}
+            onChangeText={setSpentBudget}
+            placeholder={t('budget.spentPlaceholder')}
+            keyboardType="numeric"
+            style={styles.input}
+          />
         </View>
       </BlurView>
 
-      <TouchableOpacity
+      <AppButton
+        title={t('actions.next')}
         onPress={saveBudget}
         disabled={saving}
-        activeOpacity={0.9}
-        style={[styles.primaryBtn, saving && styles.primaryBtnDisabled]}
-      >
-        {saving ? <ActivityIndicator color="#0B1120" /> : <Text style={styles.primaryBtnText}>{t('actions.next')}</Text>}
-      </TouchableOpacity>
+        loading={saving}
+        style={styles.primaryBtn}
+      />
     </>
   );
 
@@ -467,43 +458,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
   },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  inputPrefix: {
-    color: 'rgba(255,255,255,0.44)',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
   input: {
-    flex: 1,
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   primaryBtn: {
-    minHeight: 54,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: NEON,
     marginTop: 18,
-  },
-  primaryBtnDisabled: {
-    opacity: 0.68,
-  },
-  primaryBtnText: {
-    color: '#0B1120',
-    fontSize: 15,
-    fontWeight: '900',
   },
 });

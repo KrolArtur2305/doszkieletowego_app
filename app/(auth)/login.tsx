@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
 import { AppButton, AppHeader, AppInput, AppScreen } from '../../src/ui/components';
-import { colors, radius, spacing, typography } from '../../src/ui/theme';
+import { colors, spacing, typography } from '../../src/ui/theme';
 
 const GOOGLE_AUTH_ENABLED = false;
 
@@ -98,19 +98,7 @@ export default function LoginScreen() {
       >
         <AppScreen>
           <View style={styles.content}>
-            <AppHeader
-              title="BuildIQ"
-              style={styles.header}
-              rightSlot={
-                <TouchableOpacity
-                  onPress={() => router.replace('/(auth)/welcome')}
-                  style={styles.headerBackBtn}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.backText}>←</Text>
-                </TouchableOpacity>
-              }
-            />
+            <AppHeader title="BuildIQ" style={styles.header} height={92} />
 
             <View style={styles.formBlock}>
               <View>
@@ -187,22 +175,12 @@ const styles = StyleSheet.create({
   },
   header: {
     marginTop: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
-  headerBackBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  backText: { color: colors.textSoft, fontSize: 22, fontWeight: '800' },
   formBlock: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: spacing.xl,
     paddingBottom: spacing['2xl'],
   },
   inputWrap: { marginBottom: spacing.md },
@@ -212,7 +190,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   forgotWrap: { marginTop: spacing.lg - 2, alignItems: 'center' },
-  forgotText: { color: colors.textSoft, ...typography.label },
+  forgotText: { color: colors.textSoft, fontSize: 16, lineHeight: 22, fontWeight: '700' },
   bottomLinkWrap: { marginTop: spacing.lg + 2, alignItems: 'center' },
   bottomLink: { color: colors.textMuted, ...typography.body },
   bottomLinkStrong: { color: colors.accentBright, fontWeight: '700' },
