@@ -1,33 +1,29 @@
 {
   "title": "Fotos",
-  "loading": "Wird geladen…",
-
+  "loading": "Wird geladen...",
   "misc": {
     "stageFallback": "Phase"
   },
-
   "filter": {
     "allStages": "Alle Phasen"
   },
-
   "sort": {
     "newest": "Neueste",
     "oldest": "Älteste"
   },
-
   "empty": {
     "title": "Keine Fotos",
     "subtitleAll": "Füge die ersten Fotos zum Projekt hinzu.",
     "subtitleStage": "In dieser Phase gibt es noch keine Fotos.",
     "addButton": "Fotos hinzufügen"
   },
-
   "addModal": {
     "title": "Fotos hinzufügen",
     "stageLabel": "Phase",
     "pickStage": "Phase wählen",
     "dateLabel": "Datum",
     "pickDate": "Datum auswählen",
+    "setDate": "Datum festlegen",
     "descLabel": "Beschreibung",
     "descPlaceholder": "Beschreibung hinzufügen (optional)",
     "tagsLabel": "Tags",
@@ -36,11 +32,9 @@
     "cancel": "Abbrechen",
     "pickPhoto": "Fotos auswählen"
   },
-
   "preview": {
     "delete": "Löschen"
   },
-
   "alerts": {
     "successTitle": "Erfolg",
     "loadStagesError": "Phasen konnten nicht geladen werden.",

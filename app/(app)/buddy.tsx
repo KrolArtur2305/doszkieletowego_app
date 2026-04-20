@@ -8,7 +8,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
   Image,
@@ -29,37 +28,29 @@ const BUDDY_AVATAR = require('../../assets/buddy_avatar.png');
 const FEATURES = [
   {
     icon: 'trending-up' as const,
-    titleKey: 'buddy.feature1.title',
-    titleDefault: 'Analiza budżetu',
-    descKey: 'buddy.feature1.desc',
-    descDefault: 'Ocenia Twoje wydatki i ostrzega gdy coś jest nie tak',
+    titleKey: 'onboarding.feature1.title',
+    descKey: 'onboarding.feature1.desc',
   },
   {
     icon: 'bell' as const,
-    titleKey: 'buddy.feature2.title',
-    titleDefault: 'Inteligentne alerty',
-    descKey: 'buddy.feature2.desc',
-    descDefault: 'Sam wychodzi z informacją gdy dzieje się coś ważnego',
+    titleKey: 'onboarding.feature2.title',
+    descKey: 'onboarding.feature2.desc',
   },
   {
     icon: 'calendar' as const,
-    titleKey: 'buddy.feature3.title',
-    titleDefault: 'Pilnuje harmonogramu',
-    descKey: 'buddy.feature3.desc',
-    descDefault: 'Przypomina o zadaniach i śledzi postęp etapów',
+    titleKey: 'onboarding.feature3.title',
+    descKey: 'onboarding.feature3.desc',
   },
   {
     icon: 'message-circle' as const,
-    titleKey: 'buddy.feature4.title',
-    titleDefault: 'Zawsze do dyspozycji',
-    descKey: 'buddy.feature4.desc',
-    descDefault: 'Pytaj o wszystko związane z budową, odpowie od razu',
+    titleKey: 'onboarding.feature4.title',
+    descKey: 'onboarding.feature4.desc',
   },
 ];
 
 export default function BuddyOnboardingScreen() {
   const router = useRouter();
-  const { t } = useTranslation('settings');
+  const { t } = useTranslation('buddy');
   const { session } = useSupabaseAuth();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
 
@@ -89,16 +80,16 @@ export default function BuddyOnboardingScreen() {
     );
     float.start();
     return () => float.stop();
-  }, []);
+  }, [avatarAnim, avatarScale, contentAnim, floatAnim]);
 
   const handleSave = async () => {
     const name = buddyName.trim();
     if (!name) {
-      setError(t('buddy.nameRequired', { defaultValue: 'Podaj imię kierownika' }));
+      setError(t('settings.errors.nameRequired'));
       return;
     }
     if (name.length > 30) {
-      setError(t('buddy.nameTooLong', { defaultValue: 'Imię może mieć max 30 znaków' }));
+      setError(t('settings.errors.nameTooLong'));
       return;
     }
 
@@ -106,7 +97,7 @@ export default function BuddyOnboardingScreen() {
     setError(null);
     try {
       const userId = session?.user?.id;
-      if (!userId) throw new Error('Brak sesji');
+      if (!userId) throw new Error(t('settings.errors.noSession'));
 
       const { error: dbErr } = await supabase
         .from('profiles')
@@ -117,7 +108,7 @@ export default function BuddyOnboardingScreen() {
 
       router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
-      setError(e?.message ?? t('buddy.saveError', { defaultValue: 'Nie udało się zapisać' }));
+      setError(e?.message ?? t('settings.errors.save'));
     } finally {
       setSaving(false);
     }
@@ -140,15 +131,6 @@ export default function BuddyOnboardingScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <Animated.View style={{ opacity: avatarAnim, alignItems: 'center' }}>
-              <View style={styles.eyebrowWrap}>
-                <View style={styles.eyebrowDot} />
-                <Text style={styles.eyebrow}>
-                  {t('buddy.eyebrow', { defaultValue: 'Kierownik AI' })}
-                </Text>
-              </View>
-            </Animated.View>
-
             <Animated.View
               style={[
                 styles.avatarWrap,
@@ -166,11 +148,6 @@ export default function BuddyOnboardingScreen() {
                 style={styles.avatarImage}
                 resizeMode="cover"
               />
-
-              <View style={styles.aiBadge}>
-                <Feather name="cpu" size={10} color="#0B1120" />
-                <Text style={styles.aiBadgeText}>AI</Text>
-              </View>
             </Animated.View>
 
             <Animated.View
@@ -185,16 +162,25 @@ export default function BuddyOnboardingScreen() {
               ]}
             >
               <Text style={styles.title}>
-                {t('buddy.onboarding.title', { defaultValue: 'Poznaj swojego\nkierownika budowy' })}
+                {t('onboarding.title')}
               </Text>
               <Text style={styles.subtitle}>
-                {t('buddy.onboarding.subtitle', { defaultValue: 'Nadaj mu imię, będzie Twoim partnerem przez całą budowę' })}
+                {t('onboarding.subtitle')}
               </Text>
+            </Animated.View>
+
+            <Animated.View style={{ opacity: avatarAnim, alignItems: 'center' }}>
+              <View style={styles.eyebrowWrap}>
+                <View style={styles.eyebrowDot} />
+                <Text style={styles.eyebrow}>
+                  {t('onboarding.eyebrow')}
+                </Text>
+              </View>
             </Animated.View>
 
             <Animated.View style={[styles.inputSection, { opacity: contentAnim }]}>
               <Text style={styles.inputLabel}>
-                {t('buddy.onboarding.nameLabel', { defaultValue: 'Imię kierownika' })}
+                {t('onboarding.nameLabel')}
               </Text>
               <BlurView intensity={14} tint="dark" style={styles.inputWrap}>
                 <Feather name="user" size={18} color="rgba(37,240,200,0.50)" />
@@ -204,7 +190,7 @@ export default function BuddyOnboardingScreen() {
                     setBuddyName(v);
                     setError(null);
                   }}
-                  placeholder={t('buddy.onboarding.namePlaceholder', { defaultValue: 'np. Andrzej, Max, Tomek...' })}
+                  placeholder={t('onboarding.namePlaceholder')}
                   placeholderTextColor="#888888"
                   maxLength={30}
                   autoCapitalize="words"
@@ -223,7 +209,7 @@ export default function BuddyOnboardingScreen() {
 
             <Animated.View style={[styles.featuresWrap, { opacity: contentAnim }]}>
               <Text style={styles.featuresTitle}>
-                {t('buddy.onboarding.featuresTitle', { defaultValue: 'Co potrafi Twój kierownik?' })}
+                {t('onboarding.featuresTitle')}
               </Text>
               {FEATURES.map((f, i) => (
                 <View key={i} style={styles.featureRow}>
@@ -232,10 +218,10 @@ export default function BuddyOnboardingScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.featureTitle}>
-                      {t(f.titleKey, { defaultValue: f.titleDefault })}
+                      {t(f.titleKey)}
                     </Text>
                     <Text style={styles.featureDesc}>
-                      {t(f.descKey, { defaultValue: f.descDefault })}
+                      {t(f.descKey)}
                     </Text>
                   </View>
                 </View>
@@ -245,10 +231,7 @@ export default function BuddyOnboardingScreen() {
             <Animated.View style={[styles.proNote, { opacity: contentAnim }]}>
               <Feather name="star" size={13} color={NEON} />
               <Text style={styles.proNoteText}>
-                {t('buddy.onboarding.proNote', {
-                  defaultValue:
-                    'Na premierę kierownik AI jest dostępny dla wszystkich użytkowników. Płatne plany pojawią się w kolejnej aktualizacji.',
-                })}
+                {t('onboarding.proNote')}
               </Text>
             </Animated.View>
 
@@ -256,8 +239,8 @@ export default function BuddyOnboardingScreen() {
               <AppButton
                 title={
                   saving
-                    ? t('buddy.onboarding.saving', { defaultValue: 'Zapisywanie...' })
-                    : t('buddy.onboarding.cta', { defaultValue: 'Poznaj kierownika' })
+                    ? t('onboarding.saving')
+                    : t('onboarding.cta')
                 }
                 onPress={handleSave}
                 loading={saving}
@@ -313,13 +296,6 @@ const styles = StyleSheet.create({
     width: 180, height: 180, borderRadius: 90,
     borderWidth: 2.5, borderColor: 'rgba(37,240,200,0.35)',
   },
-  aiBadge: {
-    position: 'absolute', bottom: 8, right: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: NEON,
-  },
-  aiBadgeText: { color: '#0B1120', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
 
   titleWrap: { alignItems: 'center', marginBottom: 28 },
   title: {

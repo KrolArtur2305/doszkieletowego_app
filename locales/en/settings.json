@@ -9,6 +9,8 @@
     "profileSubtitle": "Account owner details",
     "investmentTitle": "Investment",
     "investmentSubtitle": "Project / build details",
+    "buddyTitle": "AI Construction Manager",
+    "buddySubtitle": "Change the name and settings",
     "appTitle": "App",
     "appSubtitle": "App settings",
     "subscriptionTitle": "Manage subscription",
@@ -46,7 +48,7 @@
       "send": "Send report",
       "sending": "Sending..."
     },
-    "hint": "Reports are reviewed within 24–48 hours.",
+    "hint": "Reports are reviewed within 24-48 hours.",
     "hintDemo": "This is a demo version. Later we will connect Supabase Storage or a webhook."
   },
   "appSettings": {

@@ -1,21 +1,34 @@
 {
-  "checkout": {
-    "title": "Ihr Abonnementplan",
-    "subtitle": "Verwalten Sie Ihren Bau ohne Einschränkungen",
-    "selectBtn": "Plan wählen",
-    "freeCta": "Kostenlos wählen",
-    "processing": "Verarbeitung...",
-    "successTitle": "Danke!",
-    "successMessage": "Ihr Plan wird nach der Zahlungsbestätigung aktiviert.",
-    "security": "Sichere Zahlung • Jederzeit kündbar",
-    "savingsNote": "Sie sparen {{amount}} zł"
-  },
+  "eyebrow": "Pläne in Vorbereitung",
+  "title": "Abos bald verfügbar",
+  "subtitle": "Die Pläne Free, Standard und Pro sind bereits vorbereitet. Bezahlte Aktivierungen folgen in einem kommenden Update.",
+  "currentPlan": "Aktueller Plan",
+  "launchInfo": "Zum Start ist dieser Bildschirm nur informativ. Die Auswahl eines Plans startet keinen Kauf und aktiviert kein kostenpflichtiges Abo.",
+  "popular": "Beliebt",
+  "free": "Kostenlos",
+  "currency": "€",
+  "month": "Monat",
+  "twoYears": "2 Jahre",
+  "orYearly": "oder {{price}} {{currency}} / {{period}}",
+  "billingMonthly": "Monatlich",
+  "billingYearly": "2 Jahre",
+  "priceEquiv": "≈ {{amount}} €/Monat",
+  "currentPlanBtn": "Aktiv",
+  "unlimited": "Unbegrenzt",
+  "featureWithValue": "{{value}} {{label}}",
+  "yes": "Ja",
+  "no": "Nein",
   "plans": {
     "free": { "name": "Free", "desc": "Grundfunktionen", "forever": "für immer" },
     "standard": { "name": "Standard", "desc": "Für aktive Bauherren", "badge": "BELIEBT" },
     "pro": { "name": "Pro", "desc": "Volle Leistung", "badge": "PRO" }
   },
   "features": {
+    "photos": "Fotos",
+    "docs": "Dokumente",
+    "tasks": "Aufgaben",
+    "model3d": "3D-Modell",
+    "ai": "KI-Assistent",
     "photosLabel": "Fotos",
     "photos20": "bis zu 20 Fotos",
     "photos50": "bis zu 50 Fotos",
@@ -31,13 +44,18 @@
     "model3dLabel": "3D-Modell",
     "aiLabel": "KI-Assistent"
   },
-  "free": "Kostenlos",
-  "yes": "Ja",
-  "no": "Nein",
-  "month": "Mo.",
-  "twoYears": "2 Jahre",
-  "billingMonthly": "Monatlich",
-  "billingYearly": "2 Jahre",
-  "priceEquiv": "≈ {{amount}} zł/Mo.",
-  "savingsNote": "Sparen Sie über 40% gegenüber monatlich"
+  "checkout": {
+    "title": "Pläne in Vorbereitung",
+    "subtitle": "Vergleichen Sie Free, Standard und Pro. Käufe in der App folgen erst in einem späteren Update.",
+    "selectBtn": "Bezahlte Pläne bald verfügbar",
+    "freeCta": "Zum Start verfügbar",
+    "processing": "Verarbeitung...",
+    "successTitle": "Danke!",
+    "successMessage": "Ihr Plan wird nach der Zahlungsbestätigung aktiviert.",
+    "security": "Sichere Zahlung • Jederzeit kündbar",
+    "savingsNote": "Sie sparen {{amount}} €",
+    "unavailableTitle": "Käufe vorübergehend nicht verfügbar",
+    "unavailableMessage": "In-App-Käufe sind in dieser Version noch nicht aktiv. Die Auswahl eines Plans startet keine Zahlung und aktiviert kein Abo.",
+    "notice": "Dieser Bildschirm dient nur zur Information. In dieser Version können Sie keinen Kauf starten und keinen kostenpflichtigen Plan aktivieren."
+  }
 }

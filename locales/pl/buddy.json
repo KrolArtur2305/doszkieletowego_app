@@ -26,6 +26,33 @@
       "save": "Nie udało się zapisać zmian"
     }
   },
+  "onboarding": {
+    "eyebrow": "KIEROWNIK AI",
+    "title": "Poznaj swojego\nkierownika budowy",
+    "subtitle": "Nadaj mu imię, będzie Twoim partnerem przez całą budowę.",
+    "nameLabel": "Imię kierownika",
+    "namePlaceholder": "np. Andrzej, Max, Tomek...",
+    "featuresTitle": "Co potrafi Twój kierownik?",
+    "feature1": {
+      "title": "Analiza budżetu",
+      "desc": "Ocenia Twoje wydatki i ostrzega, gdy coś jest nie tak."
+    },
+    "feature2": {
+      "title": "Inteligentne alerty",
+      "desc": "Sam wychodzi z informacją, gdy dzieje się coś ważnego."
+    },
+    "feature3": {
+      "title": "Pilnuje harmonogramu",
+      "desc": "Przypomina o zadaniach i śledzi postęp etapów."
+    },
+    "feature4": {
+      "title": "Zawsze do dyspozycji",
+      "desc": "Pytaj o wszystko związane z budową, odpowie od razu."
+    },
+    "proNote": "Na premierę kierownik AI jest dostępny dla wszystkich użytkowników. Płatne plany pojawią się w kolejnej aktualizacji.",
+    "saving": "Zapisywanie...",
+    "cta": "Poznaj kierownika"
+  },
   "chat": {
     "fallbackName": "Kierownik",
     "headerDefault": "Kierownik budowy AI",

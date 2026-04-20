@@ -1,11 +1,11 @@
 {
-  "myProject": "Mein Projekt",
-  "screenTitle": "Projekt",
+  "myProject": "Mein Bauprojekt",
+  "screenTitle": "Bauprojekt",
   "projectLocationPlaceholder": "—",
   "buildingParams": "Gebäudeparameter",
   "projectPlans": "Projektgrundrisse",
   "change3dModel": "3D-Modell hinzufügen / ersetzen",
-
+  "edit": "Bearbeiten",
   "tilePowU": "Nutzfläche",
   "tileFloors": "Etagen",
   "tileRooms": "Räume",
@@ -15,34 +15,27 @@
   "tileRoofArea": "Dachfläche",
   "tileFacadeWidth": "Fassadenbreite",
   "tileFacadeLength": "Fassadenlänge",
-
   "addPlan": "Grundriss hinzufügen",
   "planDefaultName": "Grundriss",
   "planHint": "Tippen: Vorschau • Gedrückt halten: löschen",
-
   "noPlansTitle": "Keine Grundrisse",
   "noPlansSubtitle": "Füge deinen ersten Grundriss hinzu (jpg/png/webp).",
-
   "errorTitle": "Fehler",
   "loadError": "Projektdaten konnten nicht aus Supabase geladen werden.",
   "createProjectError": "Projekt konnte in Supabase nicht erstellt werden.",
   "addPlanError": "Grundriss konnte nicht hinzugefügt werden.",
   "deletePlanError": "Grundriss konnte nicht gelöscht werden.",
-
   "deletePlanTitle": "Grundriss löschen?",
   "deletePlanDesc": "Die Datei wird aus dem Storage und der Datenbank entfernt.",
-
   "cancel": "Abbrechen",
   "delete": "Löschen",
   "save": "Speichern",
-
   "editParamsTitle": "Parameter bearbeiten",
   "saveErrorTitle": "Speicherfehler",
   "fieldGroupGeneral": "Allgemein",
   "fieldGroupSurfaces": "Flächen",
   "fieldGroupStructure": "Struktur",
   "fieldGroupFacade": "Fassade",
-
   "fieldProjectName": "Projektname",
   "fieldPowU": "Nutzfläche (m²)",
   "fieldFloors": "Etagen",
@@ -53,16 +46,13 @@
   "fieldRoofArea": "Dachfläche (m²)",
   "fieldFacadeWidth": "Fassadenbreite (m)",
   "fieldFacadeLength": "Fassadenlänge (m)",
-
   "model3dTitle": "3D-Modell",
   "model3dNextStep": "Nächster Schritt: .glb/.gltf hochladen und projekty.model_url aktualisieren.",
-
   "model": {
     "hintRotateZoom": "Ziehen zum Drehen • Zum Zoomen ziehen",
     "errorTitle": "3D-Modellfehler",
     "loadFailed": "Modell konnte nicht geladen werden."
   },
-
   "notLoggedTitle": "Nicht angemeldet",
   "notLoggedDesc": "Bitte erneut anmelden.",
   "noAccessTitle": "Kein Zugriff",

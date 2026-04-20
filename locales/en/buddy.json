@@ -26,6 +26,33 @@
       "save": "Failed to save changes"
     }
   },
+  "onboarding": {
+    "eyebrow": "AI SUPERVISOR",
+    "title": "Meet your\nconstruction supervisor",
+    "subtitle": "Give them a name and they’ll support you throughout the whole build.",
+    "nameLabel": "Supervisor name",
+    "namePlaceholder": "e.g. Andrew, Max, Tom...",
+    "featuresTitle": "What can your supervisor do?",
+    "feature1": {
+      "title": "Budget analysis",
+      "desc": "Reviews your spending and warns you when something looks wrong."
+    },
+    "feature2": {
+      "title": "Smart alerts",
+      "desc": "Proactively reaches out when something important is happening."
+    },
+    "feature3": {
+      "title": "Keeps the schedule on track",
+      "desc": "Reminds you about tasks and tracks stage progress."
+    },
+    "feature4": {
+      "title": "Always available",
+      "desc": "Ask about anything related to the build and get an answer right away."
+    },
+    "proNote": "At launch, the AI supervisor is available to all users. Paid plans will arrive in a future update.",
+    "saving": "Saving...",
+    "cta": "Meet your supervisor"
+  },
   "chat": {
     "fallbackName": "Supervisor",
     "headerDefault": "AI Construction Supervisor",

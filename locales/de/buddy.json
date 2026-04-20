@@ -26,6 +26,33 @@
       "save": "Änderungen konnten nicht gespeichert werden"
     }
   },
+  "onboarding": {
+    "eyebrow": "KI-BAULEITER",
+    "title": "Lernen Sie Ihren\ndigitalen Bauleiter kennen",
+    "subtitle": "Geben Sie ihm einen Namen und er begleitet Sie durch den gesamten Bau.",
+    "nameLabel": "Name des Bauleiters",
+    "namePlaceholder": "z. B. Andreas, Max, Tom...",
+    "featuresTitle": "Was kann Ihr Bauleiter?",
+    "feature1": {
+      "title": "Budgetanalyse",
+      "desc": "Prüft Ihre Ausgaben und warnt, wenn etwas nicht stimmt."
+    },
+    "feature2": {
+      "title": "Intelligente Hinweise",
+      "desc": "Meldet sich von selbst, wenn etwas Wichtiges passiert."
+    },
+    "feature3": {
+      "title": "Behält den Zeitplan im Blick",
+      "desc": "Erinnert an Aufgaben und verfolgt den Fortschritt der Bauphasen."
+    },
+    "feature4": {
+      "title": "Immer verfügbar",
+      "desc": "Fragen Sie alles rund um den Bau und erhalten Sie sofort eine Antwort."
+    },
+    "proNote": "Zum Start ist der KI-Bauleiter für alle Nutzer verfügbar. Bezahlte Pläne folgen in einem kommenden Update.",
+    "saving": "Wird gespeichert...",
+    "cta": "Bauleiter kennenlernen"
+  },
   "chat": {
     "fallbackName": "Bauleiter",
     "headerDefault": "KI-Bauleiter",

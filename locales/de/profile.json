@@ -1,10 +1,10 @@
 {
   "header": {
-    "title": "Profil",
+    "title": "Benutzerprofil",
     "completeProfile": "Vervollständige dein Profil"
   },
   "loading": {
-    "profileData": "Profildaten werden geladen�"
+    "profileData": "Profildaten werden geladen..."
   },
   "alerts": {
     "completeDataTitle": "Daten vervollständigen",

@@ -1,33 +1,29 @@
 {
   "title": "Zdjęcia",
-  "loading": "Ładowanie…",
-
+  "loading": "Ładowanie...",
   "misc": {
     "stageFallback": "Etap"
   },
-
   "filter": {
     "allStages": "Wszystkie etapy"
   },
-
   "sort": {
     "newest": "Najnowsze",
     "oldest": "Najstarsze"
   },
-
   "empty": {
     "title": "Brak zdjęć",
     "subtitleAll": "Dodaj pierwsze zdjęcia do projektu.",
     "subtitleStage": "W tym etapie nie ma jeszcze zdjęć.",
     "addButton": "Dodaj zdjęcia"
   },
-
   "addModal": {
     "title": "Dodaj zdjęcia",
     "stageLabel": "Etap",
     "pickStage": "Wybierz etap",
     "dateLabel": "Data",
     "pickDate": "Wybierz datę",
+    "setDate": "Ustaw datę",
     "descLabel": "Opis",
     "descPlaceholder": "Dodaj opis (opcjonalnie)",
     "tagsLabel": "Tagi",
@@ -36,11 +32,9 @@
     "cancel": "Anuluj",
     "pickPhoto": "Wybierz zdjęcia"
   },
-
   "preview": {
     "delete": "Usuń"
   },
-
   "alerts": {
     "successTitle": "Sukces",
     "loadStagesError": "Nie udało się wczytać etapów.",

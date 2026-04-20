@@ -1,21 +1,34 @@
 {
-  "checkout": {
-    "title": "Your subscription plan",
-    "subtitle": "Manage your build without limits",
-    "selectBtn": "Choose plan",
-    "freeCta": "Choose free",
-    "processing": "Processing...",
-    "successTitle": "Thank you!",
-    "successMessage": "Your plan will be activated after payment confirmation.",
-    "security": "Secure payment • Cancel anytime",
-    "savingsNote": "You save {{amount}} zł"
-  },
+  "eyebrow": "Plans in progress",
+  "title": "Subscriptions coming soon",
+  "subtitle": "Free, Standard and Pro plans are ready. Paid activations will arrive in a future update.",
+  "currentPlan": "Current plan",
+  "launchInfo": "At launch, this screen is informational only. Choosing a plan does not start a purchase or activate a paid subscription.",
+  "popular": "Popular",
+  "free": "Free",
+  "currency": "USD",
+  "month": "mo",
+  "twoYears": "2 years",
+  "orYearly": "or {{price}} {{currency}} / {{period}}",
+  "billingMonthly": "Monthly",
+  "billingYearly": "2 years",
+  "priceEquiv": "≈ {{amount}} USD/mo",
+  "currentPlanBtn": "Active",
+  "unlimited": "Unlimited",
+  "featureWithValue": "{{value}} {{label}}",
+  "yes": "Yes",
+  "no": "No",
   "plans": {
     "free": { "name": "Free", "desc": "Basic features", "forever": "forever" },
     "standard": { "name": "Standard", "desc": "For active builders", "badge": "POPULAR" },
     "pro": { "name": "Pro", "desc": "Full power", "badge": "PRO" }
   },
   "features": {
+    "photos": "photos",
+    "docs": "documents",
+    "tasks": "tasks",
+    "model3d": "3D model",
+    "ai": "AI assistant",
     "photosLabel": "Photos",
     "photos20": "up to 20 photos",
     "photos50": "up to 50 photos",
@@ -31,13 +44,18 @@
     "model3dLabel": "3D Model",
     "aiLabel": "AI Assistant"
   },
-  "free": "Free",
-  "yes": "Yes",
-  "no": "No",
-  "month": "mo",
-  "twoYears": "2 years",
-  "billingMonthly": "Monthly",
-  "billingYearly": "2 years",
-  "priceEquiv": "≈ {{amount}} zł/mo",
-  "savingsNote": "Save over 40% compared to monthly"
+  "checkout": {
+    "title": "Plans in progress",
+    "subtitle": "Compare Free, Standard and Pro plans. In-app purchases will arrive in a future update.",
+    "selectBtn": "Paid plans coming soon",
+    "freeCta": "Available from day one",
+    "processing": "Processing...",
+    "successTitle": "Thank you!",
+    "successMessage": "Your plan will be activated after payment confirmation.",
+    "security": "Secure payment • Cancel anytime",
+    "savingsNote": "You save {{amount}} USD",
+    "unavailableTitle": "Purchases temporarily unavailable",
+    "unavailableMessage": "In-app purchases are not active in this version yet. Choosing a plan will not start payment or activate a subscription.",
+    "notice": "This screen is informational only. In this version you cannot start a purchase or activate a paid plan."
+  }
 }

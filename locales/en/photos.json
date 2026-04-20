@@ -1,33 +1,29 @@
 {
   "title": "Photos",
-  "loading": "Loading…",
-
+  "loading": "Loading...",
   "misc": {
     "stageFallback": "Stage"
   },
-
   "filter": {
     "allStages": "All stages"
   },
-
   "sort": {
     "newest": "Newest",
     "oldest": "Oldest"
   },
-
   "empty": {
     "title": "No photos",
     "subtitleAll": "Add your first photos to the project.",
     "subtitleStage": "There are no photos in this stage yet.",
     "addButton": "Add photos"
   },
-
   "addModal": {
     "title": "Add photos",
     "stageLabel": "Stage",
     "pickStage": "Select stage",
     "dateLabel": "Date",
     "pickDate": "Pick a date",
+    "setDate": "Set date",
     "descLabel": "Description",
     "descPlaceholder": "Add a description (optional)",
     "tagsLabel": "Tags",
@@ -36,11 +32,9 @@
     "cancel": "Cancel",
     "pickPhoto": "Choose photos"
   },
-
   "preview": {
     "delete": "Delete"
   },
-
   "alerts": {
     "successTitle": "Success",
     "loadStagesError": "Could not load stages.",

@@ -5,7 +5,17 @@
   },
   "hero": {
     "welcome": "Witaj",
-    "dateLine": "Dziś jest {{date}}, jesteś już w połowie budowy — przeprowadzka coraz bliżej."
+    "datePrefix": "Dziś jest {{date}},",
+    "messages": {
+      "busyDay": "przed Tobą intensywny dzień i kilka rzeczy czeka na domknięcie.",
+      "budgetCritical": "budżet jest już mocno napięty, więc warto trzymać kurs bez zbędnych kosztów.",
+      "budgetHigh": "warto pilnować kosztów, bo budżet zaczyna wchodzić w ważną strefę.",
+      "finalStretch": "końcówka budowy jest coraz bliżej i dobrze widać już metę.",
+      "midBuild": "jesteś już w solidnym rytmie i budowa wyraźnie idzie do przodu.",
+      "earlyBuild": "fundament pod kolejne etapy jest już gotowy i można budować tempo.",
+      "focusDay": "masz dziś konkretny plan, więc warto wykorzystać ten dzień dobrze.",
+      "steadyDay": "to dobry moment, żeby spokojnie przygotować grunt pod kolejne etapy."
+    }
   },
   "donuts": {
     "budgetLabel": "Budżet",
@@ -20,17 +30,17 @@
     "estimatedCompletionPlaceholder": "—",
     "allDone": "Wszystkie etapy zrealizowane",
     "noStages": "Brak etapów",
-    "loadingProgress": "Ładowanie postępu…",
+    "loadingProgress": "Ładowanie postępu...",
     "completed": "Zrealizowane: {{milestones}}"
   },
   "photos": {
     "latestTitle": "Ostatnio dodane zdjęcia",
-    "loading": "Ładowanie zdjęć…",
+    "loading": "Ładowanie zdjęć...",
     "empty": "Brak zdjęć — dodaj pierwsze w module Zdjęcia."
   },
   "calendar": {
     "title": "Kalendarz",
-    "loadingTasks": "Ładowanie zadań…",
+    "loadingTasks": "Ładowanie zadań...",
     "fetchError": "Błąd pobierania zadań",
     "clickDayHint": "Kliknij dzień, aby zobaczyć zadania",
     "nearestTasks": "Najbliższe zadania",
@@ -69,7 +79,7 @@
     "date": "Data",
     "time": "Godzina",
     "removeTime": "Usuń godzinę (ustaw całodniowe)",
-    "hint": "Wybierz datę i opcjonalnie godzinę z pickerów. Jeśli nie ustawisz godziny — zadanie jest całodniowe.",
+    "hint": "Wybierz datę i opcjonalnie godzinę z pickerów. Jeśli nie ustawisz godziny, zadanie jest całodniowe.",
     "errorTitle": "Błąd",
     "errorGeneric": "Nie udało się dodać zadania."
   },

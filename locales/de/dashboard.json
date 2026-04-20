@@ -5,7 +5,17 @@
   },
   "hero": {
     "welcome": "Willkommen",
-    "dateLine": "Heute ist {{date}} — Ihr neues Zuhause rückt näher."
+    "datePrefix": "Heute ist {{date}},",
+    "messages": {
+      "busyDay": "ein intensiver Tag liegt vor Ihnen und mehrere Dinge warten auf den Abschluss.",
+      "budgetCritical": "das Budget ist bereits angespannt, daher lohnt sich jetzt klare Kostendisziplin.",
+      "budgetHigh": "es lohnt sich, die Ausgaben genau im Blick zu behalten, weil das Budget sensibler wird.",
+      "finalStretch": "das Ende des Baus rückt näher und das Ziel ist inzwischen klar zu sehen.",
+      "midBuild": "Sie sind in einem guten Rhythmus und der Bau geht sichtbar voran.",
+      "earlyBuild": "die Grundlage für die nächsten Etappen steht und das Tempo baut sich auf.",
+      "focusDay": "für heute gibt es einen klaren Plan, also lohnt es sich, den Tag gut zu nutzen.",
+      "steadyDay": "das ist ein guter Moment, um ruhig die nächsten Etappen vorzubereiten."
+    }
   },
   "donuts": {
     "budgetLabel": "Budget",
@@ -20,17 +30,17 @@
     "estimatedCompletionPlaceholder": "—",
     "allDone": "Alle Phasen abgeschlossen",
     "noStages": "Keine Phasen",
-    "loadingProgress": "Fortschritt wird geladen…",
+    "loadingProgress": "Fortschritt wird geladen...",
     "completed": "Abgeschlossen: {{milestones}}"
   },
   "photos": {
     "latestTitle": "Zuletzt hinzugefügte Fotos",
-    "loading": "Fotos werden geladen…",
+    "loading": "Fotos werden geladen...",
     "empty": "Noch keine Fotos — fügen Sie das erste im Fotos-Modul hinzu."
   },
   "calendar": {
     "title": "Kalender",
-    "loadingTasks": "Aufgaben werden geladen…",
+    "loadingTasks": "Aufgaben werden geladen...",
     "fetchError": "Fehler beim Laden der Aufgaben",
     "clickDayHint": "Tag antippen, um Aufgaben zu sehen",
     "nearestTasks": "Nächste Aufgaben",
@@ -64,7 +74,7 @@
   "modal": {
     "addTaskTitle": "Aufgabe hinzufügen",
     "selectedDate": "Ausgewähltes Datum: {{date}}",
-    "titlePlaceholder": "Titel (z.B. Fenstermontage)",
+    "titlePlaceholder": "Titel (z. B. Fenstermontage)",
     "descriptionPlaceholder": "Beschreibung (optional)",
     "date": "Datum",
     "time": "Uhrzeit",
@@ -117,6 +127,6 @@
   },
   "buddy": {
     "analyzing": "KI-Bauleiter",
-    "placeholder": "Budgetanalyse demnächst verfügbar..."
+    "placeholder": "Budgetanalyse wird bald verfügbar sein..."
   }
 }

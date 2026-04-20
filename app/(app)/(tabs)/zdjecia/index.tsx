@@ -810,7 +810,7 @@ export default function ZdjeciaScreen() {
                     }}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.iosDateOkText}>{tt('photos:addModal.setDate', { defaultValue: 'Ustaw datę' })}</Text>
+                    <Text style={styles.iosDateOkText}>{tt('photos:addModal.setDate')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (

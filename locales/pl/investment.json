@@ -2,35 +2,38 @@
   "screen": {
     "title": "Inwestycja"
   },
+  "loading": "Ładowanie inwestycji...",
   "alerts": {
     "completeDataTitle": "Uzupełnij dane",
     "nameRequired": "Nazwa inwestycji jest wymagana, aby kontynuować.",
-    "locationRequired": "Lokalizacja jest wymagana, aby kontynuować.",
+    "locationRequired": "Lokalizacja inwestycji jest wymagana, aby kontynuować.",
     "invalidBudgetTitle": "Nieprawidłowy budżet",
     "invalidBudgetMsg": "Budżet nie może być ujemny.",
     "errorTitle": "Błąd",
+    "loadFailed": "Nie udało się pobrać inwestycji.",
     "noSession": "Brak użytkownika. Zaloguj się ponownie.",
     "saveFailed": "Nie udało się zapisać danych. Spróbuj ponownie.",
     "saveErrorTitle": "Błąd zapisu"
   },
   "form": {
     "nameLabel": "Nazwa inwestycji",
-    "namePlaceholder": "np. Dom w lesie",
+    "namePlaceholder": "np. Dom pod Krakowem",
     "locationLabel": "Lokalizacja",
-    "locationPlaceholder": "np. Kluczewsko",
+    "locationPlaceholder": "np. Wieliczka",
     "startLabel": "Data startu",
-    "endLabel": "Data zakończenia",
-    "datePlaceholder": "DD.MM.RRRR",
-    "plannedBudgetLabel": "Planowany budżet (PLN)",
-    "plannedBudgetPlaceholder": "np. 400000"
+    "endLabel": "Data końca",
+    "datePlaceholder": "Wybierz datę",
+    "plannedBudgetLabel": "Planowany budżet",
+    "plannedBudgetPlaceholder": "np. 450000"
   },
   "modal": {
     "pickStartTitle": "Wybierz datę startu",
-    "pickEndTitle": "Wybierz datę zakończenia"
+    "pickEndTitle": "Wybierz datę końca"
   },
   "actions": {
-    "saving": "Zapisywanie…",
+    "saving": "Zapisywanie...",
     "saveAndContinue": "Zapisz i przejdź dalej",
+    "saveAndContinueToApp": "Zapisz i przejdź do aplikacji",
     "save": "Zapisz",
     "cancel": "Anuluj"
   }

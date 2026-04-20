@@ -2,9 +2,19 @@
   "tabs": {
     "start": "Home",
     "budget": "Budget",
+    "buddy": "Supervisor",
     "documents": "Documents",
     "photos": "Photos",
     "project": "Project",
-    "profile": "Profile"
+    "profile": "Profile",
+    "more": "More"
+  },
+  "more": {
+    "title": "More",
+    "contacts": "Contacts",
+    "progress": "Progress",
+    "tasks": "Tasks",
+    "journal": "Construction journal",
+    "settings": "Settings"
   }
 }

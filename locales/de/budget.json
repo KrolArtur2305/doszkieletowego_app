@@ -3,7 +3,7 @@
     "cancel": "Abbrechen",
     "delete": "Löschen",
     "save": "Speichern",
-    "saving": "Speichert…"
+    "saving": "Wird gespeichert..."
   },
   "header": {
     "title": "Budget"
@@ -28,14 +28,28 @@
   "actions": {
     "addExpense": "+ AUSGABE HINZUFÜGEN"
   },
+  "time": {
+    "progress": "Bauzeit"
+  },
+  "buddy": {
+    "analyzing": "KI-Bauleiter",
+    "placeholder": "Budgetanalyse wird bald verfügbar sein..."
+  },
   "chart": {
     "categoriesTitle": "Kategorien",
-    "spentSubtitle": "ausgegebene Kosten"
+    "spentSubtitle": "bereits ausgegebene Kosten"
+  },
+  "filter": {
+    "all": "Alle",
+    "spent": "Ausgegeben",
+    "planned": "Geplant"
   },
   "list": {
     "recentTitle": "Letzte Ausgaben",
     "sortNewest": "Sortierung: neueste",
-    "empty": "Keine Ausgaben. Füge oben deine erste Ausgabe hinzu."
+    "empty": "Keine Ausgaben. Füge oben deine erste Ausgabe hinzu.",
+    "showLess": "Weniger anzeigen",
+    "showMore": "Alle {{count}} Ausgaben anzeigen"
   },
   "expense": {
     "defaultName": "Ausgabe",
@@ -51,7 +65,7 @@
     "nameLabel": "Name *",
     "namePlaceholder": "z. B. Fenster",
     "categoryLabel": "Kategorie",
-    "amountLabel": "Betrag (PLN) *",
+    "amountLabel": "Betrag *",
     "amountPlaceholder": "z. B. 12500",
     "dateOptional": "Datum — optional",
     "setDate": "Datum festlegen",

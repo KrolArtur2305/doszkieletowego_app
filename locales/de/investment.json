@@ -2,35 +2,38 @@
   "screen": {
     "title": "Projekt"
   },
+  "loading": "Projekt wird geladen...",
   "alerts": {
     "completeDataTitle": "Bitte ausfüllen",
     "nameRequired": "Der Projektname ist erforderlich, um fortzufahren.",
-    "locationRequired": "Der Ort ist erforderlich, um fortzufahren.",
+    "locationRequired": "Der Projektstandort ist erforderlich, um fortzufahren.",
     "invalidBudgetTitle": "Ungültiges Budget",
     "invalidBudgetMsg": "Das Budget darf nicht negativ sein.",
     "errorTitle": "Fehler",
+    "loadFailed": "Projekt konnte nicht geladen werden.",
     "noSession": "Kein Benutzer. Bitte erneut anmelden.",
     "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
     "saveErrorTitle": "Speicherfehler"
   },
   "form": {
     "nameLabel": "Projektname",
-    "namePlaceholder": "z.B. Haus im Wald",
+    "namePlaceholder": "z. B. Haus bei Krakau",
     "locationLabel": "Ort",
-    "locationPlaceholder": "z.B. Warschau",
+    "locationPlaceholder": "z. B. Wieliczka",
     "startLabel": "Startdatum",
     "endLabel": "Enddatum",
-    "datePlaceholder": "TT.MM.JJJJ",
-    "plannedBudgetLabel": "Geplantes Budget (PLN)",
-    "plannedBudgetPlaceholder": "z.B. 400000"
+    "datePlaceholder": "Datum auswählen",
+    "plannedBudgetLabel": "Geplantes Budget",
+    "plannedBudgetPlaceholder": "z. B. 450000"
   },
   "modal": {
     "pickStartTitle": "Startdatum wählen",
     "pickEndTitle": "Enddatum wählen"
   },
   "actions": {
-    "saving": "Wird gespeichert…",
+    "saving": "Wird gespeichert...",
     "saveAndContinue": "Speichern & weiter",
+    "saveAndContinueToApp": "Speichern und zur App wechseln",
     "save": "Speichern",
     "cancel": "Abbrechen"
   }

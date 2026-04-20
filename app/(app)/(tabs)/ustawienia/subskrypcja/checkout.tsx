@@ -87,10 +87,8 @@ export default function CheckoutScreen() {
     }
 
     Alert.alert(
-      t('checkout.unavailableTitle', { defaultValue: 'Zakupy chwilowo niedostępne' }),
-      t('checkout.unavailableMessage', {
-        defaultValue: 'Zakupy w aplikacji nie są jeszcze aktywne w tej wersji. Wybranie planu nie uruchamia płatności ani nie aktywuje subskrypcji.',
-      })
+      t('checkout.unavailableTitle'),
+      t('checkout.unavailableMessage')
     )
   }
 
@@ -110,15 +108,8 @@ export default function CheckoutScreen() {
           <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.65)" />
         </TouchableOpacity>
 
-        <Text style={styles.screenTitle}>
-          {t('checkout.title', { defaultValue: 'Plany w przygotowaniu' })}
-        </Text>
-        <Text style={styles.screenSubtitle}>
-          {t('checkout.subtitle', {
-            defaultValue:
-              'Porównaj zakres planów Free, Standard i Pro. Zakupy w aplikacji pojawią się dopiero w kolejnej aktualizacji.',
-          })}
-        </Text>
+        <Text style={styles.screenTitle}>{t('checkout.title')}</Text>
+        <Text style={styles.screenSubtitle}>{t('checkout.subtitle')}</Text>
 
         <View style={styles.dots}>
           {SUBSCRIPTION_PLAN_ORDER.map((key, i) => (
@@ -192,53 +183,53 @@ export default function CheckoutScreen() {
                     {isThisPro && (
                       <View style={[styles.badge, styles.badgePro]}>
                         <Text style={[styles.badgeText, { color: NEON }]}>
-                          {t('plans.pro.badge', { defaultValue: 'PRO' })}
+                          {t('plans.pro.badge')}
                         </Text>
                       </View>
                     )}
                     {isThisStandard && (
                       <View style={[styles.badge, styles.badgeStandard]}>
                         <Text style={[styles.badgeText, { color: ACCENT }]}>
-                          {t('plans.standard.badge', { defaultValue: 'POPULARNY' })}
+                          {t('plans.standard.badge')}
                         </Text>
                       </View>
                     )}
                   </View>
 
                   <Text style={[styles.cardName, { color: nameColor }]}>
-                    {t(plan.nameKey, { defaultValue: key.toUpperCase() })}
+                    {t(plan.nameKey)}
                   </Text>
 
                   <View style={styles.features}>
                     <View style={styles.featRow}>
-                      <Text style={styles.featLabel}>{t('features.photosLabel', { defaultValue: 'Zdjęcia' })}</Text>
+                      <Text style={styles.featLabel}>{t('features.photosLabel')}</Text>
                       <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
                         {plan.features.photos === 'unlimited'
-                          ? t('features.photosUnlimited', { defaultValue: 'bez limitu' })
-                          : t(`features.photos${plan.features.photos}`, { defaultValue: `do ${plan.features.photos} zdjęć` })}
+                          ? t('features.photosUnlimited')
+                          : t(`features.photos${plan.features.photos}`)}
                       </Text>
                     </View>
 
                     <View style={styles.featRow}>
-                      <Text style={styles.featLabel}>{t('features.docsLabel', { defaultValue: 'Dokumenty' })}</Text>
+                      <Text style={styles.featLabel}>{t('features.docsLabel')}</Text>
                       <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
                         {plan.features.docs === 'unlimited'
-                          ? t('features.docsUnlimited', { defaultValue: 'bez limitu' })
-                          : t(`features.docs${plan.features.docs}`, { defaultValue: `do ${plan.features.docs} dokumentów` })}
+                          ? t('features.docsUnlimited')
+                          : t(`features.docs${plan.features.docs}`)}
                       </Text>
                     </View>
 
                     <View style={styles.featRow}>
-                      <Text style={styles.featLabel}>{t('features.tasksLabel', { defaultValue: 'Zadania' })}</Text>
+                      <Text style={styles.featLabel}>{t('features.tasksLabel')}</Text>
                       <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
                         {plan.features.tasks === 'unlimited'
-                          ? t('features.tasksUnlimited', { defaultValue: 'bez limitu' })
-                          : t(`features.tasks${plan.features.tasks}`, { defaultValue: `do ${plan.features.tasks} zadań` })}
+                          ? t('features.tasksUnlimited')
+                          : t(`features.tasks${plan.features.tasks}`)}
                       </Text>
                     </View>
 
                     <View style={styles.featRow}>
-                      <Text style={styles.featLabel}>{t('features.model3dLabel', { defaultValue: 'Model 3D' })}</Text>
+                      <Text style={styles.featLabel}>{t('features.model3dLabel')}</Text>
                       <View style={styles.featBoolWrap}>
                         <Feather
                           name={plan.features.model3d ? 'check' : 'x'}
@@ -246,15 +237,13 @@ export default function CheckoutScreen() {
                           color={plan.features.model3d ? checkColor : 'rgba(255,255,255,0.22)'}
                         />
                         <Text style={[styles.featBool, !plan.features.model3d && styles.featBoolOff]}>
-                          {plan.features.model3d
-                            ? t('yes', { defaultValue: 'Tak' })
-                            : t('no', { defaultValue: 'Nie' })}
+                          {plan.features.model3d ? t('yes') : t('no')}
                         </Text>
                       </View>
                     </View>
 
                     <View style={[styles.featRow, { borderBottomWidth: 0 }]}>
-                      <Text style={styles.featLabel}>{t('features.aiLabel', { defaultValue: 'Asystent AI' })}</Text>
+                      <Text style={styles.featLabel}>{t('features.aiLabel')}</Text>
                       <View style={styles.featBoolWrap}>
                         <Feather
                           name={plan.features.ai ? 'check' : 'x'}
@@ -262,9 +251,7 @@ export default function CheckoutScreen() {
                           color={plan.features.ai ? (isThisPro ? NEON : checkColor) : 'rgba(255,255,255,0.22)'}
                         />
                         <Text style={[styles.featBool, !plan.features.ai && styles.featBoolOff]}>
-                          {plan.features.ai
-                            ? t('yes', { defaultValue: 'Tak' })
-                            : t('no', { defaultValue: 'Nie' })}
+                          {plan.features.ai ? t('yes') : t('no')}
                         </Text>
                       </View>
                     </View>
@@ -273,32 +260,29 @@ export default function CheckoutScreen() {
                   <View style={styles.priceSection}>
                     {isThisFree ? (
                       <>
-                        <Text style={styles.priceFree}>{t('free', { defaultValue: 'Bezpłatny' })}</Text>
-                        <Text style={styles.priceFreeSub}>{t('plans.free.forever', { defaultValue: 'na zawsze' })}</Text>
+                        <Text style={styles.priceFree}>{t('free')}</Text>
+                        <Text style={styles.priceFreeSub}>{t('plans.free.forever')}</Text>
                       </>
                     ) : (
                       <>
                         <View style={styles.priceRow}>
                           <Text style={[styles.priceAmount, isThisPro && { color: NEON }]}>
                             {billing === 'monthly'
-                              ? `${displayPrice?.toFixed(2)} zł`
-                              : `${displayPrice} zł`
+                              ? `${displayPrice?.toFixed(2)} ${t('currency')}`
+                              : `${displayPrice} ${t('currency')}`
                             }
                           </Text>
                           <Text style={styles.pricePeriod}>
                             {billing === 'monthly'
-                              ? `/ ${t('month', { defaultValue: 'msc' })}`
-                              : `/ ${t('twoYears', { defaultValue: '2 lata' })}`
+                              ? `/ ${t('month')}`
+                              : `/ ${t('twoYears')}`
                             }
                           </Text>
                         </View>
 
                         {billing === 'yearly' && yearlyMonthly !== null && (
                           <Text style={styles.priceEquiv}>
-                            {t('priceEquiv', {
-                              defaultValue: `≈ ${yearlyMonthly.toFixed(2)} zł/msc`,
-                              amount: yearlyMonthly.toFixed(2),
-                            })}
+                            {t('priceEquiv', { amount: yearlyMonthly.toFixed(2) })}
                           </Text>
                         )}
 
@@ -309,7 +293,7 @@ export default function CheckoutScreen() {
                             activeOpacity={0.85}
                           >
                             <Text style={[styles.billingText, billing === 'monthly' && styles.billingTextActive]}>
-                              {t('billingMonthly', { defaultValue: 'Miesięcznie' })}
+                              {t('billingMonthly')}
                             </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
@@ -318,7 +302,7 @@ export default function CheckoutScreen() {
                             activeOpacity={0.85}
                           >
                             <Text style={[styles.billingText, billing === 'yearly' && styles.billingTextActive]}>
-                              {t('billingYearly', { defaultValue: '2 lata' })}
+                              {t('billingYearly')}
                             </Text>
                             <View style={styles.savePill}>
                               <Text style={styles.savePillText}>-40%</Text>
@@ -344,8 +328,8 @@ export default function CheckoutScreen() {
                       isThisFree && styles.selectBtnTextFree,
                     ]}>
                       {isThisFree
-                        ? t('checkout.freeCta', { defaultValue: 'Dostępny na start' })
-                        : t('checkout.selectBtn', { defaultValue: 'Płatne plany wkrótce' })}
+                        ? t('checkout.freeCta')
+                        : t('checkout.selectBtn')}
                     </Text>
                   </TouchableOpacity>
                 </BlurView>
@@ -356,12 +340,7 @@ export default function CheckoutScreen() {
 
         <View style={styles.securityRow}>
           <Feather name="info" size={12} color="rgba(255,255,255,0.25)" />
-          <Text style={styles.securityText}>
-            {t('checkout.notice', {
-              defaultValue:
-                'Ten ekran ma charakter informacyjny. W tej wersji nie uruchamiasz zakupu i nie aktywujesz płatnego planu.',
-            })}
-          </Text>
+          <Text style={styles.securityText}>{t('checkout.notice')}</Text>
         </View>
 
         <View style={{ height: 40 }} />

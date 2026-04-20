@@ -5,7 +5,17 @@
   },
   "hero": {
     "welcome": "Welcome",
-    "dateLine": "Today is {{date}} — your new home is getting closer."
+    "datePrefix": "Today is {{date}},",
+    "messages": {
+      "busyDay": "you have a full day ahead and a few things are ready to be wrapped up.",
+      "budgetCritical": "the budget is already tight, so it is worth staying disciplined on costs.",
+      "budgetHigh": "it is a good time to watch expenses, because the budget is entering a sensitive zone.",
+      "finalStretch": "the finish line is getting closer and the end of the build is finally in sight.",
+      "midBuild": "you are in a solid rhythm now and the build is clearly moving forward.",
+      "earlyBuild": "the groundwork for the next stages is in place and momentum is building.",
+      "focusDay": "you have a clear plan for today, so it is worth making this day count.",
+      "steadyDay": "this is a good moment to calmly prepare the ground for the next stages."
+    }
   },
   "donuts": {
     "budgetLabel": "Budget",
@@ -20,17 +30,17 @@
     "estimatedCompletionPlaceholder": "—",
     "allDone": "All stages completed",
     "noStages": "No stages",
-    "loadingProgress": "Loading progress…",
+    "loadingProgress": "Loading progress...",
     "completed": "Completed: {{milestones}}"
   },
   "photos": {
     "latestTitle": "Recently added photos",
-    "loading": "Loading photos…",
+    "loading": "Loading photos...",
     "empty": "No photos yet — add your first one in the Photos module."
   },
   "calendar": {
     "title": "Calendar",
-    "loadingTasks": "Loading tasks…",
+    "loadingTasks": "Loading tasks...",
     "fetchError": "Error fetching tasks",
     "clickDayHint": "Tap a day to see tasks",
     "nearestTasks": "Upcoming tasks",

@@ -50,10 +50,16 @@ const CATEGORY_OPTIONS = [
 const CATEGORIES = CATEGORY_OPTIONS.map((option) => option.value);
 type CategoryValue = (typeof CATEGORY_OPTIONS)[number]['value'];
 
-const formatPLN = (value: number) =>
-  new Intl.NumberFormat('pl-PL', {
+const currencyByLocale = (locale: string) => {
+  if (locale.startsWith('de')) return 'EUR';
+  if (locale.startsWith('en')) return 'USD';
+  return 'PLN';
+};
+
+const formatCurrency = (value: number, locale: string) =>
+  new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'PLN',
+    currency: currencyByLocale(locale),
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
@@ -65,11 +71,11 @@ const safeNumber = (v: any) => {
 
 const normalize = (s: any) => String(s ?? '').trim().toLowerCase();
 
-const formatPLDate = (dateRaw: any) => {
+const formatDateByLocale = (dateRaw: any, locale: string) => {
   if (!dateRaw) return '—';
   const d = new Date(dateRaw);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('pl-PL');
+  return d.toLocaleDateString(locale);
 };
 
 const toYYYYMMDD = (d: Date) => {
@@ -336,7 +342,7 @@ export default function BudzetScreen() {
   };
 
   const confirmDeleteExpense = (row: WydatkiRow) => {
-    Alert.alert(t('delete.confirmTitle'), `${row.nazwa ?? t('expense.defaultName')}\n${formatPLN(safeNumber(row.kwota))}`, [
+    Alert.alert(t('delete.confirmTitle'), `${row.nazwa ?? t('expense.defaultName')}\n${formatCurrency(safeNumber(row.kwota), datePickerLocale)}`, [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpense(row) },
     ]);
@@ -444,7 +450,7 @@ export default function BudzetScreen() {
               <View style={[styles.timeBarFill, { width: `${Math.round(timeUtil * 100)}%` as any }]} />
             </View>
             <View style={styles.timeBarLabels}>
-              <Text style={styles.timeBarText}>{t('time.progress', { defaultValue: 'Czas budowy' })}</Text>
+              <Text style={styles.timeBarText}>{t('time.progress')}</Text>
               <Text style={styles.timeBarPct}>{Math.round(timeUtil * 100)}%</Text>
             </View>
           </View>
@@ -467,7 +473,7 @@ export default function BudzetScreen() {
                 stroke={16}
               />
               <Text style={styles.donutSubText}>
-                {`${formatPLN(spentTotal)} / ${formatPLN(plannedBudget || 0)}`}
+                {`${formatCurrency(spentTotal, datePickerLocale)} / ${formatCurrency(plannedBudget || 0, datePickerLocale)}`}
               </Text>
             </>
           )}
@@ -478,11 +484,11 @@ export default function BudzetScreen() {
           <View style={styles.heroStats}>
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>{t('stats.remaining')}</Text>
-              <Text style={styles.statValue}>{formatPLN(remaining)}</Text>
+              <Text style={styles.statValue}>{formatCurrency(remaining, datePickerLocale)}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>{t('stats.planned')}</Text>
-              <Text style={styles.statValue}>{formatPLN(upcomingTotal)}</Text>
+              <Text style={styles.statValue}>{formatCurrency(upcomingTotal, datePickerLocale)}</Text>
             </View>
           </View>
         )}
@@ -495,10 +501,10 @@ export default function BudzetScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.buddyName}>
-                {t('buddy.analyzing', { defaultValue: 'Kierownik budowy AI' })}
+                {t('buddy.analyzing')}
               </Text>
               <Text style={styles.buddyText}>
-                {t('buddy.placeholder', { defaultValue: 'Analiza budżetu będzie dostępna wkrótce...' })}
+                {t('buddy.placeholder')}
               </Text>
             </View>
           </View>
@@ -521,7 +527,7 @@ export default function BudzetScreen() {
                       <View style={[styles.vBarFill, { height: h }]} />
                     </View>
                     <Text style={styles.vLabel} numberOfLines={1}>{k}</Text>
-                    <Text style={styles.vValue} numberOfLines={1}>{formatPLN(v)}</Text>
+                    <Text style={styles.vValue} numberOfLines={1}>{formatCurrency(v, datePickerLocale)}</Text>
                   </View>
                 );
               })}
@@ -547,10 +553,10 @@ export default function BudzetScreen() {
               >
                 <Text style={[styles.filterPillText, filter === f && styles.filterPillTextActive]}>
                   {f === 'all'
-                    ? t('filter.all', { defaultValue: 'Wszystkie' })
+                    ? t('filter.all')
                     : f === 'spent'
-                    ? t('filter.spent', { defaultValue: 'Poniesione' })
-                    : t('filter.planned', { defaultValue: 'Zaplanowane' })
+                    ? t('filter.spent')
+                    : t('filter.planned')
                   }
                 </Text>
               </TouchableOpacity>
@@ -589,7 +595,7 @@ export default function BudzetScreen() {
                         {w.nazwa ?? t('expense.defaultName')}
                       </Text>
                       <Text style={styles.itemMeta}>
-                        {w.data ? formatPLDate(w.data) : w.created_at ? t('expense.addedOn', { date: formatPLDate(w.created_at) }) : '—'}
+                        {w.data ? formatDateByLocale(w.data, datePickerLocale) : w.created_at ? t('expense.addedOn', { date: formatDateByLocale(w.created_at, datePickerLocale) }) : '—'}
                         {'  •  '}
                         {w.kategoria ?? 'Inne'}
                         {'  •  '}
@@ -601,7 +607,7 @@ export default function BudzetScreen() {
                         styles.itemAmount,
                         normalize(w.status) === STATUS_UPCOMING && styles.itemAmountPlanned,
                       ]}>
-                        {formatPLN(safeNumber(w.kwota))}
+                        {formatCurrency(safeNumber(w.kwota), datePickerLocale)}
                       </Text>
                       {!!w.plik && (
                         <TouchableOpacity onPress={() => openReceipt(w.plik!)} style={{ marginTop: 6 }}>
@@ -622,8 +628,8 @@ export default function BudzetScreen() {
                 >
                   <Text style={styles.showMoreText}>
                     {showAll
-                      ? t('list.showLess', { defaultValue: 'Pokaż mniej' })
-                      : t('list.showMore', { defaultValue: `Pokaż wszystkie ${filteredWydatki.length} wydatki`, count: filteredWydatki.length })
+                      ? t('list.showLess')
+                      : t('list.showMore', { count: filteredWydatki.length })
                     }
                   </Text>
                   <Feather name={showAll ? 'chevron-up' : 'chevron-down'} size={14} color={NEON} style={{ opacity: 0.7 }} />

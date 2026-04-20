@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import {
-  completeGoogleOAuthFromUrl,
-} from '../src/services/auth/googleOAuth';
+import { useTranslation } from 'react-i18next';
+import { completeGoogleOAuthFromUrl } from '../src/services/auth/googleOAuth';
 
 export default function AuthCallbackScreen() {
+  const { t } = useTranslation('auth');
   const handledRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,12 +18,12 @@ export default function AuthCallbackScreen() {
       try {
         const completed = await completeGoogleOAuthFromUrl(url);
         if (!completed) {
-          throw new Error('Brak danych sesji w callbacku Google OAuth');
+          throw new Error(t('callback.errors.noSessionData'));
         }
 
         router.replace('/(app)');
       } catch (nextError: any) {
-        setError(nextError?.message ?? 'Nie udało się dokończyć logowania Google');
+        setError(nextError?.message ?? t('callback.errors.completeFailed'));
         setTimeout(() => {
           router.replace('/(auth)/login');
         }, 1200);
@@ -36,7 +36,7 @@ export default function AuthCallbackScreen() {
         return;
       }
 
-      setError('Brak danych callbacku Google OAuth');
+      setError(t('callback.errors.noCallbackData'));
       setTimeout(() => {
         router.replace('/(auth)/login');
       }, 1200);
@@ -49,13 +49,13 @@ export default function AuthCallbackScreen() {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [t]);
 
   return (
     <View style={styles.container}>
       <ActivityIndicator />
       <Text style={styles.text}>
-        {error ?? 'Kończę logowanie Google...'}
+        {error ?? t('callback.loading')}
       </Text>
     </View>
   );

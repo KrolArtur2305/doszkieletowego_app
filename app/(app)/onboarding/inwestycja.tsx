@@ -29,8 +29,8 @@ function pad2(n: number) {
   return String(n).padStart(2, '0');
 }
 
-function formatPL(d: Date) {
-  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
+function formatDateForLocale(d: Date, locale: string) {
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function toISODate(d: Date) {
@@ -65,7 +65,7 @@ function toBudgetNumber(value: string) {
 
 export default function OnboardingInvestmentScreen() {
   const router = useRouter();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('investment');
 
   const locale = useMemo(
     () => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language),
@@ -87,13 +87,13 @@ export default function OnboardingInvestmentScreen() {
 
   const startDisplay = useMemo(() => {
     const dt = parseISODate(dataStartISO);
-    return dt ? formatPL(dt) : '';
-  }, [dataStartISO]);
+    return dt ? formatDateForLocale(dt, locale) : '';
+  }, [dataStartISO, locale]);
 
   const koniecDisplay = useMemo(() => {
     const dt = parseISODate(dataKoniecISO);
-    return dt ? formatPL(dt) : '';
-  }, [dataKoniecISO]);
+    return dt ? formatDateForLocale(dt, locale) : '';
+  }, [dataKoniecISO, locale]);
 
   useEffect(() => {
     let alive = true;
@@ -123,7 +123,7 @@ export default function OnboardingInvestmentScreen() {
         setDataKoniecISO(data?.data_koniec ?? '');
         setBudzet(data?.budzet !== null && data?.budzet !== undefined ? String(data.budzet) : '');
       } catch (e: any) {
-        Alert.alert('Blad', e?.message ?? 'Nie udalo sie pobrac inwestycji.');
+        Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadFailed'));
       } finally {
         if (alive) setLoading(false);
       }
@@ -133,7 +133,7 @@ export default function OnboardingInvestmentScreen() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [t]);
 
   const openPicker = (which: 'start' | 'koniec') => {
     const initial =
@@ -160,17 +160,17 @@ export default function OnboardingInvestmentScreen() {
     const trimmedLocation = lokalizacja.trim();
 
     if (!trimmedName) {
-      Alert.alert('Blad', 'Podaj nazwe inwestycji.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.nameRequired'));
       return;
     }
 
     if (!trimmedLocation) {
-      Alert.alert('Blad', 'Podaj lokalizacje inwestycji.');
+      Alert.alert(t('alerts.errorTitle'), t('alerts.locationRequired'));
       return;
     }
 
     if (budget !== null && budget < 0) {
-      Alert.alert('Blad', 'Budzet nie moze byc ujemny.');
+      Alert.alert(t('alerts.invalidBudgetTitle'), t('alerts.invalidBudgetMsg'));
       return;
     }
 
@@ -204,7 +204,7 @@ export default function OnboardingInvestmentScreen() {
 
       router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
-      Alert.alert('Blad', e?.message ?? 'Nie udalo sie zapisac inwestycji.');
+      Alert.alert(t('alerts.saveErrorTitle'), e?.message ?? t('alerts.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -218,52 +218,52 @@ export default function OnboardingInvestmentScreen() {
         <View pointerEvents="none" style={styles.glowBottom} />
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Inwestycja</Text>
+          <Text style={styles.title}>{t('screen.title')}</Text>
 
           <BlurView intensity={18} tint="dark" style={styles.card}>
             {loading ? (
               <View style={styles.loadingWrap}>
                 <ActivityIndicator color={NEON} />
-                <Text style={styles.loadingText}>Laduje inwestycje...</Text>
+                <Text style={styles.loadingText}>{t('loading')}</Text>
               </View>
             ) : (
               <>
-                <Field label="Nazwa inwestycji *" value={nazwa} onChangeText={setNazwa} placeholder="np. Dom pod Krakowem" />
-                <Field label="Lokalizacja *" value={lokalizacja} onChangeText={setLokalizacja} placeholder="np. Wieliczka" />
+                <Field label={`${t('form.nameLabel')} *`} value={nazwa} onChangeText={setNazwa} placeholder={t('form.namePlaceholder')} />
+                <Field label={`${t('form.locationLabel')} *`} value={lokalizacja} onChangeText={setLokalizacja} placeholder={t('form.locationPlaceholder')} />
 
                 <View style={styles.row}>
                   <View style={[styles.fieldBlock, { flex: 1 }]}>
-                    <Text style={styles.fieldLabel}>Data startu</Text>
+                    <Text style={styles.fieldLabel}>{t('form.startLabel')}</Text>
                     <TouchableOpacity style={styles.pickerWrap} onPress={() => openPicker('start')} activeOpacity={0.88}>
                       <Feather name="calendar" size={16} color="rgba(37,240,200,0.55)" />
-                      <Text style={styles.pickerText}>{startDisplay || 'Wybierz date'}</Text>
+                      <Text style={styles.pickerText}>{startDisplay || t('form.datePlaceholder')}</Text>
                     </TouchableOpacity>
                   </View>
 
                   <View style={{ width: 10 }} />
 
                   <View style={[styles.fieldBlock, { flex: 1 }]}>
-                    <Text style={styles.fieldLabel}>Data konca</Text>
+                    <Text style={styles.fieldLabel}>{t('form.endLabel')}</Text>
                     <TouchableOpacity style={styles.pickerWrap} onPress={() => openPicker('koniec')} activeOpacity={0.88}>
                       <Feather name="calendar" size={16} color="rgba(37,240,200,0.55)" />
-                      <Text style={styles.pickerText}>{koniecDisplay || 'Wybierz date'}</Text>
+                      <Text style={styles.pickerText}>{koniecDisplay || t('form.datePlaceholder')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 <View style={styles.fieldBlock}>
-                  <Text style={styles.fieldLabel}>Planowany budzet</Text>
+                  <Text style={styles.fieldLabel}>{t('form.plannedBudgetLabel')}</Text>
                   <AppInput
                     value={budzet}
                     onChangeText={setBudzet}
-                    placeholder="np. 450000"
+                    placeholder={t('form.plannedBudgetPlaceholder')}
                     keyboardType="numeric"
                     style={styles.input}
                   />
                 </View>
 
                 <AppButton
-                  title="Zapisz i przejdz do aplikacji"
+                  title={saving ? t('actions.saving') : t('actions.saveAndContinueToApp')}
                   onPress={handleSave}
                   disabled={saving}
                   loading={saving}
@@ -278,7 +278,7 @@ export default function OnboardingInvestmentScreen() {
           <View style={styles.modalBackdrop}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>
-                {pickerOpen === 'start' ? 'Wybierz date startu' : 'Wybierz date konca'}
+                {pickerOpen === 'start' ? t('modal.pickStartTitle') : t('modal.pickEndTitle')}
               </Text>
 
               <View style={styles.modalPickerWrap}>
@@ -295,8 +295,8 @@ export default function OnboardingInvestmentScreen() {
               </View>
 
               <View style={styles.modalActions}>
-                <AppButton title="Anuluj" variant="secondary" onPress={closePicker} style={styles.modalBtnGhost} />
-                <AppButton title="Zapisz" onPress={confirmPicker} style={styles.modalBtnPrimary} />
+                <AppButton title={t('actions.cancel')} variant="secondary" onPress={closePicker} style={styles.modalBtnGhost} />
+                <AppButton title={t('actions.save')} onPress={confirmPicker} style={styles.modalBtnPrimary} />
               </View>
             </View>
           </View>

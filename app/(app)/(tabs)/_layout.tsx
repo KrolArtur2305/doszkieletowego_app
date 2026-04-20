@@ -45,7 +45,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="buddy/index"
         options={{
-          title: t('tabs.buddy', { defaultValue: 'Kierownik' }),
+          title: t('tabs.buddy'),
           tabBarIcon: ({ focused }) => (
             <View style={[styles.buddyAvatarWrap, focused && styles.buddyAvatarWrapFocused]}>
               <Image
@@ -71,7 +71,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="wiecej"
         options={{
-          title: t('tabs.more', { defaultValue: 'Więcej' }),
+          title: t('tabs.more'),
           tabBarIcon: ({ color, size }) => (
             <Feather name="grid" color={color} size={size ?? 20} />
           ),

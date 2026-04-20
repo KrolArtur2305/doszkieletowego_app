@@ -9,6 +9,8 @@
     "profileSubtitle": "Dane właściciela konta",
     "investmentTitle": "Inwestycja",
     "investmentSubtitle": "Szczegóły projektu / budowy",
+    "buddyTitle": "Kierownik budowy AI",
+    "buddySubtitle": "Zmień imię i ustawienia",
     "appTitle": "Aplikacja",
     "appSubtitle": "Ustawienia aplikacji",
     "subscriptionTitle": "Zarządzaj subskrypcją",
@@ -46,7 +48,7 @@
       "send": "Wyślij zgłoszenie",
       "sending": "Wysyłanie..."
     },
-    "hint": "Zgłoszenia są rozpatrywane w ciągu 24–48 godzin.",
+    "hint": "Zgłoszenia są rozpatrywane w ciągu 24-48 godzin.",
     "hintDemo": "To wersja demo. Później podłączymy Supabase Storage lub webhook."
   },
   "appSettings": {

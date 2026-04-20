@@ -9,6 +9,8 @@
     "profileSubtitle": "Daten des Kontoinhabers",
     "investmentTitle": "Investition",
     "investmentSubtitle": "Projekt- / Baudetails",
+    "buddyTitle": "KI-Bauleiter",
+    "buddySubtitle": "Name und Einstellungen ändern",
     "appTitle": "App",
     "appSubtitle": "App-Einstellungen",
     "subscriptionTitle": "Abonnement verwalten",
@@ -46,7 +48,7 @@
       "send": "Meldung senden",
       "sending": "Wird gesendet..."
     },
-    "hint": "Meldungen werden innerhalb von 24–48 Stunden bearbeitet.",
+    "hint": "Meldungen werden innerhalb von 24-48 Stunden bearbeitet.",
     "hintDemo": "Dies ist eine Demo-Version. Später verbinden wir Supabase Storage oder einen Webhook."
   },
   "appSettings": {

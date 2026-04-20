@@ -525,7 +525,7 @@ export default function ProjektScreen() {
               right={
                 <TouchableOpacity onPress={openEditParams} style={styles.editBtn} hitSlop={12} activeOpacity={0.85}>
                   <Feather name="sliders" size={13} color={NEON} />
-                  <Text style={styles.editBtnText}>{t('edit', { defaultValue: 'Edytuj' })}</Text>
+                  <Text style={styles.editBtnText}>{t('edit')}</Text>
                 </TouchableOpacity>
               }
               style={styles.sectionHeaderRow}

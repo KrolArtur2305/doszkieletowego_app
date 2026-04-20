@@ -85,6 +85,10 @@ function formatDateLongByLocale(d: Date, locale: string) {
   return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function formatDateDayMonthByLocale(d: Date, locale: string) {
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
+}
+
 function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
 }
@@ -94,10 +98,16 @@ function safeNumber(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
-const formatPLN = (value: number) =>
-  new Intl.NumberFormat('pl-PL', {
+const currencyByLocale = (locale: string) => {
+  if (locale.startsWith('de')) return 'EUR';
+  if (locale.startsWith('en')) return 'USD';
+  return 'PLN';
+};
+
+const formatCurrency = (value: number, locale: string) =>
+  new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'PLN',
+    currency: currencyByLocale(locale),
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
@@ -207,6 +217,24 @@ function buildBrief(
   if (parts.length === 0) return t('brief.allGood');
 
   return parts.join(' • ');
+}
+
+function pickHeroMessageKey(params: {
+  todayTaskCount: number;
+  budgetUtil: number;
+  progressValue: number;
+  timeUtil: number;
+}) {
+  const { todayTaskCount, budgetUtil, progressValue, timeUtil } = params;
+
+  if (todayTaskCount >= 4) return 'hero.messages.busyDay';
+  if (budgetUtil >= 0.9) return 'hero.messages.budgetCritical';
+  if (budgetUtil >= 0.7) return 'hero.messages.budgetHigh';
+  if (progressValue >= 0.85 || timeUtil >= 0.85) return 'hero.messages.finalStretch';
+  if (progressValue >= 0.45 || timeUtil >= 0.45) return 'hero.messages.midBuild';
+  if (progressValue > 0.05 || timeUtil > 0.05) return 'hero.messages.earlyBuild';
+  if (todayTaskCount > 0) return 'hero.messages.focusDay';
+  return 'hero.messages.steadyDay';
 }
 
 export default function DashboardScreen() {
@@ -403,7 +431,7 @@ export default function DashboardScreen() {
       await loadTasksOverview();
     } catch (e) {
       console.warn('addTask error:', e);
-      Alert.alert('Błąd', 'Nie udało się dodać zadania.');
+      Alert.alert(t('modal.errorTitle'), t('modal.errorGeneric'));
     }
   };
 
@@ -432,19 +460,7 @@ export default function DashboardScreen() {
           const d = new Date(dateStr);
           const weekdayKey = getWeekdayKey(d);
 
-          const defaultDayMap: Record<string, string> = {
-            sun: 'nd',
-            mon: 'pn',
-            tue: 'wt',
-            wed: 'śr',
-            thu: 'czw',
-            fri: 'pt',
-            sat: 'sob',
-          };
-
-          const label = t(`weather.days.${weekdayKey}`, {
-            defaultValue: defaultDayMap[weekdayKey] ?? d.toLocaleDateString(appLocale, { weekday: 'short' }),
-          });
+          const label = t(`weather.days.${weekdayKey}`);
 
           const maxT = Math.round(data.daily.temperature_2m_max[i]);
 
@@ -507,7 +523,7 @@ export default function DashboardScreen() {
             id: `exp-${w.id}`,
             type: 'expense',
             label: w.nazwa ?? t('activity.expense'),
-            meta: formatPLN(safeNumber(w.kwota)),
+            meta: formatCurrency(safeNumber(w.kwota), appLocale),
             icon: '💸',
           });
         }
@@ -704,14 +720,19 @@ export default function DashboardScreen() {
 
   // ── Derived ──
   const heroDateLine = useMemo(() => {
-    return t('hero.dateLine', {
-      date: formatDateLongByLocale(new Date(), appLocale),
-      defaultValue: formatDateLongByLocale(new Date(), appLocale),
+    const date = formatDateDayMonthByLocale(new Date(), appLocale);
+    const messageKey = pickHeroMessageKey({
+      todayTaskCount,
+      budgetUtil,
+      progressValue,
+      timeUtil,
     });
-  }, [t, appLocale]);
+
+    return `${t('hero.datePrefix', { date })} ${t(messageKey)}`;
+  }, [t, appLocale, todayTaskCount, budgetUtil, progressValue, timeUtil]);
 
   const estimatedCompletionText = useMemo(() => {
-    return t('progress.estimatedCompletionPlaceholder', { defaultValue: '—' });
+    return t('progress.estimatedCompletionPlaceholder');
   }, [t]);
 
   const dailyBrief = useMemo(() => {
@@ -814,7 +835,7 @@ export default function DashboardScreen() {
 
             <View style={styles.estimatedWrap}>
               <Text style={styles.progressLabel}>
-                {t('progress.estimatedCompletionLabel', { defaultValue: 'Przewidywana data ukończenia' })}
+                {t('progress.estimatedCompletionLabel')}
               </Text>
               <Text style={styles.estimatedValue}>{estimatedCompletionText}</Text>
             </View>
@@ -892,7 +913,7 @@ export default function DashboardScreen() {
                     />
                     {item.key === 'budzet' && (
                       <Text style={styles.donutSubText}>
-                        {statusLoading ? t('common:dash') : `${formatPLN(spentTotal)} / ${formatPLN(plannedBudget)}`}
+                        {statusLoading ? t('common:dash') : `${formatCurrency(spentTotal, appLocale)} / ${formatCurrency(plannedBudget, appLocale)}`}
                       </Text>
                     )}
                     {item.key === 'czas' && (
@@ -1221,11 +1242,11 @@ const styles = StyleSheet.create({
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   heroLogo: {
-    width: 44,
-    height: 44,
+    width: 62,
+    height: 62,
     flexShrink: 0,
     opacity: 0.98,
   },
@@ -1254,26 +1275,23 @@ const styles = StyleSheet.create({
   },
   heroWeatherWrap: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    gap: 8,
     flexShrink: 0,
   },
   heroWeatherChip: {
     alignItems: 'center',
-    paddingHorizontal: 5,
-    paddingVertical: 3,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    justifyContent: 'center',
+    minWidth: 28,
   },
   heroWeatherLabel: {
     color: 'rgba(255,255,255,0.38)',
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: '900',
     textTransform: 'lowercase',
   },
-  heroWeatherIcon: { fontSize: 11, lineHeight: 13 },
-  heroWeatherTemp: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+  heroWeatherIcon: { fontSize: 14, lineHeight: 16 },
+  heroWeatherTemp: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
   heroSubtitleWrap: { marginTop: 8, width: '100%' },
   heroSubtitle: {
     color: 'rgba(255,255,255,0.60)',

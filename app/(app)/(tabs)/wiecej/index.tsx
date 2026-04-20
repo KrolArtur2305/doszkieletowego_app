@@ -57,49 +57,49 @@ export default function WiecejScreen() {
   const tiles: Tile[] = [
     {
       key: 'zdjecia',
-      label: t('tabs.photos', { defaultValue: 'Zdjęcia' }),
+      label: t('tabs.photos'),
       icon: 'camera',
       color: '#F59E0B',
       onPress: () => router.push('/zdjecia'),
     },
     {
       key: 'dokumenty',
-      label: t('tabs.documents', { defaultValue: 'Dokumenty' }),
+      label: t('tabs.documents'),
       icon: 'file-text',
       color: '#3B82F6',
       onPress: () => router.push('/dokumenty'),
     },
     {
       key: 'kontakty',
-      label: 'Kontakty',
+      label: t('more.contacts'),
       icon: 'users',
       color: NEON,
       onPress: () => router.push('/wiecej/kontakty'),
     },
     {
       key: 'postepy',
-      label: 'Postępy',
+      label: t('more.progress'),
       icon: 'trending-up',
       color: '#A78BFA',
       onPress: () => router.push('/postepy'),
     },
     {
       key: 'zadania',
-      label: 'Zadania',
+      label: t('more.tasks'),
       icon: 'check-square',
       color: '#22C55E',
       onPress: () => router.push('/zadania'),
     },
     {
       key: 'dziennik',
-      label: 'Dziennik budowy',
+      label: t('more.journal'),
       icon: 'book-open',
       color: '#F472B6',
       onPress: () => router.push('/wiecej/dziennik'),
     },
     {
       key: 'ustawienia',
-      label: 'Ustawienia',
+      label: t('more.settings'),
       icon: 'sliders',
       color: NEON,
       onPress: () => router.push('/ustawienia'),
@@ -115,7 +115,7 @@ export default function WiecejScreen() {
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
       >
-        <AppHeader title="Więcej" style={styles.screenHeader} />
+        <AppHeader title={t('more.title')} style={styles.screenHeader} />
 
         <View style={styles.grid}>
           {tiles.map((tile, i) => {

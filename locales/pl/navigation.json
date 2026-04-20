@@ -2,9 +2,19 @@
   "tabs": {
     "start": "Start",
     "budget": "Budżet",
+    "buddy": "Kierownik",
     "documents": "Dokumenty",
     "photos": "Zdjęcia",
     "project": "Projekt",
-    "profile": "Profil"
+    "profile": "Profil",
+    "more": "Więcej"
+  },
+  "more": {
+    "title": "Więcej",
+    "contacts": "Kontakty",
+    "progress": "Postępy",
+    "tasks": "Zadania",
+    "journal": "Dziennik budowy",
+    "settings": "Ustawienia"
   }
 }

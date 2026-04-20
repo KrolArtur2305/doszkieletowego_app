@@ -126,18 +126,9 @@ export default function SubskrypcjaScreen() {
             },
           ]}
         >
-          <Text style={styles.eyebrow}>
-            {t('eyebrow', { defaultValue: 'Plany w przygotowaniu' })}
-          </Text>
-          <Text style={styles.title}>
-            {t('title', { defaultValue: 'Subskrypcje wkrótce' })}
-          </Text>
-          <Text style={styles.subtitle}>
-            {t('subtitle', {
-              defaultValue:
-                'Plan Free, Standard i Pro są już przygotowane. Płatne aktywacje pojawią się w kolejnej aktualizacji.',
-            })}
-          </Text>
+          <Text style={styles.eyebrow}>{t('eyebrow')}</Text>
+          <Text style={styles.title}>{t('title')}</Text>
+          <Text style={styles.subtitle}>{t('subtitle')}</Text>
         </Animated.View>
 
         {!loading && (
@@ -184,12 +175,7 @@ export default function SubskrypcjaScreen() {
 
         <BlurView intensity={12} tint="dark" style={styles.savingsNote}>
           <Feather name="info" size={14} color={NEON} />
-          <Text style={styles.savingsText}>
-            {t('launchInfo', {
-              defaultValue:
-                'Na starcie ekran ma charakter informacyjny. Wybranie planu nie uruchamia zakupu ani nie aktywuje płatnej subskrypcji.',
-            })}
-          </Text>
+          <Text style={styles.savingsText}>{t('launchInfo')}</Text>
         </BlurView>
 
         <View style={{ height: 40 }} />
@@ -328,8 +314,8 @@ function PlanCard({
               {isCurrent
                 ? t('currentPlanBtn')
                 : isFree
-                ? t('checkout.freeCta', { defaultValue: 'Plan darmowy' })
-                : t('checkout.selectBtn', { defaultValue: 'Szczegóły planu' })}
+                ? t('checkout.freeCta')
+                : t('checkout.selectBtn')}
             </Text>
           </TouchableOpacity>
         </BlurView>

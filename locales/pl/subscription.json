@@ -1,21 +1,34 @@
 {
-  "checkout": {
-    "title": "Twój plan subskrypcyjny",
-    "subtitle": "Zarządzaj swoją budową bez ograniczeń",
-    "selectBtn": "Wybierz plan",
-    "freeCta": "Wybierz darmowy",
-    "processing": "Przetwarzanie...",
-    "successTitle": "Dziękujemy!",
-    "successMessage": "Plan zostanie aktywowany po potwierdzeniu płatności.",
-    "security": "Bezpieczna płatność • Anuluj w dowolnym momencie",
-    "savingsNote": "Oszczędzasz {{amount}} zł"
-  },
+  "eyebrow": "Plany w przygotowaniu",
+  "title": "Subskrypcje wkrótce",
+  "subtitle": "Plan Free, Standard i Pro są już przygotowane. Płatne aktywacje pojawią się w kolejnej aktualizacji.",
+  "currentPlan": "Aktualny plan",
+  "launchInfo": "Na starcie ekran ma charakter informacyjny. Wybranie planu nie uruchamia zakupu ani nie aktywuje płatnej subskrypcji.",
+  "popular": "Popularny",
+  "free": "Bezpłatny",
+  "currency": "zł",
+  "month": "msc",
+  "twoYears": "2 lata",
+  "orYearly": "lub {{price}} {{currency}} / {{period}}",
+  "billingMonthly": "Miesięcznie",
+  "billingYearly": "2 lata",
+  "priceEquiv": "≈ {{amount}} zł/msc",
+  "currentPlanBtn": "Aktywny",
+  "unlimited": "Bez limitu",
+  "featureWithValue": "{{value}} {{label}}",
+  "yes": "Tak",
+  "no": "Nie",
   "plans": {
     "free": { "name": "Free", "desc": "Podstawowe funkcje", "forever": "na zawsze" },
     "standard": { "name": "Standard", "desc": "Dla aktywnych budujących", "badge": "POPULARNY" },
     "pro": { "name": "Pro", "desc": "Pełna moc aplikacji", "badge": "PRO" }
   },
   "features": {
+    "photos": "zdjęć",
+    "docs": "dokumentów",
+    "tasks": "zadań",
+    "model3d": "Model 3D",
+    "ai": "Asystent AI",
     "photosLabel": "Zdjęcia",
     "photos20": "do 20 zdjęć",
     "photos50": "do 50 zdjęć",
@@ -31,13 +44,18 @@
     "model3dLabel": "Model 3D",
     "aiLabel": "Asystent AI"
   },
-  "free": "Bezpłatny",
-  "yes": "Tak",
-  "no": "Nie",
-  "month": "msc",
-  "twoYears": "2 lata",
-  "billingMonthly": "Miesięcznie",
-  "billingYearly": "2 lata",
-  "priceEquiv": "≈ {{amount}} zł/msc",
-  "savingsNote": "Płacąc jednorazowo oszczędzasz ponad 40% rocznie"
+  "checkout": {
+    "title": "Plany w przygotowaniu",
+    "subtitle": "Porównaj zakres planów Free, Standard i Pro. Zakupy w aplikacji pojawią się dopiero w kolejnej aktualizacji.",
+    "selectBtn": "Płatne plany wkrótce",
+    "freeCta": "Dostępny na start",
+    "processing": "Przetwarzanie...",
+    "successTitle": "Dziękujemy!",
+    "successMessage": "Plan zostanie aktywowany po potwierdzeniu płatności.",
+    "security": "Bezpieczna płatność • Anuluj w dowolnym momencie",
+    "savingsNote": "Oszczędzasz {{amount}} zł",
+    "unavailableTitle": "Zakupy chwilowo niedostępne",
+    "unavailableMessage": "Zakupy w aplikacji nie są jeszcze aktywne w tej wersji. Wybranie planu nie uruchamia płatności ani nie aktywuje subskrypcji.",
+    "notice": "Ten ekran ma charakter informacyjny. W tej wersji nie uruchamiasz zakupu i nie aktywujesz płatnego planu."
+  }
 }

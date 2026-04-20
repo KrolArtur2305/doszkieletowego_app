@@ -3,7 +3,7 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "save": "Save",
-    "saving": "Saving…"
+    "saving": "Saving..."
   },
   "header": {
     "title": "Budget"
@@ -28,14 +28,28 @@
   "actions": {
     "addExpense": "+ ADD EXPENSE"
   },
+  "time": {
+    "progress": "Build timeline"
+  },
+  "buddy": {
+    "analyzing": "AI Construction Manager",
+    "placeholder": "Budget analysis will be available soon..."
+  },
   "chart": {
     "categoriesTitle": "Categories",
     "spentSubtitle": "spent expenses"
   },
+  "filter": {
+    "all": "All",
+    "spent": "Spent",
+    "planned": "Planned"
+  },
   "list": {
     "recentTitle": "Recent expenses",
     "sortNewest": "sorting: newest",
-    "empty": "No expenses. Add your first expense above."
+    "empty": "No expenses. Add your first expense above.",
+    "showLess": "Show less",
+    "showMore": "Show all {{count}} expenses"
   },
   "expense": {
     "defaultName": "Expense",
@@ -51,7 +65,7 @@
     "nameLabel": "Name *",
     "namePlaceholder": "e.g. Windows",
     "categoryLabel": "Category",
-    "amountLabel": "Amount (PLN) *",
+    "amountLabel": "Amount *",
     "amountPlaceholder": "e.g. 12500",
     "dateOptional": "Date — optional",
     "setDate": "Set date",

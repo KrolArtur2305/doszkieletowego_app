@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Animated,
   Image,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -13,7 +12,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -344,44 +342,39 @@ export default function BuddyChatScreen() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg} />
         <View pointerEvents="none" style={styles.glowTop} />
 
-      <View style={[styles.header, { paddingTop: topPad }]}>
-        <View style={styles.headerAvatarWrap}>
-          <Image source={BUDDY_AVATAR} style={styles.headerAvatar} resizeMode="cover" />
-          <View style={styles.onlineDot} />
+      <View style={[styles.header, { paddingTop: Math.max(topPad - 14, 4) }]}>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerIdentity}>
+            <View style={styles.headerAvatarWrap}>
+              <Image source={BUDDY_AVATAR} style={styles.headerAvatar} resizeMode="cover" />
+              <View style={styles.onlineDot} />
+            </View>
+
+            <Text style={styles.headerName}>{buddyName}</Text>
+          </View>
         </View>
 
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerName}>{buddyName}</Text>
-          <Text style={styles.headerSub}>
-            {currentConversationId ? currentConversationTitle : t('chat.headerDefault')}
-          </Text>
-        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            activeOpacity={0.85}
+            onPress={startNewConversation}
+            disabled={sending}
+          >
+            <Feather name="edit-3" size={17} color={NEON} />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.headerIconBtn}
-          activeOpacity={0.85}
-          onPress={startNewConversation}
-          disabled={sending}
-        >
-          <Feather name="edit-3" size={17} color={NEON} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.headerIconBtn}
-          activeOpacity={0.85}
-          onPress={() => setHistoryVisible(true)}
-        >
-          <Feather name="clock" size={17} color={NEON} />
-        </TouchableOpacity>
-
-        <View style={styles.headerBadge}>
-          <Feather name="cpu" size={11} color="#0B1120" />
-          <Text style={styles.headerBadgeText}>AI</Text>
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            activeOpacity={0.85}
+            onPress={() => setHistoryVisible(true)}
+          >
+            <Feather name="clock" size={17} color={NEON} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -395,6 +388,7 @@ export default function BuddyChatScreen() {
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {loadingInitial || loadingMessages ? (
             <View style={styles.loadingWrap}>
@@ -589,7 +583,6 @@ export default function BuddyChatScreen() {
         </View>
       </Modal>
       </View>
-    </TouchableWithoutFeedback>
   );
 }
 
@@ -608,19 +601,36 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    position: 'relative',
+    alignItems: 'stretch',
     paddingHorizontal: 18,
-    paddingBottom: 14,
+    paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.07)',
   },
+  headerTopRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    maxWidth: '72%',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
   headerAvatarWrap: { position: 'relative' },
   headerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 2,
     borderColor: 'rgba(37,240,200,0.40)',
   },
@@ -635,27 +645,19 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#000',
   },
-  headerName: { color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
-  headerSub: {
-    color: 'rgba(255,255,255,0.42)',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 1,
+  headerName: {
+    marginLeft: 12,
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 24,
+    flexShrink: 1,
+    textAlign: 'center',
   },
-  headerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: NEON,
-  },
-  headerBadgeText: { color: '#0B1120', fontSize: 10, fontWeight: '900' },
   headerIconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.08)',
@@ -664,6 +666,7 @@ const styles = StyleSheet.create({
   },
 
   messageList: {
+    flexGrow: 1,
     paddingHorizontal: 14,
     paddingTop: 16,
     paddingBottom: 8,

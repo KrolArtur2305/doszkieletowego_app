@@ -2,35 +2,38 @@
   "screen": {
     "title": "Investment"
   },
+  "loading": "Loading investment...",
   "alerts": {
     "completeDataTitle": "Complete the details",
     "nameRequired": "Project name is required to continue.",
-    "locationRequired": "Location is required to continue.",
+    "locationRequired": "Investment location is required to continue.",
     "invalidBudgetTitle": "Invalid budget",
     "invalidBudgetMsg": "Budget cannot be negative.",
     "errorTitle": "Error",
+    "loadFailed": "Could not load the investment.",
     "noSession": "No user. Please sign in again.",
-    "saveFailed": "Couldn’t save the data. Please try again.",
+    "saveFailed": "Couldn't save the data. Please try again.",
     "saveErrorTitle": "Save error"
   },
   "form": {
     "nameLabel": "Project name",
-    "namePlaceholder": "e.g. House in the woods",
+    "namePlaceholder": "e.g. House near Krakow",
     "locationLabel": "Location",
-    "locationPlaceholder": "e.g. Warsaw",
+    "locationPlaceholder": "e.g. Wieliczka",
     "startLabel": "Start date",
     "endLabel": "End date",
-    "datePlaceholder": "DD.MM.YYYY",
-    "plannedBudgetLabel": "Planned budget (PLN)",
-    "plannedBudgetPlaceholder": "e.g. 400000"
+    "datePlaceholder": "Pick a date",
+    "plannedBudgetLabel": "Planned budget",
+    "plannedBudgetPlaceholder": "e.g. 450000"
   },
   "modal": {
     "pickStartTitle": "Select start date",
     "pickEndTitle": "Select end date"
   },
   "actions": {
-    "saving": "Saving…",
+    "saving": "Saving...",
     "saveAndContinue": "Save & continue",
+    "saveAndContinueToApp": "Save and go to the app",
     "save": "Save",
     "cancel": "Cancel"
   }

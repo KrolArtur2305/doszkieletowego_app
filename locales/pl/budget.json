@@ -3,7 +3,7 @@
     "cancel": "Anuluj",
     "delete": "Usuń",
     "save": "Zapisz",
-    "saving": "Zapisywanie…"
+    "saving": "Zapisywanie..."
   },
   "header": {
     "title": "Budżet"
@@ -28,14 +28,28 @@
   "actions": {
     "addExpense": "+ DODAJ WYDATEK"
   },
+  "time": {
+    "progress": "Czas budowy"
+  },
+  "buddy": {
+    "analyzing": "Kierownik budowy AI",
+    "placeholder": "Analiza budżetu będzie dostępna wkrótce..."
+  },
   "chart": {
     "categoriesTitle": "Kategorie",
     "spentSubtitle": "wydatki poniesione"
   },
+  "filter": {
+    "all": "Wszystkie",
+    "spent": "Poniesione",
+    "planned": "Zaplanowane"
+  },
   "list": {
     "recentTitle": "Ostatnie wydatki",
     "sortNewest": "sortowanie: najnowsze",
-    "empty": "Brak wydatków. Dodaj pierwszy wydatek powyżej."
+    "empty": "Brak wydatków. Dodaj pierwszy wydatek powyżej.",
+    "showLess": "Pokaż mniej",
+    "showMore": "Pokaż wszystkie {{count}} wydatki"
   },
   "expense": {
     "defaultName": "Wydatek",
@@ -51,7 +65,7 @@
     "nameLabel": "Nazwa *",
     "namePlaceholder": "np. Okna",
     "categoryLabel": "Kategoria",
-    "amountLabel": "Kwota (PLN) *",
+    "amountLabel": "Kwota *",
     "amountPlaceholder": "np. 12500",
     "dateOptional": "Data — opcjonalnie",
     "setDate": "Ustaw datę",
