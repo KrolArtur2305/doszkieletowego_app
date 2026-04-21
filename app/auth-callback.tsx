@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { completeGoogleOAuthFromUrl } from '../src/services/auth/googleOAuth';
+import { completeAuthSessionFromUrl, getAuthCallbackType } from '../src/services/auth/deepLinkAuth';
 
 export default function AuthCallbackScreen() {
   const { t } = useTranslation('auth');
@@ -16,16 +16,29 @@ export default function AuthCallbackScreen() {
       handledRef.current = true;
 
       try {
-        const completed = await completeGoogleOAuthFromUrl(url);
-        if (!completed) {
-          throw new Error(t('callback.errors.noSessionData'));
+        const callbackType = getAuthCallbackType(url);
+        const completedType = await completeAuthSessionFromUrl(url);
+
+        if (completedType === 'recovery' || callbackType === 'recovery') {
+          router.replace('/reset-password');
+          return;
         }
 
         router.replace('/(app)');
       } catch (nextError: any) {
-        setError(nextError?.message ?? t('callback.errors.completeFailed'));
+        const callbackType = url ? getAuthCallbackType(url) : 'unknown';
+        const fallbackMessage =
+          callbackType === 'recovery'
+            ? t('callback.errors.recoveryFailed', { defaultValue: 'Could not open the password reset link.' })
+            : t('callback.errors.completeFailed');
+
+        setError(nextError?.message ?? fallbackMessage);
         setTimeout(() => {
-          router.replace('/(auth)/login');
+          router.replace(
+            callbackType === 'recovery'
+              ? '/reset-password?status=invalid'
+              : '/(auth)/login'
+          );
         }, 1200);
       }
     }

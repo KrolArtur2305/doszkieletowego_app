@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
+import { getAuthCallbackRedirectUri } from '../../src/services/auth/deepLinkAuth';
 import { signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
 import { AppButton, AppHeader, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, spacing, typography } from '../../src/ui/theme';
@@ -68,7 +69,9 @@ export default function LoginScreen() {
       return;
     }
     setLoading(true);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(e);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(e, {
+      redirectTo: getAuthCallbackRedirectUri(),
+    });
     setLoading(false);
 
     if (resetError) {

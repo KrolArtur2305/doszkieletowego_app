@@ -82,10 +82,14 @@ export default function RootLayout() {
           ) : !session ? (
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(auth)" />
+              <Stack.Screen name="auth-callback" />
+              <Stack.Screen name="reset-password" />
             </Stack>
           ) : (
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(app)" />
+              <Stack.Screen name="auth-callback" />
+              <Stack.Screen name="reset-password" />
             </Stack>
           )}
         </SafeAreaView>
