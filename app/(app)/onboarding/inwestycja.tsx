@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -24,6 +26,7 @@ import { AppButton, AppInput } from '../../../src/ui/components';
 const BG = '#000000';
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
+const APP_LOGO = require('../../assets/logo.png');
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -57,15 +60,10 @@ function uiLocaleFromLang(lang?: string) {
   return map[base] || 'en-US';
 }
 
-function toBudgetNumber(value: string) {
-  const normalized = value.replace(/\s/g, '').replace(',', '.');
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : null;
-}
-
 export default function OnboardingInvestmentScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('investment');
+  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
 
   const locale = useMemo(
     () => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language),
@@ -80,7 +78,6 @@ export default function OnboardingInvestmentScreen() {
   const [lokalizacja, setLokalizacja] = useState('');
   const [dataStartISO, setDataStartISO] = useState('');
   const [dataKoniecISO, setDataKoniecISO] = useState('');
-  const [budzet, setBudzet] = useState('');
 
   const [pickerOpen, setPickerOpen] = useState<null | 'start' | 'koniec'>(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
@@ -110,7 +107,7 @@ export default function OnboardingInvestmentScreen() {
         const user = userRes.user;
         const { data } = await supabase
           .from('inwestycje')
-          .select('nazwa, lokalizacja, data_start, data_koniec, budzet')
+          .select('nazwa, lokalizacja, data_start, data_koniec')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -121,7 +118,6 @@ export default function OnboardingInvestmentScreen() {
         setLokalizacja(data?.lokalizacja ?? '');
         setDataStartISO(data?.data_start ?? '');
         setDataKoniecISO(data?.data_koniec ?? '');
-        setBudzet(data?.budzet !== null && data?.budzet !== undefined ? String(data.budzet) : '');
       } catch (e: any) {
         Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadFailed'));
       } finally {
@@ -155,7 +151,6 @@ export default function OnboardingInvestmentScreen() {
   const handleSave = async () => {
     if (!userId || saving) return;
 
-    const budget = toBudgetNumber(budzet);
     const trimmedName = nazwa.trim();
     const trimmedLocation = lokalizacja.trim();
 
@@ -169,8 +164,13 @@ export default function OnboardingInvestmentScreen() {
       return;
     }
 
-    if (budget !== null && budget < 0) {
-      Alert.alert(t('alerts.invalidBudgetTitle'), t('alerts.invalidBudgetMsg'));
+    if (!dataStartISO) {
+      Alert.alert(t('alerts.errorTitle'), t('alerts.startDateRequired', { defaultValue: 'Wybierz datę startu.' }));
+      return;
+    }
+
+    if (!dataKoniecISO) {
+      Alert.alert(t('alerts.errorTitle'), t('alerts.endDateRequired', { defaultValue: 'Wybierz datę zakończenia.' }));
       return;
     }
 
@@ -184,7 +184,6 @@ export default function OnboardingInvestmentScreen() {
             lokalizacja: trimmedLocation,
             data_start: dataStartISO || null,
             data_koniec: dataKoniecISO || null,
-            budzet: budget,
             inwestycja_wypelniona: true,
           },
           { onConflict: 'user_id' }
@@ -192,8 +191,8 @@ export default function OnboardingInvestmentScreen() {
         supabase.from('profiles').upsert(
           {
             user_id: userId,
-            onboarding_step: 'done',
-            onboarding_completed: true,
+            onboarding_step: 'buddy',
+            onboarding_completed: false,
           },
           { onConflict: 'user_id' }
         ),
@@ -202,12 +201,32 @@ export default function OnboardingInvestmentScreen() {
       if (investmentRes.error) throw investmentRes.error;
       if (profileRes.error) throw profileRes.error;
 
-      router.replace('/(app)/(tabs)/dashboard');
+      router.replace('/(app)/onboarding');
     } catch (e: any) {
       Alert.alert(t('alerts.saveErrorTitle'), e?.message ?? t('alerts.saveFailed'));
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleBack = async () => {
+    if (!userId || saving) {
+      router.replace('/(app)/onboarding/profile');
+      return;
+    }
+
+    try {
+      await supabase.from('profiles').upsert(
+        {
+          user_id: userId,
+          onboarding_step: 'profile',
+          onboarding_completed: false,
+        },
+        { onConflict: 'user_id' }
+      );
+    } catch {}
+
+    router.replace('/(app)/onboarding/profile');
   };
 
   return (
@@ -217,7 +236,11 @@ export default function OnboardingInvestmentScreen() {
         <View pointerEvents="none" style={styles.glowTop} />
         <View pointerEvents="none" style={styles.glowBottom} />
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.content, { paddingTop: topPad }]} keyboardShouldPersistTaps="handled">
+          <TouchableOpacity onPress={handleBack} activeOpacity={0.8} style={styles.backButton}>
+            <Feather name="chevron-left" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
           <Text style={styles.title}>{t('screen.title')}</Text>
 
           <BlurView intensity={18} tint="dark" style={styles.card}>
@@ -250,20 +273,8 @@ export default function OnboardingInvestmentScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-
-                <View style={styles.fieldBlock}>
-                  <Text style={styles.fieldLabel}>{t('form.plannedBudgetLabel')}</Text>
-                  <AppInput
-                    value={budzet}
-                    onChangeText={setBudzet}
-                    placeholder={t('form.plannedBudgetPlaceholder')}
-                    keyboardType="numeric"
-                    style={styles.input}
-                  />
-                </View>
-
                 <AppButton
-                  title={saving ? t('actions.saving') : t('actions.saveAndContinueToApp')}
+                  title={saving ? t('actions.saving') : 'Zapisz i przejdź dalej'}
                   onPress={handleSave}
                   disabled={saving}
                   loading={saving}
@@ -351,15 +362,32 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 34,
     paddingBottom: 44,
   },
+  backButton: {
+    alignSelf: 'flex-start',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    marginBottom: 4,
+  },
+  logo: {
+    width: 172,
+    height: 172,
+    alignSelf: 'center',
+    marginBottom: 0,
+  },
   title: {
-    color: '#FFFFFF',
-    fontSize: 31,
+    color: NEON,
+    fontSize: 33,
     fontWeight: '900',
     letterSpacing: -0.4,
-    marginBottom: 22,
+    marginBottom: 14,
     textAlign: 'center',
   },
   card: {

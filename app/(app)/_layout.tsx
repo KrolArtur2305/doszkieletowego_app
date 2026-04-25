@@ -4,6 +4,7 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
+import { GUIDED_SETUP_ENABLED, GUIDED_SETUP_VERSION } from '../../src/services/guidedSetup/launchMode';
 import {
   configureNotifications,
   registerPushToken,
@@ -36,6 +37,7 @@ type OnboardingStep =
   | 'budget'
   | 'profile'
   | 'investment'
+  | 'buddy'
   | 'done';
 
 export default function AppLayout() {
@@ -49,6 +51,7 @@ export default function AppLayout() {
   const [investmentComplete, setInvestmentComplete] = useState<boolean | null>(null);
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [guidedSetupCompleted, setGuidedSetupCompleted] = useState<boolean | null>(null);
 
   const lastCheckKeyRef = useRef<string>('');
 
@@ -67,6 +70,7 @@ export default function AppLayout() {
         setInvestmentComplete(null);
         setOnboardingStep(null);
         setOnboardingCompleted(null);
+        setGuidedSetupCompleted(null);
         return;
       }
 
@@ -78,18 +82,27 @@ export default function AppLayout() {
       setChecking(true);
 
       try {
-        const [profileRes, invRes] = await Promise.all([
-          supabase
+        let guidedColumnsAvailable = true
+        let profileRes = await supabase
+          .from('profiles')
+          .select('profil_wypelniony, onboarding_step, onboarding_completed, guided_setup_completed, guided_setup_version')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (profileRes.error && String(profileRes.error.message || '').includes('guided_setup_')) {
+          guidedColumnsAvailable = false
+          profileRes = await supabase
             .from('profiles')
             .select('profil_wypelniony, onboarding_step, onboarding_completed')
             .eq('user_id', userId)
-            .maybeSingle(),
-          supabase
-            .from('inwestycje')
-            .select('inwestycja_wypelniona')
-            .eq('user_id', userId)
-            .maybeSingle(),
-        ]);
+            .maybeSingle()
+        }
+
+        const invRes = await supabase
+          .from('inwestycje')
+          .select('inwestycja_wypelniona')
+          .eq('user_id', userId)
+          .maybeSingle()
 
         if (!alive) return;
 
@@ -103,6 +116,7 @@ export default function AppLayout() {
           rawStep === 'budget' ||
           rawStep === 'profile' ||
           rawStep === 'investment' ||
+          rawStep === 'buddy' ||
           rawStep === 'done'
             ? rawStep
             : nextProfileComplete && nextInvestmentComplete
@@ -118,12 +132,21 @@ export default function AppLayout() {
         setInvestmentComplete(nextInvestmentComplete);
         setOnboardingStep(nextOnboardingStep);
         setOnboardingCompleted(nextOnboardingCompleted);
+        setGuidedSetupCompleted(
+          GUIDED_SETUP_ENABLED && guidedColumnsAvailable
+            ? Boolean(
+                (profileRes.data as any)?.guided_setup_completed &&
+                ((profileRes.data as any)?.guided_setup_version ?? GUIDED_SETUP_VERSION) === GUIDED_SETUP_VERSION
+              )
+            : true
+        );
       } catch {
         if (!alive) return;
         setProfileComplete(false);
         setInvestmentComplete(false);
         setOnboardingStep('build_type');
         setOnboardingCompleted(false);
+        setGuidedSetupCompleted(true);
       } finally {
         if (alive) setChecking(false);
       }
@@ -165,22 +188,29 @@ export default function AppLayout() {
 
     if (onboardingStep === 'profile') return '/(app)/onboarding/profile';
     if (onboardingStep === 'investment') return '/(app)/onboarding/inwestycja';
+    if (onboardingStep === 'buddy') return '/(app)/onboarding';
 
     if (onboardingStep === 'done') {
       if (profileComplete !== true) return '/(app)/onboarding/profile';
       if (investmentComplete !== true) return '/(app)/onboarding/inwestycja';
       if (onboardingCompleted !== true) return '/(app)/onboarding';
+      if (GUIDED_SETUP_ENABLED && guidedSetupCompleted !== true) return '/(app)/guided-setup';
     }
 
     return null;
-  }, [session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete]);
+  }, [session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete, guidedSetupCompleted]);
 
   // 3) Routing
   useEffect(() => {
     if (gateTarget) {
-      const onAppRoot = pathname === '/(app)';
-      const outsideOnboarding = !pathname.startsWith('/(app)/onboarding');
-      if ((onAppRoot || outsideOnboarding) && pathname !== gateTarget) {
+      const onAppRoot = pathname === '/' || pathname === '/(app)';
+      const onOnboarding = pathname.startsWith('/onboarding') || pathname.startsWith('/(app)/onboarding');
+      const onGuidedSetup = pathname === '/guided-setup' || pathname === '/(app)/guided-setup';
+      const alreadyOnTargetFamily =
+        (gateTarget.includes('/guided-setup') && onGuidedSetup) ||
+        (gateTarget.includes('/onboarding') && onOnboarding)
+
+      if ((onAppRoot || !alreadyOnTargetFamily) && pathname !== gateTarget) {
         router.replace(gateTarget);
       }
       return;
@@ -193,11 +223,19 @@ export default function AppLayout() {
       onboardingCompleted === true &&
       profileComplete === true &&
       investmentComplete === true &&
-      pathname === '/(app)'
+      guidedSetupCompleted === true &&
+      (
+        pathname === '/' ||
+        pathname === '/(app)' ||
+        pathname.startsWith('/onboarding') ||
+        pathname.startsWith('/(app)/onboarding') ||
+        pathname === '/guided-setup' ||
+        pathname === '/(app)/guided-setup'
+      )
     ) {
       router.replace('/(app)/(tabs)/dashboard');
     }
-  }, [gateTarget, pathname, router, session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete]);
+  }, [gateTarget, pathname, router, session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete, guidedSetupCompleted]);
 
   const showOverlay =
     authLoading ||
@@ -206,7 +244,8 @@ export default function AppLayout() {
       onboardingStep === null ||
       onboardingCompleted === null ||
       profileComplete === null ||
-      investmentComplete === null
+      investmentComplete === null ||
+      guidedSetupCompleted === null
     ));
 
   return (

@@ -18,6 +18,7 @@ import {
 } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { supabase } from '../../../../lib/supabase'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
@@ -150,6 +151,10 @@ function base64ToUint8Array(base64: string) {
 
 export default function ProjektScreen() {
   const { t, i18n } = useTranslation('project')
+  const router = useRouter()
+  const { setup, guidedStep } = useLocalSearchParams<{ setup?: string | string[]; guidedStep?: string | string[] }>()
+  const isSetupMode = Array.isArray(setup) ? setup[0] === '1' : setup === '1'
+  const guidedReturnStep = Array.isArray(guidedStep) ? guidedStep[0] : guidedStep
 
   const [loading, setLoading] = useState(true)
   const [projekt, setProjekt] = useState<Projekt | null>(null)
@@ -172,6 +177,7 @@ export default function ProjektScreen() {
   })
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewRzut, setPreviewRzut] = useState<Rzut | null>(null)
+  const setupModalOpenedRef = useRef(false)
 
   useEffect(() => {
     let alive = true
@@ -237,6 +243,12 @@ export default function ProjektScreen() {
       alive = false
     }
   }, [t])
+
+  useEffect(() => {
+    if (!isSetupMode || loading || setupModalOpenedRef.current) return
+    setupModalOpenedRef.current = true
+    openEditParams()
+  }, [isSetupMode, loading])
 
   const modelUrl = useMemo(() => projekt?.model_url || DEFAULT_MODEL_URL, [projekt?.model_url])
 
@@ -536,6 +548,9 @@ export default function ProjektScreen() {
 
       setProjekt(updated as any)
       setEditOpen(false)
+      if (isSetupMode) {
+        router.replace(`/(app)/guided-setup?step=${guidedReturnStep || '1'}`)
+      }
     } finally {
       setSaving(false)
     }

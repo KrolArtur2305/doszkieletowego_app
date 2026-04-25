@@ -14,7 +14,7 @@
     "placeholder": "e.g. Andrew, Max, Adam...",
     "previewRole": "Your digital site supervisor",
     "previewBubble": "Hi, I’m {{name}}. I’ll help you keep track of the budget, stages, and the most important things on site.",
-    "avatarInfo": "Currently, 1 avatar is available. More variants can be added in the future.",
+    "avatarInfo": "You can now choose 1 of 3 available AI supervisor avatars.",
     "save": "Save settings",
     "savedTitle": "Saved",
     "savedMessage": "AI supervisor settings have been saved.",

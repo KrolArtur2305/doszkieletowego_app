@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
@@ -19,6 +23,7 @@ import { AppButton, AppInput } from '../../../src/ui/components';
 const BG = '#000000';
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
+const APP_LOGO = require('../../assets/logo.png');
 
 function normalizePhone(v: string) {
   return v.replace(/[^\d+]/g, '');
@@ -27,6 +32,7 @@ function normalizePhone(v: string) {
 export default function OnboardingProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation('onboarding');
+  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -59,7 +65,7 @@ export default function OnboardingProfileScreen() {
 
         setUserId(user.id);
         setEmail(user.email ?? '');
-        setImie(data?.imie ?? '');
+        setImie('');
         setNazwisko(data?.nazwisko ?? '');
         setTelefon(data?.telefon ?? '');
       } catch (e: any) {
@@ -117,6 +123,26 @@ export default function OnboardingProfileScreen() {
     }
   };
 
+  const handleBack = async () => {
+    if (!userId || saving) {
+      router.replace('/(app)/onboarding');
+      return;
+    }
+
+    try {
+      await supabase.from('profiles').upsert(
+        {
+          user_id: userId,
+          onboarding_step: 'budget',
+          onboarding_completed: false,
+        },
+        { onConflict: 'user_id' }
+      );
+    } catch {}
+
+    router.replace('/(app)/onboarding');
+  };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
@@ -128,6 +154,11 @@ export default function OnboardingProfileScreen() {
         <View pointerEvents="none" style={styles.glowBottom} />
 
         <View style={styles.content}>
+          <View style={{ height: topPad }} />
+          <TouchableOpacity onPress={handleBack} activeOpacity={0.8} style={styles.backButton}>
+            <Feather name="chevron-left" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
           <Text style={styles.title}>{t('steps.profileTitle')}</Text>
 
           <BlurView intensity={18} tint="dark" style={styles.card}>
@@ -138,7 +169,15 @@ export default function OnboardingProfileScreen() {
               </View>
             ) : (
               <>
-                <Field label={t('profile.firstName')} value={imie} onChangeText={setImie} placeholder={t('profile.firstNamePlaceholder')} />
+                <Field
+                  label={t('profile.firstName')}
+                  value={imie}
+                  onChangeText={setImie}
+                  placeholder=""
+                  autoComplete="off"
+                  textContentType="none"
+                  autoCorrect={false}
+                />
                 <Field label={t('profile.lastName')} value={nazwisko} onChangeText={setNazwisko} placeholder={t('profile.lastNamePlaceholder')} />
                 <Field
                   label={t('profile.phone')}
@@ -170,8 +209,20 @@ function Field(props: {
   onChangeText: (v: string) => void;
   placeholder?: string;
   keyboardType?: 'default' | 'phone-pad';
+  autoComplete?: 'off' | 'name' | 'family-name' | 'tel';
+  textContentType?: 'none' | 'name' | 'familyName' | 'telephoneNumber';
+  autoCorrect?: boolean;
 }) {
-  const { label, value, onChangeText, placeholder, keyboardType = 'default' } = props;
+  const {
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    keyboardType = 'default',
+    autoComplete,
+    textContentType,
+    autoCorrect,
+  } = props;
 
   return (
     <AppInput
@@ -181,6 +232,9 @@ function Field(props: {
       placeholder={placeholder}
       keyboardType={keyboardType}
       autoCapitalize={keyboardType === 'phone-pad' ? 'none' : 'words'}
+      autoComplete={autoComplete}
+      textContentType={textContentType}
+      autoCorrect={autoCorrect}
       containerStyle={styles.fieldWrap}
       style={styles.input}
     />
@@ -213,14 +267,32 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    justifyContent: 'flex-start',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    marginBottom: 4,
+  },
+  logo: {
+    width: 172,
+    height: 172,
+    alignSelf: 'center',
+    marginBottom: 0,
   },
   title: {
-    color: '#FFFFFF',
-    fontSize: 31,
+    color: NEON,
+    fontSize: 33,
     fontWeight: '900',
     letterSpacing: -0.4,
-    marginBottom: 22,
+    marginBottom: 14,
     textAlign: 'center',
   },
   card: {

@@ -22,12 +22,18 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../src/ui/components';
+import {
+  BUDDY_AVATAR_OPTIONS,
+  DEFAULT_BUDDY_AVATAR_ID,
+  type BuddyAvatarId,
+  getBuddyAvatarSource,
+  loadBuddyAvatarId,
+  saveBuddyAvatarId,
+} from '../../src/services/buddy/avatar';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
 const BG = '#000000';
-
-const BUDDY_AVATAR = require('../../assets/buddy_avatar.png');
 
 export default function BuddySettingsScreen() {
   const router = useRouter();
@@ -39,6 +45,8 @@ export default function BuddySettingsScreen() {
 
   const [buddyName, setBuddyName] = useState('');
   const [initialName, setInitialName] = useState('');
+  const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
+  const [initialAvatarId, setInitialAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,17 +101,20 @@ export default function BuddySettingsScreen() {
 
         const { data, error: dbError } = await supabase
           .from('profiles')
-          .select('ai_buddy_name')
+          .select('ai_buddy_name, ai_buddy_avatar')
           .eq('user_id', userId)
           .single();
 
         if (dbError) throw dbError;
+        const savedAvatarId = await loadBuddyAvatarId(userId);
 
         const savedName = data?.ai_buddy_name?.trim?.() || '';
         if (!mounted) return;
 
         setBuddyName(savedName);
         setInitialName(savedName);
+        setAvatarId(savedAvatarId);
+        setInitialAvatarId(savedAvatarId);
       } catch (e: any) {
         if (!mounted) return;
         setError(e?.message ?? t('settings.errors.load'));
@@ -121,18 +132,14 @@ export default function BuddySettingsScreen() {
 
   const trimmedName = buddyName.trim();
   const previewName = trimmedName || t('settings.fallbackName');
-  const hasChanges = trimmedName !== initialName.trim();
+  const hasChanges = trimmedName !== initialName.trim() || avatarId !== initialAvatarId;
+  const avatarSource = getBuddyAvatarSource(avatarId);
 
   const handleSave = async () => {
     const userId = session?.user?.id;
 
     if (!userId) {
       setError(t('settings.errors.noSession'));
-      return;
-    }
-
-    if (!trimmedName) {
-      setError(t('settings.errors.nameRequired'));
       return;
     }
 
@@ -145,14 +152,18 @@ export default function BuddySettingsScreen() {
     setError(null);
 
     try {
-      const { error: dbError } = await supabase
-        .from('profiles')
-        .update({ ai_buddy_name: trimmedName })
-        .eq('user_id', userId);
+      if (trimmedName) {
+        const { error: dbError } = await supabase
+          .from('profiles')
+          .update({ ai_buddy_name: trimmedName })
+          .eq('user_id', userId);
 
-      if (dbError) throw dbError;
+        if (dbError) throw dbError;
+      }
 
-      setInitialName(trimmedName);
+      await saveBuddyAvatarId(userId, avatarId);
+      setInitialName(trimmedName || initialName);
+      setInitialAvatarId(avatarId);
 
       Alert.alert(t('settings.savedTitle'), t('settings.savedMessage'));
     } catch (e: any) {
@@ -204,11 +215,6 @@ export default function BuddySettingsScreen() {
               },
             ]}
           >
-            <View style={styles.eyebrowWrap}>
-              <View style={styles.eyebrowDot} />
-              <Text style={styles.eyebrow}>{t('settings.eyebrow')}</Text>
-            </View>
-
             <Animated.View
               style={[
                 styles.avatarWrap,
@@ -221,7 +227,7 @@ export default function BuddySettingsScreen() {
               <View style={styles.avatarGlowRing2} />
 
               <Image
-                source={BUDDY_AVATAR}
+                source={avatarSource}
                 style={styles.avatarImage}
                 resizeMode="cover"
               />
@@ -233,9 +239,6 @@ export default function BuddySettingsScreen() {
             </Animated.View>
 
             <Text style={styles.title}>{t('settings.title')}</Text>
-            <Text style={styles.subtitle}>
-              {t('settings.subtitle')}
-            </Text>
           </Animated.View>
 
           {loading ? (
@@ -289,69 +292,44 @@ export default function BuddySettingsScreen() {
                   },
                 ]}
               >
-                <Text style={styles.sectionLabel}>{t('settings.sections.preview')}</Text>
-
-                <BlurView intensity={14} tint="dark" style={styles.previewCard}>
-                  <View style={styles.previewHeader}>
-                    <View style={styles.previewAvatarMini}>
-                      <Image
-                        source={BUDDY_AVATAR}
-                        style={styles.previewAvatarMiniImg}
-                        resizeMode="cover"
-                      />
-                    </View>
-
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.previewName}>{previewName}</Text>
-                      <Text style={styles.previewRole}>
-                        {t('settings.previewRole')}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.previewBubble}>
-                    <Text style={styles.previewBubbleText}>
-                      {t('settings.previewBubble', { name: previewName })}
-                    </Text>
-                  </View>
-                </BlurView>
-              </Animated.View>
-
-              <Animated.View
-                style={[
-                  styles.section,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }],
-                  },
-                ]}
-              >
                 <Text style={styles.sectionLabel}>{t('settings.sections.avatar')}</Text>
+
+                <View style={styles.avatarOptionsRow}>
+                  {BUDDY_AVATAR_OPTIONS.map((option) => {
+                    const active = avatarId === option.id;
+                    return (
+                      <TouchableOpacity
+                        key={option.id}
+                        onPress={() => setAvatarId(option.id)}
+                        activeOpacity={0.85}
+                        style={[styles.avatarOption, active && styles.avatarOptionActive]}
+                      >
+                        <Image source={option.source} style={styles.avatarOptionImage} resizeMode="cover" />
+                        {active ? (
+                          <View style={styles.avatarOptionCheck}>
+                            <Feather name="check" size={12} color="#0B1120" />
+                          </View>
+                        ) : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
 
                 <BlurView intensity={14} tint="dark" style={styles.singleInfo}>
                   <Feather name="image" size={16} color={NEON} />
-                  <Text style={styles.singleInfoText}>
-                    {t('settings.avatarInfo')}
-                  </Text>
+                  <Text style={styles.singleInfoText}>{t('settings.avatarInfo')}</Text>
                 </BlurView>
-              </Animated.View>
 
-              <Animated.View
-                style={[
-                  styles.footerWrap,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }],
-                  },
-                ]}
-              >
-                <AppButton
-                  title={t('settings.save')}
-                  onPress={handleSave}
-                  disabled={!hasChanges}
-                  loading={saving}
-                  style={styles.saveBtn}
-                />
+                {hasChanges ? (
+                  <View style={styles.footerWrap}>
+                    <AppButton
+                      title="Zapisz i aktywuj"
+                      onPress={handleSave}
+                      loading={saving}
+                      style={styles.saveBtn}
+                    />
+                  </View>
+                ) : null}
               </Animated.View>
             </>
           )}
@@ -423,44 +401,13 @@ const styles = StyleSheet.create({
 
   heroWrap: {
     alignItems: 'center',
-    marginBottom: 28,
-  },
-
-  eyebrowWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(37,240,200,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.20)',
-    marginBottom: 24,
-  },
-
-  eyebrowDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 99,
-    backgroundColor: NEON,
-    shadowColor: NEON,
-    shadowOpacity: 0.85,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-  },
-
-  eyebrow: {
-    color: NEON,
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.7,
+    marginBottom: 18,
   },
 
   avatarWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 14,
     position: 'relative',
   },
 
@@ -483,9 +430,9 @@ const styles = StyleSheet.create({
   },
 
   avatarImage: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
+    width: 172,
+    height: 172,
+    borderRadius: 86,
     borderWidth: 2.2,
     borderColor: 'rgba(37,240,200,0.35)',
   },
@@ -511,21 +458,12 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: '#FFFFFF',
-    fontSize: 28,
+    color: NEON,
+    fontSize: 34,
     fontWeight: '900',
     letterSpacing: -0.35,
     textAlign: 'center',
-    marginBottom: 10,
-  },
-
-  subtitle: {
-    color: 'rgba(255,255,255,0.48)',
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 21,
-    textAlign: 'center',
-    maxWidth: 520,
+    marginBottom: 0,
   },
 
   loadingWrap: {
@@ -599,65 +537,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  previewCard: {
-    borderRadius: 22,
-    borderWidth: 1.2,
-    borderColor: 'rgba(37,240,200,0.18)',
-    padding: 16,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-
-  previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-
-  previewAvatarMini: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    overflow: 'hidden',
-    borderWidth: 1.4,
-    borderColor: 'rgba(37,240,200,0.22)',
-  },
-
-  previewAvatarMiniImg: {
-    width: '100%',
-    height: '100%',
-  },
-
-  previewName: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-
-  previewRole: {
-    color: 'rgba(255,255,255,0.42)',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  previewBubble: {
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(37,240,200,0.07)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.12)',
-  },
-
-  previewBubbleText: {
-    color: '#FFFFFF',
-    fontSize: 13.5,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-
   singleInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -671,6 +550,49 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.025)',
   },
 
+  avatarOptionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+
+  avatarOption: {
+    position: 'relative',
+    width: 82,
+    height: 82,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1.4,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+
+  avatarOptionActive: {
+    borderColor: 'rgba(37,240,200,0.52)',
+    shadowColor: NEON,
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
+  },
+
+  avatarOptionImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  avatarOptionCheck: {
+    position: 'absolute',
+    right: 6,
+    bottom: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: NEON,
+  },
+
   singleInfoText: {
     flex: 1,
     color: 'rgba(255,255,255,0.52)',
@@ -680,7 +602,7 @@ const styles = StyleSheet.create({
   },
 
   footerWrap: {
-    marginTop: 4,
+    marginTop: 14,
   },
 
   saveBtn: {

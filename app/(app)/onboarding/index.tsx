@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -14,17 +16,25 @@ import {
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../src/ui/components';
+import {
+  BUDDY_AVATAR_OPTIONS,
+  DEFAULT_BUDDY_AVATAR_ID,
+  type BuddyAvatarId,
+} from '../../../src/services/buddy/avatar';
+import { GUIDED_SETUP_ENABLED } from '../../../src/services/guidedSetup/launchMode';
 
 const BG = '#000000';
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
+const APP_LOGO = require('../../assets/logo.png');
 
-type OnboardingStep = 'build_type' | 'build_stage' | 'budget';
+type OnboardingStep = 'build_type' | 'build_stage' | 'budget' | 'buddy';
 
 const BUILD_TYPES = [
   { value: 'szkieletowy', key: 'buildTypes.szkieletowy' },
@@ -52,10 +62,11 @@ function todayYMD() {
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { t } = useTranslation('onboarding');
+  const { t } = useTranslation(['onboarding', 'buddy']);
   const { session } = useSupabaseAuth();
   const userId = session?.user?.id;
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const contentTopPad = Math.max(topPad - 18, 2);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,6 +76,34 @@ export default function OnboardingScreen() {
   const [buildStage, setBuildStage] = useState<string>('');
   const [plannedBudget, setPlannedBudget] = useState('');
   const [spentBudget, setSpentBudget] = useState('');
+  const [buddyName, setBuddyName] = useState('');
+  const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
+  const buddyFloat = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (step !== 'buddy') return;
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(buddyFloat, {
+          toValue: 1,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buddyFloat, {
+          toValue: 0,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    loop.start();
+    return () => {
+      loop.stop();
+      buddyFloat.setValue(0);
+    };
+  }, [buddyFloat, step]);
 
   useEffect(() => {
     let alive = true;
@@ -81,7 +120,7 @@ export default function OnboardingScreen() {
         const [profileRes, investmentRes] = await Promise.all([
           supabase
             .from('profiles')
-            .select('onboarding_step, build_type, build_stage')
+            .select('onboarding_step, build_type, build_stage, ai_buddy_name, ai_buddy_avatar')
             .eq('user_id', userId)
             .maybeSingle(),
           supabase
@@ -94,7 +133,7 @@ export default function OnboardingScreen() {
         if (!alive) return;
 
         const nextStep = profileRes.data?.onboarding_step;
-        if (nextStep === 'build_stage' || nextStep === 'budget') {
+        if (nextStep === 'build_stage' || nextStep === 'budget' || nextStep === 'buddy') {
           setStep(nextStep);
         } else {
           setStep('build_type');
@@ -102,6 +141,12 @@ export default function OnboardingScreen() {
 
         setBuildType(String(profileRes.data?.build_type ?? '').trim());
         setBuildStage(String(profileRes.data?.build_stage ?? '').trim());
+        setBuddyName(String(profileRes.data?.ai_buddy_name ?? '').trim());
+        setAvatarId(
+          profileRes.data?.ai_buddy_avatar === 'avatar2' || profileRes.data?.ai_buddy_avatar === 'avatar3'
+            ? profileRes.data.ai_buddy_avatar
+            : DEFAULT_BUDDY_AVATAR_ID
+        );
 
         if (investmentRes.data?.budzet !== null && investmentRes.data?.budzet !== undefined) {
           setPlannedBudget(String(investmentRes.data.budzet));
@@ -246,6 +291,7 @@ export default function OnboardingScreen() {
 
   const renderBuildType = () => (
     <>
+      <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
       <Text style={styles.title}>{t('steps.buildTypeTitle')}</Text>
 
       <View style={styles.tileGrid}>
@@ -268,6 +314,8 @@ export default function OnboardingScreen() {
 
   const renderBuildStage = () => (
     <>
+      {renderBackButton(() => setStep('build_type'))}
+      <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
       <Text style={styles.title}>{t('steps.buildStageTitle')}</Text>
 
       <View style={styles.tileGrid}>
@@ -290,6 +338,16 @@ export default function OnboardingScreen() {
 
   const renderBudget = () => (
     <>
+      {renderBackButton(async () => {
+        setStep('build_stage');
+        if (userId) {
+          await supabase.from('profiles').upsert(
+            { user_id: userId, onboarding_step: 'build_stage', onboarding_completed: false },
+            { onConflict: 'user_id' }
+          );
+        }
+      })}
+      <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
       <Text style={styles.title}>{t('steps.budgetTitle')}</Text>
 
       <BlurView intensity={18} tint="dark" style={styles.formCard}>
@@ -326,6 +384,146 @@ export default function OnboardingScreen() {
     </>
   );
 
+  const saveBuddySetup = async () => {
+    if (!userId || saving) return;
+
+    const trimmedName = buddyName.trim();
+
+    if (!trimmedName) {
+      Alert.alert(
+        t('onboarding:alerts.errorTitle'),
+        t('buddy:onboarding.nameRequired', { defaultValue: 'Podaj imię dla Kierownika AI.' })
+      );
+      return;
+    }
+
+    if (!avatarId) {
+      Alert.alert(
+        t('onboarding:alerts.errorTitle'),
+        t('buddy:onboarding.avatarRequired', { defaultValue: 'Wybierz avatar Kierownika AI.' })
+      );
+      return;
+    }
+
+    if (trimmedName.length > 30) {
+      Alert.alert(
+        t('onboarding:alerts.errorTitle'),
+        t('buddy:settings.errors.nameTooLong')
+      );
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('profiles').upsert(
+        {
+          user_id: userId,
+          ai_buddy_name: trimmedName,
+          ai_buddy_avatar: avatarId,
+          onboarding_step: 'done',
+          onboarding_completed: true,
+        },
+        { onConflict: 'user_id' }
+      );
+
+      if (error) throw error;
+
+      router.replace(GUIDED_SETUP_ENABLED ? '/(app)/guided-setup' : '/(app)/(tabs)/dashboard');
+    } catch (e: any) {
+      Alert.alert(
+        t('onboarding:alerts.errorTitle'),
+        e?.message ?? t('buddy:settings.errors.save')
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderBuddyStep = () => (
+    <>
+      {renderBackButton(async () => {
+        if (userId) {
+          await supabase.from('profiles').upsert(
+            { user_id: userId, onboarding_step: 'investment', onboarding_completed: false },
+            { onConflict: 'user_id' }
+          );
+        }
+        router.replace('/(app)/onboarding/inwestycja');
+      })}
+      <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
+      <Text style={styles.title}>{t('buddy:onboarding.title')}</Text>
+      <Text style={styles.subtitle}>{t('buddy:onboarding.subtitle')}</Text>
+
+      <BlurView intensity={18} tint="dark" style={styles.formCard}>
+        <Animated.View
+          style={[
+            styles.buddyHeroWrap,
+            {
+              transform: [
+                {
+                  translateY: buddyFloat.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -8],
+                  }),
+                },
+                {
+                  scale: buddyFloat.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.03],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Image
+            source={BUDDY_AVATAR_OPTIONS.find((option) => option.id === avatarId)?.source ?? BUDDY_AVATAR_OPTIONS[0].source}
+            style={styles.buddyHeroAvatar}
+            resizeMode="cover"
+          />
+          <View style={styles.buddyHeroGlow} />
+        </Animated.View>
+
+        <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>{t('buddy:onboarding.nameLabel')}</Text>
+          <AppInput
+            value={buddyName}
+            onChangeText={setBuddyName}
+            placeholder={t('buddy:onboarding.namePlaceholder')}
+            maxLength={30}
+            style={styles.input}
+          />
+        </View>
+
+        <Text style={styles.fieldLabel}>{t('buddy:settings.sections.avatar')}</Text>
+        <View style={styles.avatarGrid}>
+          {BUDDY_AVATAR_OPTIONS.map((option) => {
+            const active = avatarId === option.id;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                onPress={() => setAvatarId(option.id)}
+                activeOpacity={0.88}
+                style={[styles.avatarTile, active && styles.avatarTileActive]}
+              >
+                <Image source={option.source} style={styles.avatarTileImage} resizeMode="cover" />
+                {active ? <View style={styles.avatarTileBadge} /> : null}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </BlurView>
+
+      <AppButton
+        title={saving ? t('buddy:onboarding.saving') : t('buddy:onboarding.cta')}
+        onPress={saveBuddySetup}
+        disabled={saving}
+        loading={saving}
+        style={styles.primaryBtn}
+      />
+    </>
+  );
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
@@ -337,7 +535,7 @@ export default function OnboardingScreen() {
         <View pointerEvents="none" style={styles.glowBottom} />
 
         <ScrollView
-          contentContainerStyle={[styles.content, { paddingTop: topPad }]}
+          contentContainerStyle={[styles.content, { paddingTop: contentTopPad }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -350,12 +548,22 @@ export default function OnboardingScreen() {
             renderBuildType()
           ) : step === 'build_stage' ? (
             renderBuildStage()
+          ) : step === 'buddy' ? (
+            renderBuddyStep()
           ) : (
             renderBudget()
           )}
         </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
+  );
+}
+
+function renderBackButton(onPress: () => void | Promise<void>) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.backButton}>
+      <Feather name="chevron-left" size={20} color="#FFFFFF" />
+    </TouchableOpacity>
   );
 }
 
@@ -390,9 +598,27 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
     paddingBottom: 44,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    marginBottom: 4,
+  },
+  logo: {
+    width: 172,
+    height: 172,
+    alignSelf: 'center',
+    marginBottom: 0,
   },
   loadingWrap: {
     paddingVertical: 60,
@@ -405,12 +631,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    color: '#FFFFFF',
-    fontSize: 31,
+    color: NEON,
+    fontSize: 33,
     fontWeight: '900',
     letterSpacing: -0.4,
-    marginBottom: 22,
+    marginBottom: 14,
     textAlign: 'center',
+  },
+  subtitle: {
+    color: 'rgba(255,255,255,0.52)',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 18,
   },
   tileGrid: {
     gap: 12,
@@ -425,9 +659,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 18,
     paddingVertical: 22,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    borderWidth: 1.6,
+    borderColor: 'rgba(37,240,200,0.34)',
     minHeight: 88,
   },
   tileTitle: {
@@ -467,5 +701,64 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     marginTop: 18,
+  },
+  avatarGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  buddyHeroWrap: {
+    alignSelf: 'center',
+    width: 124,
+    height: 124,
+    marginBottom: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buddyHeroAvatar: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    borderWidth: 2,
+    borderColor: 'rgba(37,240,200,0.35)',
+  },
+  buddyHeroGlow: {
+    position: 'absolute',
+    width: 124,
+    height: 124,
+    borderRadius: 62,
+    backgroundColor: 'rgba(37,240,200,0.08)',
+  },
+  avatarTile: {
+    position: 'relative',
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  avatarTileActive: {
+    borderColor: 'rgba(37,240,200,0.55)',
+    shadowColor: NEON,
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  avatarTileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarTileBadge: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 14,
+    height: 14,
+    borderRadius: 99,
+    backgroundColor: NEON,
+    borderWidth: 2,
+    borderColor: '#000000',
   },
 });

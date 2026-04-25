@@ -16,14 +16,19 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { publicConfig, supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
+import {
+  DEFAULT_BUDDY_AVATAR_ID,
+  type BuddyAvatarId,
+  getBuddyAvatarSource,
+  loadBuddyAvatarId,
+} from '../../../../src/services/buddy/avatar';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
-const BUDDY_AVATAR = require('../../../../assets/buddy_avatar.png');
-
 const AI_CHAT_ENDPOINT = publicConfig.aiChatEndpoint;
 const AI_REQUEST_TIMEOUT_MS = 20000;
 
@@ -69,6 +74,7 @@ export default function BuddyChatScreen() {
       : 'en-US';
 
   const [buddyName, setBuddyName] = useState(t('chat.fallbackName'));
+  const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
   const [loadingInitial, setLoadingInitial] = useState(true);
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -141,7 +147,7 @@ export default function BuddyChatScreen() {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('ai_buddy_name')
+          .select('ai_buddy_name, ai_buddy_avatar')
           .eq('user_id', userId)
           .maybeSingle();
 
@@ -149,6 +155,7 @@ export default function BuddyChatScreen() {
 
         const name = String(data?.ai_buddy_name ?? '').trim() || t('chat.fallbackName');
         setBuddyName(name);
+        setAvatarId(await loadBuddyAvatarId(userId));
 
         await loadConversations();
       } catch {
@@ -167,6 +174,22 @@ export default function BuddyChatScreen() {
     loadInitial();
   }, [session?.user?.id, t]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      const userId = session?.user?.id;
+      if (!userId) return;
+
+      let active = true;
+      loadBuddyAvatarId(userId).then((nextAvatarId) => {
+        if (active) setAvatarId(nextAvatarId);
+      });
+
+      return () => {
+        active = false;
+      };
+    }, [session?.user?.id])
+  );
+
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }, [messages]);
@@ -183,6 +206,7 @@ export default function BuddyChatScreen() {
 
   const currentConversationTitle =
     conversations.find((c) => c.id === currentConversationId)?.title || t('chat.newConversation');
+  const avatarSource = getBuddyAvatarSource(avatarId);
 
   const loadConversations = async () => {
     try {
@@ -415,7 +439,7 @@ export default function BuddyChatScreen() {
         <View style={styles.headerTopRow}>
           <View style={styles.headerIdentity}>
             <View style={styles.headerAvatarWrap}>
-              <Image source={BUDDY_AVATAR} style={styles.headerAvatar} resizeMode="cover" />
+              <Image source={avatarSource} style={styles.headerAvatar} resizeMode="cover" />
               <View style={styles.onlineDot} />
             </View>
 
@@ -470,7 +494,7 @@ export default function BuddyChatScreen() {
                 ]}
               >
                 {msg.role !== 'user' && (
-                  <Image source={BUDDY_AVATAR} style={styles.msgAvatar} resizeMode="cover" />
+                  <Image source={avatarSource} style={styles.msgAvatar} resizeMode="cover" />
                 )}
 
                 <BlurView
@@ -497,7 +521,7 @@ export default function BuddyChatScreen() {
 
           {sending && (
             <View style={[styles.msgRow, styles.msgRowBuddy]}>
-              <Image source={BUDDY_AVATAR} style={styles.msgAvatar} resizeMode="cover" />
+              <Image source={avatarSource} style={styles.msgAvatar} resizeMode="cover" />
               <BlurView
                 intensity={14}
                 tint="dark"

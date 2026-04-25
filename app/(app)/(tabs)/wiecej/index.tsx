@@ -36,7 +36,7 @@ type Tile = {
 export default function WiecejScreen() {
   const router = useRouter();
   const { t } = useTranslation('navigation');
-  const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const topPad = Platform.OS === 'android' ? Math.max((StatusBar.currentHeight ?? 0) - 4, 0) : 8;
 
   const anims = useRef(Array.from({ length: 7 }, () => new Animated.Value(0))).current;
 
@@ -183,10 +183,10 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: H_PAD,
-    paddingBottom: 120,
+    paddingBottom: 104,
   },
   screenHeader: {
-    marginBottom: 14,
+    marginBottom: 10,
   },
   grid: {
     flexDirection: 'row',

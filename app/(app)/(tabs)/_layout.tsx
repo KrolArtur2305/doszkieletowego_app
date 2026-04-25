@@ -1,15 +1,43 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, usePathname, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors, typography } from '../../../src/ui/theme';
-
-const BUDDY_AVATAR = require('../../../assets/buddy_avatar.png');
+import { useEffect, useState } from 'react';
+import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
+import {
+  DEFAULT_BUDDY_AVATAR_ID,
+  type BuddyAvatarId,
+  getBuddyAvatarSource,
+  loadBuddyAvatarId,
+} from '../../../src/services/buddy/avatar';
 
 export default function TabsLayout() {
   const { t } = useTranslation('navigation');
   const router = useRouter();
+  const pathname = usePathname();
+  const { session } = useSupabaseAuth();
+  const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) {
+      setAvatarId(DEFAULT_BUDDY_AVATAR_ID);
+      return;
+    }
+
+    let active = true;
+    loadBuddyAvatarId(userId).then((nextAvatarId) => {
+      if (active) setAvatarId(nextAvatarId);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id, pathname]);
+
+  const avatarSource = getBuddyAvatarSource(avatarId);
 
   return (
     <Tabs
@@ -49,7 +77,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => (
             <View style={[styles.buddyAvatarWrap, focused && styles.buddyAvatarWrapFocused]}>
               <Image
-                source={BUDDY_AVATAR}
+                source={avatarSource}
                 style={styles.buddyAvatar}
                 resizeMode="cover"
               />
