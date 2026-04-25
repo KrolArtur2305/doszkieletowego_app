@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Animated,
+  Alert,
   Platform,
   ScrollView,
   StatusBar,
@@ -20,6 +21,7 @@ import {
   type SubscriptionPlanDefinition,
   type SubscriptionPlanKey,
 } from '../../../../../src/config/subscriptionPlans'
+import { isSubscriptionUiReadOnly } from '../../../../../src/services/subscription/launchMode'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
@@ -37,11 +39,13 @@ const PLANS = SUBSCRIPTION_PLAN_LIST
 export default function SubskrypcjaScreen() {
   const router = useRouter()
   const { t, i18n } = useTranslation('subscription')
+  const subscriptionUiReadOnly = isSubscriptionUiReadOnly()
 
   const [currentPlan, setCurrentPlan] = useState<SubscriptionPlanKey>('free')
   const [loading, setLoading] = useState(true)
 
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8
+  const displayedCurrentPlan: SubscriptionPlanKey = subscriptionUiReadOnly ? 'free' : currentPlan
 
   useEffect(() => {
     let alive = true
@@ -83,6 +87,15 @@ export default function SubskrypcjaScreen() {
 
   const onSelectPlan = (plan: SubscriptionPlanDefinition) => {
     if (!isPaidPlanKey(plan.key)) return
+
+    if (subscriptionUiReadOnly) {
+      Alert.alert(
+        t('checkout.unavailableTitle'),
+        t('checkout.unavailableMessage')
+      )
+      return
+    }
+
     router.push({
       pathname: '/(app)/(tabs)/ustawienia/subskrypcja/checkout',
       params: { planKey: plan.key },
@@ -138,7 +151,7 @@ export default function SubskrypcjaScreen() {
               <Text style={styles.currentBadgeText}>
                 {t('currentPlan')}:{' '}
                 <Text style={styles.currentBadgePlan}>
-                  {t(`plans.${currentPlan}.name`)}
+                  {t(`plans.${displayedCurrentPlan}.name`)}
                 </Text>
               </Text>
             </BlurView>
@@ -165,7 +178,8 @@ export default function SubskrypcjaScreen() {
             <PlanCard
               key={plan.key}
               plan={plan}
-              isCurrent={currentPlan === plan.key}
+              isCurrent={displayedCurrentPlan === plan.key}
+              purchaseDisabled={subscriptionUiReadOnly && isPaidPlanKey(plan.key)}
               t={t}
               formatPrice={formatPrice}
               onSelect={() => onSelectPlan(plan)}
@@ -187,12 +201,14 @@ export default function SubskrypcjaScreen() {
 function PlanCard({
   plan,
   isCurrent,
+  purchaseDisabled,
   t,
   formatPrice,
   onSelect,
 }: {
   plan: SubscriptionPlanDefinition
   isCurrent: boolean
+  purchaseDisabled: boolean
   t: (key: string, opts?: any) => string
   formatPrice: (value: number) => string
   onSelect: () => void
@@ -213,7 +229,7 @@ function PlanCard({
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         onPress={onSelect}
-        disabled={isCurrent}
+        disabled={isCurrent || purchaseDisabled}
       >
         <BlurView
           intensity={isPro ? 22 : 14}
@@ -299,9 +315,10 @@ function PlanCard({
               styles.ctaBtn,
               isCurrent && styles.ctaBtnCurrent,
               isPro && !isCurrent && styles.ctaBtnPro,
+              purchaseDisabled && styles.ctaBtnDisabled,
             ]}
             onPress={onSelect}
-            disabled={isCurrent}
+            disabled={isCurrent || purchaseDisabled}
             activeOpacity={0.88}
           >
             <Text
@@ -309,6 +326,7 @@ function PlanCard({
                 styles.ctaBtnText,
                 isCurrent && styles.ctaBtnTextCurrent,
                 isPro && !isCurrent && styles.ctaBtnTextPro,
+                purchaseDisabled && styles.ctaBtnTextDisabled,
               ]}
             >
               {isCurrent
@@ -522,9 +540,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(37,240,200,0.14)',
     borderColor: 'rgba(37,240,200,0.40)',
   },
+  ctaBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
   ctaBtnText: { color: 'rgba(255,255,255,0.55)', fontSize: 11.5, fontWeight: '900' },
   ctaBtnTextCurrent: { color: NEON },
   ctaBtnTextPro: { color: NEON },
+  ctaBtnTextDisabled: { color: 'rgba(255,255,255,0.45)' },
 
   savingsNote: {
     flexDirection: 'row',

@@ -66,6 +66,15 @@ const COLORS = {
 };
 
 const bucketName = 'zdjecia';
+const MAX_PHOTO_UPLOAD_BYTES = 15 * 1024 * 1024;
+const ALLOWED_PHOTO_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
+
+type UploadPhotoAsset = {
+  uri: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
+};
 
 function sanitizeFolderName(input: string) {
   return input
@@ -83,6 +92,19 @@ function localeFromLng(lng?: string) {
   if (base === 'pl') return 'pl-PL';
   if (base === 'de') return 'de-DE';
   return 'en-US';
+}
+
+function getImageExtFromAsset(asset: UploadPhotoAsset) {
+  const rawName = asset.fileName || asset.uri || '';
+  const cleaned = rawName.split('?')[0].split('#')[0];
+  const ext = cleaned.split('.').pop()?.toLowerCase() || '';
+  return ALLOWED_PHOTO_EXTENSIONS.has(ext) ? ext : '';
+}
+
+function isAllowedImageAsset(asset: UploadPhotoAsset) {
+  const mime = String(asset.mimeType || '').toLowerCase();
+  if (mime.startsWith('image/')) return true;
+  return !!getImageExtFromAsset(asset);
 }
 
 export default function ZdjeciaScreen() {
@@ -146,9 +168,14 @@ export default function ZdjeciaScreen() {
     [etapNameMap, tt],
   );
 
-  const getPublicUrlForPath = useCallback((filePath: string) => {
-    const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
-    return data?.publicUrl || '';
+  const getSignedUrlForPath = useCallback(async (filePath: string) => {
+    if (!filePath) return '';
+    const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(filePath, 60 * 60);
+    if (error || !data?.signedUrl) {
+      console.warn('[Zdjecia] Nie udało się wygenerować signed URL:', error?.message || filePath);
+      return '';
+    }
+    return data.signedUrl;
   }, []);
 
   const getUserId = useCallback(async (): Promise<string | null> => {
@@ -244,10 +271,12 @@ export default function ZdjeciaScreen() {
       if (error) throw error;
 
       const rows = (data || []) as Zdjecie[];
-      const withUrls = rows.map((z) => ({
-        ...z,
-        url: getPublicUrlForPath(z.file_path),
-      }));
+      const withUrls = await Promise.all(
+        rows.map(async (z) => ({
+          ...z,
+          url: await getSignedUrlForPath(z.file_path),
+        })),
+      );
 
       setZdjecia(withUrls);
     } catch (e) {
@@ -297,11 +326,67 @@ export default function ZdjeciaScreen() {
 
     if (result.canceled) return;
 
-    const assets = result.assets || [];
-    const uris = assets.map((a) => a?.uri).filter(Boolean) as string[];
-    if (!uris.length) return;
+    const assets = (result.assets || [])
+      .filter((a) => a?.uri)
+      .map((a) => ({
+        uri: a.uri,
+        fileName: (a as any).fileName ?? null,
+        mimeType: (a as any).mimeType ?? null,
+        fileSize: (a as any).fileSize ?? null,
+      })) as UploadPhotoAsset[];
 
-    await uploadPhotosBatch(uris);
+    if (!assets.length) return;
+
+    const successCount = 0;
+    const failureCount = 0;
+    const invalidType = assets.find((asset) => !isAllowedImageAsset(asset));
+    if (invalidType) {
+      if (successCount === assets.length) {
+        Alert.alert(
+          tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
+          tt('photos:alerts.photoAdded', { defaultValue: 'Dodano zdjęcia.' }),
+        );
+        return;
+      }
+
+      if (successCount > 0 && failureCount > 0) {
+        Alert.alert(
+          tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
+          tt('photos:alerts.partialUploadResult', {
+            defaultValue: 'Dodano {{successCount}} zdjęć, {{failureCount}} nie udało się dodać.',
+            successCount,
+            failureCount,
+          }),
+        );
+        return;
+      }
+
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        tt('photos:alerts.invalidFileType', { defaultValue: 'Możesz dodać tylko pliki JPG, PNG, WEBP lub HEIC.' }),
+      );
+      return;
+    }
+
+    const emptyFile = assets.find((asset) => typeof asset.fileSize === 'number' && asset.fileSize <= 0);
+    if (emptyFile) {
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        tt('photos:alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }),
+      );
+      return;
+    }
+
+    const tooLarge = assets.find((asset) => typeof asset.fileSize === 'number' && asset.fileSize > MAX_PHOTO_UPLOAD_BYTES);
+    if (tooLarge) {
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        tt('photos:alerts.fileTooLarge', { defaultValue: 'Zdjęcie jest zbyt duże. Maksymalny rozmiar to 15 MB.' }),
+      );
+      return;
+    }
+
+    await uploadPhotosBatchSafe(assets);
   };
 
   const openDatePicker = () => {
@@ -317,25 +402,39 @@ export default function ZdjeciaScreen() {
     setTakenAt(nextDate);
   };
 
-  const uploadPhotosBatch = async (uris: string[]) => {
+  const uploadPhotosBatch = async (assets: UploadPhotoAsset[]) => {
+    let successCount = 0;
+    let failureCount = 0;
+    let lastErrorMessage: string | null = null;
+
     try {
       setUploading(true);
-      setUploadProgress({ done: 0, total: uris.length });
+      setUploadProgress({ done: 0, total: assets.length });
 
-      for (let i = 0; i < uris.length; i++) {
-        // eslint-disable-next-line no-await-in-loop
-        await uploadPhotoSingle(uris[i]);
-        setUploadProgress({ done: i + 1, total: uris.length });
+      for (let i = 0; i < assets.length; i++) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await uploadPhotoSingle(assets[i]);
+          successCount += 1;
+        } catch (e: any) {
+          failureCount += 1;
+          lastErrorMessage = e?.message ? String(e.message) : null;
+          console.error('Błąd uploadu pojedynczego zdjęcia:', e);
+        } finally {
+          setUploadProgress({ done: i + 1, total: assets.length });
+        }
       }
 
-      setAddModalVisible(false);
-      setSelectedEtapForUpload('');
-      setTakenAt(null);
-      setOpis('');
-      setTagsInput('');
-      setUploadDropdownOpen(false);
+      if (successCount > 0) {
+        setAddModalVisible(false);
+        setSelectedEtapForUpload('');
+        setTakenAt(null);
+        setOpis('');
+        setTagsInput('');
+        setUploadDropdownOpen(false);
 
-      await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
+        await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
+      }
 
       Alert.alert(
         tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
@@ -353,24 +452,117 @@ export default function ZdjeciaScreen() {
     }
   };
 
-  const uploadPhotoSingle = async (uri: string) => {
+  const uploadPhotosBatchSafe = async (assets: UploadPhotoAsset[]) => {
+    let successCount = 0;
+    let failureCount = 0;
+    let lastErrorMessage: string | null = null;
+
+    try {
+      setUploading(true);
+      setUploadProgress({ done: 0, total: assets.length });
+
+      for (let i = 0; i < assets.length; i++) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await uploadPhotoSingle(assets[i]);
+          successCount += 1;
+        } catch (e: any) {
+          failureCount += 1;
+          lastErrorMessage = e?.message ? String(e.message) : null;
+          console.error('Błąd uploadu pojedynczego zdjęcia:', e);
+        } finally {
+          setUploadProgress({ done: i + 1, total: assets.length });
+        }
+      }
+
+      if (successCount > 0) {
+        setAddModalVisible(false);
+        setSelectedEtapForUpload('');
+        setTakenAt(null);
+        setOpis('');
+        setTagsInput('');
+        setUploadDropdownOpen(false);
+
+        await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
+      }
+
+      if (successCount === assets.length) {
+        Alert.alert(
+          tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
+          tt('photos:alerts.photoAdded', { defaultValue: 'Dodano zdjęcia.' }),
+        );
+        return;
+      }
+
+      if (successCount > 0 && failureCount > 0) {
+        Alert.alert(
+          tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
+          tt('photos:alerts.partialUploadResult', {
+            defaultValue: 'Dodano {{successCount}} zdjęć, {{failureCount}} nie udało się dodać.',
+            successCount,
+            failureCount,
+          }),
+        );
+        return;
+      }
+
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        lastErrorMessage || tt('photos:alerts.uploadErrorFallback', { defaultValue: 'Nie udało się dodać zdjęć.' }),
+      );
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const uploadPhotoSingle = async (asset: UploadPhotoAsset) => {
+    const uri = asset.uri;
     const userId = await getUserId();
     if (!userId) {
       throw new Error(tt('photos:alerts.loginRequired', { defaultValue: 'Zaloguj się ponownie.' }));
+    }
+
+    if (!uri) {
+      throw new Error(tt('photos:alerts.uploadErrorFallback', { defaultValue: 'Nie udało się dodać zdjęć.' }));
+    }
+
+    if (typeof asset.fileSize === 'number' && asset.fileSize <= 0) {
+      throw new Error(tt('photos:alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+    }
+
+    if (typeof asset.fileSize === 'number' && asset.fileSize > MAX_PHOTO_UPLOAD_BYTES) {
+      throw new Error(tt('photos:alerts.fileTooLarge', { defaultValue: 'Zdjęcie jest zbyt duże. Maksymalny rozmiar to 15 MB.' }));
+    }
+
+    if (!isAllowedImageAsset(asset)) {
+      throw new Error(tt('photos:alerts.invalidFileType', { defaultValue: 'Możesz dodać tylko pliki JPG, PNG, WEBP lub HEIC.' }));
     }
 
     const etap = selectedEtapForUpload ? etapy.find((e) => e.id === selectedEtapForUpload) ?? null : null;
     const etapFolder = etap ? sanitizeFolderName(etap.nazwa) : 'bez_etapu';
     const timestamp = Date.now() + Math.floor(Math.random() * 999);
 
-    const extGuess = uri.split('.').pop()?.toLowerCase();
-    const fileExt = extGuess && extGuess.length <= 5 ? extGuess : 'jpg';
-    const contentType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
+    const fileExt = getImageExtFromAsset(asset) || 'jpg';
+    const mimeType = String(asset.mimeType || '').toLowerCase();
+    const contentType =
+      mimeType.startsWith('image/')
+        ? mimeType
+        : fileExt === 'png'
+        ? 'image/png'
+        : fileExt === 'webp'
+        ? 'image/webp'
+        : fileExt === 'heic'
+        ? 'image/heic'
+        : 'image/jpeg';
 
     const fileName = `${timestamp}.${fileExt}`;
     const file_path = `${userId}/${etapFolder}/${fileName}`;
 
     const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+    if (!base64) {
+      throw new Error(tt('photos:alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+    }
     const arrayBuffer = decodeBase64(base64);
 
     const { error: uploadError } = await supabase.storage.from(bucketName).upload(file_path, arrayBuffer, {
@@ -393,7 +585,13 @@ export default function ZdjeciaScreen() {
       tags: tags.length ? tags : null,
     });
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      const { error: rollbackError } = await supabase.storage.from(bucketName).remove([file_path]);
+      if (rollbackError) {
+        console.warn('Rollback zdjęcia nie powiódł się:', rollbackError);
+      }
+      throw insertError;
+    }
   };
 
   const handleDeletePhoto = async (z: Zdjecie) => {
@@ -418,10 +616,19 @@ export default function ZdjeciaScreen() {
 
               await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
 
-              Alert.alert(
-                tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
-                tt('photos:alerts.photoDeleted', { defaultValue: 'Usunięto zdjęcie.' }),
-              );
+              if (rmError) {
+                Alert.alert(
+                  tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
+                  tt('photos:alerts.deleteStorageWarning', {
+                    defaultValue: 'Zdjęcie usunięto z listy, ale plik może nadal istnieć w pamięci.',
+                  }),
+                );
+              } else {
+                Alert.alert(
+                  tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
+                  tt('photos:alerts.photoDeleted', { defaultValue: 'Usunięto zdjęcie.' }),
+                );
+              }
             } catch (e) {
               console.error('Błąd usuwania:', e);
               Alert.alert(

@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { removePushToken } from '../../../../src/services/notifications/pushService';
+import { isSubscriptionUiReadOnly } from '../../../../src/services/subscription/launchMode';
 import { AppCard, AppHeader, AppScreen } from '../../../../src/ui/components';
 import { colors, radius, shadows, spacing, typography } from '../../../../src/ui/theme';
 
@@ -35,6 +36,7 @@ type MenuItem = {
 export default function UstawieniaScreen() {
   const router = useRouter();
   const { t } = useTranslation(['settings', 'common']);
+  const subscriptionUiReadOnly = isSubscriptionUiReadOnly();
 
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState(t('settings:fallbackUser'));
@@ -147,7 +149,12 @@ export default function UstawieniaScreen() {
         title: t('settings:items.subscriptionTitle'),
         subtitle: t('settings:items.subscriptionSubtitle'),
         icon: 'credit-card',
-        onPress: () => router.push('/(app)/(tabs)/ustawienia/subskrypcja/checkout'),
+        onPress: () =>
+          router.push(
+            subscriptionUiReadOnly
+              ? '/(app)/(tabs)/ustawienia/subskrypcja'
+              : '/(app)/(tabs)/ustawienia/subskrypcja'
+          ),
       },
       {
         key: 'report',
@@ -157,7 +164,7 @@ export default function UstawieniaScreen() {
         onPress: () => router.push('/(app)/(tabs)/ustawienia/zglos_problem'),
       },
     ],
-    [router, t]
+    [router, subscriptionUiReadOnly, t]
   );
 
   return (

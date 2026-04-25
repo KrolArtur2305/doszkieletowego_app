@@ -25,6 +25,7 @@ const ACCENT = '#19705C';
 const BUDDY_AVATAR = require('../../../../assets/buddy_avatar.png');
 
 const AI_CHAT_ENDPOINT = publicConfig.aiChatEndpoint;
+const AI_REQUEST_TIMEOUT_MS = 20000;
 
 type Message = {
   id: string;
@@ -90,6 +91,8 @@ export default function BuddyChatScreen() {
   ];
 
   const scrollRef = useRef<ScrollView>(null);
+  const activeRequestAbortRef = useRef<AbortController | null>(null);
+  const activeRequestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Typing dots animation
   const dot1 = useRef(new Animated.Value(0)).current;
@@ -167,6 +170,16 @@ export default function BuddyChatScreen() {
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      activeRequestAbortRef.current?.abort();
+      if (activeRequestTimeoutRef.current) {
+        clearTimeout(activeRequestTimeoutRef.current);
+        activeRequestTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const currentConversationTitle =
     conversations.find((c) => c.id === currentConversationId)?.title || t('chat.newConversation');
@@ -247,6 +260,8 @@ export default function BuddyChatScreen() {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
 
+    let requestTimedOut = false;
+
     try {
       setSending(true);
       setError(null);
@@ -274,12 +289,26 @@ export default function BuddyChatScreen() {
       setInput('');
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
 
+      activeRequestAbortRef.current?.abort();
+      if (activeRequestTimeoutRef.current) {
+        clearTimeout(activeRequestTimeoutRef.current);
+        activeRequestTimeoutRef.current = null;
+      }
+
+      const abortController = new AbortController();
+      activeRequestAbortRef.current = abortController;
+      activeRequestTimeoutRef.current = setTimeout(() => {
+        requestTimedOut = true;
+        abortController.abort();
+      }, AI_REQUEST_TIMEOUT_MS);
+
       const response = await fetch(AI_CHAT_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
+        signal: abortController.signal,
         body: JSON.stringify({
           conversation_id: currentConversationId,
           message: trimmed,
@@ -297,14 +326,36 @@ export default function BuddyChatScreen() {
         throw new Error(errorText || t('chat.errors.aiConnection'));
       }
 
-      const payload = (await response.json()) as {
+      let payload: {
         conversation_id?: string | null;
         assistant_message_id?: string | null;
         message?: string | null;
-      };
+      } | null = null;
+
+      try {
+        payload = (await response.json()) as {
+          conversation_id?: string | null;
+          assistant_message_id?: string | null;
+          message?: string | null;
+        };
+      } catch {
+        throw new Error(
+          t('chat.messages.invalidResponse', {
+            defaultValue: 'Nie udało się odczytać odpowiedzi AI. Spróbuj ponownie.',
+          })
+        );
+      }
 
       const resolvedConversationId = payload?.conversation_id || currentConversationId;
       const finalAssistantText = String(payload?.message ?? '').trim();
+
+      if (!finalAssistantText) {
+        throw new Error(
+          t('chat.messages.generateFallback', {
+            defaultValue: 'Nie udało mi się teraz przygotować odpowiedzi. Spróbuj ponownie za chwilę.',
+          })
+        );
+      }
 
       setMessages((prev) => [
         ...prev.map((m) => (m.id === tempUserId ? { ...m, pending: false } : m)),
@@ -324,7 +375,16 @@ export default function BuddyChatScreen() {
         await loadMessages(resolvedConversationId);
       }
     } catch (e: any) {
-      const msg = e?.message ?? t('chat.messages.connectionError');
+      const isAbortError = e?.name === 'AbortError';
+      const msg = requestTimedOut
+        ? t('chat.messages.timeoutError', {
+            defaultValue: 'Połączenie z AI trwało zbyt długo. Spróbuj ponownie.',
+          })
+        : isAbortError
+        ? t('chat.messages.requestCancelled', {
+            defaultValue: 'Żądanie zostało przerwane. Spróbuj ponownie.',
+          })
+        : e?.message ?? t('chat.messages.connectionError');
 
       setMessages((prev) =>
         prev.map((m) =>
@@ -336,6 +396,11 @@ export default function BuddyChatScreen() {
 
       setError(msg);
     } finally {
+      activeRequestAbortRef.current = null;
+      if (activeRequestTimeoutRef.current) {
+        clearTimeout(activeRequestTimeoutRef.current);
+        activeRequestTimeoutRef.current = null;
+      }
       setSending(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     }

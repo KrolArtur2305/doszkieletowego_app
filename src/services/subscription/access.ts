@@ -1,6 +1,10 @@
 import type { CustomerInfo } from 'react-native-purchases';
 import { publicConfig } from '../../../lib/supabase';
-import { AI_OPEN_ACCESS, isLaunchPaymentsDisabled } from './launchMode';
+import {
+  AI_OPEN_ACCESS,
+  isLaunchPaymentsDisabled,
+  isSubscriptionPurchaseAvailable,
+} from './launchMode';
 import type { SubscriptionAccess } from './types';
 
 function getActiveEntitlementIds(customerInfo: CustomerInfo | null): string[] {
@@ -9,7 +13,7 @@ function getActiveEntitlementIds(customerInfo: CustomerInfo | null): string[] {
 }
 
 export function getSubscriptionAccess(customerInfo: CustomerInfo | null): SubscriptionAccess {
-  if (isLaunchPaymentsDisabled()) {
+  if (isLaunchPaymentsDisabled() || !isSubscriptionPurchaseAvailable()) {
     return {
       currentPlan: 'free',
       isSubscriptionActive: false,

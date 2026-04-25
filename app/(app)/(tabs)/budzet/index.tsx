@@ -119,6 +119,8 @@ type PickedFile = {
   uri: string;
   size?: number;
 };
+const MAX_RECEIPT_UPLOAD_BYTES = 20 * 1024 * 1024;
+const ALLOWED_RECEIPT_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic']);
 
 type FilterType = 'all' | 'spent' | 'planned';
 
@@ -128,7 +130,16 @@ function guessMime(name: string, fallback?: string) {
   if (lower.endsWith('.pdf')) return 'application/pdf';
   if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
   if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.heic')) return 'image/heic';
   return 'application/octet-stream';
+}
+
+function isAllowedReceiptFile(file?: PickedFile | null) {
+  const mime = String(file?.mimeType || '').toLowerCase();
+  if (mime === 'application/pdf' || mime.startsWith('image/')) return true;
+  const ext = String(file?.name || '').split('.').pop()?.toLowerCase() || '';
+  return ALLOWED_RECEIPT_EXTENSIONS.has(ext);
 }
 
 async function uriToArrayBuffer(uri: string, readFileFailedText: string): Promise<ArrayBuffer> {
@@ -285,14 +296,40 @@ export default function BudzetScreen() {
     if (res.canceled) return;
     const f = res.assets?.[0];
     if (!f?.uri) return;
-    setPicked({ name: f.name ?? 'plik', uri: f.uri, mimeType: guessMime(f.name ?? '', f.mimeType ?? undefined), size: f.size });
+    const nextPicked = {
+      name: f.name ?? 'plik',
+      uri: f.uri,
+      mimeType: guessMime(f.name ?? '', f.mimeType ?? undefined),
+      size: f.size,
+    };
+
+    if (typeof nextPicked.size === 'number' && nextPicked.size <= 0) {
+      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+      return;
+    }
+
+    if (typeof nextPicked.size === 'number' && nextPicked.size > MAX_RECEIPT_UPLOAD_BYTES) {
+      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('errors.fileTooLarge', { defaultValue: 'Plik jest zbyt duży. Maksymalny rozmiar to 20 MB.' }));
+      return;
+    }
+
+    if (!isAllowedReceiptFile(nextPicked)) {
+      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('errors.invalidFileType', { defaultValue: 'Dołącz tylko PDF lub obraz paragonu.' }));
+      return;
+    }
+
+    setPicked(nextPicked);
   };
 
   const uploadOptionalFile = async (): Promise<string | null> => {
     if (!picked || !userId) return null;
+    if (typeof picked.size === 'number' && picked.size <= 0) throw new Error(t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+    if (typeof picked.size === 'number' && picked.size > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge', { defaultValue: 'Plik jest zbyt duży. Maksymalny rozmiar to 20 MB.' }));
+    if (!isAllowedReceiptFile(picked)) throw new Error(t('errors.invalidFileType', { defaultValue: 'Dołącz tylko PDF lub obraz paragonu.' }));
     const safeName = (picked.name || 'plik').replace(/[^a-zA-Z0-9._-]/g, '_');
     const key = `${userId}/wydatki/${Date.now()}_${safeName}`;
     const ab = await uriToArrayBuffer(picked.uri, t('errors.readFileFailed'));
+    if (!ab || ab.byteLength <= 0) throw new Error(t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
     const up = await supabase.storage.from('paragony').upload(key, ab, { contentType: picked.mimeType, upsert: false });
     if (up.error) throw up.error;
     return key;
@@ -321,7 +358,15 @@ export default function BudzetScreen() {
         plik: storageKey,
       };
       const ins = await supabase.from('wydatki').insert(payload).select('id').maybeSingle();
-      if (ins.error) throw ins.error;
+      if (ins.error) {
+        if (storageKey) {
+          const rollback = await supabase.storage.from('paragony').remove([storageKey]);
+          if (rollback.error) {
+            console.warn('[Budżet] rollback paragonu nie powiódł się:', rollback.error.message);
+          }
+        }
+        throw ins.error;
+      }
 
       setFNazwa(''); setFKategoria('Inne'); setFKwota('');
       setFStatus(STATUS_SPENT); setFData(''); setFOpis('');
@@ -353,7 +398,17 @@ export default function BudzetScreen() {
     try {
       const del = await supabase.from('wydatki').delete().eq('id', row.id).eq('user_id', userId);
       if (del.error) throw del.error;
-      if (row.plik) await supabase.storage.from('paragony').remove([row.plik]);
+      if (row.plik) {
+        const removeResult = await supabase.storage.from('paragony').remove([row.plik]);
+        if (removeResult.error) {
+          Alert.alert(
+            t('errorTitle', { defaultValue: 'Błąd' }),
+            t('errors.deleteFileWarning', {
+              defaultValue: 'Wydatek został usunięty, ale nie udało się usunąć załącznika z pamięci.',
+            })
+          );
+        }
+      }
       setWydatki((prev) => prev.filter((w) => w.id !== row.id));
     } catch (e: any) {
       alert(e?.message ?? t('errors.deleteFailed'));

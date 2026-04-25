@@ -31,6 +31,8 @@ const ACCENT = colors.accent
 const NEON = colors.accentBright
 const DEFAULT_MODEL_URL = 'https://pkgeautweumkupfxfjoo.supabase.co/storage/v1/object/public/models/dom_small.glb'
 const BUCKET_RZUTY = 'rzuty_projektu'
+const MAX_PLAN_UPLOAD_BYTES = 15 * 1024 * 1024
+const ALLOWED_PLAN_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic'])
 
 type Projekt = {
   id: string
@@ -75,17 +77,21 @@ function safeNumberOrNull(v: string) {
 }
 
 function keyFromStoredUrl(storedUrl: string) {
+  const rawValue = String(storedUrl || '').trim()
+  if (!rawValue) return null
+  if (!/^https?:\/\//i.test(rawValue)) return rawValue.replace(/^\/+/, '') || null
+
   const publicMarker = `/storage/v1/object/public/${BUCKET_RZUTY}/`
   const signedMarker = `/storage/v1/object/sign/${BUCKET_RZUTY}/`
 
-  const publicIdx = storedUrl.indexOf(publicMarker)
+  const publicIdx = rawValue.indexOf(publicMarker)
   if (publicIdx !== -1) {
-    return storedUrl.slice(publicIdx + publicMarker.length).split('?')[0]
+    return rawValue.slice(publicIdx + publicMarker.length).split('?')[0]
   }
 
-  const signedIdx = storedUrl.indexOf(signedMarker)
+  const signedIdx = rawValue.indexOf(signedMarker)
   if (signedIdx !== -1) {
-    return storedUrl.slice(signedIdx + signedMarker.length).split('?')[0]
+    return rawValue.slice(signedIdx + signedMarker.length).split('?')[0]
   }
 
   return null
@@ -109,6 +115,11 @@ async function withSignedUrls(rows: Rzut[]): Promise<Rzut[]> {
       }
     })
   )
+}
+
+function getRzutRenderUrl(rzut: Rzut) {
+  if (rzut.display_url) return rzut.display_url
+  return /^https?:\/\//i.test(rzut.url) ? rzut.url : null
 }
 
 function base64ToUint8Array(base64: string) {
@@ -308,6 +319,33 @@ export default function ProjektScreen() {
       const asset = picked.assets?.[0]
       if (!asset?.uri) return
 
+      const assetSize = Number((asset as any)?.fileSize ?? 0)
+      if (assetSize === 0) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('emptyPlanFile', { defaultValue: 'Wybrany plik jest pusty.' })
+        )
+        return
+      }
+
+      if (assetSize > 0 && assetSize > MAX_PLAN_UPLOAD_BYTES) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('planTooLarge', { defaultValue: 'Rzut jest zbyt duży. Maksymalny rozmiar to 15 MB.' })
+        )
+        return
+      }
+
+      const isImageMime = String((asset as any)?.mimeType ?? '').toLowerCase().startsWith('image/')
+      const hasAllowedExt = !!getPlanExt((asset as any)?.fileName ?? asset.uri)
+      if (!isImageMime && !hasAllowedExt) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('invalidPlanType', { defaultValue: 'Możesz dodać tylko plik obrazu rzutu.' })
+        )
+        return
+      }
+
       const manipulated = await ImageManipulator.manipulateAsync(asset.uri, [], {
         compress: 0.9,
         format: ImageManipulator.SaveFormat.JPEG,
@@ -317,7 +355,21 @@ export default function ProjektScreen() {
       const path = `rzuty/${userId}/${proj.id}/${key}`
 
       const base64 = await FileSystem.readAsStringAsync(manipulated.uri, { encoding: 'base64' as any })
+      if (!base64) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('emptyPlanFile', { defaultValue: 'Wybrany plik jest pusty.' })
+        )
+        return
+      }
       const bytes = base64ToUint8Array(base64)
+      if (!bytes.byteLength) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('emptyPlanFile', { defaultValue: 'Wybrany plik jest pusty.' })
+        )
+        return
+      }
 
       const { error: upErr } = await supabase.storage
         .from(BUCKET_RZUTY)
@@ -325,12 +377,6 @@ export default function ProjektScreen() {
 
       if (upErr) {
         Alert.alert(t('uploadFailedTitle', { defaultValue: 'Upload nieudany' }), upErr.message)
-        return
-      }
-
-      const { data: pub } = supabase.storage.from(BUCKET_RZUTY).getPublicUrl(path)
-      if (!pub?.publicUrl) {
-        Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('urlError', { defaultValue: 'Nie udało się uzyskać URL.' }))
         return
       }
 
@@ -342,13 +388,17 @@ export default function ProjektScreen() {
         .insert({
           user_id: userId,
           projekt_id: proj.id,
-          url: pub.publicUrl,
+          url: path,
           nazwa: defaultName,
         })
         .select('id,user_id,projekt_id,url,nazwa,created_at')
         .single()
 
       if (insErr) {
+        const { error: rollbackError } = await supabase.storage.from(BUCKET_RZUTY).remove([path])
+        if (rollbackError) {
+          console.warn('[Projekt] rollback rzutu nie powiódł się:', rollbackError.message)
+        }
         Alert.alert(t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }), insErr.message)
         return
       }
@@ -358,7 +408,7 @@ export default function ProjektScreen() {
         {
           ...(row as any),
           storage_path: path,
-          display_url: signedData?.signedUrl ?? pub.publicUrl,
+          display_url: signedData?.signedUrl ?? null,
         },
         ...prev,
       ])
@@ -395,13 +445,30 @@ export default function ProjektScreen() {
             }
 
             const path = r.storage_path || (r.url ? keyFromStoredUrl(r.url) : null)
-            if (path) await supabase.storage.from(BUCKET_RZUTY).remove([path])
+            let storageRemoveError: string | null = null
+
+            if (path) {
+              const { error: removeError } = await supabase.storage.from(BUCKET_RZUTY).remove([path])
+              if (removeError) {
+                storageRemoveError = removeError.message
+                console.warn('[Projekt] nie udało się usunąć pliku rzutu ze storage:', removeError.message)
+              }
+            }
 
             setRzuty((prev) => prev.filter((x) => x.id !== r.id))
 
             if (previewRzut?.id === r.id) {
               setPreviewOpen(false)
               setPreviewRzut(null)
+            }
+
+            if (storageRemoveError) {
+              Alert.alert(
+                t('errorTitle', { defaultValue: 'Błąd' }),
+                t('deletePlanStorageWarning', {
+                  defaultValue: 'Rzut usunięto z listy, ale plik może nadal istnieć w pamięci.',
+                })
+              )
             }
           } catch {
             Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('deletePlanError', { defaultValue: 'Nie udało się usunąć rzutu.' }))
@@ -568,7 +635,7 @@ export default function ProjektScreen() {
               <View style={{ marginTop: 8, gap: 12 }}>
                 {rzuty.map((r) => (
                   <Pressable key={r.id} onPress={() => openPreview(r)} onLongPress={() => deleteRzut(r)} style={styles.rzutCard}>
-                    <Image source={{ uri: r.display_url || r.url }} style={styles.rzutImg} resizeMode="cover" />
+                    <Image source={{ uri: getRzutRenderUrl(r) || undefined }} style={styles.rzutImg} resizeMode="cover" />
                     <View style={styles.rzutFooter}>
                       <View style={{ flex: 1, paddingRight: 10 }}>
                         <Text style={styles.rzutName} numberOfLines={1}>
@@ -610,7 +677,9 @@ export default function ProjektScreen() {
             </View>
 
             <View style={styles.previewImgWrap}>
-              {previewRzut?.url ? <Image source={{ uri: previewRzut.display_url || previewRzut.url }} style={styles.previewImg} resizeMode="contain" /> : null}
+              {previewRzut && getRzutRenderUrl(previewRzut) ? (
+                <Image source={{ uri: getRzutRenderUrl(previewRzut) || undefined }} style={styles.previewImg} resizeMode="contain" />
+              ) : null}
             </View>
           </View>
         </Modal>
@@ -711,6 +780,12 @@ export default function ProjektScreen() {
       </ScrollView>
     </AppScreen>
   )
+}
+
+function getPlanExt(nameOrUri?: string | null) {
+  const cleaned = String(nameOrUri || '').split('?')[0].split('#')[0]
+  const ext = cleaned.split('.').pop()?.toLowerCase() || ''
+  return ALLOWED_PLAN_EXTENSIONS.has(ext) ? ext : ''
 }
 
 function AnimatedDataCell({ tile, index }: { tile: { id: string; label: string; value: string }; index: number }) {

@@ -22,6 +22,7 @@ import {
   SUBSCRIPTION_PLANS,
   type SubscriptionPlanKey,
 } from '../../../../../src/config/subscriptionPlans'
+import { isSubscriptionUiReadOnly } from '../../../../../src/services/subscription/launchMode'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
@@ -38,6 +39,7 @@ export default function CheckoutScreen() {
   const router = useRouter()
   const { t } = useTranslation('subscription')
   const { planKey: initialPlanKey } = useLocalSearchParams<{ planKey: SubscriptionPlanKey }>()
+  const subscriptionUiReadOnly = isSubscriptionUiReadOnly()
 
   const initIndex = Math.max(
     0,
@@ -83,6 +85,10 @@ export default function CheckoutScreen() {
   const handlePurchase = async (key: SubscriptionPlanKey) => {
     if (key === 'free') {
       router.back()
+      return
+    }
+
+    if (subscriptionUiReadOnly) {
       return
     }
 
@@ -318,14 +324,17 @@ export default function CheckoutScreen() {
                       styles.selectBtn,
                       isThisPro && styles.selectBtnPro,
                       isThisFree && styles.selectBtnFree,
+                      subscriptionUiReadOnly && !isThisFree && styles.selectBtnDisabled,
                     ]}
                     onPress={() => handlePurchase(key)}
+                    disabled={subscriptionUiReadOnly && !isThisFree}
                     activeOpacity={0.88}
                   >
                     <Text style={[
                       styles.selectBtnText,
                       isThisPro && styles.selectBtnTextPro,
                       isThisFree && styles.selectBtnTextFree,
+                      subscriptionUiReadOnly && !isThisFree && styles.selectBtnTextDisabled,
                     ]}>
                       {isThisFree
                         ? t('checkout.freeCta')
@@ -475,9 +484,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: 'rgba(255,255,255,0.12)',
   },
+  selectBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
   selectBtnText: { color: NEON, fontSize: 15, fontWeight: '900' },
   selectBtnTextPro: { color: '#0B1120' },
   selectBtnTextFree: { color: 'rgba(255,255,255,0.45)', fontSize: 14 },
+  selectBtnTextDisabled: { color: 'rgba(255,255,255,0.45)' },
 
   securityRow: {
     flexDirection: 'row', alignItems: 'center',

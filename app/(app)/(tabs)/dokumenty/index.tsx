@@ -72,6 +72,29 @@ const COLORS = {
 
 const bucketName = 'dokumenty';
 const APP_LOGO = require('../../../assets/logo.png');
+const MAX_DOCUMENT_UPLOAD_BYTES = 20 * 1024 * 1024;
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set([
+  'pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt',
+]);
+
+function isAllowedDocument(file?: { name?: string; mimeType?: string } | null) {
+  const mime = String(file?.mimeType || '').toLowerCase();
+  if (mime.startsWith('image/')) return true;
+  if (
+    mime === 'application/pdf' ||
+    mime === 'application/msword' ||
+    mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    mime === 'application/vnd.ms-excel' ||
+    mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    mime === 'text/csv' ||
+    mime === 'text/plain'
+  ) {
+    return true;
+  }
+
+  const ext = String(file?.name || '').split('.').pop()?.toLowerCase() || '';
+  return ALLOWED_DOCUMENT_EXTENSIONS.has(ext);
+}
 
 function localeFromLng(lng?: string) {
   const base = (lng || 'en').split('-')[0];
@@ -252,10 +275,47 @@ export default function DokumentyScreen() {
   };
 
   const pickFile = async () => {
-    const res = await DocumentPicker.getDocumentAsync({ multiple: false });
+    const res = await DocumentPicker.getDocumentAsync({
+      multiple: false,
+      copyToCacheDirectory: true,
+      type: [
+        'application/pdf',
+        'image/*',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/csv',
+        'text/plain',
+      ],
+    });
     if (!res.canceled) {
       const a = res.assets?.[0];
       if (a?.uri) {
+        if (typeof a.size === 'number' && a.size <= 0) {
+          Alert.alert(
+            tt('common:errorTitle', { defaultValue: 'Error' }),
+            tt('documents:alerts.emptyFile', { defaultValue: 'Selected file is empty.' }),
+          );
+          return;
+        }
+
+        if (typeof a.size === 'number' && a.size > MAX_DOCUMENT_UPLOAD_BYTES) {
+          Alert.alert(
+            tt('common:errorTitle', { defaultValue: 'Error' }),
+            tt('documents:alerts.fileTooLarge', { defaultValue: 'File is too large. Maximum size is 20 MB.' }),
+          );
+          return;
+        }
+
+        if (!isAllowedDocument({ name: a.name, mimeType: a.mimeType })) {
+          Alert.alert(
+            tt('common:errorTitle', { defaultValue: 'Error' }),
+            tt('documents:alerts.invalidFileType', { defaultValue: 'Unsupported file type.' }),
+          );
+          return;
+        }
+
         setFile({ uri: a.uri, name: a.name, mimeType: a.mimeType, size: a.size });
       }
     }
@@ -330,8 +390,18 @@ export default function DokumentyScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await supabase.from('dokumenty').delete().eq('id', doc.id);
-              await supabase.storage.from(bucketName).remove([doc.plik_url]);
+              const { error: deleteError } = await supabase.from('dokumenty').delete().eq('id', doc.id);
+              if (deleteError) throw deleteError;
+
+              const { error: removeError } = await supabase.storage.from(bucketName).remove([doc.plik_url]);
+              if (removeError) {
+                Alert.alert(
+                  tt('common:errorTitle', { defaultValue: 'Error' }),
+                  tt('documents:alerts.deleteStorageError', {
+                    defaultValue: 'Document was removed, but the file could not be deleted from storage.',
+                  }),
+                );
+              }
               if (previewDoc?.id === doc.id) closePreview();
               onRefresh();
             } catch (e: any) {
@@ -366,6 +436,30 @@ export default function DokumentyScreen() {
       return;
     }
 
+    if (typeof file.size === 'number' && file.size <= 0) {
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('documents:alerts.emptyFile', { defaultValue: 'Selected file is empty.' }),
+      );
+      return;
+    }
+
+    if (typeof file.size === 'number' && file.size > MAX_DOCUMENT_UPLOAD_BYTES) {
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('documents:alerts.fileTooLarge', { defaultValue: 'File is too large. Maximum size is 20 MB.' }),
+      );
+      return;
+    }
+
+    if (!isAllowedDocument(file)) {
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('documents:alerts.invalidFileType', { defaultValue: 'Unsupported file type.' }),
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const userId = await getUserId();
@@ -379,6 +473,9 @@ export default function DokumentyScreen() {
       const filePath = `dokumenty/${userId}/${Date.now()}${ext ? '.' + ext : ''}`;
 
       const blob = await (await fetch(file.uri)).blob();
+      if (!blob || blob.size <= 0) {
+        throw new Error(tt('documents:alerts.emptyFile', { defaultValue: 'Selected file is empty.' }));
+      }
 
       const { error: upErr } = await supabase.storage.from(bucketName).upload(filePath, blob, {
         contentType: file.mimeType || (ext === 'pdf' ? 'application/pdf' : undefined),
@@ -400,7 +497,13 @@ export default function DokumentyScreen() {
         plik_url: filePath,
       });
 
-      if (error) throw error;
+      if (error) {
+        const { error: rollbackError } = await supabase.storage.from(bucketName).remove([filePath]);
+        if (rollbackError) {
+          console.warn('Rollback dokumentu nie powiódł się:', rollbackError);
+        }
+        throw error;
+      }
 
       setAddModalVisible(false);
       resetAddForm();

@@ -30,6 +30,9 @@ const ACCENT = '#19705C';
 const NEON = '#25F0C8';
 const { width: W } = Dimensions.get('window');
 const APP_LOGO = require('../../../../assets/logo.png');
+const MAX_JOURNAL_IMAGE_BYTES = 15 * 1024 * 1024;
+const ALLOWED_JOURNAL_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
+const JOURNAL_IMAGES_BUCKET = 'zdjecia';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Etap = {
@@ -47,6 +50,7 @@ type Wpis = {
   etap_id: string | null;
   etap_nazwa: string | null;
   zdjecie_url: string | null;
+  zdjecie_display_url?: string | null;
   created_at: string;
 };
 
@@ -97,6 +101,54 @@ function getCurrentEtapId(etapy: Etap[]) {
   return firstCurrent?.id ?? etapy[0]?.id ?? null;
 }
 
+function getJournalImageExt(uri?: string | null) {
+  const cleaned = String(uri || '').split('?')[0].split('#')[0];
+  const ext = cleaned.split('.').pop()?.toLowerCase() || '';
+  return ALLOWED_JOURNAL_IMAGE_EXTENSIONS.has(ext) ? ext : '';
+}
+
+function getJournalStoragePathFromUrl(url?: string | null) {
+  const rawUrl = String(url || '').trim();
+  if (!rawUrl) return null;
+  if (!/^https?:\/\//i.test(rawUrl)) return rawUrl.replace(/^\/+/, '') || null;
+
+  const publicMarker = `/storage/v1/object/public/${JOURNAL_IMAGES_BUCKET}/`;
+  const signedMarker = `/storage/v1/object/sign/${JOURNAL_IMAGES_BUCKET}/`;
+
+  const publicIndex = rawUrl.indexOf(publicMarker);
+  if (publicIndex !== -1) {
+    return rawUrl.slice(publicIndex + publicMarker.length).split('?')[0];
+  }
+
+  const signedIndex = rawUrl.indexOf(signedMarker);
+  if (signedIndex !== -1) {
+    return rawUrl.slice(signedIndex + signedMarker.length).split('?')[0];
+  }
+
+  return null;
+}
+
+async function getJournalImageDisplayUrl(value?: string | null) {
+  const rawValue = String(value || '').trim();
+  if (!rawValue) return null;
+
+  const storagePath = getJournalStoragePathFromUrl(rawValue);
+  if (!storagePath) {
+    return /^https?:\/\//i.test(rawValue) ? rawValue : null;
+  }
+
+  const { data, error } = await supabase.storage
+    .from(JOURNAL_IMAGES_BUCKET)
+    .createSignedUrl(storagePath, 60 * 60);
+
+  if (error || !data?.signedUrl) {
+    console.warn('[Dziennik] createSignedUrl failed:', error?.message || storagePath);
+    return /^https?:\/\//i.test(rawValue) ? rawValue : null;
+  }
+
+  return data.signedUrl;
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function DziennikScreen() {
@@ -122,6 +174,7 @@ export default function DziennikScreen() {
   const [formEtapId, setFormEtapId] = useState<string | null>(null);
   const [formZdjecieUri, setFormZdjecieUri] = useState<string | null>(null);
   const [formZdjecieUrl, setFormZdjecieUrl] = useState<string | null>(null);
+  const [formZdjecieStoredValue, setFormZdjecieStoredValue] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAllEtapy, setShowAllEtapy] = useState(false);
@@ -163,10 +216,13 @@ export default function DziennikScreen() {
         .select('*, etapy(nazwa)')
         .eq('user_id', userId);
 
-      const mapped = (data ?? []).map((w: any) => ({
-        ...w,
-        etap_nazwa: w.etapy?.nazwa ?? null,
-      }));
+      const mapped = await Promise.all(
+        (data ?? []).map(async (w: any) => ({
+          ...w,
+          etap_nazwa: w.etapy?.nazwa ?? null,
+          zdjecie_display_url: await getJournalImageDisplayUrl(w.zdjecie_url),
+        }))
+      );
 
       setWpisy(mapped);
     } catch {
@@ -223,6 +279,7 @@ export default function DziennikScreen() {
     setFormEtapId(currentEtapId);
     setFormZdjecieUri(null);
     setFormZdjecieUrl(null);
+    setFormZdjecieStoredValue(null);
     setShowAllEtapy(false);
     setShowDatePicker(false);
     setModalOpen(true);
@@ -236,7 +293,8 @@ export default function DziennikScreen() {
       setFormTresc(w.tresc);
       setFormEtapId(w.etap_id);
       setFormZdjecieUri(null);
-      setFormZdjecieUrl(w.zdjecie_url);
+      setFormZdjecieUrl(w.zdjecie_display_url ?? w.zdjecie_url);
+      setFormZdjecieStoredValue(w.zdjecie_url);
       setShowAllEtapy(false);
       setShowDatePicker(false);
       setModalOpen(true);
@@ -252,8 +310,29 @@ export default function DziennikScreen() {
       aspect: [16, 9],
     });
 
-    if (!result.canceled && result.assets[0]) {
-      setFormZdjecieUri(result.assets[0].uri);
+    const pickedAsset = result.assets?.[0];
+    if (!result.canceled && pickedAsset?.uri) {
+      const fileSize = Number((pickedAsset as any).fileSize ?? 0);
+      const mimeType = String((pickedAsset as any).mimeType ?? '').toLowerCase();
+      const isImageMime = mimeType.startsWith('image/');
+      const hasAllowedExt = !!getJournalImageExt((pickedAsset as any).fileName ?? pickedAsset.uri);
+
+      if (fileSize === 0) {
+        Alert.alert(t('alerts.errorTitle'), t('alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+        return;
+      }
+
+      if (fileSize > 0 && fileSize > MAX_JOURNAL_IMAGE_BYTES) {
+        Alert.alert(t('alerts.errorTitle'), t('alerts.fileTooLarge', { defaultValue: 'Zdjęcie jest zbyt duże. Maksymalny rozmiar to 15 MB.' }));
+        return;
+      }
+
+      if (!isImageMime && !hasAllowedExt) {
+        Alert.alert(t('alerts.errorTitle'), t('alerts.invalidFileType', { defaultValue: 'Możesz dodać tylko plik obrazu.' }));
+        return;
+      }
+
+      setFormZdjecieUri(pickedAsset.uri);
       setFormZdjecieUrl(null);
     }
   };
@@ -261,24 +340,37 @@ export default function DziennikScreen() {
   const removeImage = () => {
     setFormZdjecieUri(null);
     setFormZdjecieUrl(null);
+    setFormZdjecieStoredValue(null);
   };
 
   // ── Upload image ──
   const uploadImage = async (uri: string, userId: string): Promise<string | null> => {
     try {
-      const ext = uri.split('.').pop() ?? 'jpg';
+      if (!uri) {
+        throw new Error(t('alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+      }
+
+      const ext = getJournalImageExt(uri) || 'jpg';
+      if (!ALLOWED_JOURNAL_IMAGE_EXTENSIONS.has(ext.toLowerCase())) {
+        throw new Error(t('alerts.invalidFileType', { defaultValue: 'Możesz dodać tylko plik obrazu.' }));
+      }
       const path = `${userId}/dziennik/${Date.now()}.${ext}`;
       const response = await fetch(uri);
       const blob = await response.blob();
+      if (!blob || blob.size <= 0) {
+        throw new Error(t('alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+      }
+      if (blob.size > MAX_JOURNAL_IMAGE_BYTES) {
+        throw new Error(t('alerts.fileTooLarge', { defaultValue: 'Zdjęcie jest zbyt duże. Maksymalny rozmiar to 15 MB.' }));
+      }
 
-      const { error } = await supabase.storage.from('zdjecia').upload(path, blob, {
+      const { error } = await supabase.storage.from(JOURNAL_IMAGES_BUCKET).upload(path, blob, {
         contentType: `image/${ext}`,
       });
 
       if (error) throw error;
 
-      const { data } = supabase.storage.from('zdjecia').getPublicUrl(path);
-      return data.publicUrl;
+      return path;
     } catch {
       return null;
     }
@@ -297,10 +389,17 @@ export default function DziennikScreen() {
     setSaving(true);
 
     try {
-      let zdjecieUrl = formZdjecieUrl;
+      let zdjecieUrl = formZdjecieStoredValue;
 
       if (formZdjecieUri) {
         zdjecieUrl = await uploadImage(formZdjecieUri, userId);
+        if (!zdjecieUrl) {
+          throw new Error(
+            t('alerts.photoUploadError', {
+              defaultValue: 'Nie udało się przesłać zdjęcia. Spróbuj ponownie.',
+            })
+          );
+        }
       }
 
       const payload = {
@@ -312,9 +411,11 @@ export default function DziennikScreen() {
       };
 
       if (editingWpis) {
-        await supabase.from('dziennik').update(payload).eq('id', editingWpis.id);
+        const { error } = await supabase.from('dziennik').update(payload).eq('id', editingWpis.id);
+        if (error) throw error;
       } else {
-        await supabase.from('dziennik').insert(payload);
+        const { error } = await supabase.from('dziennik').insert(payload);
+        if (error) throw error;
       }
 
       setModalOpen(false);
@@ -334,9 +435,33 @@ export default function DziennikScreen() {
         text: t('common:delete'),
         style: 'destructive',
         onPress: async () => {
-          setDetailOpen(false);
-          await supabase.from('dziennik').delete().eq('id', w.id);
-          await loadWpisy();
+          try {
+            const { error } = await supabase.from('dziennik').delete().eq('id', w.id);
+            if (error) throw error;
+
+            const storagePath = getJournalStoragePathFromUrl(w.zdjecie_url);
+            if (storagePath) {
+              const { error: storageError } = await supabase
+                .storage
+                .from(JOURNAL_IMAGES_BUCKET)
+                .remove([storagePath]);
+
+              if (storageError) {
+                console.warn('[Dziennik] remove storage image failed:', storageError.message);
+                Alert.alert(
+                  t('alerts.errorTitle'),
+                  t('detail.deleteStorageWarning', {
+                    defaultValue: 'Wpis usunięto, ale nie udało się usunąć zdjęcia z pamięci.',
+                  })
+                );
+              }
+            }
+
+            setDetailOpen(false);
+            await loadWpisy();
+          } catch (e: any) {
+            Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
+          }
         },
       },
     ]);
@@ -709,9 +834,9 @@ export default function DziennikScreen() {
 
               <Text style={styles.detailTresc}>{detailWpis.tresc}</Text>
 
-              {detailWpis.zdjecie_url && (
+              {(detailWpis.zdjecie_display_url || detailWpis.zdjecie_url) && (
                 <Image
-                  source={{ uri: detailWpis.zdjecie_url }}
+                  source={{ uri: detailWpis.zdjecie_display_url ?? detailWpis.zdjecie_url! }}
                   style={styles.detailImage}
                   resizeMode="cover"
                 />
@@ -783,8 +908,8 @@ function WpisCard({
           </Text>
         </View>
 
-        {w.zdjecie_url && (
-          <Image source={{ uri: w.zdjecie_url }} style={styles.cardThumb} resizeMode="cover" />
+        {(w.zdjecie_display_url || w.zdjecie_url) && (
+          <Image source={{ uri: w.zdjecie_display_url ?? w.zdjecie_url! }} style={styles.cardThumb} resizeMode="cover" />
         )}
 
         <Feather
