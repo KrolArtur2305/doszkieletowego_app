@@ -114,7 +114,7 @@ export default function GuidedSetupScreen() {
       ? profile.ai_buddy_avatar
       : DEFAULT_BUDDY_AVATAR_ID
 
-  const next = () => setStep((current) => Math.min(current + 1, 4))
+  const next = () => setStep((current) => Math.min(current + 1, 3))
   const back = () => setStep((current) => Math.max(current - 1, 0))
 
   const finish = async () => {
@@ -167,7 +167,7 @@ export default function GuidedSetupScreen() {
             ) : null}
 
             <View style={styles.progressRow}>
-              {[0, 1, 2, 3, 4].map((idx) => (
+              {[0, 1, 2, 3].map((idx) => (
                 <View key={idx} style={[styles.progressDot, idx <= step && styles.progressDotActive]} />
               ))}
             </View>
@@ -176,10 +176,10 @@ export default function GuidedSetupScreen() {
 
             {step === 0 ? (
               <>
-                <Text style={styles.title}>Witaj {firstName}</Text>
-                <Text style={styles.subtitle}>Jestem Twoim kierownikiem budowy.</Text>
+                <Text style={styles.title}>Witaj, {firstName}</Text>
+                <Text style={styles.subtitle}>Jestem {String(profile.ai_buddy_name ?? '').trim() || 'Kierownik'}, Twój kierownik budowy AI</Text>
                 <Text style={styles.body}>
-                  Pokażę Ci teraz najważniejsze funkcje aplikacji, abyś jak najszybciej przejął kontrolę nad swoją budową.
+                  Pokażę Ci teraz najważniejsze funkcje aplikacji.
                 </Text>
                 <AppButton title="Zaczynamy" onPress={next} style={styles.primaryBtn} />
               </>
@@ -187,12 +187,12 @@ export default function GuidedSetupScreen() {
 
             {step === 1 ? (
               <>
-                <Text style={styles.title}>Zacznijmy od projektu.</Text>
+                <Text style={styles.title}>Projekt</Text>
                 <Text style={styles.body}>
-                  Uzupełnij podstawowe dane domu, żebym mógł lepiej prowadzić Cię przez kolejne etapy.
+                  Wpisz dane, dodaj rzuty - miej wszystko w jednym miejscu i uniknij pomyłek.
                 </Text>
                 <AppButton
-                  title="Uzupełnij dane projektu"
+                  title="Uzupełnij dane o projekcie"
                   onPress={() => router.push('/(app)/(tabs)/projekt?setup=1&guidedStep=1')}
                   style={styles.primaryBtn}
                 />
@@ -203,35 +203,22 @@ export default function GuidedSetupScreen() {
             {step === 2 ? (
               <>
                 <Text style={styles.title}>Budżet</Text>
-                <Text style={styles.body}>BuildIQ pilnuje budżetu za Ciebie.</Text>
-                <View style={styles.bulletList}>
-                  <Text style={styles.bulletItem}>• Kontrola Twoich wydatków</Text>
-                  <Text style={styles.bulletItem}>• analiza AI Twoich wydatków</Text>
-                  <Text style={styles.bulletItem}>• Podgląd kosztów</Text>
-                </View>
+                <Text style={styles.body}>
+                  Dodawaj wydatki, kontroluj koszty i zarządzaj budżetem profesjonalnie. Analizą zajmie się Twój kierownik AI.
+                </Text>
                 <AppButton title="Dalej" onPress={next} style={styles.primaryBtn} />
               </>
             ) : null}
 
             {step === 3 ? (
               <>
-                <Text style={styles.title}>Najważniejsze moduły</Text>
+                <Text style={styles.title}>Wszystko pod kontrolą</Text>
                 <View style={styles.infoList}>
-                  <Text style={styles.infoItem}>Zadania pomogą Ci planować kolejne prace i pilnować terminów.</Text>
-                  <Text style={styles.infoItem}>Postępy pokażą, na jakim etapie budowy jesteś i co zostało do zrobienia.</Text>
-                  <Text style={styles.infoItem}>Dokumenty i kontakty zbiorą wszystko ważne w jednym miejscu.</Text>
+                  <Text style={styles.infoItem}>Postępy - wiesz, na jakim etapie jesteś, co robić dalej i jakich błędów uniknąć</Text>
+                  <Text style={styles.infoItem}>Zdjęcia - dokumentujesz budowę i masz wszystko pod ręką</Text>
+                  <Text style={styles.infoItem}>Dokumenty - przechowujesz umowy z wykonawcami, faktury i wszystkie ważne dokumenty</Text>
                 </View>
-                <AppButton title="Dalej" onPress={next} style={styles.primaryBtn} />
-              </>
-            ) : null}
-
-            {step === 4 ? (
-              <>
-                <Text style={styles.title}>To wszystko.</Text>
-                <Text style={styles.body}>
-                  Resztę ustawisz już w aplikacji. W razie czego wróć do mnie i pytaj o kolejne kroki.
-                </Text>
-                <AppButton title="Przejdź do aplikacji" onPress={finish} loading={saving} disabled={saving} style={styles.primaryBtn} />
+                <AppButton title="Zaczynamy" onPress={finish} loading={saving} disabled={saving} style={styles.primaryBtn} />
               </>
             ) : null}
           </BlurView>
