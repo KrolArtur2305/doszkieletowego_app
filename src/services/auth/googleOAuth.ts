@@ -4,11 +4,13 @@ import { completeAuthSessionFromUrl, getAuthCallbackRedirectUri } from './deepLi
 
 WebBrowser.maybeCompleteAuthSession();
 
-export async function signInWithGoogleMobile(): Promise<boolean> {
+type OAuthProvider = 'google' | 'facebook';
+
+export async function signInWithOAuthMobile(provider: OAuthProvider): Promise<boolean> {
   const redirectTo = getAuthCallbackRedirectUri();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider,
     options: {
       redirectTo,
       skipBrowserRedirect: true,
@@ -31,4 +33,12 @@ export async function signInWithGoogleMobile(): Promise<boolean> {
 
   await completeAuthSessionFromUrl(result.url);
   return true;
+}
+
+export async function signInWithGoogleMobile(): Promise<boolean> {
+  return signInWithOAuthMobile('google');
+}
+
+export async function signInWithFacebookMobile(): Promise<boolean> {
+  return signInWithOAuthMobile('facebook');
 }

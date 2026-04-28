@@ -14,11 +14,12 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
-import { signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
+import { signInWithFacebookMobile, signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
 import { AppButton, AppHeader, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, spacing, typography } from '../../src/ui/theme';
 
-const GOOGLE_AUTH_ENABLED = false;
+const GOOGLE_AUTH_ENABLED = true;
+const FACEBOOK_AUTH_ENABLED = true;
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function RegisterScreen() {
   const [password2, setPassword2] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -85,6 +87,18 @@ export default function RegisterScreen() {
     }
   }
 
+  async function handleFacebookLogin() {
+    setFacebookLoading(true);
+    try {
+      await signInWithFacebookMobile();
+    } catch (err) {
+      console.error('Facebook login error:', err);
+      Alert.alert('Błąd logowania Facebook');
+    } finally {
+      setFacebookLoading(false);
+    }
+  }
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
@@ -133,9 +147,19 @@ export default function RegisterScreen() {
 
                 {GOOGLE_AUTH_ENABLED ? (
                   <AppButton
-                    title={googleLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : 'Google'}
-                    disabled={googleLoading}
+                    title={googleLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : t('register.form.googleCta')}
+                    disabled={googleLoading || facebookLoading || loading}
                     onPress={handleGoogleLogin}
+                    variant="secondary"
+                    style={styles.googleBtn}
+                  />
+                ) : null}
+
+                {FACEBOOK_AUTH_ENABLED ? (
+                  <AppButton
+                    title={facebookLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : t('register.form.facebookCta')}
+                    disabled={facebookLoading || googleLoading || loading}
+                    onPress={handleFacebookLogin}
                     variant="secondary"
                     style={styles.googleBtn}
                   />
