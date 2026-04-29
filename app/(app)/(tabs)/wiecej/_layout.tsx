@@ -2,6 +2,12 @@ import { Stack } from 'expo-router';
 
 export default function WiecejLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+      }}
+    />
   );
 }

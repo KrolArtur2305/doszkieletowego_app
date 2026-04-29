@@ -776,7 +776,7 @@ export default function DziennikScreen() {
               <AppButton
                 title={saving ? t('modal.saving') : editingWpis ? t('modal.saveChanges') : t('modal.addEntry')}
                 onPress={save}
-                loading={saving}
+                disabled={saving}
                 style={styles.saveBtn}
               />
 

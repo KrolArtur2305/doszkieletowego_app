@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, PanResponder, StyleSheet, View } from 'react-native';
 import { Tabs, usePathname, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -38,27 +38,62 @@ export default function TabsLayout() {
   }, [session?.user?.id, pathname]);
 
   const avatarSource = getBuddyAvatarSource(avatarId);
+  const canSwipeBackToMore =
+    pathname === '/dokumenty' ||
+    pathname === '/zdjecia' ||
+    pathname === '/postepy' ||
+    pathname === '/postepy/wszystkie' ||
+    pathname === '/zadania' ||
+    pathname === '/ustawienia' ||
+    pathname.startsWith('/ustawienia/') ||
+    pathname.startsWith('/wiecej/');
+
+  const moreBackSwipeResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (event, gestureState) => {
+          if (!canSwipeBackToMore) return false;
+
+          const startX = event.nativeEvent.pageX - gestureState.dx;
+          const isFromLeftEdge = startX <= 36;
+          const isRightSwipe = gestureState.dx > 28;
+          const isMostlyHorizontal = Math.abs(gestureState.dy) < 24;
+
+          return isFromLeftEdge && isRightSwipe && isMostlyHorizontal;
+        },
+        onPanResponderRelease: (_event, gestureState) => {
+          if (!canSwipeBackToMore) return;
+
+          const shouldGoBackToMore = gestureState.dx > 80 || (gestureState.dx > 45 && gestureState.vx > 0.45);
+          if (shouldGoBackToMore) {
+            router.replace('/wiecej');
+          }
+        },
+      }),
+    [canSwipeBackToMore, router]
+  );
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: 'transparent' },
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.accentBright,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: styles.tabBarLabel,
-      }}
-    >
-      <Tabs.Screen
-        name="dashboard/index"
-        options={{
-          title: t('tabs.start'),
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="home" color={color} size={size ?? 20} />
-          ),
+    <View style={styles.root} {...moreBackSwipeResponder.panHandlers}>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: 'transparent' },
+          tabBarStyle: styles.tabBar,
+          tabBarActiveTintColor: colors.accentBright,
+          tabBarInactiveTintColor: colors.textMuted,
+          tabBarLabelStyle: styles.tabBarLabel,
         }}
-      />
+      >
+        <Tabs.Screen
+          name="dashboard/index"
+          options={{
+            title: t('tabs.start'),
+            tabBarIcon: ({ color, size }) => (
+              <Feather name="home" color={color} size={size ?? 20} />
+            ),
+          }}
+        />
 
       <Tabs.Screen
         name="budzet/index"
@@ -111,12 +146,16 @@ export default function TabsLayout() {
       <Tabs.Screen name="dokumenty/index" options={{ href: null }} />
       <Tabs.Screen name="zadania/index" options={{ href: null }} />
       <Tabs.Screen name="zdjecia/index" options={{ href: null }} />
-      <Tabs.Screen name="ustawienia" options={{ href: null }} />
-    </Tabs>
+        <Tabs.Screen name="ustawienia" options={{ href: null }} />
+      </Tabs>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   tabBar: {
     backgroundColor: colors.bg,
     borderTopColor: colors.border,

@@ -22,7 +22,6 @@ import Constants from 'expo-constants';
 import { supabase } from '../../../../lib/supabase';
 import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
-import { removePushToken } from '../../../../src/services/notifications/pushService';
 import { AppButton, AppInput } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
@@ -151,40 +150,6 @@ export default function UstawieniaAplikacjiScreen() {
     }
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      t('appSettings.deleteAccount.confirmTitle'),
-      t('appSettings.deleteAccount.confirmMessage'),
-      [
-        { text: t('common:cancel'), style: 'cancel' },
-        {
-          text: t('appSettings.deleteAccount.confirmBtn'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const {
-                data: { user },
-              } = await supabase.auth.getUser();
-              if (user) {
-                await removePushToken(user.id);
-              }
-
-              const { error } = await supabase.rpc('delete_user');
-              if (error) throw error;
-              await supabase.auth.signOut();
-              router.replace('/(auth)/login');
-            } catch (e: any) {
-              Alert.alert(
-                t('appSettings.deleteAccount.errorTitle'),
-                t('appSettings.deleteAccount.errorMessage')
-              );
-            }
-          },
-        },
-      ]
-    );
-  };
-
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
@@ -282,7 +247,7 @@ export default function UstawieniaAplikacjiScreen() {
             <TouchableOpacity
               onPress={() => setPwdModalOpen(true)}
               activeOpacity={0.85}
-              style={[styles.row, styles.rowBorder]}
+              style={styles.row}
             >
               <View style={styles.rowIconWrap}>
                 <Feather name="lock" size={18} color={ACCENT} />
@@ -294,27 +259,6 @@ export default function UstawieniaAplikacjiScreen() {
                 </Text>
                 <Text style={styles.rowSubtitle}>
                   {t('appSettings.password.subtitle')}
-                </Text>
-              </View>
-
-              <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.25)" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleDeleteAccount}
-              activeOpacity={0.85}
-              style={styles.row}
-            >
-              <View style={[styles.rowIconWrap, styles.rowIconDanger]}>
-                <Feather name="trash-2" size={18} color="#FF4747" />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, styles.rowTitleDanger]}>
-                  {t('appSettings.deleteAccount.title')}
-                </Text>
-                <Text style={styles.rowSubtitle}>
-                  {t('appSettings.deleteAccount.subtitle')}
                 </Text>
               </View>
 
@@ -344,6 +288,12 @@ export default function UstawieniaAplikacjiScreen() {
 
             <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/support')} activeOpacity={0.7}>
               <Text style={styles.linkText}>{t('appSettings.support')}</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.linkSep}>•</Text>
+
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/delete-account')} activeOpacity={0.7}>
+              <Text style={styles.linkText}>{t('appSettings.deleteAccountLink')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -496,15 +446,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(25,112,92,0.22)',
     alignItems: 'center', justifyContent: 'center',
   },
-  rowIconDanger: {
-    backgroundColor: 'rgba(255,71,71,0.10)',
-    borderColor: 'rgba(255,71,71,0.22)',
-  },
-
   rowTitle: {
     color: 'rgba(255,255,255,0.80)', fontSize: 15.5, fontWeight: '700', letterSpacing: -0.1,
   },
-  rowTitleDanger: { color: '#FF6B6B' },
   rowSubtitle: {
     marginTop: 2, color: 'rgba(255,255,255,0.38)', fontSize: 12.5, fontWeight: '500',
   },
@@ -519,7 +463,7 @@ const styles = StyleSheet.create({
   versionNumber: { marginTop: 4, color: 'rgba(255,255,255,0.15)', fontSize: 12, fontWeight: '600' },
 
   linksRow: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap',
     justifyContent: 'center', gap: 8, marginTop: 10,
   },
   linkText: { color: 'rgba(255,255,255,0.22)', fontSize: 12, fontWeight: '600' },
@@ -527,7 +471,7 @@ const styles = StyleSheet.create({
 
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
   modalSheet: {
-    backgroundColor: '#0A0F1E',
+    backgroundColor: '#000000',
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     borderWidth: 1, borderColor: 'rgba(37,240,200,0.14)',
     borderBottomWidth: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 36,

@@ -398,7 +398,7 @@ export default function KontaktyScreen() {
                     <AppButton
                       title={saving ? t('modal.saving') : t('modal.save')}
                       onPress={saveContact}
-                      loading={saving}
+                      disabled={saving}
                       style={styles.saveBtn}
                     />
 

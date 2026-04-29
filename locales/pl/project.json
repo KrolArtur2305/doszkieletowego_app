@@ -18,6 +18,19 @@
 
   "addPlan": "Dodaj rzut",
   "planDefaultName": "Rzut",
+  "planNameModalTitle": "Dodaj rzut",
+  "planNameInputLabel": "Nazwa rzutu",
+  "planNamePlaceholder": "Wpisz własną nazwę",
+  "planNamePresetLabel": "Gotowe opcje",
+  "planSaving": "Zapisywanie...",
+  "planNamePresets": {
+    "section": "Przekrój",
+    "outline": "Obrys",
+    "front": "Przód",
+    "back": "Tył",
+    "left": "Lewa strona",
+    "right": "Prawa strona"
+  },
   "planHint": "Kliknij: podgląd • Przytrzymaj: usuń",
 
   "noPlansTitle": "Brak rzutów",

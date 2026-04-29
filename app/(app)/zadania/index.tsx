@@ -774,7 +774,7 @@ export default function ZadaniaScreen() {
               <AppButton
                 title={saving ? t('modal.saving') : t('modal.save')}
                 onPress={saveTask}
-                loading={saving}
+                disabled={saving}
                 style={styles.saveBtn}
               />
             </ScrollView>

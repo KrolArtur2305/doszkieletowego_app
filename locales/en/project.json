@@ -18,6 +18,19 @@
 
   "addPlan": "Add floor plan",
   "planDefaultName": "Floor plan",
+  "planNameModalTitle": "Name the floor plan",
+  "planNameInputLabel": "Floor plan name",
+  "planNamePlaceholder": "Enter a custom name",
+  "planNamePresetLabel": "Quick options",
+  "planSaving": "Saving...",
+  "planNamePresets": {
+    "section": "Section",
+    "outline": "Outline",
+    "front": "Front",
+    "back": "Back",
+    "left": "Left side",
+    "right": "Right side"
+  },
   "planHint": "Tap: preview • Hold: delete",
 
   "noPlansTitle": "No floor plans",

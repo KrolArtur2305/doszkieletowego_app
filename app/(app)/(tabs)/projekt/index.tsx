@@ -10,7 +10,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   KeyboardAvoidingView,
@@ -61,6 +60,22 @@ type Rzut = {
   display_url?: string | null
   storage_path?: string | null
 }
+
+type PendingPlan = {
+  uri: string
+  fileName?: string | null
+  mimeType?: string | null
+  fileSize?: number | null
+}
+
+const PLAN_NAME_PRESETS = [
+  { key: 'section', labelKey: 'planNamePresets.section', defaultValue: 'Przekrój' },
+  { key: 'outline', labelKey: 'planNamePresets.outline', defaultValue: 'Obrys' },
+  { key: 'front', labelKey: 'planNamePresets.front', defaultValue: 'Przód' },
+  { key: 'back', labelKey: 'planNamePresets.back', defaultValue: 'Tył' },
+  { key: 'left', labelKey: 'planNamePresets.left', defaultValue: 'Lewa strona' },
+  { key: 'right', labelKey: 'planNamePresets.right', defaultValue: 'Prawa strona' },
+]
 
 function fmtNum(v: any, suffix: string) {
   if (v === null || v === undefined || v === '') return '—'
@@ -177,6 +192,11 @@ export default function ProjektScreen() {
   })
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewRzut, setPreviewRzut] = useState<Rzut | null>(null)
+  const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null)
+  const [pendingPlanName, setPendingPlanName] = useState('')
+  const [pendingPlanPreset, setPendingPlanPreset] = useState<string | null>(null)
+  const [planNameOpen, setPlanNameOpen] = useState(false)
+  const [planUploading, setPlanUploading] = useState(false)
   const setupModalOpenedRef = useRef(false)
 
   useEffect(() => {
@@ -303,9 +323,6 @@ export default function ProjektScreen() {
         return
       }
 
-      const proj = await ensureProjektExists()
-      if (!proj?.id) return
-
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
       if (!perm.granted) {
         Alert.alert(
@@ -332,14 +349,6 @@ export default function ProjektScreen() {
       if (!asset?.uri) return
 
       const assetSize = Number((asset as any)?.fileSize ?? 0)
-      if (assetSize === 0) {
-        Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('emptyPlanFile', { defaultValue: 'Wybrany plik jest pusty.' })
-        )
-        return
-      }
-
       if (assetSize > 0 && assetSize > MAX_PLAN_UPLOAD_BYTES) {
         Alert.alert(
           t('errorTitle', { defaultValue: 'Błąd' }),
@@ -363,10 +372,40 @@ export default function ProjektScreen() {
         format: ImageManipulator.SaveFormat.JPEG,
       })
 
+      setPendingPlan({
+        uri: manipulated.uri,
+        fileName: (asset as any)?.fileName ?? null,
+        mimeType: 'image/jpeg',
+        fileSize: assetSize || null,
+      })
+      setPendingPlanName('')
+      setPendingPlanPreset(null)
+      setPlanNameOpen(true)
+    } catch (e: any) {
+      console.error('[Projekt] pick rzut error:', e?.message || e)
+      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('addPlanError'))
+    }
+  }
+
+  const savePendingRzut = async () => {
+    try {
+      if (!userId || !pendingPlan?.uri) {
+        Alert.alert(
+          t('notLoggedTitle', { defaultValue: 'Brak logowania' }),
+          t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' })
+        )
+        return
+      }
+
+      setPlanUploading(true)
+
+      const proj = await ensureProjektExists()
+      if (!proj?.id) return
+
       const key = `${Date.now()}_${Math.random().toString(16).slice(2)}.jpg`
       const path = `rzuty/${userId}/${proj.id}/${key}`
 
-      const base64 = await FileSystem.readAsStringAsync(manipulated.uri, { encoding: 'base64' as any })
+      const base64 = await FileSystem.readAsStringAsync(pendingPlan.uri, { encoding: 'base64' as any })
       if (!base64) {
         Alert.alert(
           t('errorTitle', { defaultValue: 'Błąd' }),
@@ -392,8 +431,7 @@ export default function ProjektScreen() {
         return
       }
 
-      const locale = i18n.language?.startsWith('pl') ? 'pl-PL' : 'en-US'
-      const defaultName = `${t('planDefaultName', { defaultValue: 'Rzut' })} ${new Date().toLocaleDateString(locale)}`
+      const planName = pendingPlanName.trim() || t('planDefaultName', { defaultValue: 'Rzut' })
 
       const { data: row, error: insErr } = await supabase
         .from('rzuty_projektu')
@@ -401,7 +439,7 @@ export default function ProjektScreen() {
           user_id: userId,
           projekt_id: proj.id,
           url: path,
-          nazwa: defaultName,
+          nazwa: planName,
         })
         .select('id,user_id,projekt_id,url,nazwa,created_at')
         .single()
@@ -424,9 +462,15 @@ export default function ProjektScreen() {
         },
         ...prev,
       ])
+      setPlanNameOpen(false)
+      setPendingPlan(null)
+      setPendingPlanName('')
+      setPendingPlanPreset(null)
     } catch (e: any) {
-      console.error('[Projekt] uploadRzutAndSave error:', e?.message || e)
+      console.error('[Projekt] savePendingRzut error:', e?.message || e)
       Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('addPlanError'))
+    } finally {
+      setPlanUploading(false)
     }
   }
 
@@ -697,6 +741,109 @@ export default function ProjektScreen() {
               ) : null}
             </View>
           </View>
+        </Modal>
+
+        <Modal
+          visible={planNameOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => {
+            if (planUploading) return
+            setPlanNameOpen(false)
+            setPendingPlan(null)
+            setPendingPlanName('')
+            setPendingPlanPreset(null)
+          }}
+        >
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <View style={styles.modalBackdrop}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHandle} />
+
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{t('planNameModalTitle', { defaultValue: 'Nazwij rzut' })}</Text>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (planUploading) return
+                      setPlanNameOpen(false)
+                      setPendingPlan(null)
+                      setPendingPlanName('')
+                      setPendingPlanPreset(null)
+                    }}
+                    style={styles.modalCloseBtn}
+                    activeOpacity={0.85}
+                  >
+                    <Feather name="x" size={18} color="rgba(255,255,255,0.6)" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+                  {pendingPlan?.uri ? (
+                    <Image source={{ uri: pendingPlan.uri }} style={styles.planNamePreview} resizeMode="cover" />
+                  ) : null}
+
+                  <Text style={styles.fieldGroupLabel}>{t('planNameInputLabel', { defaultValue: 'Nazwa rzutu' })}</Text>
+                  <AppInput
+                    value={pendingPlanName}
+                    onChangeText={(text) => {
+                      setPendingPlanName(text)
+                      setPendingPlanPreset(null)
+                    }}
+                    placeholder={t('planNamePlaceholder', { defaultValue: 'Wpisz własną nazwę' })}
+                    style={styles.input}
+                    containerStyle={styles.planNameInput}
+                  />
+
+                  <Text style={styles.fieldGroupLabel}>{t('planNamePresetLabel', { defaultValue: 'Gotowe opcje' })}</Text>
+                  <View style={styles.planPresetGrid}>
+                    {PLAN_NAME_PRESETS.map((preset) => {
+                      const label = t(preset.labelKey, { defaultValue: preset.defaultValue })
+                      const active = pendingPlanPreset === preset.key
+
+                      return (
+                        <TouchableOpacity
+                          key={preset.key}
+                          onPress={() => {
+                            setPendingPlanPreset(preset.key)
+                            setPendingPlanName(label)
+                          }}
+                          style={[styles.planPresetChip, active && styles.planPresetChipActive]}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={[styles.planPresetText, active && styles.planPresetTextActive]} numberOfLines={1}>
+                            {label}
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalActions}>
+                  <AppButton
+                    title={t('cancel', { defaultValue: 'Anuluj' })}
+                    variant="secondary"
+                    onPress={() => {
+                      setPlanNameOpen(false)
+                      setPendingPlan(null)
+                      setPendingPlanName('')
+                      setPendingPlanPreset(null)
+                    }}
+                    disabled={planUploading}
+                    style={styles.modalBtnGhost}
+                  />
+
+                  <AppButton
+                    title={planUploading ? t('planSaving', { defaultValue: 'Zapisywanie...' }) : t('save', { defaultValue: 'Zapisz' })}
+                    disabled={planUploading}
+                    onPress={savePendingRzut}
+                    style={styles.modalBtnPrimary}
+                  />
+                </View>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         <Modal visible={editOpen} transparent animationType="slide" onRequestClose={() => setEditOpen(false)}>
@@ -1169,6 +1316,54 @@ const styles = StyleSheet.create({
   previewImg: {
     width: '100%',
     height: '100%',
+  },
+
+  planNamePreview: {
+    width: '100%',
+    height: 220,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    marginBottom: 4,
+  },
+
+  planNameInput: {
+    marginBottom: 2,
+  },
+
+  planPresetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+
+  planPresetChip: {
+    minHeight: 42,
+    maxWidth: '48%',
+    flexGrow: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  planPresetChipActive: {
+    borderColor: 'rgba(37,240,200,0.48)',
+    backgroundColor: 'rgba(37,240,200,0.14)',
+  },
+
+  planPresetText: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  planPresetTextActive: {
+    color: NEON,
   },
 
   modalBackdrop: {

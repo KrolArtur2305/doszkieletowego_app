@@ -46,7 +46,7 @@
     "lastName": "Nazwisko",
     "phone": "Telefon",
     "firstNamePlaceholder": "np. Adam",
-    "lastNamePlaceholder": "np. Kowalski",
+    "lastNamePlaceholder": "",
     "phonePlaceholder": "np. 600123456"
   },
   "actions": {
