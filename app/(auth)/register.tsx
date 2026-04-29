@@ -59,6 +59,9 @@ export default function RegisterScreen() {
     const { error: registerError } = await supabase.auth.signUp({
       email: e,
       password,
+      options: {
+        emailRedirectTo: 'https://mybuildiq.com/auth/callback',
+      },
     });
 
     setLoading(false);
