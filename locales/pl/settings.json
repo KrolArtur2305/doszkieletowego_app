@@ -66,6 +66,9 @@
         "de": "Niemiecki"
       }
     },
+    "currency": {
+      "groupLabel": "Waluta"
+    },
     "notif": {
       "groupLabel": "Powiadomienia",
       "pushTitle": "Powiadomienia push",

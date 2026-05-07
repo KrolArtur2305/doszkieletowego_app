@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
+import { setCurrencyForLanguage } from '../../lib/currency';
 import { setAppLanguage, type AppLanguage } from '../../lib/i18n';
 import { AppButton, AppCard, AppHeader, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
@@ -91,6 +92,7 @@ export default function WelcomeScreen() {
       <Pressable
         onPress={async () => {
           await setAppLanguage(lng);
+          await setCurrencyForLanguage(lng);
           sliderRef.current?.scrollTo({ x: 0, animated: false });
           setActiveIndex(0);
         }}
@@ -114,7 +116,7 @@ export default function WelcomeScreen() {
           <AppHeader title="BuildIQ" style={styles.header} height={92} />
 
           <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>Przejmij kontrolę nad swoją budową</Text>
+            <Text style={styles.heroTitle}>{t('welcome.heroTitle')}</Text>
           </View>
 
 

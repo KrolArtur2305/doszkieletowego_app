@@ -7,6 +7,7 @@
     "completeDataTitle": "Bitte ausfüllen",
     "nameRequired": "Der Projektname ist erforderlich, um fortzufahren.",
     "locationRequired": "Der Projektstandort ist erforderlich, um fortzufahren.",
+    "selectLocationFromList": "Bitte wähle einen Ort aus der Liste aus.",
     "invalidBudgetTitle": "Ungültiges Budget",
     "invalidBudgetMsg": "Das Budget darf nicht negativ sein.",
     "errorTitle": "Fehler",
@@ -18,8 +19,9 @@
   "form": {
     "nameLabel": "Projektname",
     "namePlaceholder": "z. B. Haus bei Krakau",
+    "countryLabel": "Land",
     "locationLabel": "Ort",
-    "locationPlaceholder": "z. B. Wieliczka",
+    "locationPlaceholder": "Stadt, Ort oder Adresse eingeben",
     "startLabel": "Startdatum",
     "endLabel": "Enddatum",
     "datePlaceholder": "Datum auswählen",

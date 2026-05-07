@@ -20,7 +20,7 @@ import { AppButton, AppHeader, AppInput, AppScreen } from '../../src/ui/componen
 import { colors, spacing, typography } from '../../src/ui/theme';
 
 const GOOGLE_AUTH_ENABLED = true;
-const FACEBOOK_AUTH_ENABLED = true;
+const FACEBOOK_AUTH_ENABLED = false;
 
 export default function LoginScreen() {
   const router = useRouter();

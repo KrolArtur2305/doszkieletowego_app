@@ -20,6 +20,12 @@ import * as Notifications from 'expo-notifications';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { supabase } from '../../../../lib/supabase';
+import {
+  CURRENCY_OPTIONS,
+  getStoredCurrency,
+  setAppCurrency,
+  type AppCurrency,
+} from '../../../../lib/currency';
 import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
 import { AppButton, AppInput } from '../../../../src/ui/components';
@@ -58,6 +64,9 @@ export default function UstawieniaAplikacjiScreen() {
 
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifLoading, setNotifLoading] = useState(true);
+  const [activeCurrency, setActiveCurrency] = useState<AppCurrency>('PLN');
+  const [languageModalOpen, setLanguageModalOpen] = useState(false);
+  const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -65,6 +74,16 @@ export default function UstawieniaAplikacjiScreen() {
       setNotifEnabled(status === 'granted');
       setNotifLoading(false);
     })();
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    getStoredCurrency().then((currency) => {
+      if (alive) setActiveCurrency(currency);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const handleNotifToggle = async (value: boolean) => {
@@ -150,10 +169,12 @@ export default function UstawieniaAplikacjiScreen() {
     }
   };
 
+  const selectedLanguage = LANGUAGES.find((lang) => lang.key === activeLang) ?? LANGUAGES[0];
+  const selectedCurrency = CURRENCY_OPTIONS.find((option) => option.code === activeCurrency) ?? CURRENCY_OPTIONS[0];
+
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
-      <View pointerEvents="none" style={styles.glowOrb} />
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
@@ -171,38 +192,42 @@ export default function UstawieniaAplikacjiScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <Text style={styles.groupLabel}>
-          {t('appSettings.language.groupLabel')}
-        </Text>
-
         <View style={styles.cardOuter}>
-          <BlurView intensity={16} tint="dark" style={styles.card}>
-            {LANGUAGES.map((lang, i) => {
-              const isActive = activeLang === lang.key;
-              const isLast = i === LANGUAGES.length - 1;
+          <View style={styles.card}>
+            <TouchableOpacity
+              activeOpacity={0.86}
+              onPress={() => setLanguageModalOpen(true)}
+              style={[styles.selectRow, styles.selectRowBorder]}
+            >
+              <View style={styles.rowIconWrap}>
+                <Feather name="globe" size={18} color={ACCENT} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.selectLabel}>{t('appSettings.language.groupLabel')}</Text>
+                <Text style={styles.rowTitle}>
+                  {selectedLanguage.flag} {t(selectedLanguage.labelKey)}
+                </Text>
+              </View>
+              <Feather name="chevron-down" size={18} color="rgba(255,255,255,0.36)" />
+            </TouchableOpacity>
 
-              return (
-                <TouchableOpacity
-                  key={lang.key}
-                  onPress={async () => {
-                    await setAppLanguage(lang.key);
-                  }}
-                  activeOpacity={0.85}
-                  style={[styles.row, !isLast && styles.rowBorder]}
-                >
-                  <Text style={styles.rowFlag}>{lang.flag}</Text>
-                  <Text style={[styles.rowTitle, isActive && { color: '#FFFFFF' }]}>
-                    {t(lang.labelKey)}
-                  </Text>
-                  {isActive && (
-                    <View style={styles.activeCheck}>
-                      <Feather name="check" size={13} color="#0B1120" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </BlurView>
+            <TouchableOpacity
+              activeOpacity={0.86}
+              onPress={() => setCurrencyModalOpen(true)}
+              style={styles.selectRow}
+            >
+              <View style={styles.rowIconWrap}>
+                <Feather name="dollar-sign" size={18} color={ACCENT} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.selectLabel}>{t('appSettings.currency.groupLabel')}</Text>
+                <Text style={styles.rowTitle}>
+                  {selectedCurrency.code} · {selectedCurrency.symbol}
+                </Text>
+              </View>
+              <Feather name="chevron-down" size={18} color="rgba(255,255,255,0.36)" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <Text style={styles.groupLabel}>
@@ -300,6 +325,73 @@ export default function UstawieniaAplikacjiScreen() {
       </ScrollView>
 
       <Modal
+        visible={languageModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguageModalOpen(false)}
+      >
+        <View style={styles.pickerBackdrop}>
+          <View style={styles.pickerCard}>
+            <Text style={styles.pickerTitle}>{t('appSettings.language.groupLabel')}</Text>
+            {LANGUAGES.map((lang) => {
+              const isActive = activeLang === lang.key;
+              return (
+                <TouchableOpacity
+                  key={lang.key}
+                  activeOpacity={0.86}
+                  onPress={async () => {
+                    await setAppLanguage(lang.key);
+                    setLanguageModalOpen(false);
+                  }}
+                  style={[styles.optionRow, isActive && styles.optionRowActive]}
+                >
+                  <Text style={styles.optionFlag}>{lang.flag}</Text>
+                  <Text style={[styles.optionText, isActive && styles.optionTextActive]}>
+                    {t(lang.labelKey)}
+                  </Text>
+                  {isActive ? <Feather name="check" size={17} color={NEON} /> : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={currencyModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCurrencyModalOpen(false)}
+      >
+        <View style={styles.pickerBackdrop}>
+          <View style={styles.pickerCard}>
+            <Text style={styles.pickerTitle}>{t('appSettings.currency.groupLabel')}</Text>
+            {CURRENCY_OPTIONS.map((option) => {
+              const isActive = activeCurrency === option.code;
+              return (
+                <TouchableOpacity
+                  key={option.code}
+                  activeOpacity={0.86}
+                  onPress={async () => {
+                    await setAppCurrency(option.code);
+                    setActiveCurrency(option.code);
+                    setCurrencyModalOpen(false);
+                  }}
+                  style={[styles.optionRow, isActive && styles.optionRowActive]}
+                >
+                  <Text style={styles.optionCurrency}>{option.symbol}</Text>
+                  <Text style={[styles.optionText, isActive && styles.optionTextActive]}>
+                    {option.code}
+                  </Text>
+                  {isActive ? <Feather name="check" size={17} color={NEON} /> : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={pwdModalOpen}
         transparent
         animationType="slide"
@@ -393,7 +485,7 @@ export default function UstawieniaAplikacjiScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: 'transparent' },
+  screen: { flex: 1, backgroundColor: '#000000' },
   bg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000' },
   glowOrb: {
     position: 'absolute', width: 320, height: 320, borderRadius: 999,
@@ -429,8 +521,8 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.026)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#050505',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
 
   row: {
@@ -453,9 +545,124 @@ const styles = StyleSheet.create({
     marginTop: 2, color: 'rgba(255,255,255,0.38)', fontSize: 12.5, fontWeight: '500',
   },
 
+  selectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  selectRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.07)',
+  },
+  selectLabel: {
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+
   activeCheck: {
     width: 24, height: 24, borderRadius: 99,
     backgroundColor: NEON, alignItems: 'center', justifyContent: 'center',
+  },
+
+  currencyGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    padding: 12,
+  },
+  currencyTile: {
+    width: '30%',
+    minWidth: 86,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  currencyTileActive: {
+    borderColor: 'rgba(37,240,200,0.42)',
+    backgroundColor: 'rgba(37,240,200,0.12)',
+  },
+  currencyCode: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  currencyCodeActive: {
+    color: '#FFFFFF',
+  },
+  currencySymbol: {
+    marginTop: 3,
+    color: 'rgba(255,255,255,0.38)',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  pickerBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(0,0,0,0.78)',
+  },
+  pickerCard: {
+    borderRadius: 24,
+    padding: 14,
+    backgroundColor: '#050505',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    shadowColor: '#000',
+    shadowOpacity: 0.55,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+  },
+  pickerTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.1,
+    paddingHorizontal: 4,
+    paddingVertical: 10,
+  },
+  optionRow: {
+    minHeight: 54,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  optionRowActive: {
+    backgroundColor: 'rgba(37,240,200,0.10)',
+  },
+  optionFlag: {
+    width: 28,
+    textAlign: 'center',
+    fontSize: 20,
+  },
+  optionCurrency: {
+    width: 32,
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 14,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  optionText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  optionTextActive: {
+    color: '#FFFFFF',
   },
 
   versionWrap: { alignItems: 'center', marginTop: 8, paddingVertical: 16 },

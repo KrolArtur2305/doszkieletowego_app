@@ -13,6 +13,15 @@
     "noStages": "Keine Phasen.",
     "progressPercent": "Bau bei {{percent}}%"
   },
+  "names": {
+    "planning": "Planung",
+    "stanZero": "Nullstand",
+    "openShell": "Offener Rohbau",
+    "closedShell": "Geschlossener Rohbau",
+    "installations": "Installationen",
+    "developerState": "Ausbaufertig",
+    "finishing": "Ausbau"
+  },
   "stages": {
     "cardLabel": "Phasen",
     "currentStageLabel": "AKTUELLE PHASE",

@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { getStageLabel } from '../../../../lib/localizedLabels';
 import { AppInput } from '../../../../src/ui/components';
 
 type EtapRow = {
@@ -250,7 +251,7 @@ export default function WszystkieEtapyScreen() {
                       <View style={styles.rowTop}>
                         <Text style={styles.rowTitle}>
                           {row.kolejnosc ? `${row.kolejnosc}. ` : ''}
-                          {row.nazwa}
+                          {getStageLabel(row.nazwa, t)}
                         </Text>
 
                         {saving ? <ActivityIndicator size="small" color={NEON} /> : null}

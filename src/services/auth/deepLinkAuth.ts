@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 
 const AUTH_CALLBACK_PATH = 'auth-callback';
 const AUTH_CALLBACK_SCHEME = 'buildiq';
+const OAUTH_CALLBACK_REDIRECT_URI = `${AUTH_CALLBACK_SCHEME}://auth/callback`;
 
 export type AuthCallbackType = 'recovery' | 'oauth' | 'unknown';
 
@@ -10,6 +11,10 @@ export function getAuthCallbackRedirectUri(): string {
   return Linking.createURL(AUTH_CALLBACK_PATH, {
     scheme: AUTH_CALLBACK_SCHEME,
   });
+}
+
+export function getOAuthCallbackRedirectUri(): string {
+  return OAUTH_CALLBACK_REDIRECT_URI;
 }
 
 export function getAuthParamsFromUrl(url: string): URLSearchParams {

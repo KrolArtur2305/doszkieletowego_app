@@ -13,6 +13,15 @@
     "noStages": "No stages.",
     "progressPercent": "Construction at {{percent}}%"
   },
+  "names": {
+    "planning": "Planning",
+    "stanZero": "Groundwork",
+    "openShell": "Open shell",
+    "closedShell": "Closed shell",
+    "installations": "Installations",
+    "developerState": "Developer finish",
+    "finishing": "Finishing"
+  },
   "stages": {
     "cardLabel": "Stages",
     "currentStageLabel": "CURRENT STAGE",

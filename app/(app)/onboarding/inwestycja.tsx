@@ -21,7 +21,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { useTranslation } from 'react-i18next';
-import { AppButton, AppInput } from '../../../src/ui/components';
+import { AppButton, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
+import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
 
 const BG = '#000000';
 const ACCENT = '#19705C';
@@ -60,6 +61,13 @@ function uiLocaleFromLang(lang?: string) {
   return map[base] || 'en-US';
 }
 
+function defaultCountryFromLang(lang?: string) {
+  const base = (lang || 'pl').split('-')[0];
+  if (base === 'de') return 'de';
+  if (base === 'en') return 'gb';
+  return 'pl';
+}
+
 export default function OnboardingInvestmentScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('investment');
@@ -69,6 +77,10 @@ export default function OnboardingInvestmentScreen() {
     () => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
   );
+  const defaultCountryCode = useMemo(
+    () => defaultCountryFromLang(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  );
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -76,6 +88,8 @@ export default function OnboardingInvestmentScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [nazwa, setNazwa] = useState('');
   const [lokalizacja, setLokalizacja] = useState('');
+  const [selectedPlace, setSelectedPlace] = useState<PlaceSuggestion | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [dataStartISO, setDataStartISO] = useState('');
   const [dataKoniecISO, setDataKoniecISO] = useState('');
 
@@ -105,17 +119,38 @@ export default function OnboardingInvestmentScreen() {
         }
 
         const user = userRes.user;
-        const { data } = await supabase
+        let { data, error } = await supabase
           .from('inwestycje')
-          .select('nazwa, lokalizacja, data_start, data_koniec')
+          .select('nazwa, lokalizacja, place_name, location_city, location_country, latitude, longitude, data_start, data_koniec')
           .eq('user_id', user.id)
           .maybeSingle();
+
+        if (error) {
+          const fallback = await supabase
+            .from('inwestycje')
+            .select('nazwa, lokalizacja, data_start, data_koniec')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          data = fallback.data as any;
+        }
 
         if (!alive) return;
 
         setUserId(user.id);
         setNazwa(data?.nazwa ?? '');
-        setLokalizacja(data?.lokalizacja ?? '');
+        const placeName = data?.place_name ?? data?.lokalizacja ?? '';
+        setLokalizacja(data?.lokalizacja ?? placeName);
+        if (data?.place_name && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+          setSelectedPlace({
+            id: `saved-${data.latitude}-${data.longitude}`,
+            placeName: data.place_name,
+            city: data.location_city ?? null,
+            country: data.location_country ?? null,
+            latitude: data.latitude,
+            longitude: data.longitude,
+          });
+        }
         setDataStartISO(data?.data_start ?? '');
         setDataKoniecISO(data?.data_koniec ?? '');
       } catch (e: any) {
@@ -152,15 +187,16 @@ export default function OnboardingInvestmentScreen() {
     if (!userId || saving) return;
 
     const trimmedName = nazwa.trim();
-    const trimmedLocation = lokalizacja.trim();
 
     if (!trimmedName) {
       Alert.alert(t('alerts.errorTitle'), t('alerts.nameRequired'));
       return;
     }
 
-    if (!trimmedLocation) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.locationRequired'));
+    if (!selectedPlace) {
+      const message = t('alerts.selectLocationFromList', { defaultValue: 'Please select a location from the list.' });
+      setLocationError(message);
+      Alert.alert(t('alerts.errorTitle'), message);
       return;
     }
 
@@ -176,27 +212,44 @@ export default function OnboardingInvestmentScreen() {
 
     setSaving(true);
     try {
-      const [investmentRes, profileRes] = await Promise.all([
-        supabase.from('inwestycje').upsert(
+      const investmentPayload = {
+        user_id: userId,
+        nazwa: trimmedName,
+        lokalizacja: getPlaceLocalityName(selectedPlace),
+        place_name: selectedPlace.placeName,
+        location_city: selectedPlace.city,
+        location_country: selectedPlace.country,
+        latitude: selectedPlace.latitude,
+        longitude: selectedPlace.longitude,
+        data_start: dataStartISO || null,
+        data_koniec: dataKoniecISO || null,
+        inwestycja_wypelniona: true,
+      };
+
+      let investmentRes = await supabase.from('inwestycje').upsert(investmentPayload, { onConflict: 'user_id' });
+
+      if (investmentRes.error && String(investmentRes.error.message || '').includes('schema cache')) {
+        investmentRes = await supabase.from('inwestycje').upsert(
           {
-            user_id: userId,
-            nazwa: trimmedName,
-            lokalizacja: trimmedLocation,
-            data_start: dataStartISO || null,
-            data_koniec: dataKoniecISO || null,
-            inwestycja_wypelniona: true,
+            user_id: investmentPayload.user_id,
+            nazwa: investmentPayload.nazwa,
+            lokalizacja: investmentPayload.lokalizacja,
+            data_start: investmentPayload.data_start,
+            data_koniec: investmentPayload.data_koniec,
+            inwestycja_wypelniona: investmentPayload.inwestycja_wypelniona,
           },
           { onConflict: 'user_id' }
-        ),
-        supabase.from('profiles').upsert(
+        );
+      }
+
+      const profileRes = await supabase.from('profiles').upsert(
           {
             user_id: userId,
             onboarding_step: 'buddy',
             onboarding_completed: false,
           },
           { onConflict: 'user_id' }
-        ),
-      ]);
+        );
 
       if (investmentRes.error) throw investmentRes.error;
       if (profileRes.error) throw profileRes.error;
@@ -252,7 +305,26 @@ export default function OnboardingInvestmentScreen() {
             ) : (
               <>
                 <Field label={`${t('form.nameLabel')} *`} value={nazwa} onChangeText={setNazwa} placeholder={t('form.namePlaceholder')} />
-                <Field label={`${t('form.locationLabel')} *`} value={lokalizacja} onChangeText={setLokalizacja} placeholder={t('form.locationPlaceholder')} />
+                <PlaceAutocomplete
+                  label={`${t('form.locationLabel')} *`}
+                  value={lokalizacja}
+                  onChangeText={(value) => {
+                    setLokalizacja(value);
+                    setSelectedPlace(null);
+                    setLocationError(null);
+                  }}
+                  selectedPlace={selectedPlace}
+                  onSelect={(place) => {
+                    setSelectedPlace(place);
+                    setLokalizacja(getPlaceLocalityName(place));
+                    setLocationError(null);
+                  }}
+                  countryLabel={t('form.countryLabel', { defaultValue: 'Country' })}
+                  defaultCountryCode={defaultCountryCode}
+                  placeholder={t('form.locationPlaceholder')}
+                  disabled={saving}
+                  error={locationError}
+                />
 
                 <View style={styles.row}>
                   <View style={[styles.fieldBlock, { flex: 1 }]}>

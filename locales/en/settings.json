@@ -66,6 +66,9 @@
         "de": "German"
       }
     },
+    "currency": {
+      "groupLabel": "Currency"
+    },
     "notif": {
       "groupLabel": "Notifications",
       "pushTitle": "Push notifications",

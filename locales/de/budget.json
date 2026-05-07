@@ -39,6 +39,22 @@
     "categoriesTitle": "Kategorien",
     "spentSubtitle": "bereits ausgegebene Kosten"
   },
+  "categories": {
+    "stanZero": "Nullstand",
+    "openShell": "Offener Rohbau",
+    "closedShell": "Geschlossener Rohbau",
+    "installations": "Installationen",
+    "developerState": "Ausbaufertig",
+    "other": "Sonstiges"
+  },
+  "categoryShort": {
+    "stanZero": "Null",
+    "openShell": "Offen",
+    "closedShell": "Geschl.",
+    "installations": "Inst.",
+    "developerState": "Ausbau",
+    "other": "Sonst."
+  },
   "filter": {
     "all": "Alle",
     "spent": "Ausgegeben",

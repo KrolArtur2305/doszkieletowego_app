@@ -7,6 +7,7 @@
     "completeDataTitle": "Uzupełnij dane",
     "nameRequired": "Nazwa inwestycji jest wymagana, aby kontynuować.",
     "locationRequired": "Lokalizacja inwestycji jest wymagana, aby kontynuować.",
+    "selectLocationFromList": "Wybierz lokalizację z listy.",
     "invalidBudgetTitle": "Nieprawidłowy budżet",
     "invalidBudgetMsg": "Budżet nie może być ujemny.",
     "errorTitle": "Błąd",
@@ -18,8 +19,9 @@
   "form": {
     "nameLabel": "Nazwa inwestycji",
     "namePlaceholder": "np. Dom pod Krakowem",
+    "countryLabel": "Kraj",
     "locationLabel": "Lokalizacja",
-    "locationPlaceholder": "np. Wieliczka",
+    "locationPlaceholder": "Wpisz miasto, miejscowość lub adres",
     "startLabel": "Data startu",
     "endLabel": "Data końca",
     "datePlaceholder": "Wybierz datę",

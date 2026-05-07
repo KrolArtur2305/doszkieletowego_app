@@ -74,7 +74,7 @@ export async function savePushToken(token: string): Promise<void> {
   const installationId = await getInstallationIdAsync();
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
-  const { error } = await supabase.from('push_devices').upsert(
+  let { error } = await supabase.from('push_devices').upsert(
     {
       user_id: user.id,
       expo_push_token: token,
@@ -86,6 +86,20 @@ export async function savePushToken(token: string): Promise<void> {
       onConflict: 'user_id,installation_id',
     }
   );
+
+  if (error?.code === '23505') {
+    const updateResult = await supabase
+      .from('push_devices')
+      .update({
+        user_id: user.id,
+        expo_push_token: token,
+        platform,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('installation_id', installationId);
+
+    error = updateResult.error;
+  }
 
   if (error) {
     console.error('[Push] Blad zapisu tokenu:', error.message);

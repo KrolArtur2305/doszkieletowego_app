@@ -1,0 +1,69 @@
+type Translate = (key: string, options?: any) => string;
+
+export type BudgetCategoryValue =
+  | 'Stan zero'
+  | 'Stan surowy otwarty'
+  | 'Stan surowy zamknięty'
+  | 'Instalacje'
+  | 'Stan deweloperski'
+  | 'Inne';
+
+const CATEGORY_KEYS: Record<BudgetCategoryValue, string> = {
+  'Stan zero': 'categories.stanZero',
+  'Stan surowy otwarty': 'categories.openShell',
+  'Stan surowy zamknięty': 'categories.closedShell',
+  Instalacje: 'categories.installations',
+  'Stan deweloperski': 'categories.developerState',
+  Inne: 'categories.other',
+};
+
+const CATEGORY_SHORT_KEYS: Record<BudgetCategoryValue, string> = {
+  'Stan zero': 'categoryShort.stanZero',
+  'Stan surowy otwarty': 'categoryShort.openShell',
+  'Stan surowy zamknięty': 'categoryShort.closedShell',
+  Instalacje: 'categoryShort.installations',
+  'Stan deweloperski': 'categoryShort.developerState',
+  Inne: 'categoryShort.other',
+};
+
+function normalize(value: unknown) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+export function getBudgetCategoryKey(value: unknown): BudgetCategoryValue {
+  const normalized = normalize(value);
+  if (normalized.includes('zero')) return 'Stan zero';
+  if (normalized.includes('otwart') || normalized === 'sso') return 'Stan surowy otwarty';
+  if (normalized.includes('zamkni') || normalized === 'ssz') return 'Stan surowy zamknięty';
+  if (normalized.includes('instal')) return 'Instalacje';
+  if (normalized.includes('dewel')) return 'Stan deweloperski';
+  return 'Inne';
+}
+
+export function getBudgetCategoryLabel(value: unknown, t: Translate, short = false) {
+  const category = getBudgetCategoryKey(value);
+  const key = short ? CATEGORY_SHORT_KEYS[category] : CATEGORY_KEYS[category];
+  return t(key, { defaultValue: category });
+}
+
+export function getStageLabel(name: unknown, t: Translate) {
+  const normalized = normalize(name);
+  const fallback = String(name ?? '').trim();
+
+  if (!normalized) return fallback;
+  if (normalized.includes('plan')) return t('names.planning', { defaultValue: fallback || 'Planowanie' });
+  if (normalized.includes('zero')) return t('names.stanZero', { defaultValue: fallback || 'Stan zero' });
+  if (normalized.includes('otwart')) return t('names.openShell', { defaultValue: fallback || 'Stan surowy otwarty' });
+  if (normalized.includes('zamkni')) return t('names.closedShell', { defaultValue: fallback || 'Stan surowy zamknięty' });
+  if (normalized.includes('instal')) return t('names.installations', { defaultValue: fallback || 'Instalacje' });
+  if (normalized.includes('dewel')) return t('names.developerState', { defaultValue: fallback || 'Stan deweloperski' });
+  if (normalized.includes('wykoncz') || normalized.includes('finish')) {
+    return t('names.finishing', { defaultValue: fallback || 'Wykończenie' });
+  }
+
+  return fallback;
+}

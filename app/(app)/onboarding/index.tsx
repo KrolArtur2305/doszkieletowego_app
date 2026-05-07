@@ -190,6 +190,28 @@ export default function OnboardingScreen() {
     }
   };
 
+  const confirmLogout = () => {
+    Alert.alert(
+      'Wylogować się?',
+      'Czy chcesz się wylogować?',
+      [
+        { text: 'Anuluj', style: 'cancel' },
+        {
+          text: 'Wyloguj',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await supabase.auth.signOut();
+              router.replace('/(auth)/welcome');
+            } catch (e: any) {
+              Alert.alert('Błąd', e?.message ?? 'Nie udało się wylogować.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const saveBuildStage = async (value: string) => {
     if (!userId || saving) return;
 
@@ -534,6 +556,16 @@ export default function OnboardingScreen() {
         <View pointerEvents="none" style={styles.glowTop} />
         <View pointerEvents="none" style={styles.glowBottom} />
 
+        {!loading && step === 'build_type' ? (
+          <TouchableOpacity
+            onPress={confirmLogout}
+            activeOpacity={0.84}
+            style={[styles.logoutBadge, { top: topPad }]}
+          >
+            <Feather name="log-out" size={15} color="#FFFFFF" />
+          </TouchableOpacity>
+        ) : null}
+
         <ScrollView
           contentContainerStyle={[styles.content, { paddingTop: contentTopPad }]}
           keyboardShouldPersistTaps="handled"
@@ -613,6 +645,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',
     marginBottom: 4,
+  },
+  logoutBadge: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(220,38,38,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    shadowColor: '#DC2626',
+    shadowOpacity: 0.26,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
   logo: {
     width: 172,

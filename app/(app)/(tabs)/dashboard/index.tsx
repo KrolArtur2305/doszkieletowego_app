@@ -19,6 +19,8 @@ import { Image as ExpoImage } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
+import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
+import { getStageLabel } from '../../../../lib/localizedLabels';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { useTranslation } from 'react-i18next';
 import { AppButton, AppCard, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components';
@@ -97,20 +99,6 @@ function safeNumber(v: any) {
   const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.'));
   return Number.isFinite(n) ? n : 0;
 }
-
-const currencyByLocale = (locale: string) => {
-  if (locale.startsWith('de')) return 'EUR';
-  if (locale.startsWith('en')) return 'USD';
-  return 'PLN';
-};
-
-const formatCurrency = (value: number, locale: string) =>
-  new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: currencyByLocale(locale),
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -240,6 +228,8 @@ function pickHeroMessageKey(params: {
 export default function DashboardScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('dashboard');
+  const { t: tStages } = useTranslation('stages');
+  const { currency } = useCurrency();
   const appLocale = useMemo(() => normalizeLocale(i18n.resolvedLanguage || i18n.language), [i18n.resolvedLanguage, i18n.language]);
 
   // ── Hero ──
@@ -249,10 +239,12 @@ export default function DashboardScreen() {
   const heroGlow = useRef(new Animated.Value(0)).current;
 
   // ── Donut carousel ──
-  const CARD_W = Math.min(300, Math.round(W * 0.78));
+  const CONTENT_PAD_X = 18;
+  const CONTENT_W = W - CONTENT_PAD_X * 2;
+  const CARD_W = Math.min(300, Math.round(CONTENT_W * 0.78));
   const GAP = 14;
   const SNAP = CARD_W + GAP;
-  const SIDE = Math.max(0, Math.round((W - CARD_W) / 2));
+  const SIDE = Math.max(0, Math.round((CONTENT_W - CARD_W) / 2));
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -289,6 +281,11 @@ export default function DashboardScreen() {
   const [milestonesText, setMilestonesText] = useState<string>('—');
   const [progressValue, setProgressValue] = useState<number>(0);
   const [progressPercent, setProgressPercent] = useState<number>(0);
+  const heroGreeting = useMemo(
+    () => `${t('hero.welcome')}${imie ? ` ${imie}` : ''}`,
+    [imie, t]
+  );
+  const splitHeroGreeting = heroGreeting.length > 16;
 
   const isDone = (status: string | null) =>
     (status ?? '').toLowerCase().trim() === STATUS_DONE;
@@ -443,18 +440,40 @@ export default function DashboardScreen() {
     let alive = true;
     (async () => {
       try {
-        const geoRes = await fetch('https://ipapi.co/json/');
-        const geo = await geoRes.json();
-        const lat = geo.latitude ?? 52.23;
-        const lon = geo.longitude ?? 21.01;
+        setWeatherLoading(true);
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData?.user;
+        if (!user) {
+          if (alive) setWeather(null);
+          return;
+        }
+
+        const investmentRes = await supabase
+          .from('inwestycje')
+          .select('latitude, longitude')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (investmentRes.error) throw investmentRes.error;
+
+        const lat = Number((investmentRes.data as any)?.latitude);
+        const lon = Number((investmentRes.data as any)?.longitude);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          if (alive) setWeather(null);
+          return;
+        }
 
         const url =
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-          `&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
 
         const res = await fetch(url);
+        if (!res.ok) throw new Error('WEATHER_FETCH_FAILED');
         const data = await res.json();
         if (!alive) return;
+
+        const weatherCodes = data.daily.weather_code ?? data.daily.weathercode ?? [];
 
         const days: WeatherDay[] = data.daily.time.map((dateStr: string, i: number) => {
           const d = new Date(dateStr);
@@ -467,7 +486,7 @@ export default function DashboardScreen() {
           return {
             label,
             temp: `${maxT}°`,
-            icon: weatherCodeToIcon(data.daily.weathercode[i]),
+            icon: weatherCodeToIcon(Number(weatherCodes[i] ?? 0)),
           };
         });
 
@@ -523,7 +542,7 @@ export default function DashboardScreen() {
             id: `exp-${w.id}`,
             type: 'expense',
             label: w.nazwa ?? t('activity.expense'),
-            meta: formatCurrency(safeNumber(w.kwota), appLocale),
+            meta: formatAppCurrency(safeNumber(w.kwota), appLocale, currency),
             icon: '💸',
           });
         }
@@ -533,7 +552,7 @@ export default function DashboardScreen() {
             items.push({
               id: `stage-${e.id}`,
               type: 'stage',
-              label: e.nazwa,
+              label: getStageLabel(e.nazwa, tStages),
               meta: t('activity.stageDone'),
               icon: '✅',
             });
@@ -558,7 +577,7 @@ export default function DashboardScreen() {
       }
     })();
     return () => { alive = false; };
-  }, []); // eslint-disable-line
+  }, [appLocale, currency, t, tStages]);
 
   // ── Load profile + hero anim ──
   useEffect(() => {
@@ -651,8 +670,8 @@ export default function DashboardScreen() {
         if (!alive) return;
 
         const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-        setObecnyEtap(current?.nazwa ?? (total > 0 ? t('progress.allDone') : t('progress.noStages')));
-        setKolejnyEtap(next?.nazwa ?? t('common:dash'));
+        setObecnyEtap(current ? getStageLabel(current.nazwa, tStages) : (total > 0 ? t('progress.allDone') : t('progress.noStages')));
+        setKolejnyEtap(next ? getStageLabel(next.nazwa, tStages) : t('common:dash'));
         setMilestonesText(total > 0 ? `${doneCount} / ${total}` : t('common:dash'));
         setProgressValue(total > 0 ? clamp01(doneCount / total) : 0);
         setProgressPercent(pct);
@@ -667,7 +686,7 @@ export default function DashboardScreen() {
       }
     })();
     return () => { alive = false; };
-  }, []); // eslint-disable-line
+  }, [t, tStages]);
 
   // ── Load photos ──
   useEffect(() => {
@@ -766,9 +785,8 @@ export default function DashboardScreen() {
     <AppScreen style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* ── HERO — ZMIANA: logo po lewej, tytuł, pogoda chipy po prawej, subtitle pełna szerokość ── */}
+        {/* ── HERO ── */}
         <View style={styles.hero}>
-          {/* Linia 1: logo | tytuł | pogoda */}
           <View style={styles.heroTopRow}>
             <ExpoImage
               source={require('../../../assets/logo.png')}
@@ -781,9 +799,14 @@ export default function DashboardScreen() {
                 pointerEvents="none"
                 style={[styles.heroTitleGlow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]}
               />
-              <Text style={styles.heroTitle} numberOfLines={1}>
-                {t('hero.welcome')}{imie ? ` ${imie}` : ''}
+              <Text style={styles.heroTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                {splitHeroGreeting ? t('hero.welcome') : heroGreeting}
               </Text>
+              {splitHeroGreeting && !!imie && (
+                <Text style={styles.heroName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.58}>
+                  {imie}
+                </Text>
+              )}
             </View>
             <View style={styles.heroWeatherWrap}>
               {!weatherLoading && weather && weather.length > 0 ? (
@@ -805,7 +828,7 @@ export default function DashboardScreen() {
               )}
             </View>
           </View>
-          {/* Linia 2: subtitle pełna szerokość */}
+
           <Animated.View style={[styles.heroSubtitleWrap, { opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }]}>
             <Text style={styles.heroSubtitle}>{heroDateLine}</Text>
           </Animated.View>
@@ -913,7 +936,7 @@ export default function DashboardScreen() {
                     />
                     {item.key === 'budzet' && (
                       <Text style={styles.donutSubText}>
-                        {statusLoading ? t('common:dash') : `${formatCurrency(spentTotal, appLocale)} / ${formatCurrency(plannedBudget, appLocale)}`}
+                        {statusLoading ? t('common:dash') : `${formatAppCurrency(spentTotal, appLocale, currency)} / ${formatAppCurrency(plannedBudget, appLocale, currency)}`}
                       </Text>
                     )}
                     {item.key === 'czas' && (
@@ -1242,11 +1265,11 @@ const styles = StyleSheet.create({
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
   },
   heroLogo: {
-    width: 62,
-    height: 62,
+    width: 68,
+    height: 68,
     flexShrink: 0,
     opacity: 0.98,
   },
@@ -1266,8 +1289,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   heroTitle: {
+    width: '100%',
     color: ACCENT,
-    fontSize: 32,
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+    textShadowColor: 'rgba(25,112,92,0.18)',
+    textShadowRadius: 18,
+  },
+  heroName: {
+    width: '100%',
+    marginTop: -4,
+    color: ACCENT,
+    fontSize: 34,
     fontWeight: '900',
     letterSpacing: -0.3,
     textShadowColor: 'rgba(25,112,92,0.18)',

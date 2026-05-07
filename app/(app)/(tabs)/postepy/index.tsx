@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { getStageLabel } from '../../../../lib/localizedLabels';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { AppHeader } from '../../../../src/ui/components';
 
@@ -114,7 +115,7 @@ export default function PostepyScreen() {
       // top4 – szybkie “kropki” postępu
       const top4 = sorted.slice(0, 4).map((e) => ({
         id: e.id,
-        label: e.nazwa,
+        label: getStageLabel(e.nazwa, t),
         done: isDoneStatus(e.status),
       }));
 
@@ -125,7 +126,7 @@ export default function PostepyScreen() {
 
       const obecnyStage = current
         ? {
-            title: current.nazwa,
+            title: getStageLabel(current.nazwa, t),
             date: current.data_wykonania ? String(current.data_wykonania).slice(0, 10) : null,
             description: current.notatka ?? null,
           }
@@ -133,7 +134,7 @@ export default function PostepyScreen() {
 
       const nastepnyStage = next
         ? {
-            title: next.nazwa,
+            title: getStageLabel(next.nazwa, t),
             date: next.data_wykonania ? String(next.data_wykonania).slice(0, 10) : null,
             description: next.notatka ?? null,
           }
@@ -147,7 +148,7 @@ export default function PostepyScreen() {
         .slice(0, 6)
         .map((e) => ({
           id: e.id,
-          title: e.nazwa,
+          title: getStageLabel(e.nazwa, t),
           date: e.data_wykonania ? String(e.data_wykonania).slice(0, 10) : null,
           notes: e.notatka ?? null,
         }));
@@ -160,7 +161,7 @@ export default function PostepyScreen() {
         completedMilestones: completed,
         hasAnyStages: true,
       };
-    }, [etapy]);
+    }, [etapy, t]);
 
   return (
     <ScrollView

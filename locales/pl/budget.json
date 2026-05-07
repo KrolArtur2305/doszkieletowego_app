@@ -39,6 +39,22 @@
     "categoriesTitle": "Kategorie",
     "spentSubtitle": "wydatki poniesione"
   },
+  "categories": {
+    "stanZero": "Stan zero",
+    "openShell": "Stan surowy otwarty",
+    "closedShell": "Stan surowy zamknięty",
+    "installations": "Instalacje",
+    "developerState": "Stan deweloperski",
+    "other": "Inne"
+  },
+  "categoryShort": {
+    "stanZero": "Zero",
+    "openShell": "SSO",
+    "closedShell": "SSZ",
+    "installations": "Inst.",
+    "developerState": "Dewel.",
+    "other": "Inne"
+  },
   "filter": {
     "all": "Wszystkie",
     "spent": "Poniesione",

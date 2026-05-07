@@ -25,6 +25,12 @@ import { useTranslation } from 'react-i18next';
 import { Feather } from '@expo/vector-icons';
 
 import { supabase } from '../../../../lib/supabase';
+import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
+import {
+  getBudgetCategoryKey,
+  getBudgetCategoryLabel,
+  type BudgetCategoryValue,
+} from '../../../../lib/localizedLabels';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
@@ -39,30 +45,15 @@ const STATUS_SPENT = 'poniesiony';
 const STATUS_UPCOMING = 'zaplanowany';
 
 const CATEGORY_OPTIONS = [
-  { value: 'Stan zero', label: 'Zero' },
-  { value: 'Stan surowy otwarty', label: 'SSO' },
-  { value: 'Stan surowy zamknięty', label: 'SSZ' },
-  { value: 'Instalacje', label: 'Inst.' },
-  { value: 'Stan deweloperski', label: 'Dewel.' },
-  { value: 'Inne', label: 'Inne' },
+  { value: 'Stan zero' },
+  { value: 'Stan surowy otwarty' },
+  { value: 'Stan surowy zamknięty' },
+  { value: 'Instalacje' },
+  { value: 'Stan deweloperski' },
+  { value: 'Inne' },
 ] as const;
 
-const CATEGORIES = CATEGORY_OPTIONS.map((option) => option.value);
-type CategoryValue = (typeof CATEGORY_OPTIONS)[number]['value'];
-
-const currencyByLocale = (locale: string) => {
-  if (locale.startsWith('de')) return 'EUR';
-  if (locale.startsWith('en')) return 'USD';
-  return 'PLN';
-};
-
-const formatCurrency = (value: number, locale: string) =>
-  new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: currencyByLocale(locale),
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+type CategoryValue = BudgetCategoryValue;
 
 const safeNumber = (v: any) => {
   const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.'));
@@ -90,14 +81,7 @@ function clamp01(n: number) {
 }
 
 function inferCategoryFromStage(stageName: string | null | undefined): CategoryValue {
-  const stage = normalize(stageName);
-  if (!stage) return 'Inne';
-  if (stage.includes('zero')) return 'Stan zero';
-  if (stage.includes('otwart')) return 'Stan surowy otwarty';
-  if (stage.includes('zamkni')) return 'Stan surowy zamknięty';
-  if (stage.includes('instal')) return 'Instalacje';
-  if (stage.includes('dewel')) return 'Stan deweloperski';
-  return 'Inne';
+  return getBudgetCategoryKey(stageName);
 }
 
 type WydatkiRow = {
@@ -150,6 +134,7 @@ async function uriToArrayBuffer(uri: string, readFileFailedText: string): Promis
 
 export default function BudzetScreen() {
   const { t, i18n } = useTranslation('budget');
+  const { currency } = useCurrency();
   const router = useRouter();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
@@ -181,7 +166,7 @@ export default function BudzetScreen() {
   const [saving, setSaving] = useState(false);
 
   const [fNazwa, setFNazwa] = useState('');
-  const [fKategoria, setFKategoria] = useState<CategoryValue>(CATEGORIES.includes('Inne') ? 'Inne' : CATEGORIES[0] as CategoryValue);
+  const [fKategoria, setFKategoria] = useState<CategoryValue>('Inne');
   const [fKwota, setFKwota] = useState('');
   const [fStatus, setFStatus] = useState<typeof STATUS_SPENT | typeof STATUS_UPCOMING>(STATUS_SPENT);
   const [fData, setFData] = useState('');
@@ -387,7 +372,7 @@ export default function BudzetScreen() {
   };
 
   const confirmDeleteExpense = (row: WydatkiRow) => {
-    Alert.alert(t('delete.confirmTitle'), `${row.nazwa ?? t('expense.defaultName')}\n${formatCurrency(safeNumber(row.kwota), datePickerLocale)}`, [
+    Alert.alert(t('delete.confirmTitle'), `${row.nazwa ?? t('expense.defaultName')}\n${formatAppCurrency(safeNumber(row.kwota), datePickerLocale, currency)}`, [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpense(row) },
     ]);
@@ -452,7 +437,7 @@ export default function BudzetScreen() {
     const out: Record<string, number> = {};
     for (const w of wydatki) {
       if (normalize(w.status) !== STATUS_SPENT) continue;
-      const k = (w.kategoria ?? 'Inne').trim() || 'Inne';
+      const k = getBudgetCategoryKey(w.kategoria);
       out[k] = (out[k] ?? 0) + safeNumber(w.kwota);
     }
     return out;
@@ -464,8 +449,12 @@ export default function BudzetScreen() {
     const sliced = entries.slice(0, 6);
     if (sliced.length === 0) {
       return [
-        { k: 'Inne', v: 0 }, { k: 'SSO', v: 0 }, { k: 'SSZ', v: 0 },
-        { k: 'Instal.', v: 0 }, { k: 'Dewel.', v: 0 }, { k: 'Zero', v: 0 },
+        { k: 'Inne', v: 0 },
+        { k: 'Stan surowy otwarty', v: 0 },
+        { k: 'Stan surowy zamknięty', v: 0 },
+        { k: 'Instalacje', v: 0 },
+        { k: 'Stan deweloperski', v: 0 },
+        { k: 'Stan zero', v: 0 },
       ];
     }
     return sliced;
@@ -528,7 +517,7 @@ export default function BudzetScreen() {
                 stroke={16}
               />
               <Text style={styles.donutSubText}>
-                {`${formatCurrency(spentTotal, datePickerLocale)} / ${formatCurrency(plannedBudget || 0, datePickerLocale)}`}
+                {`${formatAppCurrency(spentTotal, datePickerLocale, currency)} / ${formatAppCurrency(plannedBudget || 0, datePickerLocale, currency)}`}
               </Text>
             </>
           )}
@@ -539,11 +528,11 @@ export default function BudzetScreen() {
           <View style={styles.heroStats}>
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>{t('stats.remaining')}</Text>
-              <Text style={styles.statValue}>{formatCurrency(remaining, datePickerLocale)}</Text>
+              <Text style={styles.statValue}>{formatAppCurrency(remaining, datePickerLocale, currency)}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>{t('stats.planned')}</Text>
-              <Text style={styles.statValue}>{formatCurrency(upcomingTotal, datePickerLocale)}</Text>
+              <Text style={styles.statValue}>{formatAppCurrency(upcomingTotal, datePickerLocale, currency)}</Text>
             </View>
           </View>
         )}
@@ -581,8 +570,8 @@ export default function BudzetScreen() {
                     <View style={styles.vBarTrack}>
                       <View style={[styles.vBarFill, { height: h }]} />
                     </View>
-                    <Text style={styles.vLabel} numberOfLines={1}>{k}</Text>
-                    <Text style={styles.vValue} numberOfLines={1}>{formatCurrency(v, datePickerLocale)}</Text>
+                    <Text style={styles.vLabel} numberOfLines={1}>{getBudgetCategoryLabel(k, t, true)}</Text>
+                    <Text style={styles.vValue} numberOfLines={1}>{formatAppCurrency(v, datePickerLocale, currency)}</Text>
                   </View>
                 );
               })}
@@ -652,7 +641,7 @@ export default function BudzetScreen() {
                       <Text style={styles.itemMeta}>
                         {w.data ? formatDateByLocale(w.data, datePickerLocale) : w.created_at ? t('expense.addedOn', { date: formatDateByLocale(w.created_at, datePickerLocale) }) : '—'}
                         {'  •  '}
-                        {w.kategoria ?? 'Inne'}
+                        {getBudgetCategoryLabel(w.kategoria, t)}
                         {'  •  '}
                         {normalize(w.status) === STATUS_SPENT ? t('status.spent') : t('status.planned')}
                       </Text>
@@ -662,7 +651,7 @@ export default function BudzetScreen() {
                         styles.itemAmount,
                         normalize(w.status) === STATUS_UPCOMING && styles.itemAmountPlanned,
                       ]}>
-                        {formatCurrency(safeNumber(w.kwota), datePickerLocale)}
+                        {formatAppCurrency(safeNumber(w.kwota), datePickerLocale, currency)}
                       </Text>
                       {!!w.plik && (
                         <TouchableOpacity onPress={() => openReceipt(w.plik!)} style={{ marginTop: 6 }}>
@@ -722,7 +711,9 @@ export default function BudzetScreen() {
                   const on = normalize(fKategoria) === normalize(c);
                   return (
                     <TouchableOpacity key={c} onPress={() => setFKategoria(c)} style={[styles.catTile, on && styles.catTileOn]} activeOpacity={0.85}>
-                      <Text style={[styles.catTileText, on && styles.catTileTextOn]}>{option.label}</Text>
+                      <Text style={[styles.catTileText, on && styles.catTileTextOn]}>
+                        {getBudgetCategoryLabel(option.value, t, true)}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}

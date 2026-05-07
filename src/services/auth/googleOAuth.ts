@@ -1,13 +1,19 @@
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../../lib/supabase';
-import { completeAuthSessionFromUrl, getAuthCallbackRedirectUri } from './deepLinkAuth';
+import {
+  completeAuthSessionFromUrl,
+  getAuthCallbackRedirectUri,
+  getOAuthCallbackRedirectUri,
+} from './deepLinkAuth';
 
 WebBrowser.maybeCompleteAuthSession();
 
 type OAuthProvider = 'google' | 'facebook';
 
 export async function signInWithOAuthMobile(provider: OAuthProvider): Promise<boolean> {
-  const redirectTo = getAuthCallbackRedirectUri();
+  const redirectTo = provider === 'google'
+    ? getOAuthCallbackRedirectUri()
+    : getAuthCallbackRedirectUri();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,

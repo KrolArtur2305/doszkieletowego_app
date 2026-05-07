@@ -19,7 +19,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
-import { AppButton, AppHeader, AppInput } from '../../../src/ui/components';
+import { AppButton, AppHeader, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
+import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -53,17 +54,30 @@ function uiLocaleFromLang(lang?: string) {
   return map[base] || 'en-US';
 }
 
+function defaultCountryFromLang(lang?: string) {
+  const base = (lang || 'pl').split('-')[0];
+  if (base === 'de') return 'de';
+  if (base === 'en') return 'gb';
+  return 'pl';
+}
+
 export default function InwestycjaScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('investment');
 
   const locale = useMemo(() => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language), [i18n.language, i18n.resolvedLanguage]);
+  const defaultCountryCode = useMemo(
+    () => defaultCountryFromLang(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  );
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const [nazwa, setNazwa] = useState('');
   const [lokalizacja, setLokalizacja] = useState('');
+  const [selectedPlace, setSelectedPlace] = useState<PlaceSuggestion | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const [dataStartISO, setDataStartISO] = useState('');
   const [dataKoniecISO, setDataKoniecISO] = useState('');
@@ -107,18 +121,40 @@ export default function InwestycjaScreen() {
 
         const user = userRes.user;
 
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('inwestycje')
-          .select('nazwa, lokalizacja, data_start, data_koniec, budzet, inwestycja_wypelniona')
+          .select('nazwa, lokalizacja, place_name, location_city, location_country, latitude, longitude, data_start, data_koniec, budzet, inwestycja_wypelniona')
           .eq('user_id', user.id)
           .limit(1)
           .maybeSingle();
+
+        if (error) {
+          const fallback = await supabase
+            .from('inwestycje')
+            .select('nazwa, lokalizacja, data_start, data_koniec, budzet, inwestycja_wypelniona')
+            .eq('user_id', user.id)
+            .limit(1)
+            .maybeSingle();
+
+          data = fallback.data as any;
+        }
 
         if (!alive) return;
 
         if (data) {
           setNazwa(data.nazwa ?? '');
-          setLokalizacja(data.lokalizacja ?? '');
+          const placeName = data.place_name ?? data.lokalizacja ?? '';
+          setLokalizacja(data.lokalizacja ?? placeName);
+          if (data.place_name && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+            setSelectedPlace({
+              id: `saved-${data.latitude}-${data.longitude}`,
+              placeName: data.place_name,
+              city: data.location_city ?? null,
+              country: data.location_country ?? null,
+              latitude: data.latitude,
+              longitude: data.longitude,
+            });
+          }
           setDataStartISO(data.data_start ?? '');
           setDataKoniecISO(data.data_koniec ?? '');
           setBudzet(data.budzet !== null && data.budzet !== undefined ? String(data.budzet) : '');
@@ -139,15 +175,16 @@ export default function InwestycjaScreen() {
       if (saving) return;
 
       const n = nazwa.trim();
-      const loc = lokalizacja.trim();
 
       if (!n) {
         Alert.alert(t('alerts.completeDataTitle'), t('alerts.nameRequired'));
         return;
       }
 
-      if (!loc) {
-        Alert.alert(t('alerts.completeDataTitle'), t('alerts.locationRequired', { defaultValue: 'Location is required to continue.' }));
+      if (!selectedPlace) {
+        const message = t('alerts.selectLocationFromList', { defaultValue: 'Please select a location from the list.' });
+        setLocationError(message);
+        Alert.alert(t('alerts.completeDataTitle'), message);
         return;
       }
 
@@ -171,6 +208,11 @@ export default function InwestycjaScreen() {
         user_id: string;
         nazwa: string;
         lokalizacja: string;
+        place_name: string;
+        location_city: string | null;
+        location_country: string | null;
+        latitude: number;
+        longitude: number;
         data_start: string | null;
         data_koniec: string | null;
         budzet: number | null;
@@ -178,18 +220,44 @@ export default function InwestycjaScreen() {
       } = {
         user_id: user.id,
         nazwa: n,
-        lokalizacja: loc,
+        lokalizacja: getPlaceLocalityName(selectedPlace),
+        place_name: selectedPlace.placeName,
+        location_city: selectedPlace.city,
+        location_country: selectedPlace.country,
+        latitude: selectedPlace.latitude,
+        longitude: selectedPlace.longitude,
         data_start: dataStartISO || null,
         data_koniec: dataKoniecISO || null,
         budzet: budgetNumber,
         inwestycja_wypelniona: true,
       };
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('inwestycje')
         .upsert(payload, { onConflict: 'user_id' })
         .select('user_id, inwestycja_wypelniona')
         .maybeSingle();
+
+      if (error && String(error.message || '').includes('schema cache')) {
+        const legacyPayload = {
+          user_id: payload.user_id,
+          nazwa: payload.nazwa,
+          lokalizacja: payload.lokalizacja,
+          data_start: payload.data_start,
+          data_koniec: payload.data_koniec,
+          budzet: payload.budzet,
+          inwestycja_wypelniona: payload.inwestycja_wypelniona,
+        };
+
+        const fallback = await supabase
+          .from('inwestycje')
+          .upsert(legacyPayload, { onConflict: 'user_id' })
+          .select('user_id, inwestycja_wypelniona')
+          .maybeSingle();
+
+        data = fallback.data;
+        error = fallback.error;
+      }
 
       if (error) {
         Alert.alert(t('alerts.saveErrorTitle', { defaultValue: 'Save error' }), error.message);
@@ -248,13 +316,25 @@ export default function InwestycjaScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.fieldLabel}>{t('form.locationLabel')} *</Text>
-                <AppInput
+                <PlaceAutocomplete
+                  label={`${t('form.locationLabel')} *`}
                   value={lokalizacja}
-                  onChangeText={setLokalizacja}
+                  onChangeText={(value) => {
+                    setLokalizacja(value);
+                    setSelectedPlace(null);
+                    setLocationError(null);
+                  }}
+                  selectedPlace={selectedPlace}
+                  onSelect={(place) => {
+                    setSelectedPlace(place);
+                    setLokalizacja(getPlaceLocalityName(place));
+                    setLocationError(null);
+                  }}
+                  countryLabel={t('form.countryLabel', { defaultValue: 'Country' })}
+                  defaultCountryCode={defaultCountryCode}
                   placeholder={t('form.locationPlaceholder')}
-                  editable={!loading && !saving}
-                  style={styles.input}
+                  disabled={loading || saving}
+                  error={locationError}
                 />
               </View>
 

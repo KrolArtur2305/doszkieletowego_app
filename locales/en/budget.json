@@ -39,6 +39,22 @@
     "categoriesTitle": "Categories",
     "spentSubtitle": "spent expenses"
   },
+  "categories": {
+    "stanZero": "Groundwork",
+    "openShell": "Open shell",
+    "closedShell": "Closed shell",
+    "installations": "Installations",
+    "developerState": "Developer finish",
+    "other": "Other"
+  },
+  "categoryShort": {
+    "stanZero": "Ground",
+    "openShell": "Open",
+    "closedShell": "Closed",
+    "installations": "Inst.",
+    "developerState": "Finish",
+    "other": "Other"
+  },
   "filter": {
     "all": "All",
     "spent": "Spent",

@@ -13,6 +13,15 @@
     "noStages": "Brak etapów.",
     "progressPercent": "Budowa w {{percent}}%"
   },
+  "names": {
+    "planning": "Planowanie",
+    "stanZero": "Stan zero",
+    "openShell": "Stan surowy otwarty",
+    "closedShell": "Stan surowy zamknięty",
+    "installations": "Instalacje",
+    "developerState": "Stan deweloperski",
+    "finishing": "Wykończenie"
+  },
   "stages": {
     "cardLabel": "Etapy",
     "currentStageLabel": "OBECNY ETAP",
