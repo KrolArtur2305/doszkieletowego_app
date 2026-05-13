@@ -5,12 +5,18 @@ import { publicConfig } from '../../../lib/supabase';
 import { isLaunchPaymentsDisabled } from './launchMode';
 import type { RevenueCatSupportStatus } from './types';
 
+type RevenueCatPlatformConfig = {
+  platform: 'ios' | 'android';
+  apiKey: string | null;
+};
+
 let configuredApiKey: string | null = null;
+let configuredPlatform: RevenueCatPlatformConfig['platform'] | null = null;
 const warnedStatuses = new Set<string>();
 
-function warnOnce(status: RevenueCatSupportStatus, message: string) {
-  if (warnedStatuses.has(status)) return;
-  warnedStatuses.add(status);
+function warnOnce(key: string, message: string) {
+  if (warnedStatuses.has(key)) return;
+  warnedStatuses.add(key);
   console.warn(message);
 }
 
@@ -20,18 +26,31 @@ function isExpoGo(): boolean {
   return executionEnvironment === 'storeClient' || appOwnership === 'expo';
 }
 
-function getRevenueCatApiKey(): string | null {
-  if (Platform.OS === 'ios') return publicConfig.revenueCat.iosApiKey;
-  if (Platform.OS === 'android') return publicConfig.revenueCat.androidApiKey;
+function getRevenueCatPlatformConfig(): RevenueCatPlatformConfig | null {
+  if (Platform.OS === 'ios') {
+    return {
+      platform: 'ios',
+      apiKey: publicConfig.revenueCat.iosApiKey,
+    };
+  }
+
+  if (Platform.OS === 'android') {
+    return {
+      platform: 'android',
+      apiKey: publicConfig.revenueCat.androidApiKey,
+    };
+  }
+
   return null;
 }
 
 export function getRevenueCatSupportStatus(): RevenueCatSupportStatus {
   if (isLaunchPaymentsDisabled()) {
-    return 'missing-api-key';
+    return 'payments-disabled';
   }
 
-  if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
+  const platformConfig = getRevenueCatPlatformConfig();
+  if (!platformConfig) {
     return 'unsupported-platform';
   }
 
@@ -39,7 +58,7 @@ export function getRevenueCatSupportStatus(): RevenueCatSupportStatus {
     return 'expo-go';
   }
 
-  if (!getRevenueCatApiKey()) {
+  if (!platformConfig.apiKey) {
     return 'missing-api-key';
   }
 
@@ -53,6 +72,10 @@ async function getPurchasesModule() {
 
 async function ensureConfigured(): Promise<boolean> {
   if (isLaunchPaymentsDisabled()) {
+    warnOnce(
+      'payments-disabled',
+      '[RevenueCat] Payments are disabled for this build. Skipping SDK configuration.'
+    );
     return false;
   }
 
@@ -68,20 +91,23 @@ async function ensureConfigured(): Promise<boolean> {
   }
 
   if (status === 'missing-api-key') {
+    const platform = Platform.OS === 'ios' ? 'IOS' : Platform.OS === 'android' ? 'ANDROID' : 'UNKNOWN';
     warnOnce(
       status,
-      '[RevenueCat] Missing EXPO_PUBLIC_REVENUECAT_* API key for the current platform.'
+      `[RevenueCat] Missing EXPO_PUBLIC_REVENUECAT_${platform}_API_KEY for the current platform.`
     );
     return false;
   }
 
-  const apiKey = getRevenueCatApiKey();
-  if (!apiKey) return false;
-  if (configuredApiKey === apiKey) return true;
+  const platformConfig = getRevenueCatPlatformConfig();
+  const apiKey = platformConfig?.apiKey;
+  if (!platformConfig || !apiKey) return false;
+  if (configuredApiKey === apiKey && configuredPlatform === platformConfig.platform) return true;
 
   const Purchases = await getPurchasesModule();
   Purchases.configure({ apiKey });
   configuredApiKey = apiKey;
+  configuredPlatform = platformConfig.platform;
 
   return true;
 }

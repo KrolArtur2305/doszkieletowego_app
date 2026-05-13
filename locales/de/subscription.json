@@ -1,17 +1,19 @@
 {
-  "eyebrow": "Pläne in Vorbereitung",
-  "title": "Abos bald verfügbar",
-  "subtitle": "Die Pläne Free, Standard und Pro sind bereits vorbereitet. Bezahlte Aktivierungen folgen in einem kommenden Update.",
+  "eyebrow": "BuildIQ-Pläne",
+  "title": "Wähle deinen BuildIQ-Plan",
+  "subtitle": "Starte mit einem Trial mit vollem Zugriff und wähle danach den passenden Plan.",
   "currentPlan": "Aktueller Plan",
-  "launchInfo": "Zum Start ist dieser Bildschirm nur informativ. Die Auswahl eines Plans startet keinen Kauf und aktiviert kein kostenpflichtiges Abo.",
+  "launchInfo": "Preise werden aus dem App Store geladen, sobald Store-Produkte verfügbar sind.",
   "popular": "Beliebt",
-  "free": "Kostenlos",
+  "free": "Kein Abo",
+  "trialLength": "14 Tage",
+  "priceFromStore": "Preis im App Store",
   "currency": "€",
   "month": "Monat",
   "twoYears": "2 Jahre",
   "orYearly": "oder {{price}} {{currency}} / {{period}}",
   "billingMonthly": "Monatlich",
-  "billingYearly": "2 Jahre",
+  "billingYearly": "Jährlich",
   "priceEquiv": "≈ {{amount}} €/Monat",
   "currentPlanBtn": "Aktiv",
   "unlimited": "Unbegrenzt",
@@ -19,9 +21,10 @@
   "yes": "Ja",
   "no": "Nein",
   "plans": {
-    "free": { "name": "Free", "desc": "Grundfunktionen", "forever": "für immer" },
-    "standard": { "name": "Standard", "desc": "Für aktive Bauherren", "badge": "BELIEBT" },
-    "pro": { "name": "Pro", "desc": "Volle Leistung", "badge": "PRO" }
+    "free": { "name": "Free", "desc": "Kein aktives Abo", "forever": "kein aktiver Plan" },
+    "free_trial": { "name": "Free Trial", "desc": "14 Tage voller Zugriff", "badge": "TRIAL", "forever": "voller Zugriff für 14 Tage" },
+    "pro": { "name": "BuildIQ Pro", "desc": "Limits für aktive Bauprojekte", "badge": "PRO" },
+    "expert": { "name": "BuildIQ Expert", "desc": "Alles unbegrenzt", "badge": "EXPERT" }
   },
   "features": {
     "photos": "Fotos",
@@ -29,33 +32,139 @@
     "tasks": "Aufgaben",
     "model3d": "3D-Modell",
     "ai": "KI-Assistent",
+    "aiMessagesPerDay": "KI-Nachrichten / Tag",
     "photosLabel": "Fotos",
     "photos20": "bis zu 20 Fotos",
-    "photos50": "bis zu 50 Fotos",
+    "photos100": "bis zu 100 Fotos",
     "photosUnlimited": "unbegrenzt",
     "docsLabel": "Dokumente",
     "docs5": "bis zu 5 Dokumente",
-    "docs15": "bis zu 15 Dokumente",
+    "docs25": "bis zu 25 Dokumente",
     "docsUnlimited": "unbegrenzt",
     "tasksLabel": "Aufgaben",
     "tasks15": "bis zu 15 Aufgaben",
-    "tasks50": "bis zu 50 Aufgaben",
     "tasksUnlimited": "unbegrenzt",
     "model3dLabel": "3D-Modell",
-    "aiLabel": "KI-Assistent"
+    "aiLabel": "KI-Assistent",
+    "aiMessagesPerDayLabel": "KI-Nachrichten",
+    "aiMessagesLimited": "{{count}} pro Tag",
+    "aiMessagesUnlimited": "unbegrenzt"
   },
   "checkout": {
-    "title": "Pläne in Vorbereitung",
-    "subtitle": "Vergleichen Sie Free, Standard und Pro. Käufe in der App folgen erst in einem späteren Update.",
-    "selectBtn": "Bezahlte Pläne bald verfügbar",
-    "freeCta": "Zum Start verfügbar",
+    "title": "Wähle deinen BuildIQ-Plan",
+    "subtitle": "Starte mit einem Trial mit vollem Zugriff und wähle danach den passenden Plan.",
+    "selectBtn": "Weiter",
+    "trialCta": "Weiter",
+    "freeCta": "Aktueller Free-Zugriff",
     "processing": "Verarbeitung...",
     "successTitle": "Danke!",
     "successMessage": "Ihr Plan wird nach der Zahlungsbestätigung aktiviert.",
     "security": "Sichere Zahlung • Jederzeit kündbar",
     "savingsNote": "Sie sparen {{amount}} €",
-    "unavailableTitle": "Käufe vorübergehend nicht verfügbar",
-    "unavailableMessage": "In-App-Käufe sind in dieser Version noch nicht aktiv. Die Auswahl eines Plans startet keine Zahlung und aktiviert kein Abo.",
-    "notice": "Dieser Bildschirm dient nur zur Information. In dieser Version können Sie keinen Kauf starten und keinen kostenpflichtigen Plan aktivieren."
+    "priceNotice": "Preis im App Store",
+    "unavailableTitle": "Entwickler-Build",
+    "unavailableMessage": "Die Transaktionslogik ist in diesem Build nicht verbunden.",
+    "notice": "Abos verlängern sich automatisch, sofern sie nicht gekündigt werden."
+  },
+  "paywall": {
+    "logo": "BuildIQ",
+    "eyebrow": "BuildIQ Premium",
+    "title": "Wähle deinen BuildIQ-Plan",
+    "heroTitle": "BuildIQ Pro Trial",
+    "heroSubtitle": "Starte mit 14 Tagen vollem Zugriff",
+    "trialDaysRemaining": "{{count}} Tage verbleibend",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "priceInStore": "Preis aus dem App Store",
+    "manageSubtitle": "Alles, was du für die Verwaltung deines Bauprojekts brauchst.",
+    "saveMore": "Mehr sparen",
+    "secureCheckout": "Sichere Zahlung über den App Store",
+    "continue": "Starten",
+    "restore": "Käufe wiederherstellen",
+    "autoRenew": "Abos verlängern sich automatisch, sofern sie nicht gekündigt werden.",
+    "terms": "AGB",
+    "refund": "Rückerstattung",
+    "privacy": "Datenschutz",
+    "devAlertTitle": "Entwickler-Build",
+    "devAlertMessage": "Die Transaktionslogik ist in diesem Build nicht verbunden.",
+    "restoreTitle": "Käufe wiederherstellen",
+    "restoreSuccess": "Käufe wurden wiederhergestellt.",
+    "restoreEmpty": "Für dieses Konto wurden keine Käufe gefunden.",
+    "restoreError": "Käufe konnten nicht wiederhergestellt werden.",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "badge": "",
+        "description": "Start mit den wichtigsten Grundlagen",
+        "details": ["Basis-Projekteinrichtung", "Basis-Tracking", "Begrenzter Speicher"]
+      },
+      "free_trial": {
+        "name": "Free Trial",
+        "badge": "14 TAGE",
+        "description": "Unbegrenzter Zugriff während des Trials",
+        "price": "Free",
+        "priceSub": "für 14 Tage",
+        "details": ["Voller KI-Zugriff", "Unbegrenzte Fotos", "Keine Verpflichtung"]
+      },
+      "pro": {
+        "name": "Pro",
+        "badge": "BELIEBT",
+        "description": "Ideal für die meisten Bauherren",
+        "samplePrice": "14,99 $",
+        "details": ["20 KI-Nachrichten pro Tag", "100 Fotos", "25 Dokumente"]
+      },
+      "expert": {
+        "name": "Expert",
+        "badge": "",
+        "description": "Alles unbegrenzt",
+        "samplePrice": "19,99 $",
+        "details": ["Unbegrenzte KI", "Unbegrenzte Fotos", "Unbegrenzte Dokumente", "Priorisierte KI"]
+      }
+    },
+    "selected": {
+      "free_trial": {
+        "title": "Teste BuildIQ mit vollem Zugriff",
+        "desc": "Probiere den Premium-Arbeitsbereich aus, bevor du den passenden Plan wählst.",
+        "benefits": ["Volle KI", "Alle Dokumente", "Alle Fotos", "Keine Verpflichtung"]
+      },
+      "pro": {
+        "title": "Ideal für die meisten Bauherren",
+        "desc": "Ein fokussierter Plan für aktive Bauprojekte mit KI, Budgetkontext und Dokumentation.",
+        "benefits": ["20 KI/Tag", "100 Fotos", "25 Dokumente", "Berichte"]
+      },
+      "expert": {
+        "title": "Volle Kontrolle für anspruchsvolle Bauprojekte",
+        "desc": "Für umfangreiche Dokumentation, häufige KI-Workflows und lange Bauarchive.",
+        "benefits": ["Unbegrenzte KI", "Unbegrenzte Fotos", "Unbegrenzte Docs", "Priorisierte KI"]
+      }
+    },
+    "benefits": {
+      "items": [
+        { "title": "AI Construction Manager", "desc": "Plane nächste Schritte, beantworte Baufragen und halte Entscheidungen in Bewegung." },
+        { "title": "Budget- und Ausgabentracking", "desc": "Behalte Kosten, Ausgabenhistorie und Budgetdruck im Blick." },
+        { "title": "Baufotos und Dokumente", "desc": "Speichere Fotos, Dateien und Projektkontext an einem Ort." },
+        { "title": "Fortschritt verfolgen", "desc": "Verfolge Bauphasen mit einer strukturierten Zeitleiste." },
+        { "title": "Berichte und Exporte", "desc": "Erstelle klare Zusammenfassungen für Eigentümer, Teams und die Dokumentation." }
+      ]
+    },
+    "pro": {
+      "name": "BuildIQ Pro",
+      "tagline": "Limits für aktive Bauprojekte",
+      "features": {
+        "ai": "20 KI-Nachrichten pro Tag",
+        "photos": "100 Fotos",
+        "docs": "25 Dokumente"
+      }
+    },
+    "expert": {
+      "name": "BuildIQ Expert",
+      "tagline": "Unbegrenzter Arbeitsbereich für anspruchsvolle Bauprojekte",
+      "features": {
+        "ai": "Unbegrenzte KI",
+        "photos": "Unbegrenzte Fotos",
+        "docs": "Unbegrenzte Dokumente",
+        "priorityAi": "Priorisierte KI"
+      }
+    }
   }
 }

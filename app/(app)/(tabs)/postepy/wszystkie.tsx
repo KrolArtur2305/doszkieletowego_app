@@ -14,12 +14,18 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { getStageLabel } from '../../../../lib/localizedLabels';
+import {
+  filterWorkflowStages,
+  preferredStartStageCode,
+  resolveRuntimeCurrentStageCode,
+} from '../../../../lib/buildWorkflow';
 import { AppInput } from '../../../../src/ui/components';
 
 type EtapRow = {
   id: string;
   user_id: string;
   nazwa: string;
+  nazwa_code?: string | null;
   kolejnosc: number | null;
   status: string | null;
   notatka: string | null;
@@ -106,7 +112,7 @@ export default function WszystkieEtapyScreen() {
 
         const { data, error } = await supabase
           .from('etapy')
-          .select('id,user_id,nazwa,kolejnosc,status,notatka,utworzono')
+          .select('id,user_id,nazwa,nazwa_code,kolejnosc,status,notatka,utworzono')
           .eq('user_id', user.id)
           .order('kolejnosc', { ascending: true });
 
@@ -114,11 +120,32 @@ export default function WszystkieEtapyScreen() {
 
         if (!alive) return;
 
-        const rows = (data ?? []) as EtapRow[];
-        setEtapy(rows);
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('build_type, current_stage_code')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        const rows = filterWorkflowStages((data ?? []) as EtapRow[], profileData?.build_type);
+        const preferredStageCode = preferredStartStageCode(profileData?.build_type, profileData?.current_stage_code);
+        const rowsToUse = rows.length > 0 ? rows : ((data ?? []) as EtapRow[]);
+        const preferredIndex = rowsToUse.findIndex((row) => String(row.nazwa_code ?? '').trim().toUpperCase() === preferredStageCode);
+        const orderedRows =
+          preferredIndex > 0 ? [...rowsToUse.slice(preferredIndex), ...rowsToUse.slice(0, preferredIndex)] : rowsToUse;
+        setEtapy(orderedRows);
+
+        const storedStageCode = String(profileData?.current_stage_code ?? '').trim().toUpperCase();
+        const runtimeStageCode = resolveRuntimeCurrentStageCode((data ?? []) as EtapRow[], profileData?.build_type, storedStageCode);
+        if (runtimeStageCode !== storedStageCode) {
+          await supabase
+            .from('profiles')
+            .upsert({ user_id: user.id, current_stage_code: runtimeStageCode }, { onConflict: 'user_id' });
+        }
 
         const draft: Record<string, string> = {};
-        for (const r of rows) draft[r.id] = r.notatka ?? '';
+        for (const r of orderedRows) draft[r.id] = r.notatka ?? '';
         setNoteDraft(draft);
 
         setShowPrevCount(0);

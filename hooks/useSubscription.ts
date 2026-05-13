@@ -13,6 +13,7 @@ import type { RevenueCatSupportStatus, SubscriptionAccess } from '../src/service
 
 type UseSubscriptionResult = {
   loading: boolean;
+  error: string | null;
   customerInfo: CustomerInfo | null;
   offerings: PurchasesOfferings | null;
   access: SubscriptionAccess;
@@ -22,15 +23,20 @@ type UseSubscriptionResult = {
 
 const FREE_ACCESS: SubscriptionAccess = {
   currentPlan: 'free',
+  accessPlan: 'free',
   isSubscriptionActive: false,
+  isTrialActive: false,
+  trialEndsAt: null,
   hasAiAccess: AI_OPEN_ACCESS,
   hasPremiumAccess: false,
+  aiMessagesPerDayLimit: null,
   activeEntitlementIds: [],
 };
 
 export function useSubscription(): UseSubscriptionResult {
   const { session } = useSupabaseAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [offerings, setOfferings] = useState<PurchasesOfferings | null>(null);
   const [access, setAccess] = useState<SubscriptionAccess>(FREE_ACCESS);
@@ -40,27 +46,9 @@ export function useSubscription(): UseSubscriptionResult {
 
   async function refresh() {
     setLoading(true);
+    setError(null);
 
-    await configurePurchases();
-
-    const [nextCustomerInfo, nextOfferings] = await Promise.all([
-      getCustomerInfoSafe(),
-      getOfferingsSafe(),
-    ]);
-
-    setCustomerInfo(nextCustomerInfo);
-    setOfferings(nextOfferings);
-    setAccess(getSubscriptionAccess(nextCustomerInfo));
-    setSupportStatus(getRevenueCatSupportStatus());
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    let alive = true;
-
-    (async () => {
-      setLoading(true);
-
+    try {
       await configurePurchases();
 
       const [nextCustomerInfo, nextOfferings] = await Promise.all([
@@ -68,13 +56,53 @@ export function useSubscription(): UseSubscriptionResult {
         getOfferingsSafe(),
       ]);
 
-      if (!alive) return;
-
       setCustomerInfo(nextCustomerInfo);
       setOfferings(nextOfferings);
       setAccess(getSubscriptionAccess(nextCustomerInfo));
       setSupportStatus(getRevenueCatSupportStatus());
+    } catch (e) {
+      setCustomerInfo(null);
+      setOfferings(null);
+      setAccess(FREE_ACCESS);
+      setSupportStatus(getRevenueCatSupportStatus());
+      setError(e instanceof Error ? e.message : 'Failed to load subscription status.');
+    } finally {
       setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        await configurePurchases();
+
+        const [nextCustomerInfo, nextOfferings] = await Promise.all([
+          getCustomerInfoSafe(),
+          getOfferingsSafe(),
+        ]);
+
+        if (!alive) return;
+
+        setCustomerInfo(nextCustomerInfo);
+        setOfferings(nextOfferings);
+        setAccess(getSubscriptionAccess(nextCustomerInfo));
+        setSupportStatus(getRevenueCatSupportStatus());
+      } catch (e) {
+        if (!alive) return;
+
+        setCustomerInfo(null);
+        setOfferings(null);
+        setAccess(FREE_ACCESS);
+        setSupportStatus(getRevenueCatSupportStatus());
+        setError(e instanceof Error ? e.message : 'Failed to load subscription status.');
+      } finally {
+        if (alive) setLoading(false);
+      }
     })();
 
     return () => {
@@ -84,6 +112,7 @@ export function useSubscription(): UseSubscriptionResult {
 
   return {
     loading,
+    error,
     customerInfo,
     offerings,
     access,

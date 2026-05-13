@@ -135,6 +135,8 @@ export function FuturisticDonutSvg({
   });
 
   const percent = Math.round(v * 100);
+  const percentFontSize = Math.max(22, Math.round(size * 0.21));
+  const showLabel = !!label || !!onPressLabel;
 
   const glowOpacity = didFinish
     ? shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.22] })
@@ -146,7 +148,7 @@ export function FuturisticDonutSvg({
   });
 
   return (
-    <View style={[styles.wrap, { width: size, height: size + 54 }]}>
+    <View style={[styles.wrap, { width: size, height: size + (showLabel ? 54 : 0) }]}>
       <View style={{ width: size, height: size }}>
         <Animated.View style={{ transform: [{ rotate: ringDriftRotate }] }}>
           <Svg width={size} height={size}>
@@ -204,6 +206,7 @@ export function FuturisticDonutSvg({
           <Text
             style={[
               styles.percent,
+              { fontSize: percentFontSize },
               Platform.OS === 'android' ? styles.percentAndroid : null,
             ]}
             allowFontScaling={false}
@@ -213,11 +216,13 @@ export function FuturisticDonutSvg({
         </View>
       </View>
 
-      <Pressable onPress={onPressLabel} disabled={!onPressLabel} style={styles.labelWrap}>
-        <Text style={[styles.label, !!onPressLabel && styles.labelLink]} allowFontScaling={false}>
-          {label}
-        </Text>
-      </Pressable>
+      {showLabel && (
+        <Pressable onPress={onPressLabel} disabled={!onPressLabel} style={styles.labelWrap}>
+          <Text style={[styles.label, !!onPressLabel && styles.labelLink]} allowFontScaling={false}>
+            {label}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }

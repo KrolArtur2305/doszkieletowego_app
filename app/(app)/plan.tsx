@@ -51,39 +51,20 @@ type PlanLimits = {
   can_tasks: boolean | null;
 };
 
-function uiLocaleFromLang(lang?: string) {
-  const base = (lang || 'en').split('-')[0];
-  const map: Record<string, string> = { pl: 'pl-PL', en: 'en-US', de: 'de-DE' };
-  return map[base] || 'en-US';
-}
-
 export default function PlanScreen() {
   const router = useRouter();
   const stars = useMemo(() => buildStars(90), []);
 
-  const { t, i18n } = useTranslation('plan');
+  const { t } = useTranslation('plan');
   const { t: ts } = useTranslation('subscription');
-  const locale = useMemo(
-    () => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language),
-    [i18n.language, i18n.resolvedLanguage]
-  );
-
-  const fmtMoney = (amount: number, currency: string) => {
-    try {
-      return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
-    } catch {
-      return `${amount} ${currency}`;
-    }
-  };
-
-  const currency = 'PLN';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<SubscriptionPlanKey | null>(null);
   const [limits, setLimits] = useState<Record<SubscriptionPlanKey, PlanLimits | null>>({
     free: null,
-    standard: null,
+    free_trial: null,
     pro: null,
+    expert: null,
   });
 
   useEffect(() => {
@@ -100,8 +81,9 @@ export default function PlanScreen() {
 
         const map: Record<SubscriptionPlanKey, PlanLimits | null> = {
           free: null,
-          standard: null,
+          free_trial: null,
           pro: null,
+          expert: null,
         };
         (data as PlanLimits[]).forEach((row) => {
           map[row.plan] = row;
@@ -134,7 +116,7 @@ export default function PlanScreen() {
         Alert.alert(
           t('alerts.errorTitle'),
           t('alerts.paidPlanRequiresActivation', {
-            defaultValue: 'Plan płatny wymaga osobnej aktywacji po potwierdzonym zakupie. Na tym etapie konto pozostaje w planie darmowym.',
+            defaultValue: 'Zakup lub trial będzie obsługiwany przez ekran subskrypcji. Na tym etapie konto pozostaje w planie darmowym.',
           }),
           [{ text: 'OK', onPress: () => router.replace('/(app)/(tabs)/dashboard') }]
         );
@@ -176,7 +158,9 @@ export default function PlanScreen() {
 
     const title = ts(planDef.nameKey, { defaultValue: planDef.key.toUpperCase() });
     const tagline = ts(planDef.descKey);
-    const price = fmtMoney(planDef.monthlyPrice ?? 0, currency);
+    const price = planDef.key === FREE_PLAN_KEY
+      ? t('labels.priceFree', { defaultValue: ts('free') })
+      : t('labels.priceTbd');
 
     return (
       <View style={styles.card} key={planDef.key}>

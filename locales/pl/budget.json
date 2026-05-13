@@ -2,6 +2,7 @@
   "common": {
     "cancel": "Anuluj",
     "delete": "Usuń",
+    "seeAll": "Zobacz wszystkie",
     "save": "Zapisz",
     "saving": "Zapisywanie..."
   },
@@ -11,6 +12,7 @@
   "errors": {
     "fetchFailed": "Nie udało się pobrać danych.",
     "addFailed": "Nie udało się dodać wydatku.",
+    "saveFailed": "Nie udało się zapisać wydatku.",
     "deleteFailed": "Nie udało się usunąć wydatku.",
     "readFileFailed": "Nie udało się odczytać pliku"
   },
@@ -23,7 +25,138 @@
   },
   "stats": {
     "remaining": "Pozostało",
-    "planned": "Planowane"
+    "planned": "Planowane",
+    "spent": "Wydane"
+  },
+  "insights": {
+    "title": "AI Budget Insights",
+    "empty": "Dodaj zaplanowane wydatki, aby zobaczyć krótką analizę budżetu.",
+    "biggestUpcomingText": "Największy zaplanowany wydatek: {{name}} za {{amount}}.",
+    "highestPlannedMonthText": "Miesiąc z najwyższymi planowanymi wydatkami: {{month}}, razem {{amount}}."
+  },
+  "sections": {
+    "topUpcoming": "Top 3 nadchodzące wydatki wg Kierownika AI",
+    "toPlan": "Top 3 nadchodzące wydatki",
+    "toPlanSubtitle": "Sugestie Twojego Kierownika AI",
+    "monthly": "Wydatki miesięczne",
+    "materialService": "Materiał / Usługa",
+    "topExpenses": "Największe wydatki"
+  },
+  "empty": {
+    "noPlanned": "Brak zaplanowanych wydatków.",
+    "noExpenses": "Brak wydatków.",
+    "noSuggestions": "Brak sugestii na tym etapie."
+  },
+  "tabs": {
+    "myExpenses": "Moje wydatki",
+    "suggestedExpenses": "Sugerowane wydatki"
+  },
+  "suggestions": {
+    "mayBeNeeded": "Może być potrzebne w tym etapie",
+    "addPlanned": "Dodaj jako zaplanowany",
+    "mayBeNeededAtThisStage": "Może być potrzebne na tym etapie",
+    "add": "Dodaj",
+    "expenses": {}
+  },
+  "budgetSuggestions": {
+    "aggregateBase": "Podbudowa z kruszywa",
+    "airtightnessTapes": "Taśmy szczelności powietrznej",
+    "airtightPassages": "Szczelne przejścia instalacyjne",
+    "anchorsFasteners": "Kotwy i łączniki",
+    "assemblyLogistics": "Logistyka montażu",
+    "backfillCompaction": "Zasypki i zagęszczenie",
+    "battensCounterbattens": "Łaty i kontrłaty",
+    "cavityBarriers": "Bariery przeciwpożarowe w elewacji",
+    "ceilingConcrete": "Beton na strop",
+    "ceilingSteel": "Stal zbrojeniowa stropu",
+    "ceilingSystem": "System stropowy",
+    "concreteStairs": "Schody żelbetowe",
+    "constructionTimber": "Drewno konstrukcyjne",
+    "craneHds": "Dźwig / HDS",
+    "cranePlan": "Plan dźwigu i montażu",
+    "drywallFinishing": "Wykończenie suchej zabudowy",
+    "drywallInstallation": "Montaż suchej zabudowy",
+    "earthworks": "Roboty ziemne",
+    "electricalInstallation": "Instalacja elektryczna",
+    "electricalMeasurements": "Pomiary elektryczne",
+    "externalCladding": "Okładzina zewnętrzna",
+    "externalDoors": "Drzwi zewnętrzne",
+    "facadeAnchors": "Kotwy elewacyjne",
+    "facadeInsulation": "Ocieplenie elewacji",
+    "facadeService": "Wykonanie elewacji",
+    "factoryPrefabrication": "Prefabrykacja w zakładzie",
+    "finalDocuments": "Dokumenty końcowe",
+    "flashings": "Obróbki blacharskie",
+    "floorCassettes": "Kasety stropowe",
+    "floorScreeds": "Wylewki",
+    "formwork": "Szalunki",
+    "foundationAnchors": "Kotwy fundamentowe",
+    "foundationBlocks": "Bloczki fundamentowe",
+    "foundationConcrete": "Beton fundamentowy",
+    "foundationInsulation": "Ocieplenie fundamentów",
+    "foundationWaterproofing": "Hydroizolacja fundamentów",
+    "foundationWork": "Prace fundamentowe",
+    "frameAssemblyService": "Montaż konstrukcji szkieletowej",
+    "gableWalls": "Ściany szczytowe",
+    "garageDoor": "Brama garażowa",
+    "geodesy": "Geodeta",
+    "geodeticInventory": "Inwentaryzacja geodezyjna",
+    "groundFloorConcrete": "Beton podłogi na gruncie",
+    "groundFloorWallPanels": "Panele ścian parteru",
+    "gutters": "Rynny",
+    "heatingInstallation": "Instalacja ogrzewania",
+    "humusRemoval": "Zdjęcie humusu",
+    "installationCommissioning": "Rozruchy instalacji",
+    "interiorPaintingPreparation": "Przygotowanie do malowania",
+    "internalPlasters": "Tynki wewnętrzne",
+    "joineryInstallation": "Montaż stolarki",
+    "jointCompounds": "Masy i taśmy szpachlowe",
+    "kneeWalls": "Ścianki kolankowe",
+    "lintels": "Nadproża",
+    "masonryMortarGlue": "Zaprawa / klej murarski",
+    "masonryService": "Usługa murowania",
+    "membraneTapes": "Taśmy do membran",
+    "panelConnectors": "Łączniki paneli",
+    "panelTransport": "Transport paneli",
+    "panelUnloading": "Rozładunek paneli",
+    "partitionWalls": "Ścianki działowe",
+    "plasterboards": "Płyty g-k",
+    "plumbingInstallation": "Instalacja wod.-kan.",
+    "prefabricatedPanels": "Panele prefabrykowane",
+    "protectiveFoils": "Folie ochronne",
+    "reinforcementSteel": "Stal zbrojeniowa",
+    "roofCassettesOrTruss": "Kasety dachowe / wiązary",
+    "roofCovering": "Pokrycie dachu",
+    "roofingService": "Usługa dekarska",
+    "roofMembrane": "Membrana dachowa",
+    "roofStructureInstallation": "Montaż konstrukcji dachu",
+    "roofTruss": "Więźba / wiązary",
+    "sillPlate": "Podwalina",
+    "sillPlateInstallation": "Montaż podwaliny",
+    "sillWaterproofing": "Hydroizolacja podwaliny",
+    "siteSetup": "Organizacja placu budowy",
+    "siteStorageProtection": "Zabezpieczenie składowania",
+    "structuralAssemblyService": "Montaż konstrukcji",
+    "structuralConnectors": "Łączniki konstrukcyjne",
+    "temporaryBracing": "Stężenia tymczasowe",
+    "temporaryFencing": "Ogrodzenie tymczasowe",
+    "temporaryScaffolding": "Rusztowania tymczasowe",
+    "temporaryUtilities": "Media tymczasowe",
+    "thermalInsulation": "Izolacja termiczna",
+    "underfloorInstallations": "Instalacje podposadzkowe",
+    "upperFloorWallBlocks": "Materiały ścian piętra",
+    "upperWallPanels": "Panele ścian wyższej kondygnacji",
+    "vaporControlLayer": "Paroizolacja / warstwa szczelna",
+    "ventilatedFacadeSubstructure": "Podkonstrukcja elewacji wentylowanej",
+    "ventilationCommissioning": "Rozruch wentylacji",
+    "ventilationHvac": "Wentylacja / HVAC",
+    "wallBlocksGroundFloor": "Materiały ścian parteru",
+    "windows": "Okna",
+    "windowSillsExternal": "Parapety zewnętrzne",
+    "windproofMembrane": "Membrana wiatroizolacyjna"
+  },
+  "all": {
+    "back": "Wróć"
   },
   "actions": {
     "addExpense": "+ DODAJ WYDATEK"
@@ -56,12 +189,21 @@
     "other": "Inne"
   },
   "filter": {
+    "button": "Filtruj",
+    "reset": "Wyczyść",
     "all": "Wszystkie",
     "spent": "Poniesione",
     "planned": "Zaplanowane"
   },
+  "sort": {
+    "label": "Sortuj",
+    "date": "Sortuj",
+    "amount": "Kwota",
+    "stage": "Etap"
+  },
   "list": {
-    "recentTitle": "Ostatnie wydatki",
+    "recentTitle": "Wszystkie wydatki",
+    "openAll": "Przejdź do wszystkich wydatków",
     "sortNewest": "sortowanie: najnowsze",
     "empty": "Brak wydatków. Dodaj pierwszy wydatek powyżej.",
     "showLess": "Pokaż mniej",
@@ -73,23 +215,36 @@
     "receiptLink": "paragon →"
   },
   "status": {
+    "paid": "Poniesione",
     "spent": "poniesiony",
-    "planned": "zaplanowany"
+    "planned": "Zaplanowane"
+  },
+  "type": {
+    "material": "Materiał",
+    "service": "Usługa",
+    "mixed": "Materiał + Usługa"
   },
   "modal": {
     "title": "Dodaj wydatek",
+    "editTitle": "Edytuj wydatek",
     "nameLabel": "Nazwa *",
     "namePlaceholder": "np. Okna",
     "categoryLabel": "Kategoria",
     "amountLabel": "Kwota *",
     "amountPlaceholder": "np. 12500",
-    "dateOptional": "Data — opcjonalnie",
+    "statusLabel": "Status wydatku",
+    "typeLabel": "Typ wydatku",
+    "dateOptional": "Data - opcjonalnie",
+    "plannedDateLabel": "Planowana data",
+    "stageLabel": "Etap budowy",
+    "noStage": "Bez etapu",
+    "stageFallback": "Etap",
     "setDate": "Ustaw datę",
     "descriptionOptional": "Opis (opcjonalnie)",
     "descriptionPlaceholder": "np. zaliczka",
     "storeOptional": "Sklep (opcjonalnie)",
     "storePlaceholder": "np. Castorama",
-    "fileOptional": "Dodaj paragon (PDF/JPG/PNG) — opcjonalnie",
+    "fileOptional": "Dodaj paragon (PDF/JPG/PNG) - opcjonalnie",
     "fileSelected": "Wybrano: {{name}}"
   }
 }

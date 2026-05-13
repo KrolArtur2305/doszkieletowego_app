@@ -19,8 +19,8 @@ export const publicConfig = {
     iosApiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? null,
     androidApiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? null,
     entitlements: {
-      standard: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_STANDARD ?? null,
       pro: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_PRO ?? null,
+      expert: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_EXPERT ?? null,
     },
   },
 } as const;

@@ -1,6 +1,13 @@
-export type SubscriptionPlanKey = 'free' | 'standard' | 'pro'
+export type SubscriptionPlanKey = 'free' | 'free_trial' | 'pro' | 'expert'
 
-export type SubscriptionFeatureKey = 'photos' | 'docs' | 'expenses' | 'tasks' | 'model3d' | 'ai'
+export type SubscriptionFeatureKey =
+  | 'photos'
+  | 'docs'
+  | 'expenses'
+  | 'tasks'
+  | 'model3d'
+  | 'ai'
+  | 'aiMessagesPerDay'
 
 export type SubscriptionPlanDefinition = {
   key: SubscriptionPlanKey
@@ -20,11 +27,15 @@ export type SubscriptionPlanDefinition = {
     tasks: number | 'unlimited'
     model3d: boolean
     ai: boolean
+    aiMessagesPerDay: number | 'unlimited'
   }
 }
 
 export const FREE_PLAN_KEY: SubscriptionPlanKey = 'free'
-export const SUBSCRIPTION_PLAN_ORDER: SubscriptionPlanKey[] = ['free', 'standard', 'pro']
+export const FREE_TRIAL_PLAN_KEY: SubscriptionPlanKey = 'free_trial'
+export const PRO_PLAN_KEY: SubscriptionPlanKey = 'pro'
+export const EXPERT_PLAN_KEY: SubscriptionPlanKey = 'expert'
+export const SUBSCRIPTION_PLAN_ORDER: SubscriptionPlanKey[] = ['free', 'free_trial', 'pro', 'expert']
 
 export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDefinition> = {
   free: {
@@ -43,32 +54,53 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
       tasks: 15,
       model3d: false,
       ai: false,
+      aiMessagesPerDay: 0,
     },
   },
-  standard: {
-    key: 'standard',
-    nameKey: 'plans.standard.name',
-    descKey: 'plans.standard.desc',
-    monthlyPrice: 19.99,
-    yearlyPrice: 399,
+  free_trial: {
+    key: 'free_trial',
+    nameKey: 'plans.free_trial.name',
+    descKey: 'plans.free_trial.desc',
+    monthlyPrice: null,
+    yearlyPrice: null,
     color: 'rgba(25,112,92,0.14)',
     glowColor: 'rgba(25,112,92,0.35)',
     popular: true,
     features: {
-      photos: 50,
-      docs: 15,
+      photos: 'unlimited',
+      docs: 'unlimited',
       expenses: 'unlimited',
-      tasks: 50,
+      tasks: 'unlimited',
       model3d: true,
-      ai: false,
+      ai: true,
+      aiMessagesPerDay: 'unlimited',
     },
   },
   pro: {
     key: 'pro',
     nameKey: 'plans.pro.name',
     descKey: 'plans.pro.desc',
-    monthlyPrice: 34.99,
-    yearlyPrice: 699,
+    monthlyPrice: null,
+    yearlyPrice: null,
+    color: 'rgba(37,240,200,0.08)',
+    glowColor: 'rgba(37,240,200,0.40)',
+    popular: false,
+    features: {
+      photos: 100,
+      docs: 25,
+      expenses: 'unlimited',
+      tasks: 'unlimited',
+      model3d: true,
+      ai: true,
+      aiMessagesPerDay: 20,
+    },
+  },
+  expert: {
+    key: 'expert',
+    nameKey: 'plans.expert.name',
+    descKey: 'plans.expert.desc',
+    monthlyPrice: null,
+    yearlyPrice: null,
     color: 'rgba(37,240,200,0.08)',
     glowColor: 'rgba(37,240,200,0.40)',
     popular: false,
@@ -79,6 +111,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
       tasks: 'unlimited',
       model3d: true,
       ai: true,
+      aiMessagesPerDay: 'unlimited',
     },
   },
 }
@@ -90,5 +123,9 @@ export function getPlansWithFeature(feature: SubscriptionFeatureKey): Subscripti
 }
 
 export function isPaidPlanKey(plan: SubscriptionPlanKey): boolean {
-  return plan !== FREE_PLAN_KEY
+  return plan === PRO_PLAN_KEY || plan === EXPERT_PLAN_KEY
+}
+
+export function hasExpertAccess(plan: SubscriptionPlanKey): boolean {
+  return plan === FREE_TRIAL_PLAN_KEY || plan === EXPERT_PLAN_KEY
 }

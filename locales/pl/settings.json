@@ -126,8 +126,9 @@
     "featureWithValue": "{{value}} {{label}}",
     "plans": {
       "free": { "name": "Free" },
-      "standard": { "name": "Standard" },
-      "pro": { "name": "Pro" }
+      "free_trial": { "name": "Free Trial" },
+      "pro": { "name": "Pro" },
+      "expert": { "name": "Expert" }
     },
     "features": {
       "photos": "zdjęć",

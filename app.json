@@ -17,7 +17,11 @@
       "buildNumber": "1",
       "bundleIdentifier": "pl.buildiq.mobile",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -50,8 +54,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "87a23fbe-15a3-4284-95fd-0fe9e0a344db"
+        "projectId": "d5618053-5986-4a05-a501-ac03285394b2"
       }
-    }
+    },
+    "owner": "krolartur23"
   }
 }

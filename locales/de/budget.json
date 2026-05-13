@@ -2,6 +2,7 @@
   "common": {
     "cancel": "Abbrechen",
     "delete": "Löschen",
+    "seeAll": "Alle anzeigen",
     "save": "Speichern",
     "saving": "Wird gespeichert..."
   },
@@ -11,6 +12,7 @@
   "errors": {
     "fetchFailed": "Daten konnten nicht geladen werden.",
     "addFailed": "Ausgabe konnte nicht hinzugefügt werden.",
+    "saveFailed": "Ausgabe konnte nicht gespeichert werden.",
     "deleteFailed": "Ausgabe konnte nicht gelöscht werden.",
     "readFileFailed": "Datei konnte nicht gelesen werden"
   },
@@ -23,7 +25,138 @@
   },
   "stats": {
     "remaining": "Verbleibend",
-    "planned": "Geplant"
+    "planned": "Geplant",
+    "spent": "Ausgegeben"
+  },
+  "insights": {
+    "title": "AI Budget Insights",
+    "empty": "Füge geplante Ausgaben hinzu, um hier eine kurze Budgetanalyse zu sehen.",
+    "biggestUpcomingText": "Größte geplante Ausgabe: {{name}} für {{amount}}.",
+    "highestPlannedMonthText": "Monat mit den höchsten geplanten Ausgaben: {{month}} mit {{amount}}."
+  },
+  "sections": {
+    "topUpcoming": "Top 3 kommende Ausgaben laut KI-Bauleiter",
+    "toPlan": "Top 3 kommende Ausgaben",
+    "toPlanSubtitle": "Vorschläge deines KI-Bauleiters",
+    "monthly": "Monatliche Ausgaben",
+    "materialService": "Material / Dienstleistung",
+    "topExpenses": "Größte Ausgaben"
+  },
+  "empty": {
+    "noPlanned": "Noch keine geplanten Ausgaben.",
+    "noExpenses": "Noch keine Ausgaben.",
+    "noSuggestions": "Keine Vorschläge für diese Phase."
+  },
+  "tabs": {
+    "myExpenses": "Meine Ausgaben",
+    "suggestedExpenses": "Vorgeschlagene Ausgaben"
+  },
+  "suggestions": {
+    "mayBeNeeded": "Kann in dieser Phase benötigt werden",
+    "addPlanned": "Als geplant hinzufügen",
+    "mayBeNeededAtThisStage": "Kann in dieser Phase nötig sein",
+    "add": "Hinzufügen",
+    "expenses": {}
+  },
+  "budgetSuggestions": {
+    "aggregateBase": "Tragschicht aus Schotter",
+    "airtightnessTapes": "Luftdichtheitsbänder",
+    "airtightPassages": "Luftdichte Installationsdurchführungen",
+    "anchorsFasteners": "Anker und Befestiger",
+    "assemblyLogistics": "Montagelogistik",
+    "backfillCompaction": "Verfüllung und Verdichtung",
+    "battensCounterbattens": "Lattung und Konterlattung",
+    "cavityBarriers": "Brandriegel in der Fassade",
+    "ceilingConcrete": "Deckenbeton",
+    "ceilingSteel": "Bewehrungsstahl für die Decke",
+    "ceilingSystem": "Deckensystem",
+    "concreteStairs": "Stahlbetontreppe",
+    "constructionTimber": "Konstruktionsholz",
+    "craneHds": "Kran / HDS",
+    "cranePlan": "Kran- und Montageplan",
+    "drywallFinishing": "Trockenbau-Fertigstellung",
+    "drywallInstallation": "Trockenbaumontage",
+    "earthworks": "Erdarbeiten",
+    "electricalInstallation": "Elektroinstallation",
+    "electricalMeasurements": "Elektrische Messungen",
+    "externalCladding": "Außenverkleidung",
+    "externalDoors": "Außentüren",
+    "facadeAnchors": "Fassadenanker",
+    "facadeInsulation": "Fassadendämmung",
+    "facadeService": "Fassadenarbeiten",
+    "factoryPrefabrication": "Werksprefabrikation",
+    "finalDocuments": "Schlussdokumente",
+    "flashings": "Blechabdeckungen",
+    "floorCassettes": "Deckenkassetten",
+    "floorScreeds": "Estrich",
+    "formwork": "Schalung",
+    "foundationAnchors": "Fundamentanker",
+    "foundationBlocks": "Fundamentblöcke",
+    "foundationConcrete": "Fundamentbeton",
+    "foundationInsulation": "Fundamentdämmung",
+    "foundationWaterproofing": "Fundamentabdichtung",
+    "foundationWork": "Fundamentarbeiten",
+    "frameAssemblyService": "Montage der Holzrahmenkonstruktion",
+    "gableWalls": "Giebelwände",
+    "garageDoor": "Garagentor",
+    "geodesy": "Vermessung",
+    "geodeticInventory": "Bestandsvermessung",
+    "groundFloorConcrete": "Beton der Bodenplatte auf Erdreich",
+    "groundFloorWallPanels": "Wandpaneele des Erdgeschosses",
+    "gutters": "Dachrinnen",
+    "heatingInstallation": "Heizungsinstallation",
+    "humusRemoval": "Humusabtrag",
+    "installationCommissioning": "Inbetriebnahme der Anlagen",
+    "interiorPaintingPreparation": "Vorbereitung für den Innenanstrich",
+    "internalPlasters": "Innenputz",
+    "joineryInstallation": "Montage von Fenstern und Türen",
+    "jointCompounds": "Spachtelmassen und Bänder",
+    "kneeWalls": "Kniestockwände",
+    "lintels": "Stürze",
+    "masonryMortarGlue": "Mörtel / Kleber",
+    "masonryService": "Maurerarbeiten",
+    "membraneTapes": "Membranbänder",
+    "panelConnectors": "Paneelverbinder",
+    "panelTransport": "Paneeltransport",
+    "panelUnloading": "Entladung der Paneele",
+    "partitionWalls": "Trennwände",
+    "plasterboards": "Gipskartonplatten",
+    "plumbingInstallation": "Sanitärinstallation",
+    "prefabricatedPanels": "Vorgefertigte Paneele",
+    "protectiveFoils": "Schutzfolien",
+    "reinforcementSteel": "Bewehrungsstahl",
+    "roofCassettesOrTruss": "Dachkassetten / Dachbinder",
+    "roofCovering": "Dacheindeckung",
+    "roofingService": "Dachdeckerarbeiten",
+    "roofMembrane": "Dachmembran",
+    "roofStructureInstallation": "Montage der Dachkonstruktion",
+    "roofTruss": "Dachstuhl / Dachbinder",
+    "sillPlate": "Schwelle",
+    "sillPlateInstallation": "Schwellenmontage",
+    "sillWaterproofing": "Schwellenabdichtung",
+    "siteSetup": "Baustelleneinrichtung",
+    "siteStorageProtection": "Lagerschutz auf der Baustelle",
+    "structuralAssemblyService": "Montage der Konstruktion",
+    "structuralConnectors": "Konstruktionsverbinder",
+    "temporaryBracing": "Temporäre Aussteifungen",
+    "temporaryFencing": "Temporärer Bauzaun",
+    "temporaryScaffolding": "Temporäres Gerüst",
+    "temporaryUtilities": "Baustrom und Bauwasser",
+    "thermalInsulation": "Wärmedämmung",
+    "underfloorInstallations": "Installationen im Fußbodenaufbau",
+    "upperFloorWallBlocks": "Wandmaterialien des Obergeschosses",
+    "upperWallPanels": "Wandpaneele der oberen Etage",
+    "vaporControlLayer": "Dampfbremse / luftdichte Schicht",
+    "ventilatedFacadeSubstructure": "Unterkonstruktion der hinterlüfteten Fassade",
+    "ventilationCommissioning": "Inbetriebnahme der Lüftung",
+    "ventilationHvac": "Lüftung / HVAC",
+    "wallBlocksGroundFloor": "Wandmaterialien des Erdgeschosses",
+    "windows": "Fenster",
+    "windowSillsExternal": "Außenfensterbänke",
+    "windproofMembrane": "Winddichtungsbahn"
+  },
+  "all": {
+    "back": "Zurück"
   },
   "actions": {
     "addExpense": "+ AUSGABE HINZUFÜGEN"
@@ -56,12 +189,21 @@
     "other": "Sonst."
   },
   "filter": {
+    "button": "Filtern",
+    "reset": "Zurücksetzen",
     "all": "Alle",
     "spent": "Ausgegeben",
     "planned": "Geplant"
   },
+  "sort": {
+    "label": "Sortieren",
+    "date": "Datum",
+    "amount": "Betrag",
+    "stage": "Phase"
+  },
   "list": {
-    "recentTitle": "Letzte Ausgaben",
+    "recentTitle": "Alle Ausgaben",
+    "openAll": "Alle Ausgaben öffnen",
     "sortNewest": "Sortierung: neueste",
     "empty": "Keine Ausgaben. Füge oben deine erste Ausgabe hinzu.",
     "showLess": "Weniger anzeigen",
@@ -73,23 +215,36 @@
     "receiptLink": "Beleg →"
   },
   "status": {
+    "paid": "Bezahlt",
     "spent": "ausgegeben",
-    "planned": "geplant"
+    "planned": "Geplant"
+  },
+  "type": {
+    "material": "Material",
+    "service": "Dienstleistung",
+    "mixed": "Material + Dienstleistung"
   },
   "modal": {
     "title": "Ausgabe hinzufügen",
+    "editTitle": "Ausgabe bearbeiten",
     "nameLabel": "Name *",
     "namePlaceholder": "z. B. Fenster",
     "categoryLabel": "Kategorie",
     "amountLabel": "Betrag *",
     "amountPlaceholder": "z. B. 12500",
-    "dateOptional": "Datum — optional",
+    "statusLabel": "Ausgabenstatus",
+    "typeLabel": "Ausgabentyp",
+    "dateOptional": "Datum - optional",
+    "plannedDateLabel": "Geplantes Datum",
+    "stageLabel": "Bauphase",
+    "noStage": "Keine Phase",
+    "stageFallback": "Phase",
     "setDate": "Datum festlegen",
     "descriptionOptional": "Beschreibung (optional)",
     "descriptionPlaceholder": "z. B. Anzahlung",
     "storeOptional": "Geschäft (optional)",
     "storePlaceholder": "z. B. Castorama",
-    "fileOptional": "Beleg hinzufügen (PDF/JPG/PNG) — optional",
+    "fileOptional": "Beleg hinzufügen (PDF/JPG/PNG) - optional",
     "fileSelected": "Ausgewählt: {{name}}"
   }
 }

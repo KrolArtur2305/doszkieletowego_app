@@ -4,7 +4,7 @@ export async function refreshCurrentStageCode(userId: string): Promise<string | 
   const { data, error } = await supabase
     .from('profiles')
     .select('current_stage_code')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single();
 
   if (error) {

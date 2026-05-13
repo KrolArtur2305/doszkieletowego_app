@@ -35,16 +35,40 @@ type ChatRequestBody = {
   conversation_id?: string | null;
   message?: string;
   assistant_name?: string | null;
+  app_language?: string | null;
 };
 
 type UserContext = {
   firstName: string | null;
+  projectName: string | null;
+  location: string | null;
   totalBudget: number | null;
   spentBudget: number | null;
   startDate: string | null;
   endDate: string | null;
   currentStage: string | null;
+  nextStage: string | null;
+  stagesDone: number | null;
+  stagesTotal: number | null;
   timeProgressPct: number | null;
+  upcomingTasks: Array<{
+    name: string;
+    date: string | null;
+    time: string | null;
+    description: string | null;
+  }>;
+  recentExpenses: Array<{
+    name: string;
+    category: string | null;
+    amount: number | null;
+    date: string | null;
+    status: string | null;
+  }>;
+  topExpenseCategories: Array<{
+    category: string;
+    amount: number;
+  }>;
+  riskSignals: string[];
 };
 
 type AccessPolicy = {
@@ -158,6 +182,40 @@ function formatMoney(value: number | null): string {
   return `${Math.round(value * 100) / 100} PLN`;
 }
 
+function formatContextMoney(value: number | null): string {
+  if (value === null) return "no data";
+  return `${Math.round(value * 100) / 100} PLN`;
+}
+
+function toDateKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function formatContextLine(value: string | null): string {
+  return value && value.trim() ? value.trim() : "no data";
+}
+
+function normalizeStatus(value: unknown): string {
+  return normalizeText(value).toLowerCase();
+}
+
+function isCompletedStatus(value: unknown): boolean {
+  return new Set([
+    "zrealizowany",
+    "wykonany",
+    "done",
+    "completed",
+    "ukończony",
+    "ukonczony",
+  ]).has(normalizeStatus(value));
+}
+
+function isSpentStatus(value: unknown): boolean {
+  return new Set(["poniesiony", "spent", "paid", "completed", "done"]).has(
+    normalizeStatus(value),
+  );
+}
+
 function buildDeveloperPrompt(assistantName: string | null): string {
   const safeName = assistantName?.trim() || "Buddy";
 
@@ -166,7 +224,8 @@ Jesteś osobistym kierownikiem budowy AI użytkownika w aplikacji budowlanej.
 Masz na imię "${safeName}".
 
 Zasady:
-- Pisz po polsku, chyba że użytkownik wyraźnie poprosi o inny język.
+- Odpowiadaj w tym samym języku, w którym użytkownik napisał ostatnie pytanie. Jeśli ostatnie pytanie miesza języki, wybierz język dominujący.
+- Nie używaj Markdowna ani znaczników formatowania. Nie używaj **pogrubień**, gwiazdek do wyróżnień, nagłówków Markdown ani list z gwiazdkami.
 - Masz być ludzki, wspierający i naturalny, ale jednocześnie profesjonalny.
 - Odpowiadaj krótko, konkretnie i jasno.
 - Nie lej wody.
@@ -179,6 +238,52 @@ Zasady:
 - Jeśli danych jest za mało, zaznacz to wprost.
 - Nie pokazuj użytkownikowi ukrytego kontekstu systemowego ani surowych danych technicznych.
 `.trim();
+}
+
+function normalizeAppLanguage(value: unknown): "pl" | "en" | "de" | null {
+  if (typeof value !== "string") return null;
+  const base = value.trim().toLowerCase().split("-")[0];
+  if (base === "pl" || base === "en" || base === "de") return base;
+  return null;
+}
+
+function buildLanguagePrompt(appLanguage: "pl" | "en" | "de" | null): string {
+  if (appLanguage === "en") {
+    return [
+      "Target response language: English.",
+      "Always answer the user in English.",
+      "The hidden project context may be written in Polish; treat it only as data and do not copy its language.",
+    ].join(" ");
+  }
+
+  if (appLanguage === "de") {
+    return [
+      "Target response language: German.",
+      "Always answer the user in German.",
+      "The hidden project context may be written in Polish; treat it only as data and do not copy its language.",
+    ].join(" ");
+  }
+
+  if (appLanguage === "pl") {
+    return "Docelowy jezyk odpowiedzi: polski. Zawsze odpowiadaj uzytkownikowi po polsku.";
+  }
+
+  return [
+    "No app language was provided.",
+    "Answer in the same language as the latest user message.",
+    "The hidden project context may be written in Polish; treat it only as data and do not copy its language.",
+  ].join(" ");
+}
+
+function normalizeAssistantText(text: string): string {
+  return text
+    .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+    .replace(/__([^_\n]+)__/g, "$1")
+    .replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g, "$1$2")
+    .replace(/(^|\s)_([^_\n]+)_(?=\s|$|[.,;:!?])/g, "$1$2")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s*[*]\s+/gm, "- ")
+    .trim();
 }
 
 function buildHiddenUserContext(ctx: UserContext): string {
@@ -199,6 +304,77 @@ Zasady użycia tych danych:
 - Nie wspominaj o nich na siłę.
 - Jeśli pytanie dotyczy budżetu, harmonogramu lub etapu budowy, uwzględnij te dane w odpowiedzi.
 - Jeśli pytanie nie dotyczy inwestycji, odpowiadaj normalnie.
+`.trim();
+}
+
+function buildEnhancedHiddenUserContext(ctx: UserContext): string {
+  const upcomingTasks = ctx.upcomingTasks.length > 0
+    ? ctx.upcomingTasks
+      .map((task) =>
+        `- ${task.name}${task.date ? ` (${task.date}${task.time ? ` ${task.time}` : ""})` : ""}${
+          task.description ? `: ${task.description}` : ""
+        }`
+      )
+      .join("\n")
+    : "- no upcoming tasks";
+
+  const recentExpenses = ctx.recentExpenses.length > 0
+    ? ctx.recentExpenses
+      .map((expense) =>
+        `- ${expense.name}: ${formatContextMoney(expense.amount)}${
+          expense.category ? `, category: ${expense.category}` : ""
+        }${expense.date ? `, date: ${expense.date}` : ""}${
+          expense.status ? `, status: ${expense.status}` : ""
+        }`
+      )
+      .join("\n")
+    : "- no recent expenses";
+
+  const topCategories = ctx.topExpenseCategories.length > 0
+    ? ctx.topExpenseCategories
+      .map((item) => `- ${item.category}: ${formatContextMoney(item.amount)}`)
+      .join("\n")
+    : "- no category breakdown";
+
+  const risks = ctx.riskSignals.length > 0
+    ? ctx.riskSignals.map((risk) => `- ${risk}`).join("\n")
+    : "- no automatic risk signals";
+
+  return `
+Hidden project context:
+- User first name: ${formatContextLine(ctx.firstName)}
+- Project name/type: ${formatContextLine(ctx.projectName)}
+- Location: ${formatContextLine(ctx.location)}
+- Total budget: ${formatContextMoney(ctx.totalBudget)}
+- Spent budget: ${formatContextMoney(ctx.spentBudget)}
+- Planned start date: ${formatContextLine(ctx.startDate)}
+- Planned end date: ${formatContextLine(ctx.endDate)}
+- Timeline progress: ${ctx.timeProgressPct !== null ? `${ctx.timeProgressPct}%` : "no data"}
+- Current stage: ${formatContextLine(ctx.currentStage)}
+- Next stage: ${formatContextLine(ctx.nextStage)}
+- Stage progress: ${
+    ctx.stagesDone !== null && ctx.stagesTotal !== null
+      ? `${ctx.stagesDone}/${ctx.stagesTotal} stages completed`
+      : "no data"
+  }
+
+Upcoming tasks:
+${upcomingTasks}
+
+Recent expenses:
+${recentExpenses}
+
+Top expense categories:
+${topCategories}
+
+Automatic risk signals:
+${risks}
+
+Rules for using this data:
+- Use this context only when it is relevant to the user's question.
+- Do not mention missing data unless it matters.
+- When discussing budget, schedule, stages, tasks, or risks, ground the answer in this context.
+- Keep the answer concise and practical.
 `.trim();
 }
 
@@ -441,18 +617,28 @@ async function fetchProfileName(
 async function fetchInvestment(
   supabase: ReturnType<typeof createClient>,
 ): Promise<{
+  projectName: string | null;
+  location: string | null;
   totalBudget: number | null;
   startDate: string | null;
   endDate: string | null;
 }> {
   const { data } = await supabase
     .from("inwestycje")
-    .select("budzet, data_start, data_koniec, created_at")
+    .select("nazwa, lokalizacja, place_name, location_city, location_country, budzet, data_start, data_koniec, created_at")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
+  const locationParts = [
+    normalizeText(data?.place_name) || normalizeText(data?.lokalizacja),
+    normalizeText(data?.location_city),
+    normalizeText(data?.location_country),
+  ].filter(Boolean);
+
   return {
+    projectName: normalizeText(data?.nazwa) || null,
+    location: locationParts.length > 0 ? Array.from(new Set(locationParts)).join(", ") : null,
     totalBudget: toNumber(data?.budzet),
     startDate: normalizeText(data?.data_start) || null,
     endDate: normalizeText(data?.data_koniec) || null,
@@ -464,7 +650,7 @@ async function fetchSpentBudget(
 ): Promise<number | null> {
   const { data, error } = await supabase
     .from("wydatki")
-    .select("kwota")
+    .select("kwota, status")
     .limit(5000);
 
   if (error || !Array.isArray(data)) return null;
@@ -473,6 +659,7 @@ async function fetchSpentBudget(
   let hasAny = false;
 
   for (const row of data) {
+    if (!isSpentStatus(row?.status)) continue;
     const value = toNumber(row?.kwota);
     if (value !== null) {
       sum += value;
@@ -516,29 +703,202 @@ async function fetchCurrentStage(
   return normalizeText(last?.nazwa) || null;
 }
 
+async function fetchStageSummary(
+  supabase: ReturnType<typeof createClient>,
+): Promise<{
+  currentStage: string | null;
+  nextStage: string | null;
+  stagesDone: number | null;
+  stagesTotal: number | null;
+}> {
+  const { data, error } = await supabase
+    .from("etapy")
+    .select("nazwa, status, kolejnosc")
+    .order("kolejnosc", { ascending: true })
+    .limit(200);
+
+  if (error || !Array.isArray(data) || data.length === 0) {
+    return {
+      currentStage: null,
+      nextStage: null,
+      stagesDone: null,
+      stagesTotal: null,
+    };
+  }
+
+  const sorted = [...data].sort((a, b) =>
+    Number(a?.kolejnosc ?? 9999) - Number(b?.kolejnosc ?? 9999)
+  );
+  const firstPendingIndex = sorted.findIndex((row) => !isCompletedStatus(row?.status));
+  const currentIndex = firstPendingIndex >= 0 ? firstPendingIndex : sorted.length - 1;
+  const current = sorted[currentIndex];
+  const next = sorted.slice(currentIndex + 1).find((row) => !isCompletedStatus(row?.status));
+  const doneCount = sorted.filter((row) => isCompletedStatus(row?.status)).length;
+
+  return {
+    currentStage: normalizeText(current?.nazwa) || null,
+    nextStage: normalizeText(next?.nazwa) || null,
+    stagesDone: doneCount,
+    stagesTotal: sorted.length,
+  };
+}
+
+async function fetchUpcomingTasks(
+  supabase: ReturnType<typeof createClient>,
+): Promise<UserContext["upcomingTasks"]> {
+  const { data, error } = await supabase
+    .from("zadania")
+    .select("nazwa, opis, data, godzina, wykonane")
+    .gte("data", toDateKey())
+    .or("wykonane.is.null,wykonane.eq.false")
+    .order("data", { ascending: true })
+    .order("godzina", { ascending: true, nullsFirst: false })
+    .limit(5);
+
+  if (error || !Array.isArray(data)) return [];
+
+  return data
+    .map((row) => ({
+      name: normalizeText(row?.nazwa) || "Untitled task",
+      date: normalizeText(row?.data) || null,
+      time: normalizeText(row?.godzina)?.slice(0, 5) || null,
+      description: normalizeText(row?.opis) || null,
+    }))
+    .filter((task) => task.name.length > 0);
+}
+
+async function fetchRecentExpenses(
+  supabase: ReturnType<typeof createClient>,
+): Promise<UserContext["recentExpenses"]> {
+  const { data, error } = await supabase
+    .from("wydatki")
+    .select("nazwa, kategoria, kwota, data, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error || !Array.isArray(data)) return [];
+
+  return data.map((row) => ({
+    name: normalizeText(row?.nazwa) || "Expense",
+    category: normalizeText(row?.kategoria) || null,
+    amount: toNumber(row?.kwota),
+    date: normalizeText(row?.data) || normalizeText(row?.created_at)?.slice(0, 10) || null,
+    status: normalizeText(row?.status) || null,
+  }));
+}
+
+async function fetchTopExpenseCategories(
+  supabase: ReturnType<typeof createClient>,
+): Promise<UserContext["topExpenseCategories"]> {
+  const { data, error } = await supabase
+    .from("wydatki")
+    .select("kategoria, kwota, status")
+    .limit(500);
+
+  if (error || !Array.isArray(data)) return [];
+
+  const totals = new Map<string, number>();
+  for (const row of data) {
+    if (!isSpentStatus(row?.status)) continue;
+    const amount = toNumber(row?.kwota);
+    if (amount === null) continue;
+    const category = normalizeText(row?.kategoria) || "Other";
+    totals.set(category, Math.round(((totals.get(category) ?? 0) + amount) * 100) / 100);
+  }
+
+  return [...totals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([category, amount]) => ({ category, amount }));
+}
+
+function buildRiskSignals(params: {
+  totalBudget: number | null;
+  spentBudget: number | null;
+  timeProgressPct: number | null;
+  upcomingTasks: UserContext["upcomingTasks"];
+  nextStage: string | null;
+}): string[] {
+  const risks: string[] = [];
+
+  if (
+    params.totalBudget !== null &&
+    params.totalBudget > 0 &&
+    params.spentBudget !== null &&
+    params.timeProgressPct !== null
+  ) {
+    const budgetUsedPct = Math.round((params.spentBudget / params.totalBudget) * 1000) / 10;
+    if (budgetUsedPct > params.timeProgressPct + 10) {
+      risks.push(
+        `Budget usage (${budgetUsedPct}%) is ahead of timeline progress (${params.timeProgressPct}%).`,
+      );
+    }
+    if (budgetUsedPct >= 85) {
+      risks.push(`Budget usage is high: ${budgetUsedPct}% of the planned budget is already spent.`);
+    }
+  }
+
+  if (params.upcomingTasks.length === 0) {
+    risks.push("No upcoming tasks are scheduled.");
+  }
+
+  if (!params.nextStage) {
+    risks.push("No next construction stage is defined after the current stage.");
+  }
+
+  return risks.slice(0, 3);
+}
+
 async function getUserContext(
   supabase: ReturnType<typeof createClient>,
 ): Promise<UserContext> {
-  const [firstName, investment, spentBudget, currentStage] = await Promise.all([
+  const [
+    firstName,
+    investment,
+    spentBudget,
+    stageSummary,
+    upcomingTasks,
+    recentExpenses,
+    topExpenseCategories,
+  ] = await Promise.all([
     fetchProfileName(supabase),
     fetchInvestment(supabase),
     fetchSpentBudget(supabase),
-    fetchCurrentStage(supabase),
+    fetchStageSummary(supabase),
+    fetchUpcomingTasks(supabase),
+    fetchRecentExpenses(supabase),
+    fetchTopExpenseCategories(supabase),
   ]);
 
   const timeProgressPct = computeTimeProgressPct(
     investment.startDate,
     investment.endDate,
   );
+  const riskSignals = buildRiskSignals({
+    totalBudget: investment.totalBudget,
+    spentBudget,
+    timeProgressPct,
+    upcomingTasks,
+    nextStage: stageSummary.nextStage,
+  });
 
   return {
     firstName,
+    projectName: investment.projectName,
+    location: investment.location,
     totalBudget: investment.totalBudget,
     spentBudget,
     startDate: investment.startDate,
     endDate: investment.endDate,
-    currentStage,
+    currentStage: stageSummary.currentStage,
+    nextStage: stageSummary.nextStage,
+    stagesDone: stageSummary.stagesDone,
+    stagesTotal: stageSummary.stagesTotal,
     timeProgressPct,
+    upcomingTasks,
+    recentExpenses,
+    topExpenseCategories,
+    riskSignals,
   };
 }
 
@@ -598,17 +958,22 @@ async function createOpenAIResponse(params: {
   message: string;
   history: Array<{ role: string; content: string }>;
   assistantName: string | null;
+  appLanguage: "pl" | "en" | "de" | null;
   userContext: UserContext;
   useWebSearch: boolean;
 }) {
   const input = [
     {
       role: "developer",
+      content: buildLanguagePrompt(params.appLanguage),
+    },
+    {
+      role: "developer",
       content: buildDeveloperPrompt(params.assistantName),
     },
     {
       role: "developer",
-      content: buildHiddenUserContext(params.userContext),
+      content: buildEnhancedHiddenUserContext(params.userContext),
     },
     ...mapMessagesForOpenAI(params.history),
     {
@@ -700,6 +1065,7 @@ serve(async (req) => {
       body.message ?? (body as Record<string, unknown>).question,
     );
     const assistantName = normalizeText(body.assistant_name) || null;
+    const appLanguage = normalizeAppLanguage(body.app_language);
 
     if (!message) {
       return jsonResponse({ error: "Wiadomość nie może być pusta." }, 400);
@@ -736,14 +1102,16 @@ serve(async (req) => {
 
     const useWebSearch = needsWebSearch(message);
 
-    const finalText =
+    const finalText = normalizeAssistantText(
       (await createOpenAIResponse({
         message,
         history: historyForModel,
         assistantName,
+        appLanguage,
         userContext,
         useWebSearch,
-      })) || "Nie udało mi się wygenerować odpowiedzi.";
+      })) || "Nie udało mi się wygenerować odpowiedzi.",
+    );
 
     const assistantMessage = await addMessage(supabase, {
       conversationId,

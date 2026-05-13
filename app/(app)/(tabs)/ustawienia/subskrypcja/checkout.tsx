@@ -1,501 +1,673 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
-  Dimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  Image,
+  Linking,
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import {
-  SUBSCRIPTION_PLAN_ORDER,
-  SUBSCRIPTION_PLANS,
-  type SubscriptionPlanKey,
-} from '../../../../../src/config/subscriptionPlans'
+import type { PurchasesPackage } from 'react-native-purchases'
+import { useSubscription } from '../../../../../hooks/useSubscription'
+import type { SubscriptionPlanKey } from '../../../../../src/config/subscriptionPlans'
 import { isSubscriptionUiReadOnly } from '../../../../../src/services/subscription/launchMode'
+import { restorePurchasesSafe } from '../../../../../src/services/subscription/revenuecat'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
-const { width: W } = Dimensions.get('window')
-
-const PEEK = 30
-const GAP = 12
-const CARD_W = W - PEEK * 2 - GAP * 2
-const SNAP = CARD_W + GAP
+const INK = '#07120F'
+const TERMS_URL = 'https://www.mybuildiq.com/terms'
+const PRIVACY_URL = 'https://www.mybuildiq.com/privacy'
 
 type BillingCycle = 'monthly' | 'yearly'
+type PaywallPlanKey = 'free_trial' | 'pro' | 'expert'
+type RevenueCatPlanKey = Exclude<PaywallPlanKey, 'free_trial'>
+
+const PAYWALL_PLAN_KEYS: PaywallPlanKey[] = ['free_trial', 'pro', 'expert']
+const REVENUECAT_PLAN_KEYS: RevenueCatPlanKey[] = ['pro', 'expert']
+
+function packageMatchesPlan(pkg: PurchasesPackage, planKey: RevenueCatPlanKey): boolean {
+  const productId = pkg.product.identifier.toLowerCase()
+  const packageId = pkg.identifier.toLowerCase()
+  return productId.includes(planKey) || packageId.includes(planKey)
+}
+
+function packageMatchesBilling(pkg: PurchasesPackage, billing: BillingCycle): boolean {
+  const packageType = String(pkg.packageType ?? '').toLowerCase()
+  const productId = pkg.product.identifier.toLowerCase()
+  const packageId = pkg.identifier.toLowerCase()
+
+  if (billing === 'monthly') {
+    return packageType.includes('month') || productId.includes('month') || packageId.includes('month')
+  }
+
+  return (
+    packageType.includes('annual') ||
+    packageType.includes('year') ||
+    productId.includes('annual') ||
+    productId.includes('year') ||
+    packageId.includes('annual') ||
+    packageId.includes('year')
+  )
+}
+
+function findPackage(
+  packages: PurchasesPackage[],
+  planKey: RevenueCatPlanKey,
+  billing: BillingCycle,
+): PurchasesPackage | null {
+  return (
+    packages.find((pkg) => packageMatchesPlan(pkg, planKey) && packageMatchesBilling(pkg, billing)) ??
+    packages.find((pkg) => packageMatchesPlan(pkg, planKey)) ??
+    null
+  )
+}
+
+function getTrialDaysRemaining(trialEndsAt: string | null): number | null {
+  if (!trialEndsAt) return null
+  const end = new Date(trialEndsAt).getTime()
+  if (!Number.isFinite(end)) return null
+  return Math.max(0, Math.ceil((end - Date.now()) / (1000 * 60 * 60 * 24)))
+}
 
 export default function CheckoutScreen() {
   const router = useRouter()
   const { t } = useTranslation('subscription')
-  const { planKey: initialPlanKey } = useLocalSearchParams<{ planKey: SubscriptionPlanKey }>()
+  const { planKey } = useLocalSearchParams<{ planKey?: SubscriptionPlanKey }>()
   const subscriptionUiReadOnly = isSubscriptionUiReadOnly()
+  const { access, offerings, refresh } = useSubscription()
 
-  const initIndex = Math.max(
-    0,
-    SUBSCRIPTION_PLAN_ORDER.indexOf(
-      SUBSCRIPTION_PLAN_ORDER.includes(initialPlanKey as SubscriptionPlanKey)
-        ? (initialPlanKey as SubscriptionPlanKey)
-        : 'standard'
-    )
-  )
-
-  const [activeIndex, setActiveIndex] = useState(initIndex)
-  const [billingPerCard, setBillingPerCard] = useState<Record<SubscriptionPlanKey, BillingCycle>>({
-    free: 'monthly',
-    standard: 'monthly',
-    pro: 'monthly',
-  })
-
-  const scrollX = useRef(new Animated.Value(initIndex * SNAP)).current
-  const scrollRef = useRef<ScrollView>(null)
+  const initialPlan: PaywallPlanKey =
+    planKey === 'free_trial' || planKey === 'expert' ? planKey : 'pro'
+  const [selectedPlan, setSelectedPlan] = useState<PaywallPlanKey>(initialPlan)
+  const [billing, setBilling] = useState<BillingCycle>('monthly')
+  const [restoring, setRestoring] = useState(false)
+  const introAnim = useRef(new Animated.Value(0)).current
 
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8
+  const bottomPad = Platform.OS === 'ios' ? 18 : 12
+  const trialDaysRemaining = getTrialDaysRemaining(access.trialEndsAt)
+
+  const availablePackages = useMemo(
+    () => offerings?.current?.availablePackages ?? [],
+    [offerings]
+  )
 
   useEffect(() => {
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ x: initIndex * SNAP, animated: false })
-    }, 80)
-  }, [])
+    Animated.timing(introAnim, {
+      toValue: 1,
+      duration: 420,
+      useNativeDriver: true,
+    }).start()
+  }, [introAnim])
 
-  const activeKey = SUBSCRIPTION_PLAN_ORDER[activeIndex]
-  const isPro = activeKey === 'pro'
-  const isFree = activeKey === 'free'
-
-  const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / SNAP)
-    setActiveIndex(Math.max(0, Math.min(SUBSCRIPTION_PLAN_ORDER.length - 1, idx)))
-  }
-
-  const goTo = (i: number) => {
-    scrollRef.current?.scrollTo({ x: i * SNAP, animated: true })
-    setActiveIndex(i)
-  }
-
-  const handlePurchase = async (key: SubscriptionPlanKey) => {
-    if (key === 'free') {
-      router.back()
-      return
+  const getPlanPrice = (key: PaywallPlanKey) => {
+    if (!REVENUECAT_PLAN_KEYS.includes(key as RevenueCatPlanKey)) {
+      return t('paywall.plans.free_trial.price')
     }
 
+    const pkg = findPackage(availablePackages, key as RevenueCatPlanKey, billing)
+    return pkg?.product.priceString ?? t(`paywall.plans.${key}.samplePrice`)
+  }
+
+  const getPlanPeriod = () => (billing === 'monthly' ? t('month') : t('billingYearly'))
+
+  const handleContinue = () => {
     if (subscriptionUiReadOnly) {
+      Alert.alert(t('paywall.devAlertTitle'), t('paywall.devAlertMessage'))
       return
     }
 
-    Alert.alert(
-      t('checkout.unavailableTitle'),
-      t('checkout.unavailableMessage')
-    )
+    Alert.alert(t('paywall.devAlertTitle'), t('paywall.devAlertMessage'))
+  }
+
+  const handleRestore = async () => {
+    setRestoring(true)
+    try {
+      const restored = await restorePurchasesSafe()
+      await refresh()
+      Alert.alert(
+        t('paywall.restoreTitle'),
+        restored ? t('paywall.restoreSuccess') : t('paywall.restoreEmpty')
+      )
+    } catch {
+      Alert.alert(t('paywall.restoreTitle'), t('paywall.restoreError'))
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  const openLegalUrl = (url: string) => {
+    Linking.openURL(url).catch(() => undefined)
   }
 
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
-      <View
-        pointerEvents="none"
-        style={[styles.glow, { backgroundColor: isPro ? NEON : isFree ? '#FFFFFF' : ACCENT }]}
-      />
+      <View pointerEvents="none" style={styles.lineTop} />
+      <View pointerEvents="none" style={styles.lineMid} />
+      <View pointerEvents="none" style={styles.glowTop} />
+      <View pointerEvents="none" style={styles.glowSide} />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.outer, { paddingTop: topPad }]}
-      >
+      <View style={[styles.content, { paddingTop: topPad, paddingBottom: bottomPad }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
-          <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.65)" />
+          <Feather name="arrow-left" size={19} color="rgba(255,255,255,0.70)" />
         </TouchableOpacity>
 
-        <Text style={styles.screenTitle}>{t('checkout.title')}</Text>
-        <Text style={styles.screenSubtitle}>{t('checkout.subtitle')}</Text>
-
-        <View style={styles.dots}>
-          {SUBSCRIPTION_PLAN_ORDER.map((key, i) => (
-            <TouchableOpacity key={key} onPress={() => goTo(i)} hitSlop={10} activeOpacity={0.7}>
-              <View
-                style={[
-                  styles.dot,
-                  i === activeIndex && styles.dotActive,
-                  i === activeIndex && {
-                    backgroundColor: isPro ? NEON : isFree ? 'rgba(255,255,255,0.65)' : ACCENT,
-                  },
-                ]}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Animated.ScrollView
-          ref={scrollRef as any}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={SNAP}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          disableIntervalMomentum
-          contentContainerStyle={styles.carouselContent}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true }
-          )}
-          onMomentumScrollEnd={onMomentumEnd}
-          scrollEventThrottle={16}
+        <Animated.View
+          style={[
+            styles.hero,
+            {
+              opacity: introAnim,
+              transform: [
+                {
+                  translateY: introAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [8, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          {SUBSCRIPTION_PLAN_ORDER.map((key, index) => {
-            const plan = SUBSCRIPTION_PLANS[key]
-            const billing = billingPerCard[key]
-            const isThisFree = key === 'free'
-            const isThisPro = key === 'pro'
-            const isThisStandard = key === 'standard'
+          <View style={styles.logoMark}>
+            <Image
+              source={require('../../../../../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={styles.brand}>{t('paywall.logo')}</Text>
+          <Text style={styles.subtitle}>{t('paywall.manageSubtitle')}</Text>
 
-            const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP]
-            const scale = scrollX.interpolate({ inputRange, outputRange: [0.93, 1.0, 0.93], extrapolate: 'clamp' })
-            const opacity = scrollX.interpolate({ inputRange, outputRange: [0.50, 1.0, 0.50], extrapolate: 'clamp' })
+          {access.isTrialActive && trialDaysRemaining !== null && (
+            <BlurView intensity={12} tint="dark" style={styles.trialStatus}>
+              <View style={styles.statusDot} />
+              <Text style={styles.trialStatusText}>
+                {t('paywall.trialDaysRemaining', { count: trialDaysRemaining })}
+              </Text>
+            </BlurView>
+          )}
+        </Animated.View>
 
-            const borderColor = isThisPro
-              ? 'rgba(37,240,200,0.38)'
-              : isThisStandard
-              ? 'rgba(25,112,92,0.38)'
-              : 'rgba(255,255,255,0.10)'
-
-            const topLineColor = isThisPro ? NEON : isThisStandard ? ACCENT : 'rgba(255,255,255,0.30)'
-            const nameColor = isThisPro ? NEON : isThisStandard ? '#FFFFFF' : 'rgba(255,255,255,0.55)'
-            const checkColor = isThisPro ? NEON : ACCENT
-
-            const monthlyPrice = plan.monthlyPrice
-            const yearlyPrice = plan.yearlyPrice
-            const yearlyMonthly =
-              !isThisFree && monthlyPrice !== null && yearlyPrice !== null
-                ? yearlyPrice / 24
-                : null
-            const displayPrice = billing === 'monthly' ? monthlyPrice : yearlyPrice
+        <View style={styles.billingSwitch}>
+          {(['monthly', 'yearly'] as BillingCycle[]).map((cycle) => {
+            const active = billing === cycle
             return (
-              <Animated.View
-                key={key}
-                style={[styles.cardWrap, { width: CARD_W, transform: [{ scale }], opacity }]}
+              <TouchableOpacity
+                key={cycle}
+                onPress={() => setBilling(cycle)}
+                style={[styles.billingOption, active && styles.billingOptionActive]}
+                activeOpacity={0.9}
               >
-                <BlurView intensity={18} tint="dark" style={[styles.card, { borderColor }]}>
-                  <View style={[styles.cardLine, { backgroundColor: topLineColor }]} />
-
-                  <View style={styles.badgeRow}>
-                    {isThisPro && (
-                      <View style={[styles.badge, styles.badgePro]}>
-                        <Text style={[styles.badgeText, { color: NEON }]}>
-                          {t('plans.pro.badge')}
-                        </Text>
-                      </View>
-                    )}
-                    {isThisStandard && (
-                      <View style={[styles.badge, styles.badgeStandard]}>
-                        <Text style={[styles.badgeText, { color: ACCENT }]}>
-                          {t('plans.standard.badge')}
-                        </Text>
-                      </View>
-                    )}
+                <Text style={[styles.billingText, active && styles.billingTextActive]}>
+                  {cycle === 'monthly' ? t('paywall.monthly') : t('paywall.yearly')}
+                </Text>
+                {cycle === 'yearly' && (
+                  <View style={styles.saveBadge}>
+                    <Text style={styles.saveBadgeText}>{t('paywall.saveMore')}</Text>
                   </View>
-
-                  <Text style={[styles.cardName, { color: nameColor }]}>
-                    {t(plan.nameKey)}
-                  </Text>
-
-                  <View style={styles.features}>
-                    <View style={styles.featRow}>
-                      <Text style={styles.featLabel}>{t('features.photosLabel')}</Text>
-                      <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
-                        {plan.features.photos === 'unlimited'
-                          ? t('features.photosUnlimited')
-                          : t(`features.photos${plan.features.photos}`)}
-                      </Text>
-                    </View>
-
-                    <View style={styles.featRow}>
-                      <Text style={styles.featLabel}>{t('features.docsLabel')}</Text>
-                      <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
-                        {plan.features.docs === 'unlimited'
-                          ? t('features.docsUnlimited')
-                          : t(`features.docs${plan.features.docs}`)}
-                      </Text>
-                    </View>
-
-                    <View style={styles.featRow}>
-                      <Text style={styles.featLabel}>{t('features.tasksLabel')}</Text>
-                      <Text style={[styles.featValue, isThisFree && styles.featValueMuted]}>
-                        {plan.features.tasks === 'unlimited'
-                          ? t('features.tasksUnlimited')
-                          : t(`features.tasks${plan.features.tasks}`)}
-                      </Text>
-                    </View>
-
-                    <View style={styles.featRow}>
-                      <Text style={styles.featLabel}>{t('features.model3dLabel')}</Text>
-                      <View style={styles.featBoolWrap}>
-                        <Feather
-                          name={plan.features.model3d ? 'check' : 'x'}
-                          size={13}
-                          color={plan.features.model3d ? checkColor : 'rgba(255,255,255,0.22)'}
-                        />
-                        <Text style={[styles.featBool, !plan.features.model3d && styles.featBoolOff]}>
-                          {plan.features.model3d ? t('yes') : t('no')}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={[styles.featRow, { borderBottomWidth: 0 }]}>
-                      <Text style={styles.featLabel}>{t('features.aiLabel')}</Text>
-                      <View style={styles.featBoolWrap}>
-                        <Feather
-                          name={plan.features.ai ? 'check' : 'x'}
-                          size={13}
-                          color={plan.features.ai ? (isThisPro ? NEON : checkColor) : 'rgba(255,255,255,0.22)'}
-                        />
-                        <Text style={[styles.featBool, !plan.features.ai && styles.featBoolOff]}>
-                          {plan.features.ai ? t('yes') : t('no')}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.priceSection}>
-                    {isThisFree ? (
-                      <>
-                        <Text style={styles.priceFree}>{t('free')}</Text>
-                        <Text style={styles.priceFreeSub}>{t('plans.free.forever')}</Text>
-                      </>
-                    ) : (
-                      <>
-                        <View style={styles.priceRow}>
-                          <Text style={[styles.priceAmount, isThisPro && { color: NEON }]}>
-                            {billing === 'monthly'
-                              ? `${displayPrice?.toFixed(2)} ${t('currency')}`
-                              : `${displayPrice} ${t('currency')}`
-                            }
-                          </Text>
-                          <Text style={styles.pricePeriod}>
-                            {billing === 'monthly'
-                              ? `/ ${t('month')}`
-                              : `/ ${t('twoYears')}`
-                            }
-                          </Text>
-                        </View>
-
-                        {billing === 'yearly' && yearlyMonthly !== null && (
-                          <Text style={styles.priceEquiv}>
-                            {t('priceEquiv', { amount: yearlyMonthly.toFixed(2) })}
-                          </Text>
-                        )}
-
-                        <View style={styles.billingRow}>
-                          <TouchableOpacity
-                            onPress={() => setBillingPerCard((p) => ({ ...p, [key]: 'monthly' }))}
-                            style={[styles.billingPill, billing === 'monthly' && styles.billingPillActive]}
-                            activeOpacity={0.85}
-                          >
-                            <Text style={[styles.billingText, billing === 'monthly' && styles.billingTextActive]}>
-                              {t('billingMonthly')}
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            onPress={() => setBillingPerCard((p) => ({ ...p, [key]: 'yearly' }))}
-                            style={[styles.billingPill, billing === 'yearly' && styles.billingPillActive]}
-                            activeOpacity={0.85}
-                          >
-                            <Text style={[styles.billingText, billing === 'yearly' && styles.billingTextActive]}>
-                              {t('billingYearly')}
-                            </Text>
-                            <View style={styles.savePill}>
-                              <Text style={styles.savePillText}>-40%</Text>
-                            </View>
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    )}
-                  </View>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.selectBtn,
-                      isThisPro && styles.selectBtnPro,
-                      isThisFree && styles.selectBtnFree,
-                      subscriptionUiReadOnly && !isThisFree && styles.selectBtnDisabled,
-                    ]}
-                    onPress={() => handlePurchase(key)}
-                    disabled={subscriptionUiReadOnly && !isThisFree}
-                    activeOpacity={0.88}
-                  >
-                    <Text style={[
-                      styles.selectBtnText,
-                      isThisPro && styles.selectBtnTextPro,
-                      isThisFree && styles.selectBtnTextFree,
-                      subscriptionUiReadOnly && !isThisFree && styles.selectBtnTextDisabled,
-                    ]}>
-                      {isThisFree
-                        ? t('checkout.freeCta')
-                        : t('checkout.selectBtn')}
-                    </Text>
-                  </TouchableOpacity>
-                </BlurView>
-              </Animated.View>
+                )}
+              </TouchableOpacity>
             )
           })}
-        </Animated.ScrollView>
-
-        <View style={styles.securityRow}>
-          <Feather name="info" size={12} color="rgba(255,255,255,0.25)" />
-          <Text style={styles.securityText}>{t('checkout.notice')}</Text>
         </View>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+        <View style={styles.cardsRow}>
+          {PAYWALL_PLAN_KEYS.map((key) => {
+            const isSelected = selectedPlan === key
+            const isTrial = key === 'free_trial'
+            const isPro = key === 'pro'
+            const isExpert = key === 'expert'
+            const details = t(`paywall.plans.${key}.details`, { returnObjects: true }) as string[]
+
+            return (
+              <TouchableOpacity
+                key={key}
+                onPress={() => setSelectedPlan(key)}
+                activeOpacity={0.92}
+                style={[styles.cardWrap, isPro && styles.cardWrapPro]}
+              >
+                <BlurView
+                  intensity={isSelected ? 24 : 16}
+                  tint="dark"
+                  style={[
+                    styles.planCard,
+                    isSelected && styles.planCardActive,
+                    isPro && styles.planCardPro,
+                    isSelected && isPro && styles.planCardProActive,
+                  ]}
+                >
+                  <View style={styles.cardTop}>
+                    <Text
+                      style={[
+                        styles.planName,
+                        isPro && styles.planNamePro,
+                        isExpert && styles.planNameExpert,
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {t(`paywall.plans.${key}.name`)}
+                    </Text>
+                    {!!t(`paywall.plans.${key}.badge`) && (
+                      <View style={[styles.badge, isPro && styles.badgePro]}>
+                        <Text style={styles.badgeText} numberOfLines={1} adjustsFontSizeToFit>
+                          {t(`paywall.plans.${key}.badge`)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.details}>
+                    {details.slice(0, 4).map((item) => (
+                      <View key={item} style={styles.detailRow}>
+                        <Feather name="check" size={11} color={isPro || isExpert ? NEON : ACCENT} />
+                        <Text style={styles.detailText} numberOfLines={2}>
+                          {item}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.priceBlock}>
+                    <View style={styles.priceRow}>
+                      <Text style={[styles.price, isPro && styles.pricePro]} numberOfLines={1} adjustsFontSizeToFit>
+                        {getPlanPrice(key)}
+                      </Text>
+                      {!isTrial && (
+                        <Text style={styles.periodText} numberOfLines={1}>
+                          / {getPlanPeriod()}
+                        </Text>
+                      )}
+                    </View>
+                    {isTrial && (
+                      <Text style={styles.priceSub} numberOfLines={1}>
+                        {t('paywall.plans.free_trial.priceSub')}
+                      </Text>
+                    )}
+                  </View>
+                </BlurView>
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+
+        <BlurView intensity={18} tint="dark" style={styles.selectedPanel}>
+          <View style={styles.panelIcon}>
+            <Feather name="layers" size={18} color={NEON} />
+          </View>
+          <View style={styles.panelCopy}>
+            <Text style={styles.panelTitle}>{t(`paywall.selected.${selectedPlan}.title`)}</Text>
+            <Text style={styles.panelDesc}>{t(`paywall.selected.${selectedPlan}.desc`)}</Text>
+          </View>
+        </BlurView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.92}>
+            <View pointerEvents="none" style={styles.continueGlowLeft} />
+            <View pointerEvents="none" style={styles.continueGlowRight} />
+            <View pointerEvents="none" style={styles.continueSheen} />
+            <Text style={styles.continueText}>{t('paywall.continue')}</Text>
+            <Feather name="arrow-right" size={18} color={INK} style={styles.continueIcon} />
+          </TouchableOpacity>
+          <Text style={styles.renewText}>{t('paywall.autoRenew')}</Text>
+
+          <View style={styles.links}>
+            <TouchableOpacity onPress={handleRestore} disabled={restoring} activeOpacity={0.78}>
+              {restoring ? (
+                <ActivityIndicator size="small" color="rgba(255,255,255,0.62)" />
+              ) : (
+                <Text style={styles.linkText}>{t('paywall.restore')}</Text>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.linkSep}>|</Text>
+            <TouchableOpacity onPress={() => openLegalUrl(TERMS_URL)} activeOpacity={0.78}>
+              <Text style={styles.linkText}>{t('paywall.terms')}</Text>
+            </TouchableOpacity>
+            <Text style={styles.linkSep}>|</Text>
+            <TouchableOpacity onPress={() => openLegalUrl(PRIVACY_URL)} activeOpacity={0.78}>
+              <Text style={styles.linkText}>{t('paywall.privacy')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: 'transparent' },
+  screen: { flex: 1, backgroundColor: '#000000' },
   bg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000' },
-  glow: {
-    position: 'absolute', width: 280, height: 280,
-    borderRadius: 999, opacity: 0.05, top: -60, right: -80,
+  lineTop: {
+    position: 'absolute',
+    left: -20,
+    right: -20,
+    top: 116,
+    height: 1,
+    backgroundColor: 'rgba(37,240,200,0.055)',
+    transform: [{ rotate: '-6deg' }],
   },
-
-  outer: { paddingHorizontal: 20 },
-
+  lineMid: {
+    position: 'absolute',
+    left: 26,
+    right: 26,
+    top: 338,
+    height: 1,
+    backgroundColor: 'rgba(25,112,92,0.13)',
+  },
+  glowTop: {
+    position: 'absolute',
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    backgroundColor: NEON,
+    opacity: 0.04,
+    top: -230,
+    alignSelf: 'center',
+  },
+  glowSide: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: ACCENT,
+    opacity: 0.055,
+    top: 270,
+    right: -200,
+  },
+  content: { flex: 1, paddingHorizontal: 14 },
   backBtn: {
-    width: 40, height: 40, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
-  },
-
-  screenTitle: {
-    color: NEON,
-    fontSize: 26, fontWeight: '900', letterSpacing: -0.2,
-    textAlign: 'center', marginBottom: 8,
-    textShadowColor: 'rgba(37,240,200,0.18)', textShadowRadius: 16,
-  },
-  screenSubtitle: {
-    color: 'rgba(255,255,255,0.38)', fontSize: 13,
-    fontWeight: '600', textAlign: 'center', marginBottom: 16,
-  },
-
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 16 },
-  dot: { width: 7, height: 7, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.16)' },
-  dotActive: { width: 24, borderRadius: 99 },
-
-  carouselContent: { paddingLeft: PEEK, paddingRight: PEEK, paddingBottom: 8 },
-
-  cardWrap: { marginRight: GAP },
-  card: {
-    borderRadius: 26, borderWidth: 1.5,
-    backgroundColor: 'rgba(255,255,255,0.028)',
-    overflow: 'hidden', padding: 22, paddingBottom: 26,
-  },
-  cardLine: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, opacity: 0.75 },
-
-  badgeRow: { alignItems: 'center', marginBottom: 8, minHeight: 26 },
-  badge: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1,
-  },
-  badgePro: { backgroundColor: 'rgba(37,240,200,0.10)', borderColor: 'rgba(37,240,200,0.28)' },
-  badgeStandard: { backgroundColor: 'rgba(25,112,92,0.10)', borderColor: 'rgba(25,112,92,0.28)' },
-  badgeText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
-
-  cardName: {
-    fontSize: 22, fontWeight: '900', letterSpacing: -0.2,
-    textAlign: 'center', marginBottom: 18,
-  },
-
-  features: {
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
-    backgroundColor: 'rgba(255,255,255,0.02)', overflow: 'hidden', marginBottom: 18,
-  },
-  featRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 12, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
-  featLabel: {
-    color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '700', flex: 1,
-  },
-  featValue: {
-    color: '#FFFFFF', fontSize: 12, fontWeight: '800',
-    textAlign: 'right', flex: 1,
-  },
-  featValueMuted: { color: 'rgba(255,255,255,0.45)' },
-  featBoolWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  featBool: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-  featBoolOff: { color: 'rgba(255,255,255,0.30)' },
-
-  priceSection: { marginBottom: 16 },
-
-  priceFree: { color: '#FFFFFF', fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  priceFreeSub: {
-    color: 'rgba(255,255,255,0.35)', fontSize: 12,
-    fontWeight: '700', textAlign: 'center', marginTop: 2, marginBottom: 12,
-  },
-
-  priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 2, justifyContent: 'center' },
-  priceAmount: { color: '#FFFFFF', fontSize: 36, fontWeight: '900', letterSpacing: -0.8 },
-  pricePeriod: { color: 'rgba(255,255,255,0.35)', fontSize: 14, fontWeight: '700', marginBottom: 6 },
-  priceEquiv: { color: 'rgba(255,255,255,0.32)', fontSize: 12, fontWeight: '700', marginBottom: 6, textAlign: 'center' },
-
-  savingsBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'center',
-    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, marginBottom: 10,
-    backgroundColor: 'rgba(37,240,200,0.08)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.18)',
-  },
-  savingsText: { color: NEON, fontSize: 11, fontWeight: '800' },
-
-  billingRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  billingPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, flex: 1, justifyContent: 'center',
+    position: 'absolute',
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18,
+    left: 14,
+    zIndex: 2,
+    width: 38,
+    height: 38,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  billingPillActive: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderColor: 'rgba(255,255,255,0.22)',
+  hero: { alignItems: 'center', paddingTop: 2, paddingBottom: 14 },
+  logoMark: {
+    width: 118,
+    height: 86,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
-  billingText: { color: 'rgba(255,255,255,0.38)', fontSize: 12, fontWeight: '800' },
+  logoImage: { width: 112, height: 82 },
+  brand: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  subtitle: {
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: 14.5,
+    lineHeight: 19,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 6,
+    maxWidth: 350,
+  },
+  trialStatus: {
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    backgroundColor: 'rgba(37,240,200,0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    overflow: 'hidden',
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: NEON },
+  trialStatusText: { color: 'rgba(255,255,255,0.74)', fontSize: 11, fontWeight: '900' },
+  billingSwitch: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    width: '86%',
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 12,
+  },
+  billingOption: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 5,
+  },
+  billingOptionActive: {
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    shadowColor: NEON,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  billingText: { color: 'rgba(255,255,255,0.48)', fontSize: 12.5, fontWeight: '900' },
   billingTextActive: { color: '#FFFFFF' },
-  savePill: {
-    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6,
-    backgroundColor: 'rgba(37,240,200,0.18)',
-  },
-  savePillText: { color: NEON, fontSize: 9, fontWeight: '900' },
-
-  selectBtn: {
-    borderRadius: 18, paddingVertical: 14, alignItems: 'center',
+  saveBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
     backgroundColor: 'rgba(37,240,200,0.12)',
-    borderWidth: 1.5, borderColor: 'rgba(37,240,200,0.35)',
-    marginTop: 4,
   },
-  selectBtnPro: { backgroundColor: NEON, borderColor: NEON },
-  selectBtnFree: {
+  saveBadgeText: { color: NEON, fontSize: 8.5, fontWeight: '900' },
+  cardsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    height: 264,
+  },
+  cardWrap: { flex: 1, height: 226 },
+  cardWrapPro: { flex: 1.14, height: 260, marginTop: -8 },
+  planCard: {
+    flex: 1,
+    borderRadius: 27,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.105)',
     backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 9,
+    paddingVertical: 14,
+    overflow: 'hidden',
+  },
+  planCardActive: {
+    borderWidth: 1.4,
+    borderColor: 'rgba(37,240,200,0.48)',
+    backgroundColor: 'rgba(37,240,200,0.055)',
+    shadowColor: NEON,
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  planCardPro: {
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  planCardProActive: {
+    borderColor: 'rgba(37,240,200,0.56)',
+    shadowColor: NEON,
+    shadowOpacity: 0.16,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  cardTop: { minHeight: 55, alignItems: 'center' },
+  planName: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  planNamePro: { color: NEON, fontSize: 20 },
+  planNameExpert: { color: '#FFFFFF' },
+  badge: {
+    marginTop: 7,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    maxWidth: '100%',
   },
-  selectBtnDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.10)',
+  badgePro: {
+    borderColor: 'rgba(37,240,200,0.24)',
+    backgroundColor: 'rgba(37,240,200,0.08)',
   },
-  selectBtnText: { color: NEON, fontSize: 15, fontWeight: '900' },
-  selectBtnTextPro: { color: '#0B1120' },
-  selectBtnTextFree: { color: 'rgba(255,255,255,0.45)', fontSize: 14 },
-  selectBtnTextDisabled: { color: 'rgba(255,255,255,0.45)' },
-
-  securityRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 6, marginTop: 18,
+  badgeText: {
+    color: 'rgba(255,255,255,0.74)',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.2,
   },
-  securityText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
+  details: { gap: 7, marginTop: 8, flex: 1 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+  detailText: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 10.2,
+    lineHeight: 13.5,
+    fontWeight: '800',
+    flex: 1,
+  },
+  priceBlock: { alignItems: 'center', minHeight: 42, justifyContent: 'flex-end' },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    maxWidth: '100%',
+  },
+  price: {
+    color: '#FFFFFF',
+    fontSize: 15.5,
+    fontWeight: '900',
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  pricePro: { color: NEON },
+  periodText: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 9,
+    fontWeight: '800',
+    marginLeft: 2,
+    marginBottom: 2,
+    flexShrink: 1,
+  },
+  priceSub: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 9.5,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  selectedPanel: {
+    minHeight: 96,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.09)',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    flexDirection: 'row',
+    gap: 12,
+    padding: 15,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  panelIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  panelCopy: { flex: 1 },
+  panelTitle: { color: '#FFFFFF', fontSize: 15.5, fontWeight: '900' },
+  panelDesc: {
+    color: 'rgba(255,255,255,0.52)',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  footer: { marginTop: 8 },
+  continueBtn: {
+    alignSelf: 'center',
+    width: '84%',
+    height: 56,
+    borderRadius: 999,
+    backgroundColor: '#27EFC8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: NEON,
+    shadowOpacity: 0.24,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  continueGlowLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '58%',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  continueGlowRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '42%',
+    backgroundColor: 'rgba(25,112,92,0.20)',
+  },
+  continueSheen: {
+    position: 'absolute',
+    left: 26,
+    right: 26,
+    top: 0,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+  },
+  continueText: { color: INK, fontSize: 16, fontWeight: '900' },
+  continueIcon: { position: 'absolute', right: 22 },
+  renewText: {
+    color: 'rgba(255,255,255,0.36)',
+    fontSize: 10.5,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 7,
+  },
+  links: {
+    minHeight: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  linkText: { color: 'rgba(255,255,255,0.50)', fontSize: 10.5, fontWeight: '800' },
+  linkSep: { color: 'rgba(255,255,255,0.24)', fontSize: 10, fontWeight: '800' },
 })

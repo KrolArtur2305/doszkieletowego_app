@@ -250,8 +250,6 @@ export default function DashboardScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<any> | null>(null);
   const listReadyRef = useRef(false);
-  const spinRunningRef = useRef(false);
-  const spinRanForFocusRef = useRef(false);
 
   // ── Status ──
   const [statusLoading, setStatusLoading] = useState(true);
@@ -309,26 +307,15 @@ export default function DashboardScreen() {
     [budgetUtil, timeUtil, progressValue, router, t]
   );
 
-  // ── Carousel spin intro ──
-  const runSimpleSpin = () => {
-    if (!listReadyRef.current || spinRunningRef.current || spinRanForFocusRef.current) return;
-    spinRunningRef.current = true;
-    spinRanForFocusRef.current = true;
-    listRef.current?.scrollToOffset({ offset: 0, animated: false });
-    setActiveIndex(0);
-    const t1 = setTimeout(() => listRef.current?.scrollToOffset({ offset: SNAP, animated: true }), 220);
-    const t2 = setTimeout(() => listRef.current?.scrollToOffset({ offset: SNAP * 2, animated: true }), 820);
-    const t3 = setTimeout(() => { setActiveIndex(2); spinRunningRef.current = false; }, 1400);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); spinRunningRef.current = false; };
-  };
-
   useFocusEffect(
     React.useCallback(() => {
-      spinRanForFocusRef.current = false;
-      const timer = setTimeout(() => { if (listReadyRef.current) runSimpleSpin(); }, 260);
-      return () => { clearTimeout(timer); spinRunningRef.current = false; };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [SNAP])
+      const timer = setTimeout(() => {
+        if (!listReadyRef.current) return;
+        listRef.current?.scrollToOffset({ offset: 0, animated: false });
+        setActiveIndex(0);
+      }, 160);
+      return () => clearTimeout(timer);
+    }, [])
   );
 
   // ── Photos ──
@@ -907,7 +894,10 @@ export default function DashboardScreen() {
             maxToRenderPerBatch={3}
             onContentSizeChange={() => {
               listReadyRef.current = true;
-              setTimeout(() => runSimpleSpin(), 120);
+              setTimeout(() => {
+                listRef.current?.scrollToOffset({ offset: 0, animated: false });
+                setActiveIndex(0);
+              }, 80);
             }}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],

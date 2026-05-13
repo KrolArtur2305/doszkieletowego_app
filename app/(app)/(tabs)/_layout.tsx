@@ -143,6 +143,7 @@ export default function TabsLayout() {
 
       <Tabs.Screen name="postepy/index" options={{ href: null }} />
       <Tabs.Screen name="postepy/wszystkie" options={{ href: null }} />
+      <Tabs.Screen name="budzet/wszystkie" options={{ href: null }} />
       <Tabs.Screen name="dokumenty/index" options={{ href: null }} />
       <Tabs.Screen name="zadania/index" options={{ href: null }} />
       <Tabs.Screen name="zdjecia/index" options={{ href: null }} />

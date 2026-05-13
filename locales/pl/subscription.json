@@ -1,17 +1,19 @@
 {
-  "eyebrow": "Plany w przygotowaniu",
-  "title": "Subskrypcje wkrótce",
-  "subtitle": "Plan Free, Standard i Pro są już przygotowane. Płatne aktywacje pojawią się w kolejnej aktualizacji.",
+  "eyebrow": "Plany BuildIQ",
+  "title": "Wybierz plan BuildIQ",
+  "subtitle": "Zacznij od triala z pełnym dostępem, a potem wybierz plan dopasowany do budowy.",
   "currentPlan": "Aktualny plan",
-  "launchInfo": "Na starcie ekran ma charakter informacyjny. Wybranie planu nie uruchamia zakupu ani nie aktywuje płatnej subskrypcji.",
+  "launchInfo": "Ceny są pobierane z App Store, gdy produkty sklepu są dostępne.",
   "popular": "Popularny",
-  "free": "Bezpłatny",
+  "free": "Brak subskrypcji",
+  "trialLength": "14 dni",
+  "priceFromStore": "Cena widoczna w App Store",
   "currency": "zł",
   "month": "msc",
   "twoYears": "2 lata",
   "orYearly": "lub {{price}} {{currency}} / {{period}}",
   "billingMonthly": "Miesięcznie",
-  "billingYearly": "2 lata",
+  "billingYearly": "Rocznie",
   "priceEquiv": "≈ {{amount}} zł/msc",
   "currentPlanBtn": "Aktywny",
   "unlimited": "Bez limitu",
@@ -19,9 +21,10 @@
   "yes": "Tak",
   "no": "Nie",
   "plans": {
-    "free": { "name": "Free", "desc": "Podstawowe funkcje", "forever": "na zawsze" },
-    "standard": { "name": "Standard", "desc": "Dla aktywnych budujących", "badge": "POPULARNY" },
-    "pro": { "name": "Pro", "desc": "Pełna moc aplikacji", "badge": "PRO" }
+    "free": { "name": "Free", "desc": "Brak aktywnej subskrypcji", "forever": "brak aktywnego planu" },
+    "free_trial": { "name": "Free Trial", "desc": "14 dni pełnego dostępu", "badge": "TRIAL", "forever": "pełny dostęp na 14 dni" },
+    "pro": { "name": "BuildIQ Pro", "desc": "Limity dla aktywnej budowy", "badge": "PRO" },
+    "expert": { "name": "BuildIQ Expert", "desc": "Wszystko bez limitów", "badge": "EXPERT" }
   },
   "features": {
     "photos": "zdjęć",
@@ -29,33 +32,139 @@
     "tasks": "zadań",
     "model3d": "Model 3D",
     "ai": "Asystent AI",
+    "aiMessagesPerDay": "wiadomości AI / dzień",
     "photosLabel": "Zdjęcia",
     "photos20": "do 20 zdjęć",
-    "photos50": "do 50 zdjęć",
+    "photos100": "do 100 zdjęć",
     "photosUnlimited": "bez limitu",
     "docsLabel": "Dokumenty",
     "docs5": "do 5 dokumentów",
-    "docs15": "do 15 dokumentów",
+    "docs25": "do 25 dokumentów",
     "docsUnlimited": "bez limitu",
     "tasksLabel": "Zadania",
     "tasks15": "do 15 zadań",
-    "tasks50": "do 50 zadań",
     "tasksUnlimited": "bez limitu",
     "model3dLabel": "Model 3D",
-    "aiLabel": "Asystent AI"
+    "aiLabel": "Asystent AI",
+    "aiMessagesPerDayLabel": "Wiadomości AI",
+    "aiMessagesLimited": "{{count}} dziennie",
+    "aiMessagesUnlimited": "bez limitu"
   },
   "checkout": {
-    "title": "Plany w przygotowaniu",
-    "subtitle": "Porównaj zakres planów Free, Standard i Pro. Zakupy w aplikacji pojawią się dopiero w kolejnej aktualizacji.",
-    "selectBtn": "Płatne plany wkrótce",
-    "freeCta": "Dostępny na start",
+    "title": "Wybierz plan BuildIQ",
+    "subtitle": "Zacznij od triala z pełnym dostępem, a potem wybierz plan dopasowany do budowy.",
+    "selectBtn": "Kontynuuj",
+    "trialCta": "Kontynuuj",
+    "freeCta": "Aktualny dostęp Free",
     "processing": "Przetwarzanie...",
     "successTitle": "Dziękujemy!",
     "successMessage": "Plan zostanie aktywowany po potwierdzeniu płatności.",
     "security": "Bezpieczna płatność • Anuluj w dowolnym momencie",
     "savingsNote": "Oszczędzasz {{amount}} zł",
-    "unavailableTitle": "Zakupy chwilowo niedostępne",
-    "unavailableMessage": "Zakupy w aplikacji nie są jeszcze aktywne w tej wersji. Wybranie planu nie uruchamia płatności ani nie aktywuje subskrypcji.",
-    "notice": "Ten ekran ma charakter informacyjny. W tej wersji nie uruchamiasz zakupu i nie aktywujesz płatnego planu."
+    "priceNotice": "Cena widoczna w App Store",
+    "unavailableTitle": "Build developerski",
+    "unavailableMessage": "Obsługa transakcji nie jest podłączona w tym buildzie.",
+    "notice": "Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane."
+  },
+  "paywall": {
+    "logo": "BuildIQ",
+    "eyebrow": "BuildIQ Premium",
+    "title": "Wybierz plan BuildIQ",
+    "heroTitle": "BuildIQ Pro Trial",
+    "heroSubtitle": "Zacznij od 14 dni pełnego dostępu",
+    "trialDaysRemaining": "Pozostało dni: {{count}}",
+    "monthly": "Miesięcznie",
+    "yearly": "Rocznie",
+    "priceInStore": "Cena z App Store",
+    "manageSubtitle": "Wszystko, czego potrzebujesz do zarządzania budową.",
+    "saveMore": "Oszczędzasz",
+    "secureCheckout": "Bezpieczna płatność przez App Store",
+    "continue": "Rozpocznij",
+    "restore": "Przywróć zakupy",
+    "autoRenew": "Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane.",
+    "terms": "Regulamin",
+    "refund": "Zwroty",
+    "privacy": "Polityka prywatności",
+    "devAlertTitle": "Build developerski",
+    "devAlertMessage": "Obsługa transakcji nie jest podłączona w tym buildzie.",
+    "restoreTitle": "Przywróć zakupy",
+    "restoreSuccess": "Zakupy zostały przywrócone.",
+    "restoreEmpty": "Nie znaleziono zakupów dla tego konta.",
+    "restoreError": "Nie udało się przywrócić zakupów.",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "badge": "",
+        "description": "Start i podstawy projektu",
+        "details": ["Podstawowa konfiguracja", "Bazowe śledzenie", "Limitowana przestrzeń"]
+      },
+      "free_trial": {
+        "name": "Free Trial",
+        "badge": "14 DNI",
+        "description": "Pełny dostęp w czasie triala",
+        "price": "Free",
+        "priceSub": "przez 14 dni",
+        "details": ["Pełny dostęp AI", "Zdjęcia bez limitu", "Bez zobowiązań"]
+      },
+      "pro": {
+        "name": "Pro",
+        "badge": "NAJPOPULARNIEJSZY",
+        "description": "Idealny dla większości budujących",
+        "samplePrice": "14,99 $",
+        "details": ["20 wiadomości AI dziennie", "100 zdjęć", "25 dokumentów"]
+      },
+      "expert": {
+        "name": "Expert",
+        "badge": "",
+        "description": "Wszystko bez limitów",
+        "samplePrice": "19,99 $",
+        "details": ["AI bez limitu", "Zdjęcia bez limitu", "Dokumenty bez limitu", "Priorytetowe AI"]
+      }
+    },
+    "selected": {
+      "free_trial": {
+        "title": "Sprawdź BuildIQ z pełnym dostępem",
+        "desc": "Przetestuj przestrzeń premium przed wyborem planu dla swojej budowy.",
+        "benefits": ["Pełne AI", "Wszystkie dokumenty", "Wszystkie zdjęcia", "Bez zobowiązań"]
+      },
+      "pro": {
+        "title": "Najlepszy wybór dla większości budujących",
+        "desc": "Plan do zarządzania aktywną budową z AI, budżetem i dokumentacją z placu budowy.",
+        "benefits": ["20 AI/dzień", "100 zdjęć", "25 dokumentów", "Raporty"]
+      },
+      "expert": {
+        "title": "Pełna kontrola dla wymagających budów",
+        "desc": "Dla intensywnej dokumentacji, częstej pracy z AI i długiego archiwum budowy.",
+        "benefits": ["AI bez limitu", "Zdjęcia bez limitu", "Dokumenty bez limitu", "Priorytet AI"]
+      }
+    },
+    "benefits": {
+      "items": [
+        { "title": "AI Construction Manager", "desc": "Planuj kolejne kroki, odpowiadaj na pytania i szybciej podejmuj decyzje." },
+        { "title": "Budżet i wydatki", "desc": "Kontroluj koszty, historię wydatków i presję na budżet." },
+        { "title": "Zdjęcia i dokumenty budowy", "desc": "Trzymaj zdjęcia, pliki i kontekst projektu w jednym miejscu." },
+        { "title": "Śledzenie postępu", "desc": "Monitoruj etapy prac w uporządkowanej osi czasu budowy." },
+        { "title": "Raporty i eksporty", "desc": "Przygotowuj czytelne podsumowania dla właścicieli, ekip i archiwum." }
+      ]
+    },
+    "pro": {
+      "name": "BuildIQ Pro",
+      "tagline": "Limity dla aktywnej budowy",
+      "features": {
+        "ai": "20 wiadomości AI dziennie",
+        "photos": "100 zdjęć",
+        "docs": "25 dokumentów"
+      }
+    },
+    "expert": {
+      "name": "BuildIQ Expert",
+      "tagline": "Nieograniczona przestrzeń dla wymagających budów",
+      "features": {
+        "ai": "AI bez limitu",
+        "photos": "Zdjęcia bez limitu",
+        "docs": "Dokumenty bez limitu",
+        "priorityAi": "Priorytetowe AI"
+      }
+    }
   }
 }

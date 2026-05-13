@@ -1,17 +1,19 @@
 {
-  "eyebrow": "Plans in progress",
-  "title": "Subscriptions coming soon",
-  "subtitle": "Free, Standard and Pro plans are ready. Paid activations will arrive in a future update.",
+  "eyebrow": "BuildIQ plans",
+  "title": "Choose your BuildIQ plan",
+  "subtitle": "Start with a full-access trial, then choose the plan that fits your build.",
   "currentPlan": "Current plan",
-  "launchInfo": "At launch, this screen is informational only. Choosing a plan does not start a purchase or activate a paid subscription.",
+  "launchInfo": "Prices are loaded from the App Store when store products are available.",
   "popular": "Popular",
-  "free": "Free",
+  "free": "No subscription",
+  "trialLength": "14 days",
+  "priceFromStore": "Price shown in App Store",
   "currency": "USD",
   "month": "mo",
   "twoYears": "2 years",
   "orYearly": "or {{price}} {{currency}} / {{period}}",
   "billingMonthly": "Monthly",
-  "billingYearly": "2 years",
+  "billingYearly": "Yearly",
   "priceEquiv": "≈ {{amount}} USD/mo",
   "currentPlanBtn": "Active",
   "unlimited": "Unlimited",
@@ -19,9 +21,10 @@
   "yes": "Yes",
   "no": "No",
   "plans": {
-    "free": { "name": "Free", "desc": "Basic features", "forever": "forever" },
-    "standard": { "name": "Standard", "desc": "For active builders", "badge": "POPULAR" },
-    "pro": { "name": "Pro", "desc": "Full power", "badge": "PRO" }
+    "free": { "name": "Free", "desc": "No active subscription", "forever": "no active plan" },
+    "free_trial": { "name": "Free Trial", "desc": "14 days of full access", "badge": "TRIAL", "forever": "full access for 14 days" },
+    "pro": { "name": "BuildIQ Pro", "desc": "Focused limits for an active build", "badge": "PRO" },
+    "expert": { "name": "BuildIQ Expert", "desc": "Everything unlimited", "badge": "EXPERT" }
   },
   "features": {
     "photos": "photos",
@@ -29,33 +32,139 @@
     "tasks": "tasks",
     "model3d": "3D model",
     "ai": "AI assistant",
+    "aiMessagesPerDay": "AI messages / day",
     "photosLabel": "Photos",
     "photos20": "up to 20 photos",
-    "photos50": "up to 50 photos",
+    "photos100": "up to 100 photos",
     "photosUnlimited": "unlimited",
     "docsLabel": "Documents",
     "docs5": "up to 5 documents",
-    "docs15": "up to 15 documents",
+    "docs25": "up to 25 documents",
     "docsUnlimited": "unlimited",
     "tasksLabel": "Tasks",
     "tasks15": "up to 15 tasks",
-    "tasks50": "up to 50 tasks",
     "tasksUnlimited": "unlimited",
     "model3dLabel": "3D Model",
-    "aiLabel": "AI Assistant"
+    "aiLabel": "AI Assistant",
+    "aiMessagesPerDayLabel": "AI messages",
+    "aiMessagesLimited": "{{count}} per day",
+    "aiMessagesUnlimited": "unlimited"
   },
   "checkout": {
-    "title": "Plans in progress",
-    "subtitle": "Compare Free, Standard and Pro plans. In-app purchases will arrive in a future update.",
-    "selectBtn": "Paid plans coming soon",
-    "freeCta": "Available from day one",
+    "title": "Choose your BuildIQ plan",
+    "subtitle": "Start with a full-access trial, then choose the plan that fits your build.",
+    "selectBtn": "Continue",
+    "trialCta": "Continue",
+    "freeCta": "Current free access",
     "processing": "Processing...",
     "successTitle": "Thank you!",
     "successMessage": "Your plan will be activated after payment confirmation.",
     "security": "Secure payment • Cancel anytime",
     "savingsNote": "You save {{amount}} USD",
-    "unavailableTitle": "Purchases temporarily unavailable",
-    "unavailableMessage": "In-app purchases are not active in this version yet. Choosing a plan will not start payment or activate a subscription.",
-    "notice": "This screen is informational only. In this version you cannot start a purchase or activate a paid plan."
+    "priceNotice": "Price shown in App Store",
+    "unavailableTitle": "Developer build",
+    "unavailableMessage": "The transaction handler is not connected in this build.",
+    "notice": "Subscriptions renew automatically unless cancelled."
+  },
+  "paywall": {
+    "logo": "BuildIQ",
+    "eyebrow": "BuildIQ Premium",
+    "title": "Choose your BuildIQ plan",
+    "heroTitle": "BuildIQ Pro Trial",
+    "heroSubtitle": "Start with 14 days of full access",
+    "trialDaysRemaining": "{{count}} days remaining",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "priceInStore": "Price from App Store",
+    "manageSubtitle": "Everything you need to manage your construction project.",
+    "saveMore": "Save more",
+    "secureCheckout": "Secure checkout through App Store",
+    "continue": "Start",
+    "restore": "Restore Purchases",
+    "autoRenew": "Subscriptions renew automatically unless cancelled.",
+    "terms": "Terms",
+    "refund": "Refunds",
+    "privacy": "Privacy Policy",
+    "devAlertTitle": "Developer build",
+    "devAlertMessage": "The transaction handler is not connected in this build.",
+    "restoreTitle": "Restore purchases",
+    "restoreSuccess": "Purchases restored.",
+    "restoreEmpty": "No purchases found for this account.",
+    "restoreError": "Could not restore purchases.",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "badge": "",
+        "description": "Start and explore the essentials",
+        "details": ["Core project setup", "Basic tracking", "Limited storage"]
+      },
+      "free_trial": {
+        "name": "Free Trial",
+        "badge": "14 DAYS",
+        "description": "Unlimited access during trial",
+        "price": "Free",
+        "priceSub": "for 14 days",
+        "details": ["Full AI access", "Unlimited photos", "No commitment"]
+      },
+      "pro": {
+        "name": "Pro",
+        "badge": "MOST POPULAR",
+        "description": "Perfect for most builders",
+        "samplePrice": "$14.99",
+        "details": ["20 AI messages/day", "100 photos", "25 documents"]
+      },
+      "expert": {
+        "name": "Expert",
+        "badge": "",
+        "description": "Unlimited everything",
+        "samplePrice": "$19.99",
+        "details": ["Unlimited AI", "Unlimited photos", "Unlimited documents", "Priority AI"]
+      }
+    },
+    "selected": {
+      "free_trial": {
+        "title": "Explore BuildIQ with full access",
+        "desc": "Try the premium workspace before choosing the plan for your project.",
+        "benefits": ["Full AI", "All documents", "All photos", "No commitment"]
+      },
+      "pro": {
+        "title": "Best for most homebuilders",
+        "desc": "A focused plan for managing one active build with AI, budget context, and site documentation.",
+        "benefits": ["20 AI/day", "100 photos", "25 documents", "Core reports"]
+      },
+      "expert": {
+        "title": "Unlimited control for demanding builds",
+        "desc": "Designed for heavier documentation, frequent AI workflows, and long-running construction records.",
+        "benefits": ["Unlimited AI", "Unlimited photos", "Unlimited docs", "Priority AI"]
+      }
+    },
+    "benefits": {
+      "items": [
+        { "title": "AI Construction Manager", "desc": "Plan next steps, answer build questions, and keep decisions moving." },
+        { "title": "Budget & expense tracking", "desc": "Track costs with a clear view of budget pressure and spending history." },
+        { "title": "Construction photos & documents", "desc": "Keep site evidence, files, and project context organized in one place." },
+        { "title": "Progress tracking", "desc": "Follow work stages with a structured timeline built for home construction." },
+        { "title": "Reports & exports", "desc": "Prepare clean summaries for owners, teams, and project records." }
+      ]
+    },
+    "pro": {
+      "name": "BuildIQ Pro",
+      "tagline": "Focused limits for an active build",
+      "features": {
+        "ai": "20 AI messages/day",
+        "photos": "100 photos",
+        "docs": "25 documents"
+      }
+    },
+    "expert": {
+      "name": "BuildIQ Expert",
+      "tagline": "Unlimited workspace for demanding builds",
+      "features": {
+        "ai": "Unlimited AI",
+        "photos": "Unlimited photos",
+        "docs": "Unlimited documents",
+        "priorityAi": "Priority AI"
+      }
+    }
   }
 }

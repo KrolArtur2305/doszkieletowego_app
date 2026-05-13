@@ -63,6 +63,17 @@ function formatConversationDate(value: string | null | undefined, locale: string
   });
 }
 
+function displayAssistantText(value: string) {
+  return value
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')
+    .replace(/__([^_\n]+)__/g, '$1')
+    .replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g, '$1$2')
+    .replace(/(^|\s)_([^_\n]+)_(?=\s|$|[.,;:!?])/g, '$1$2')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s*[*]\s+/gm, '- ')
+    .trim();
+}
+
 export default function BuddyChatScreen() {
   const { session } = useSupabaseAuth();
   const { t, i18n } = useTranslation('buddy');
@@ -337,6 +348,7 @@ export default function BuddyChatScreen() {
           conversation_id: currentConversationId,
           message: trimmed,
           assistant_name: buddyName,
+          app_language: i18n.resolvedLanguage || i18n.language || 'en',
         }),
       });
 
@@ -512,7 +524,7 @@ export default function BuddyChatScreen() {
                       msg.role === 'user' ? styles.msgTextUser : styles.msgTextBuddy,
                     ]}
                   >
-                    {msg.content}
+                    {msg.role === 'assistant' ? displayAssistantText(msg.content) : msg.content}
                   </Text>
                 </BlurView>
               </View>
