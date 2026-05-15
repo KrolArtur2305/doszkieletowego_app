@@ -8,6 +8,8 @@
     "nameRequired": "Nazwa inwestycji jest wymagana, aby kontynuować.",
     "locationRequired": "Lokalizacja inwestycji jest wymagana, aby kontynuować.",
     "selectLocationFromList": "Wybierz lokalizację z listy.",
+    "changeBuildTypeTitle": "Zmienić typ budowy?",
+    "changeBuildTypeMsg": "Zmiana typu budowy przeliczy aktualny etap i dopasuje postęp do nowego workflow.",
     "invalidBudgetTitle": "Nieprawidłowy budżet",
     "invalidBudgetMsg": "Budżet nie może być ujemny.",
     "errorTitle": "Błąd",
@@ -19,6 +21,7 @@
   "form": {
     "nameLabel": "Nazwa inwestycji",
     "namePlaceholder": "np. Dom pod Krakowem",
+    "buildTypeLabel": "Typ budowy",
     "countryLabel": "Kraj",
     "locationLabel": "Lokalizacja",
     "locationPlaceholder": "Wpisz miasto, miejscowość lub adres",
@@ -27,6 +30,11 @@
     "datePlaceholder": "Wybierz datę",
     "plannedBudgetLabel": "Planowany budżet",
     "plannedBudgetPlaceholder": "np. 450000"
+  },
+  "buildTypes": {
+    "murowany": "Murowany",
+    "szkieletowy": "Szkieletowy",
+    "inny": "Inny"
   },
   "modal": {
     "pickStartTitle": "Wybierz datę startu",
@@ -37,6 +45,7 @@
     "saveAndContinue": "Zapisz i przejdź dalej",
     "saveAndContinueToApp": "Zapisz i przejdź do aplikacji",
     "save": "Zapisz",
-    "cancel": "Anuluj"
+    "cancel": "Anuluj",
+    "changeTypeConfirm": "Zmień typ budowy"
   }
 }

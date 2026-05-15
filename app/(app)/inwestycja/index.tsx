@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { AppButton, AppHeader, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
+import { normalizeBuildType, remapStageCodeForBuildType } from '../../../lib/buildWorkflow';
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -75,9 +76,12 @@ export default function InwestycjaScreen() {
   const [saving, setSaving] = useState(false);
 
   const [nazwa, setNazwa] = useState('');
+  const [buildType, setBuildType] = useState('murowany');
+  const [initialBuildType, setInitialBuildType] = useState('murowany');
   const [lokalizacja, setLokalizacja] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<PlaceSuggestion | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [currentStageCode, setCurrentStageCode] = useState('');
 
   const [dataStartISO, setDataStartISO] = useState('');
   const [dataKoniecISO, setDataKoniecISO] = useState('');
@@ -121,12 +125,21 @@ export default function InwestycjaScreen() {
 
         const user = userRes.user;
 
-        let { data, error } = await supabase
-          .from('inwestycje')
-          .select('nazwa, lokalizacja, place_name, location_city, location_country, latitude, longitude, data_start, data_koniec, budzet, inwestycja_wypelniona')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
+        const [investmentRes, profileRes] = await Promise.all([
+          supabase
+            .from('inwestycje')
+            .select('nazwa, lokalizacja, place_name, location_city, location_country, latitude, longitude, data_start, data_koniec, budzet, inwestycja_wypelniona')
+            .eq('user_id', user.id)
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from('profiles')
+            .select('build_type, current_stage_code')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+        ]);
+
+        let { data, error } = investmentRes;
 
         if (error) {
           const fallback = await supabase
@@ -159,6 +172,11 @@ export default function InwestycjaScreen() {
           setDataKoniecISO(data.data_koniec ?? '');
           setBudzet(data.budzet !== null && data.budzet !== undefined ? String(data.budzet) : '');
         }
+
+        const nextBuildType = normalizeBuildType((profileRes.data as any)?.build_type);
+        setBuildType(nextBuildType);
+        setInitialBuildType(nextBuildType);
+        setCurrentStageCode(String((profileRes.data as any)?.current_stage_code ?? '').trim().toUpperCase());
       } catch {
       } finally {
         if (alive) setLoading(false);
@@ -204,39 +222,69 @@ export default function InwestycjaScreen() {
 
       const user = userRes.user;
 
-      const payload: {
-        user_id: string;
-        nazwa: string;
-        lokalizacja: string;
-        place_name: string;
-        location_city: string | null;
-        location_country: string | null;
-        latitude: number;
-        longitude: number;
-        data_start: string | null;
-        data_koniec: string | null;
-        budzet: number | null;
-        inwestycja_wypelniona: boolean;
-      } = {
-        user_id: user.id,
-        nazwa: n,
-        lokalizacja: getPlaceLocalityName(selectedPlace),
-        place_name: selectedPlace.placeName,
-        location_city: selectedPlace.city,
-        location_country: selectedPlace.country,
-        latitude: selectedPlace.latitude,
-        longitude: selectedPlace.longitude,
-        data_start: dataStartISO || null,
-        data_koniec: dataKoniecISO || null,
-        budzet: budgetNumber,
-        inwestycja_wypelniona: true,
-      };
+      const buildTypeChanged = buildType !== initialBuildType;
+      if (buildTypeChanged) {
+        setSaving(false);
+        Alert.alert(
+          t('alerts.changeBuildTypeTitle'),
+          t('alerts.changeBuildTypeMsg'),
+          [
+            { text: t('actions.cancel'), style: 'cancel' },
+            {
+              text: t('actions.changeTypeConfirm'),
+              style: 'destructive',
+              onPress: async () => {
+                setSaving(true);
+                await persistInvestmentAndProfile(user.id);
+              },
+            },
+          ]
+        );
+        return;
+      }
 
-      let { data, error } = await supabase
-        .from('inwestycje')
-        .upsert(payload, { onConflict: 'user_id' })
-        .select('user_id, inwestycja_wypelniona')
-        .maybeSingle();
+      await persistInvestmentAndProfile(user.id);
+    } catch (e: any) {
+      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveFailed'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const persistInvestmentAndProfile = async (userIdValue: string) => {
+    const payload: {
+      user_id: string;
+      nazwa: string;
+      lokalizacja: string;
+      place_name: string;
+      location_city: string | null;
+      location_country: string | null;
+      latitude: number;
+      longitude: number;
+      data_start: string | null;
+      data_koniec: string | null;
+      budzet: number | null;
+      inwestycja_wypelniona: boolean;
+    } = {
+      user_id: userIdValue,
+      nazwa: nazwa.trim(),
+      lokalizacja: getPlaceLocalityName(selectedPlace as PlaceSuggestion),
+      place_name: (selectedPlace as PlaceSuggestion).placeName,
+      location_city: (selectedPlace as PlaceSuggestion).city,
+      location_country: (selectedPlace as PlaceSuggestion).country,
+      latitude: (selectedPlace as PlaceSuggestion).latitude,
+      longitude: (selectedPlace as PlaceSuggestion).longitude,
+      data_start: dataStartISO || null,
+      data_koniec: dataKoniecISO || null,
+      budzet: budgetNumber,
+      inwestycja_wypelniona: true,
+    };
+
+    let { data, error } = await supabase
+      .from('inwestycje')
+      .upsert(payload, { onConflict: 'user_id' })
+      .select('user_id, inwestycja_wypelniona')
+      .maybeSingle();
 
       if (error && String(error.message || '').includes('schema cache')) {
         const legacyPayload = {
@@ -264,12 +312,26 @@ export default function InwestycjaScreen() {
         return;
       }
 
+      const nextCurrentStageCode = remapStageCodeForBuildType(currentStageCode, buildType);
+      const profileRes = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            user_id: userIdValue,
+            build_type: buildType,
+            current_stage_code: nextCurrentStageCode,
+          },
+          { onConflict: 'user_id' }
+        );
+
+      if (profileRes.error) {
+        Alert.alert(t('alerts.saveErrorTitle', { defaultValue: 'Save error' }), profileRes.error.message);
+        return;
+      }
+
+      setInitialBuildType(buildType);
+
       router.replace('/(app)/(tabs)/dashboard');
-    } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveFailed'));
-    } finally {
-      setSaving(false);
-    }
   };
 
   const openPicker = (which: 'start' | 'koniec') => {
@@ -303,17 +365,39 @@ export default function InwestycjaScreen() {
           <AppHeader title={t('screen.title')} style={styles.screenHeader} />
 
           <BlurView intensity={70} tint="dark" style={styles.card}>
-            <View style={styles.form}>
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>{t('form.nameLabel')} *</Text>
+              <View style={styles.form}>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('form.nameLabel')} *</Text>
                 <AppInput
                   value={nazwa}
                   onChangeText={setNazwa}
                   placeholder={t('form.namePlaceholder')}
                   editable={!loading && !saving}
                   style={styles.input}
-                />
-              </View>
+                  />
+                </View>
+
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>{t('form.buildTypeLabel')}</Text>
+                  <View style={styles.buildTypeRow}>
+                    {(['murowany', 'szkieletowy', 'inny'] as const).map((value) => {
+                      const active = buildType === value;
+                      return (
+                        <TouchableOpacity
+                          key={value}
+                          onPress={() => setBuildType(value)}
+                          disabled={loading || saving}
+                          activeOpacity={0.85}
+                          style={[styles.buildTypeChip, active && styles.buildTypeChipActive]}
+                        >
+                          <Text style={[styles.buildTypeChipText, active && styles.buildTypeChipTextActive]}>
+                            {t(`buildTypes.${value}`)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
 
               <View style={styles.field}>
                 <PlaceAutocomplete
@@ -466,6 +550,35 @@ const styles = StyleSheet.create({
 
   field: { gap: 8 },
   fieldLabel: { color: 'rgba(156,163,175,0.95)', fontSize: 13 },
+
+  buildTypeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  buildTypeChip: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  buildTypeChipActive: {
+    borderColor: 'rgba(37,240,200,0.55)',
+    backgroundColor: 'rgba(20,184,166,0.18)',
+  },
+  buildTypeChipText: {
+    color: 'rgba(226,232,240,0.9)',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  buildTypeChipTextActive: {
+    color: '#E8FFFB',
+  },
 
   inputWrap: {
     flexDirection: 'row',

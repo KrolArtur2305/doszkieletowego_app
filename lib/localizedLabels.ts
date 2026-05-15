@@ -1,3 +1,9 @@
+import {
+  expenseCategoryCodeFromLegacyLabel,
+  expenseCategoryCodeToLegacyLabel,
+  normalizeExpenseCategoryCode,
+} from './stageModel';
+
 type Translate = (key: string, options?: any) => string;
 
 export type BudgetCategoryValue =
@@ -34,11 +40,20 @@ function normalize(value: unknown) {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+function looksLikeStageCode(value: unknown) {
+  const raw = normalize(value).replace(/\s+/g, '');
+  if (!raw) return false;
+  return /^([ab]\d{2}_\d{2}|\d+|ssz|sso)$/i.test(raw);
+}
+
 export function getBudgetCategoryKey(value: unknown): BudgetCategoryValue {
   const normalized = normalize(value);
+  const code = normalizeExpenseCategoryCode(value);
+  const legacyLabel = expenseCategoryCodeToLegacyLabel(code) as BudgetCategoryValue;
+  if (legacyLabel !== 'Inne') return legacyLabel;
   if (normalized.includes('zero')) return 'Stan zero';
   if (normalized.includes('otwart') || normalized === 'sso') return 'Stan surowy otwarty';
-  if (normalized.includes('zamkni') || normalized === 'ssz') return 'Stan surowy zamknięty';
+  if (normalized.includes('zamkni') || normalized.includes('zamkn') || normalized === 'ssz') return 'Stan surowy zamknięty';
   if (normalized.includes('instal')) return 'Instalacje';
   if (normalized.includes('dewel')) return 'Stan deweloperski';
   return 'Inne';
@@ -50,19 +65,29 @@ export function getBudgetCategoryLabel(value: unknown, t: Translate, short = fal
   return t(key, { defaultValue: category });
 }
 
+export function getExpenseCategoryCode(value: unknown) {
+  return expenseCategoryCodeFromLegacyLabel(value);
+}
+
 export function getStageLabel(name: unknown, t: Translate) {
   const normalized = normalize(name);
   const fallback = String(name ?? '').trim();
 
-  if (!normalized) return fallback;
+  if (!normalized) return t('fallback.stage', { defaultValue: 'Etap budowy' });
   if (normalized.includes('plan')) return t('names.planning', { defaultValue: fallback || 'Planowanie' });
   if (normalized.includes('zero')) return t('names.stanZero', { defaultValue: fallback || 'Stan zero' });
   if (normalized.includes('otwart')) return t('names.openShell', { defaultValue: fallback || 'Stan surowy otwarty' });
-  if (normalized.includes('zamkni')) return t('names.closedShell', { defaultValue: fallback || 'Stan surowy zamknięty' });
+  if (normalized.includes('zamkni') || normalized.includes('zamkn') || normalized === 'ssz') {
+    return t('names.closedShell', { defaultValue: fallback || 'Stan surowy zamknięty' });
+  }
   if (normalized.includes('instal')) return t('names.installations', { defaultValue: fallback || 'Instalacje' });
   if (normalized.includes('dewel')) return t('names.developerState', { defaultValue: fallback || 'Stan deweloperski' });
   if (normalized.includes('wykoncz') || normalized.includes('finish')) {
     return t('names.finishing', { defaultValue: fallback || 'Wykończenie' });
+  }
+
+  if (looksLikeStageCode(normalized) || looksLikeStageCode(fallback)) {
+    return t('fallback.stage', { defaultValue: 'Etap budowy' });
   }
 
   return fallback;

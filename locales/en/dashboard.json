@@ -26,6 +26,8 @@
   "progress": {
     "currentStageLabel": "CURRENT STAGE",
     "nextStageLabel": "NEXT STAGE",
+    "stageRealizationLabel": "STAGE PROGRESS",
+    "stageRealizationHint": "{{done}} of {{total}} steps completed",
     "estimatedCompletionLabel": "ESTIMATED COMPLETION DATE",
     "estimatedCompletionPlaceholder": "—",
     "allDone": "All stages completed",
@@ -69,6 +71,73 @@
       "thu": "thu",
       "fri": "fri",
       "sat": "sat"
+    },
+    "workConditionsTitle": "Site conditions",
+    "emptyText": "No site location is set in the profile.",
+    "emptyFallback": "Add the location to see the forecast.",
+    "emptyCta": "Add location",
+    "dayNotes": {
+      "clear": "Dry",
+      "cloudy": "Cloudy",
+      "rain": "Rain possible",
+      "snow": "Snow possible",
+      "wind": "Windy",
+      "cold": "Cool",
+      "hot": "Hot",
+      "storm": "Storm",
+      "mixed": "Mixed"
+    },
+    "workHints": {
+      "allRain": {
+        "0": "The next few days may slow outdoor work.",
+        "1": "Protect materials first.",
+        "2": "Outdoor jobs are better moved to a drier window."
+      },
+      "rainTodayTomorrow": {
+        "0": "The next few days are wet, so protect materials and exposed parts.",
+        "1": "Conditions favor indoor or covered work.",
+        "2": "Focus today on things that do not like rain."
+      },
+      "rainToday": {
+        "0": "Today may be rough for outdoor work.",
+        "1": "Watch materials and exposed elements.",
+        "2": "It is better to keep outdoor tasks protected today."
+      },
+      "rainTomorrow": {
+        "0": "Today is a good outdoor window, with rain possible tomorrow.",
+        "1": "Wrap up outside jobs while you can.",
+        "2": "Secure materials before tomorrow's rain."
+      },
+      "rainAfterTomorrow": {
+        "0": "Today and tomorrow are good for outdoor work.",
+        "1": "Rain may arrive in 2 days, so protect materials.",
+        "2": "Good time to move ahead before the weather turns."
+      },
+      "windy": {
+        "0": "Be careful with high work and light materials.",
+        "1": "Check foil, membranes, and loose parts.",
+        "2": "Stronger wind can make outside mounting harder."
+      },
+      "cold": {
+        "0": "Pay attention to temperature-sensitive materials.",
+        "1": "Check conditions for wet work and building chemicals.",
+        "2": "Low temperatures may call for a more careful plan."
+      },
+      "hot": {
+        "0": "Bring water, breaks, and shade for materials.",
+        "1": "Avoid overheating materials and working in direct sun.",
+        "2": "Shorter work blocks are better in the heat."
+      },
+      "noRain": {
+        "0": "Good outdoor conditions for the next few days.",
+        "1": "The coming days look favorable for outside work.",
+        "2": "Good weather for deliveries, cleanup, and work around the site."
+      },
+      "fallback": {
+        "0": "Check conditions before planning outdoor work.",
+        "1": "The forecast may need a manual look before deciding.",
+        "2": "It is worth checking the latest data before heading out."
+      }
     }
   },
   "modal": {

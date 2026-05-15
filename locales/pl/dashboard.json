@@ -26,6 +26,8 @@
   "progress": {
     "currentStageLabel": "OBECNY ETAP",
     "nextStageLabel": "KOLEJNY ETAP",
+    "stageRealizationLabel": "REALIZACJA ETAPU",
+    "stageRealizationHint": "{{done}} z {{total}} kroków ukończone",
     "estimatedCompletionLabel": "PRZEWIDYWANA DATA UKOŃCZENIA",
     "estimatedCompletionPlaceholder": "—",
     "allDone": "Wszystkie etapy zrealizowane",
@@ -69,6 +71,73 @@
       "thu": "czw",
       "fri": "pt",
       "sat": "sob"
+    },
+    "workConditionsTitle": "Warunki na budowie",
+    "emptyText": "Brak lokalizacji budowy w profilu.",
+    "emptyFallback": "Uzupełnij lokalizację, aby zobaczyć prognozę.",
+    "emptyCta": "Uzupełnij lokalizację",
+    "dayNotes": {
+      "clear": "Bez opadów",
+      "cloudy": "Zachmurzenie",
+      "rain": "Możliwe opady",
+      "snow": "Możliwy śnieg",
+      "wind": "Mocniejszy wiatr",
+      "cold": "Chłodniej",
+      "hot": "Upał",
+      "storm": "Burza",
+      "mixed": "Zmienne warunki"
+    },
+    "workHints": {
+      "allRain": {
+        "0": "Najbliższe dni mogą utrudnić prace zewnętrzne.",
+        "1": "Priorytetem powinno być zabezpieczenie materiałów.",
+        "2": "Prace na zewnątrz lepiej przełożyć na spokojniejszy moment."
+      },
+      "rainTodayTomorrow": {
+        "0": "Najbliższe dni są mokre, zabezpiecz materiały i odkryte elementy.",
+        "1": "Warunki sprzyjają raczej pracy pod dachem niż na zewnątrz.",
+        "2": "Warto dziś skupić się na rzeczach, które nie lubią deszczu."
+      },
+      "rainToday": {
+        "0": "Dziś warunki mogą utrudniać prace zewnętrzne.",
+        "1": "Lepiej uważać na materiały i odkryte elementy.",
+        "2": "Na zewnątrz będzie trudniej, więc postaw na zabezpieczenia."
+      },
+      "rainTomorrow": {
+        "0": "Dziś dobry dzień na prace zewnętrzne, jutro możliwe opady.",
+        "1": "Warto dziś domknąć rzeczy na zewnątrz.",
+        "2": "Zabezpiecz materiały przed jutrzejszym deszczem."
+      },
+      "rainAfterTomorrow": {
+        "0": "Dziś i jutro warto wykorzystać na prace zewnętrzne.",
+        "1": "Za 2 dni możliwe opady, zabezpiecz materiały.",
+        "2": "Dobry moment na zewnętrzne zadania, zanim pogoda się pogorszy."
+      },
+      "windy": {
+        "0": "Uważaj przy pracach na wysokości i z lekkimi materiałami.",
+        "1": "Sprawdź mocowanie folii, membran i luźnych elementów.",
+        "2": "Silniejszy wiatr może utrudniać montaż na zewnątrz."
+      },
+      "cold": {
+        "0": "Zwróć uwagę na materiały wrażliwe na temperaturę.",
+        "1": "Sprawdź warunki dla prac mokrych i chemii budowlanej.",
+        "2": "Niska temperatura może wymagać ostrożniejszego planu."
+      },
+      "hot": {
+        "0": "Zapewnij wodę, przerwy i ochronę materiałów przed słońcem.",
+        "1": "Unikaj przegrzewania materiałów i pracy w pełnym słońcu.",
+        "2": "W upale lepiej planować krótsze odcinki pracy."
+      },
+      "noRain": {
+        "0": "Dobre warunki do prac zewnętrznych przez najbliższe dni.",
+        "1": "Najbliższe dni sprzyjają pracom na zewnątrz.",
+        "2": "Dobra pogoda na dostawy, porządki i prace wokół budowy."
+      },
+      "fallback": {
+        "0": "Sprawdź warunki przed planowaniem prac na zewnątrz.",
+        "1": "Prognoza może wymagać ręcznego sprawdzenia przed decyzją.",
+        "2": "Przed wyjściem na budowę warto zerknąć na aktualne dane."
+      }
     }
   },
   "modal": {

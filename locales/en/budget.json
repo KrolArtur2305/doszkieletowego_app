@@ -222,7 +222,8 @@
   "type": {
     "material": "Material",
     "service": "Service",
-    "mixed": "Material + Service"
+    "mixed": "Material + Service",
+    "other": "Other"
   },
   "modal": {
     "title": "Add expense",

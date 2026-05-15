@@ -8,6 +8,8 @@
     "nameRequired": "Project name is required to continue.",
     "locationRequired": "Investment location is required to continue.",
     "selectLocationFromList": "Please select a location from the list.",
+    "changeBuildTypeTitle": "Change the build type?",
+    "changeBuildTypeMsg": "Changing the build type will recalculate the current stage and adapt progress to the new workflow.",
     "invalidBudgetTitle": "Invalid budget",
     "invalidBudgetMsg": "Budget cannot be negative.",
     "errorTitle": "Error",
@@ -19,6 +21,7 @@
   "form": {
     "nameLabel": "Project name",
     "namePlaceholder": "e.g. House near Krakow",
+    "buildTypeLabel": "Build type",
     "countryLabel": "Country",
     "locationLabel": "Location",
     "locationPlaceholder": "Type a city, town, or address",
@@ -27,6 +30,11 @@
     "datePlaceholder": "Pick a date",
     "plannedBudgetLabel": "Planned budget",
     "plannedBudgetPlaceholder": "e.g. 450000"
+  },
+  "buildTypes": {
+    "murowany": "Masonry",
+    "szkieletowy": "Timber frame",
+    "inny": "Other"
   },
   "modal": {
     "pickStartTitle": "Select start date",
@@ -37,6 +45,7 @@
     "saveAndContinue": "Save & continue",
     "saveAndContinueToApp": "Save and go to the app",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "changeTypeConfirm": "Change build type"
   }
 }

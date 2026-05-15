@@ -69,6 +69,11 @@
 
   "model3dTitle": "3D model",
   "model3dNextStep": "Next step: upload .glb/.gltf and update projekty.model_url.",
+  "model3dEmptyFile": "The selected file is empty.",
+  "model3dTooLarge": "The model is too large. Maximum size is 50 MB.",
+  "model3dInvalidFile": "You can only add a .glb or .gltf file.",
+  "model3dUrlError": "Could not get a public URL for the model.",
+  "model3dSaveFailed": "Could not save the 3D model.",
 
   "model": {
     "hintRotateZoom": "Drag to rotate • Pinch to zoom",

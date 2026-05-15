@@ -13,6 +13,67 @@
     "noStages": "Keine Phasen.",
     "progressPercent": "Bau bei {{percent}}%"
   },
+  "hero": {
+    "cardLabel": "Aktuelle Phase",
+    "completedSteps": "{{done}} von {{total}} Schritten abgeschlossen"
+  },
+  "timeline": {
+    "cardLabel": "Hauptphasen"
+  },
+  "mainTimeline": {
+    "stanZero": "Bauvorbereitung",
+    "foundations": "Fundamente",
+    "construction": "Konstruktion",
+    "ssz": "Geschlossener Rohbau",
+    "installations": "Installationen",
+    "developerState": "Ausbau",
+    "finishing": "Ausbau"
+  },
+  "orders": {
+    "cardLabel": "Jetzt bestellen",
+    "subtitle": "Dinge mit längerer Lieferzeit",
+    "leadTime": {
+      "short": "1-2 Wochen",
+      "medium": "2-4 Wochen",
+      "long": "4-8 Wochen"
+    },
+    "geodetist": "Vermesser",
+    "rebar": "Bewehrung",
+    "concrete": "Beton",
+    "windows": "Fenster",
+    "roofTruss": "Dachbinder",
+    "joinery": "Tischlerei",
+    "roofing": "Dacheindeckung",
+    "gutters": "Dachrinnen",
+    "scaffolding": "Gerüst",
+    "doors": "Außentüren",
+    "sills": "Fensterbänke",
+    "foils": "Schutzfolien",
+    "electrical": "Elektroinstallation",
+    "plumbing": "Sanitärinstallation",
+    "ventilation": "Lüftung",
+    "plasters": "Putze",
+    "screeds": "Estriche",
+    "painting": "Malerarbeiten"
+  },
+  "upcoming": {
+    "cardLabel": "Steht an",
+    "hint": "Diese Phase wird gleich wichtig"
+  },
+  "nextStage": {
+    "cardLabel": "Nächste Phase",
+    "hint": "Nächste Hauptphase im Workflow"
+  },
+  "substeps": {
+    "cardLabel": "Unterphasen der aktuellen Phase",
+    "completed": "{{done}} von {{total}} Unterphasen abgeschlossen",
+    "cta": "Details prüfen"
+  },
+  "fallback": {
+    "currentGroup": "Aktuelle Phase",
+    "noCurrentStage": "Die aktuelle Phase konnte nicht ermittelt werden.",
+    "stage": "Bauphase"
+  },
   "names": {
     "planning": "Planung",
     "stanZero": "Nullstand",
@@ -21,6 +82,24 @@
     "installations": "Installationen",
     "developerState": "Ausbaufertig",
     "finishing": "Ausbau"
+  },
+  "stageTemplates": {
+    "masonry": {
+      "A01_01": "Vorbereitung des Untergrunds",
+      "A03_01": "Offener Rohbau - Phase 1",
+      "A03_02": "Offener Rohbau - Phase 2",
+      "A04_01": "Geschlossener Rohbau",
+      "A05_01": "Dachkonstruktion",
+      "A06_01": "Vorinstallationen"
+    },
+    "timberFrame": {
+      "B01_01": "Vorbereitung des Untergrunds",
+      "B03_01": "Holzrahmen - Phase 1",
+      "B03_02": "Holzrahmen - Phase 2",
+      "B04_01": "Geschlossener Rohbau",
+      "B05_01": "Dachkonstruktion",
+      "B06_01": "Vorinstallationen"
+    }
   },
   "stages": {
     "cardLabel": "Phasen",

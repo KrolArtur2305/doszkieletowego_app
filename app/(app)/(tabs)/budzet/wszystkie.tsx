@@ -5,6 +5,7 @@ import {
   FlatList,
   Linking,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,26 +13,40 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image as ExpoImage } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import {
-  filterWorkflowStages,
   getSuggestionStageCodesFromCurrentStageCode,
-  preferredStartStageCode,
   resolveRuntimeCurrentStageCode,
   workflowBuildType,
 } from '../../../../lib/buildWorkflow';
 import { getSuggestionDisplayName } from '../../../../lib/suggestionLabels';
 import {
   getBudgetCategoryLabel,
-  type BudgetCategoryValue,
 } from '../../../../lib/localizedLabels';
+import {
+  expenseCategoryCodeFromLegacyLabel,
+  expenseCategoryCodeToLegacyLabel,
+  buildStageGroupPickerOptions,
+  buildStagePickerOptions,
+  getStageDisplayName,
+  getStageGroupDisplayName,
+  normalizeExpenseType as normalizeExpenseTypeCode,
+  stageCodeFromLegacyStage,
+  stageGroupCodeFromLegacyStage,
+  type ExpenseCategoryCode,
+  type ExpenseType,
+  type StagePickerOption,
+  type StageTemplateLike,
+  type UserStageLike,
+} from '../../../../lib/stageModel';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppCard, AppInput, AppScreen } from '../../../../src/ui/components';
@@ -44,32 +59,36 @@ const STATUS_PLANNED = 'zaplanowany';
 const TYPE_MATERIAL = 'material';
 const TYPE_SERVICE = 'service';
 const TYPE_MIXED = 'mixed';
+const TYPE_OTHER = 'other';
 const logo = require('../../../assets/logo.png');
 
 const CATEGORY_OPTIONS = [
-  { value: 'Stan zero' },
-  { value: 'Stan surowy otwarty' },
-  { value: 'Stan surowy zamknięty' },
-  { value: 'Instalacje' },
-  { value: 'Stan deweloperski' },
-  { value: 'Inne' },
+  { value: 'foundations' },
+  { value: 'open_shell' },
+  { value: 'closed_shell' },
+  { value: 'installations' },
+  { value: 'developer_state' },
+  { value: 'other' },
 ] as const;
 
 type FilterType = 'all' | 'spent' | 'planned';
 type SortType = 'date' | 'amount' | 'stage';
 type TypeFilter = 'all' | 'material' | 'service';
 type TabType = 'mine' | 'suggested';
-type CategoryValue = BudgetCategoryValue;
-
+type CategoryValue = ExpenseCategoryCode;
 type WydatkiRow = {
   id: string;
   nazwa: string | null;
   kategoria: string | null;
+  expense_category_code?: string | null;
   kwota: number | string | null;
   data: string | null;
   status: string | null;
   typ?: string | null;
+  expense_type?: string | null;
   etap_id?: string | null;
+  stage_group_code?: string | null;
+  stage_code?: string | null;
   planowana_data?: string | null;
   created_at: string | null;
   plik: string | null;
@@ -100,6 +119,7 @@ type BudgetStageSuggestion = {
 type SuggestionView = BudgetStageSuggestion & {
   stage_id?: string | null;
   stage_name?: string | null;
+  stage_code?: string | null;
 };
 
 const safeNumber = (v: any) => {
@@ -115,9 +135,11 @@ const normalizeExpenseStatus = (status: any): typeof STATUS_PAID | typeof STATUS
   return STATUS_PAID;
 };
 
-const normalizeExpenseType = (type: any): typeof TYPE_MATERIAL | typeof TYPE_SERVICE => {
+const normalizeExpenseType = (type: any): typeof TYPE_MATERIAL | typeof TYPE_SERVICE | typeof TYPE_MIXED | typeof TYPE_OTHER => {
   const value = normalize(type);
   if (value === TYPE_SERVICE || value === 'usluga' || value === 'usługa') return TYPE_SERVICE;
+  if (value === TYPE_MIXED || value === 'mixed' || value === 'material + usluga' || value === 'material+usluga') return TYPE_MIXED;
+  if (value === TYPE_OTHER || value === 'other' || value === 'inne') return TYPE_OTHER;
   return TYPE_MATERIAL;
 };
 
@@ -134,10 +156,18 @@ const formatDateByLocale = (dateRaw: any, locale: string) => {
   return d.toLocaleDateString(locale);
 };
 
+const toYYYYMMDD = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 export default function WszystkieWydatkiScreen() {
   const { t, i18n } = useTranslation('budget');
   const { currency } = useCurrency();
   const router = useRouter();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
 
@@ -154,6 +184,10 @@ export default function WszystkieWydatkiScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [wydatki, setWydatki] = useState<WydatkiRow[]>([]);
   const [etapy, setEtapy] = useState<EtapRow[]>([]);
+  const [stageTemplates, setStageTemplates] = useState<StageTemplateLike[]>([]);
+  const [userStages, setUserStages] = useState<UserStageLike[]>([]);
+  const [currentWorkflowType, setCurrentWorkflowType] = useState<string>('murowany');
+  const [currentStageCode, setCurrentStageCode] = useState<string>('');
   const [stageSuggestions, setStageSuggestions] = useState<SuggestionView[]>([]);
   const [activeStageId, setActiveStageId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('mine');
@@ -167,13 +201,17 @@ export default function WszystkieWydatkiScreen() {
   const [saving, setSaving] = useState(false);
   const [editingExpense, setEditingExpense] = useState<WydatkiRow | null>(null);
   const [fNazwa, setFNazwa] = useState('');
-  const [fKategoria, setFKategoria] = useState<CategoryValue>('Inne');
+  const [fKategoria, setFKategoria] = useState<CategoryValue>('other');
   const [fKwota, setFKwota] = useState('');
   const [fStatus, setFStatus] = useState<typeof STATUS_PAID | typeof STATUS_PLANNED>(STATUS_PAID);
-  const [fTyp, setFTyp] = useState<typeof TYPE_MATERIAL | typeof TYPE_SERVICE>(TYPE_MATERIAL);
+  const [fTyp, setFTyp] = useState<ExpenseType>(TYPE_MATERIAL);
   const [fData, setFData] = useState('');
   const [fPlanowanaData, setFPlanowanaData] = useState('');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [datePickerValue, setDatePickerValue] = useState(new Date());
+  const [datePickerTarget, setDatePickerTarget] = useState<'data' | 'planned'>('data');
   const [fEtapId, setFEtapId] = useState<string | null>(null);
+  const [fStageKey, setFStageKey] = useState<string | null>(null);
   const [fSuggestionKey, setFSuggestionKey] = useState<string | null>(null);
   const [fOpis, setFOpis] = useState('');
   const [fSklep, setFSklep] = useState('');
@@ -181,10 +219,30 @@ export default function WszystkieWydatkiScreen() {
   const stageNameById = useMemo(() => {
     const out: Record<string, string> = {};
     etapy.forEach((e) => {
-      if (e.id && e.nazwa) out[e.id] = e.nazwa;
+      if (e.id) out[e.id] = getStageDisplayName(t, { stageCode: e.nazwa_code, legacyName: e.nazwa });
     });
     return out;
-  }, [etapy]);
+  }, [etapy, t]);
+
+  const stageOptions = useMemo(
+    () => buildStagePickerOptions(t, currentWorkflowType, stageTemplates, userStages, etapy),
+    [currentWorkflowType, etapy, stageTemplates, t, userStages]
+  );
+
+  const stageGroupOptions = useMemo(
+    () => buildStageGroupPickerOptions(t, stageOptions),
+    [stageOptions, t]
+  );
+
+  const selectedStageOption = useMemo(
+    () => stageGroupOptions.find((option) => option.key === fStageKey) ?? null,
+    [fStageKey, stageGroupOptions]
+  );
+
+  const selectedListStageOption = useMemo(
+    () => (stageFilter === 'all' ? null : stageOptions.find((option) => option.key === stageFilter) ?? null),
+    [stageFilter, stageOptions]
+  );
 
   const loadExpenses = useCallback(async () => {
     if (authLoading) return;
@@ -193,9 +251,19 @@ export default function WszystkieWydatkiScreen() {
     setLoading(true);
     setErrorMsg(null);
     try {
+      const authUserRes = await supabase.auth.getUser();
+      const authUser = authUserRes.data.user;
+      if (!authUser) {
+        setWydatki([]);
+        setEtapy([]);
+        setStageSuggestions([]);
+        setActiveStageId(null);
+        return;
+      }
+
       const expRes = await supabase
         .from('wydatki')
-        .select('id, nazwa, kategoria, kwota, data, status, typ, etap_id, planowana_data, created_at, plik, suggestion_key, opis, sklep')
+        .select('id, nazwa, kategoria, expense_category_code, kwota, data, status, typ, expense_type, etap_id, stage_group_code, stage_code, planowana_data, created_at, plik, suggestion_key, opis, sklep')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -218,34 +286,44 @@ export default function WszystkieWydatkiScreen() {
       const currentStage = activeStage ?? stageRows[0] ?? null;
       setActiveStageId(currentStage?.id ?? null);
 
-      const authUserRes = await supabase.auth.getUser();
-      const authUser = authUserRes.data.user;
-      if (!authUser) {
-        setStageSuggestions([]);
-        return;
-      }
-
       const profileRes = await supabase
         .from('profiles')
-        .select('build_type, current_stage_code, build_stage')
+        .select('build_type, current_stage_code')
         .eq('user_id', authUser.id)
         .single();
 
-      if (profileRes.error) {
-        setStageSuggestions([]);
-        return;
-      }
+      if (profileRes.error) throw profileRes.error;
 
       const buildTypeRaw = String((profileRes.data as any)?.build_type ?? '').trim();
       const normalizedBuildType = workflowBuildType(buildTypeRaw);
-      const currentStageCodeRaw = String((profileRes.data as any)?.current_stage_code ?? '').trim();
-      const currentStageCode = currentStageCodeRaw.toUpperCase();
+      const currentStageCode = String((profileRes.data as any)?.current_stage_code ?? '').trim().toUpperCase();
+      setCurrentWorkflowType(normalizedBuildType);
+      setCurrentStageCode(currentStageCode);
+      const stageCodes = getSuggestionStageCodesFromCurrentStageCode(normalizedBuildType, currentStageCode);
+      const usedSuggestionKeys = new Set(expenseRows.map((expense) => expense.suggestion_key).filter(Boolean));
 
       console.log('[Budget/List] build_type', buildTypeRaw);
       console.log('[Budget/List] normalized_build_type', normalizedBuildType);
-      console.log('[Budget/List] current_stage_code', currentStageCodeRaw);
-      const stageCodes = getSuggestionStageCodesFromCurrentStageCode(normalizedBuildType, currentStageCode);
-      const usedSuggestionKeys = new Set(expenseRows.map((expense) => expense.suggestion_key).filter(Boolean));
+      console.log('[Budget/List] current_stage_code', currentStageCode);
+
+      const [templateRes, userStageRes] = await Promise.all([
+        supabase
+          .from('stage_templates')
+          .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
+          .eq('workflow_code', normalizedBuildType === 'szkieletowy' ? 'timber_frame' : 'masonry')
+          .eq('is_active', true)
+          .order('order_index', { ascending: true }),
+        supabase
+          .from('user_stages')
+          .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
+          .eq('user_id', authUser.id)
+          .order('order_index', { ascending: true }),
+      ]);
+
+      if (templateRes.error) throw templateRes.error;
+      if (userStageRes.error) throw userStageRes.error;
+      setStageTemplates((templateRes.data ?? []) as StageTemplateLike[]);
+      setUserStages((userStageRes.data ?? []) as UserStageLike[]);
 
       const suggestionRes = await supabase
         .from('budget_stage_suggestions')
@@ -259,121 +337,33 @@ export default function WszystkieWydatkiScreen() {
 
       if (suggestionRes.error) {
         setStageSuggestions([]);
-        return;
-      }
-
-      const rawSuggestions = (suggestionRes.data ?? []) as BudgetStageSuggestion[];
-      const visibleSuggestions = rawSuggestions.filter(
-        (suggestion) => !!suggestion.expense_key && !usedSuggestionKeys.has(suggestion.expense_key)
-      );
-
-      console.log('[BudgetSuggestionsDebug]', {
-        userId,
-        normalizedBuildType,
-        currentStageCode,
-        stageCodes,
-        rawSuggestionsCount: rawSuggestions.length,
-        usedSuggestionKeys: Array.from(usedSuggestionKeys),
-        visibleSuggestionsCount: visibleSuggestions.length,
-      });
-
-      console.log('[Budget/List] suggestions found', visibleSuggestions.length);
-      setStageSuggestions(visibleSuggestions);
-      return;
-
-      const buildType = String((profileRes.data as any)?.build_type ?? '').trim();
-      const currentIndex = currentStage ? stageRows.findIndex((row) => row.id === currentStage.id) : -1;
-      const nextStage = currentIndex >= 0 ? stageRows[currentIndex + 1] : null;
-      const stageCandidates = [currentStage, nextStage].filter(Boolean) as EtapRow[];
-      const legacyStageCodes = stageCandidates.map((stage) => stage.nazwa_code).filter(Boolean) as string[];
-
-      if (!buildType || legacyStageCodes.length === 0) {
-        setStageSuggestions([]);
       } else {
-        const suggestionRes = await supabase
-          .from('budget_stage_suggestions')
-          .select('id, build_type, stage_code, expense_key, expense_name_key, default_type, priority, is_active, include_in_budget')
-          .eq('build_type', buildType)
-          .eq('is_active', true)
-          .eq('include_in_budget', true)
-          .in('stage_code', legacyStageCodes)
-          .order('priority', { ascending: true });
+        const rawSuggestions = (suggestionRes.data ?? []) as BudgetStageSuggestion[];
+        const visibleSuggestions = rawSuggestions.filter(
+          (suggestion) => !!suggestion.expense_key && !usedSuggestionKeys.has(suggestion.expense_key)
+        );
 
-        if (suggestionRes.error) {
-          setStageSuggestions([]);
-          return;
-        }
+        console.log('[BudgetSuggestionsDebug]', {
+          userId,
+          normalizedBuildType,
+          currentStageCode,
+          stageCodes,
+          rawSuggestionsCount: rawSuggestions.length,
+          usedSuggestionKeys: Array.from(usedSuggestionKeys),
+          visibleSuggestionsCount: visibleSuggestions.length,
+        });
 
-        const usedSuggestionKeys = new Set(expenseRows.map((expense) => expense.suggestion_key).filter(Boolean));
-        const byStageCode = new Map(stageCandidates.map((stage) => [stage.nazwa_code, stage]));
-        const visibleSuggestions = ((suggestionRes.data ?? []) as BudgetStageSuggestion[])
-          .filter((suggestion) => !!suggestion.expense_key && !usedSuggestionKeys.has(suggestion.expense_key))
-          .filter((suggestion) => normalize(suggestion.default_type) !== TYPE_SERVICE)
-          .map((suggestion) => {
-            const stage = byStageCode.get(suggestion.stage_code);
-            return { ...suggestion, stage_id: stage?.id ?? null, stage_name: stage?.nazwa ?? null };
-          })
-          .sort((a, b) => safeNumber(a.priority) - safeNumber(b.priority));
-
+        console.log('[Budget/List] suggestions found', visibleSuggestions.length);
         setStageSuggestions(visibleSuggestions);
       }
 
-      const workflowStageRows = filterWorkflowStages(stageRows, buildType);
-      const workflowCompletedStatuses = new Set(['zrealizowany', 'wykonany', 'done', 'completed', 'ukończony']);
-      const workflowActiveStage = workflowStageRows.find((row) => !workflowCompletedStatuses.has(normalize(row.status)));
-      const workflowFallbackStage = workflowStageRows[0] ?? null;
-      const workflowCurrentStage = workflowActiveStage ?? workflowFallbackStage ?? null;
-      setEtapy(workflowStageRows);
-      setActiveStageId(workflowCurrentStage?.id ?? null);
-
-      const workflowPreferredStageCode = preferredStartStageCode(buildType, (profileRes.data as any)?.current_stage_code);
-      const workflowPreferredStage =
-        workflowStageRows.find((row) => String(row.nazwa_code ?? '').trim().toUpperCase() === workflowPreferredStageCode) ?? null;
-      const workflowCurrentIndex = workflowCurrentStage ? workflowStageRows.findIndex((row) => row.id === workflowCurrentStage.id) : -1;
-      const workflowNextStage = workflowCurrentIndex >= 0 ? workflowStageRows[workflowCurrentIndex + 1] : null;
-      const workflowStageCandidates = [workflowCurrentStage ?? workflowPreferredStage, workflowNextStage].filter(Boolean) as EtapRow[];
-      const workflowStageCodes = workflowStageCandidates.map((stage) => stage.nazwa_code).filter(Boolean) as string[];
-
-      if (!buildType || workflowStageCodes.length === 0) {
-        setStageSuggestions([]);
-      } else {
-        const workflowSuggestionRes = await supabase
-          .from('budget_stage_suggestions')
-          .select('id, build_type, stage_code, expense_key, expense_name_key, default_type, priority, is_active, include_in_budget')
-          .eq('build_type', workflowBuildType(buildType))
-          .eq('is_active', true)
-          .eq('include_in_budget', true)
-          .in('stage_code', workflowStageCodes)
-          .order('priority', { ascending: true });
-
-        if (workflowSuggestionRes.error) {
-          setStageSuggestions([]);
-          return;
-        }
-
-        const workflowUsedSuggestionKeys = new Set(expenseRows.map((expense) => expense.suggestion_key).filter(Boolean));
-        const workflowByStageCode = new Map(workflowStageCandidates.map((stage) => [stage.nazwa_code, stage]));
-        const workflowVisibleSuggestions = ((workflowSuggestionRes.data ?? []) as BudgetStageSuggestion[])
-          .filter((suggestion) => !!suggestion.expense_key && !workflowUsedSuggestionKeys.has(suggestion.expense_key))
-          .filter((suggestion) => normalize(suggestion.default_type) !== TYPE_SERVICE)
-          .map((suggestion) => {
-            const stage = workflowByStageCode.get(suggestion.stage_code);
-            return { ...suggestion, stage_id: stage?.id ?? null, stage_name: stage?.nazwa ?? null };
-          })
-          .sort((a, b) => safeNumber(a.priority) - safeNumber(b.priority));
-
-        setStageSuggestions(workflowVisibleSuggestions);
-      }
-
-      const storedStageCode = String((profileRes.data as any)?.current_stage_code ?? '').trim().toUpperCase();
-      const runtimeStageCode = resolveRuntimeCurrentStageCode(stageRows, buildType, storedStageCode);
+      const storedStageCode = currentStageCode;
+      const runtimeStageCode = resolveRuntimeCurrentStageCode(stageRows, normalizedBuildType, storedStageCode);
       if (runtimeStageCode !== storedStageCode) {
-        await supabase
-          .from('profiles')
-          .upsert(
-            { user_id: authUser!.id, current_stage_code: runtimeStageCode },
-            { onConflict: 'user_id' }
-          );
+        await supabase.from('profiles').upsert(
+          { user_id: authUser.id, current_stage_code: runtimeStageCode },
+          { onConflict: 'user_id' }
+        );
       }
     } catch (e: any) {
       setErrorMsg(e?.message ?? t('errors.fetchFailed'));
@@ -385,6 +375,11 @@ export default function WszystkieWydatkiScreen() {
   useEffect(() => {
     loadExpenses();
   }, [loadExpenses]);
+
+  useEffect(() => {
+    if (tab === 'suggested') setActiveTab('suggested');
+    if (tab === 'mine') setActiveTab('mine');
+  }, [tab]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -398,8 +393,20 @@ export default function WszystkieWydatkiScreen() {
       if (filter === 'planned') return normalizeExpenseStatus(w.status) === STATUS_PLANNED;
       return true;
     }).filter((w) => {
-      if (typeFilter !== 'all' && normalizeExpenseType(w.typ) !== typeFilter) return false;
-      if (stageFilter !== 'all' && w.etap_id !== stageFilter) return false;
+      if (typeFilter !== 'all' && normalizeExpenseTypeCode(w.expense_type ?? w.typ) !== typeFilter) return false;
+      if (selectedListStageOption) {
+        const selectedStageCode = normalize(selectedListStageOption.stageCode);
+        const selectedLegacyId = normalize(selectedListStageOption.legacyId);
+        const selectedGroupCode = normalize(selectedListStageOption.stageGroupCode);
+        const expenseStageCode = normalize(w.stage_code);
+        const expenseLegacyId = normalize(w.etap_id);
+        const expenseGroupCode = normalize(w.stage_group_code);
+        const matches =
+          (!!selectedStageCode && !!expenseStageCode && expenseStageCode === selectedStageCode) ||
+          (!!selectedLegacyId && !!expenseLegacyId && expenseLegacyId === selectedLegacyId) ||
+          (!!selectedGroupCode && !!expenseGroupCode && expenseGroupCode === selectedGroupCode);
+        if (!matches) return false;
+      }
       return true;
     });
 
@@ -410,8 +417,16 @@ export default function WszystkieWydatkiScreen() {
       const bDate = new Date(expenseDateForMonth(b) || b.created_at || 0).getTime() || 0;
 
       if (sortBy === 'stage') {
-        const aStage = a.etap_id ? stageNameById[a.etap_id] : '';
-        const bStage = b.etap_id ? stageNameById[b.etap_id] : '';
+        const aStage = getStageDisplayName(t, {
+          stageCode: a.stage_code,
+          legacyName: a.etap_id ? stageNameById[a.etap_id] : null,
+          fallback: t('fallback.stage', { defaultValue: 'Etap budowy' }),
+        });
+        const bStage = getStageDisplayName(t, {
+          stageCode: b.stage_code,
+          legacyName: b.etap_id ? stageNameById[b.etap_id] : null,
+          fallback: t('fallback.stage', { defaultValue: 'Etap budowy' }),
+        });
         const byStage = (aStage || '').localeCompare(bStage || '', datePickerLocale);
         if (byStage !== 0) return byStage;
       }
@@ -462,12 +477,13 @@ export default function WszystkieWydatkiScreen() {
     setEditingExpense(null);
     setFNazwa('');
     setFKwota('');
-    setFKategoria('Inne');
+    setFKategoria('other');
     setFStatus(STATUS_PAID);
     setFTyp(TYPE_MATERIAL);
     setFData('');
     setFPlanowanaData('');
     setFEtapId(null);
+    setFStageKey(stageGroupOptions[0]?.key ?? null);
     setFSuggestionKey(null);
     setFOpis('');
     setFSklep('');
@@ -478,16 +494,42 @@ export default function WszystkieWydatkiScreen() {
     setEditingExpense(expense);
     setFNazwa(expense.nazwa || '');
     setFKwota(expense.kwota !== null && expense.kwota !== undefined ? String(expense.kwota) : '');
-    setFKategoria((expense.kategoria as CategoryValue) || 'Inne');
+    setFKategoria(expenseCategoryCodeFromLegacyLabel(expense.expense_category_code ?? expense.kategoria));
     setFStatus(normalizeExpenseStatus(expense.status));
-    setFTyp(normalizeExpenseType(expense.typ));
+    setFTyp(normalizeExpenseTypeCode(expense.expense_type ?? expense.typ));
     setFData(expense.data || '');
     setFPlanowanaData(expense.planowana_data || '');
     setFEtapId(expense.etap_id || null);
+    const stageMatch =
+      stageGroupOptions.find((option) => option.stageCode && String(option.stageCode).toUpperCase() === String(expense.stage_code ?? '').trim().toUpperCase()) ??
+      stageGroupOptions.find((option) => option.legacyId && option.legacyId === expense.etap_id) ??
+      stageGroupOptions[0] ??
+      null;
+    setFStageKey(stageMatch?.key ?? null);
     setFSuggestionKey(expense.suggestion_key || null);
     setFOpis(expense.opis || '');
     setFSklep(expense.sklep || '');
     setAddOpen(true);
+  };
+
+  const openDatePicker = (target: 'data' | 'planned') => {
+    setDatePickerTarget(target);
+    const current = target === 'planned' ? fPlanowanaData : fData;
+    const base = current?.trim() ? new Date(current.trim()) : new Date();
+    if (!Number.isNaN(base.getTime())) setDatePickerValue(base);
+    setDatePickerOpen(true);
+  };
+
+  const onDatePicked = (event: any, selected?: Date) => {
+    if (Platform.OS === 'android') setDatePickerOpen(false);
+    if (event?.type === 'dismissed') return;
+    const d = selected ?? datePickerValue;
+    setDatePickerValue(d);
+    if (datePickerTarget === 'planned') {
+      setFPlanowanaData(toYYYYMMDD(d));
+    } else {
+      setFData(toYYYYMMDD(d));
+    }
   };
 
   const saveExpense = async () => {
@@ -505,16 +547,27 @@ export default function WszystkieWydatkiScreen() {
 
     setSaving(true);
     try {
+      const selectedStage = selectedStageOption;
+      const legacyStage = fEtapId ? etapy.find((stage) => stage.id === fEtapId) ?? null : null;
+      const stageCode = selectedStage?.stageCode ?? stageCodeFromLegacyStage(legacyStage, legacyStage ? etapy.findIndex((stage) => stage.id === legacyStage.id) : undefined);
+      const stageGroupCode = selectedStage?.stageGroupCode ?? stageGroupCodeFromLegacyStage(legacyStage);
+      const expenseCategoryCode = expenseCategoryCodeFromLegacyLabel(fKategoria);
+      const expenseCategoryLegacy = expenseCategoryCodeToLegacyLabel(expenseCategoryCode);
+      const expenseType = normalizeExpenseTypeCode(fTyp);
       const payload = {
         user_id: userId,
         nazwa,
-        kategoria: fKategoria,
+        kategoria: expenseCategoryLegacy,
+        expense_category_code: expenseCategoryCode,
         kwota: kw,
         status: fStatus,
-        typ: fTyp,
+        typ: expenseType,
+        expense_type: expenseType,
         data: fData.trim() || null,
         planowana_data: fStatus === STATUS_PLANNED && fPlanowanaData.trim() ? fPlanowanaData.trim() : null,
         etap_id: fEtapId || null,
+        stage_group_code: stageGroupCode,
+        stage_code: stageCode,
         suggestion_key: fSuggestionKey || null,
         opis: fOpis.trim() || null,
         sklep: fSklep.trim() || null,
@@ -528,6 +581,7 @@ export default function WszystkieWydatkiScreen() {
 
       setEditingExpense(null);
       setAddOpen(false);
+      setFStageKey(null);
       await loadExpenses();
     } catch (e: any) {
       Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), e?.message ?? t('errors.addFailed'));
@@ -551,30 +605,28 @@ export default function WszystkieWydatkiScreen() {
     setEditingExpense(null);
     setFNazwa(suggestionName(suggestion));
     setFKwota('');
-    setFKategoria('Inne');
+    setFKategoria('other');
     setFStatus(STATUS_PLANNED);
-    setFTyp(normalize(suggestion.default_type) === TYPE_SERVICE ? TYPE_SERVICE : TYPE_MATERIAL);
+    setFTyp(normalizeExpenseTypeCode(suggestion.default_type));
     setFData('');
     setFPlanowanaData('');
-    setFEtapId(suggestion.stage_id || activeStageId);
+    const suggestionStageCode = String(suggestion.stage_code ?? '').trim().toUpperCase();
+    const stageMatch =
+      stageGroupOptions.find((option) => option.stageCode && option.stageCode === suggestionStageCode) ??
+      stageGroupOptions.find((option) => option.legacyId && option.legacyId === suggestion.stage_id) ??
+      stageGroupOptions[0] ??
+      null;
+    setFStageKey(stageMatch?.key ?? null);
+    setFEtapId(stageMatch?.legacyId ?? suggestion.stage_id ?? activeStageId);
     setFSuggestionKey(suggestion.expense_key || null);
     setFOpis('');
     setFSklep('');
     setAddOpen(true);
-  }, [activeStageId, suggestionName]);
-
-  const stageShortLabel = useCallback((stage: EtapRow, index: number) => {
-    const code = String(stage.nazwa_code || '').trim();
-    if (code) return code.replace(/^stage[_-]?/i, '').toUpperCase();
-    return `A${index + 1}`;
-  }, []);
+  }, [activeStageId, stageGroupOptions, suggestionName]);
 
   const selectedStageLabel = useMemo(() => {
-    if (stageFilter === 'all') return t('modal.stageFallback');
-    const index = etapy.findIndex((stage) => stage.id === stageFilter);
-    if (index < 0) return t('modal.stageFallback');
-    return stageShortLabel(etapy[index], index);
-  }, [etapy, stageFilter, stageShortLabel, t]);
+    return selectedListStageOption?.label ?? t('modal.stageFallback');
+  }, [selectedListStageOption, t]);
 
   const recentTitle = useMemo(() => {
     return 'Wydatki';
@@ -589,7 +641,13 @@ export default function WszystkieWydatkiScreen() {
 
   const renderExpense = ({ item }: { item: WydatkiRow }) => {
     const status = normalizeExpenseStatus(item.status);
-    const type = normalizeExpenseType(item.typ);
+    const type = normalizeExpenseTypeCode(item.expense_type ?? item.typ);
+    const expenseCategoryLabel = getBudgetCategoryLabel(item.expense_category_code ?? item.kategoria, t);
+    const stageLabel = getStageDisplayName(t, {
+      stageCode: item.stage_code,
+      legacyName: item.etap_id && stageNameById[item.etap_id] ? stageNameById[item.etap_id] : null,
+      fallback: t('fallback.stage', { defaultValue: 'Etap budowy' }),
+    });
     return (
       <Swipeable renderRightActions={() => renderRightActions(item)} overshootRight={false} rightThreshold={40}>
         <TouchableOpacity
@@ -607,8 +665,8 @@ export default function WszystkieWydatkiScreen() {
               <Text style={styles.itemMetaCompact} numberOfLines={1}>
               {formatDateByLocale(expenseDateForMonth(item), datePickerLocale)}
               {'  •  '}
-              {getBudgetCategoryLabel(item.kategoria, t)}
-              {!!item.etap_id && stageNameById[item.etap_id] ? `  •  ${stageNameById[item.etap_id]}` : ''}
+              {expenseCategoryLabel}
+              {!!stageLabel ? `  •  ${stageLabel}` : ''}
               {'  •  '}
               </Text>
               <View style={styles.badgeRow}>
@@ -616,7 +674,15 @@ export default function WszystkieWydatkiScreen() {
                   <Text style={styles.miniBadgeText}>{status === STATUS_PAID ? t('status.paid') : t('status.planned')}</Text>
                 </View>
                 <View style={styles.miniBadge}>
-                  <Text style={styles.miniBadgeText}>{type === TYPE_MATERIAL ? t('type.material') : t('type.service')}</Text>
+                  <Text style={styles.miniBadgeText}>
+                    {type === TYPE_SERVICE
+                      ? t('type.service')
+                      : type === TYPE_MIXED
+                        ? t('type.mixed')
+                        : type === TYPE_OTHER
+                          ? t('type.other')
+                          : t('type.material')}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -709,7 +775,7 @@ export default function WszystkieWydatkiScreen() {
                 </TouchableOpacity>
               ))}
               <TouchableOpacity
-                onPress={() => setStageFilter(stageFilter === 'all' ? etapy[0]?.id ?? 'all' : 'all')}
+                onPress={() => setStageFilter(stageFilter === 'all' ? stageOptions[0]?.key ?? 'all' : 'all')}
                 style={[styles.filterPill, stageFilter !== 'all' && styles.filterPillActive]}
                 activeOpacity={0.85}
               >
@@ -717,15 +783,15 @@ export default function WszystkieWydatkiScreen() {
                   {selectedStageLabel}
                 </Text>
               </TouchableOpacity>
-              {etapy.map((stage, index) => (
+              {stageOptions.map((stage) => (
                 <TouchableOpacity
-                  key={stage.id}
-                  onPress={() => setStageFilter(stage.id)}
-                  style={[styles.stageDot, stageFilter === stage.id && styles.stageDotActive]}
+                  key={stage.key}
+                  onPress={() => setStageFilter(stage.key)}
+                  style={[styles.stageDot, stageFilter === stage.key && styles.stageDotActive]}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.stageDotText, stageFilter === stage.id && styles.stageDotTextActive]}>
-                    {stageShortLabel(stage, index)}
+                  <Text style={[styles.stageDotText, stageFilter === stage.key && styles.stageDotTextActive]}>
+                    {stage.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -778,17 +844,13 @@ export default function WszystkieWydatkiScreen() {
               <TouchableOpacity style={styles.suggestionCard} onPress={() => openSuggestionExpense(item)} activeOpacity={0.9}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.suggestionTitle} numberOfLines={1}>{suggestionName(item)}</Text>
-                  <View style={styles.suggestionMetaRow}>
-                    <View style={styles.suggestionPill}>
-                      <Text style={styles.suggestionPillText}>
-                        {String(item.stage_code || item.stage_name || '').trim().toUpperCase() || '-'}
-                      </Text>
-                    </View>
-                    <View style={styles.suggestionPill}>
-                      <Text style={styles.suggestionPillText}>{suggestionTypeLabel(item.default_type)}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.suggestionHint}>{t('suggestions.mayBeNeededAtThisStage')}</Text>
+                  <Text style={styles.suggestionHint}>
+                    Etap: {getStageDisplayName(t, {
+                      stageCode: item.stage_code,
+                      legacyName: item.stage_name,
+                      fallback: t('fallback.stage', { defaultValue: 'Etap budowy' }),
+                    })}
+                  </Text>
                 </View>
                 <View style={styles.suggestionMiniCta}>
                   <Text style={styles.suggestionMiniCtaText}>{t('suggestions.add')}</Text>
@@ -837,9 +899,9 @@ export default function WszystkieWydatkiScreen() {
               <TouchableOpacity onPress={() => setStageFilter('all')} style={[styles.filterPill, stageFilter === 'all' && styles.filterPillActive]} activeOpacity={0.85}>
                 <Text style={[styles.filterPillText, stageFilter === 'all' && styles.filterPillTextActive]}>{t('filter.all')}</Text>
               </TouchableOpacity>
-              {etapy.map((stage, index) => (
-                <TouchableOpacity key={stage.id} onPress={() => setStageFilter(stage.id)} style={[styles.stageDot, stageFilter === stage.id && styles.stageDotActive]} activeOpacity={0.85}>
-                  <Text style={[styles.stageDotText, stageFilter === stage.id && styles.stageDotTextActive]}>{stageShortLabel(stage, index)}</Text>
+              {stageOptions.map((stage) => (
+                <TouchableOpacity key={stage.key} onPress={() => setStageFilter(stage.key)} style={[styles.stageDot, stageFilter === stage.key && styles.stageDotActive]} activeOpacity={0.85}>
+                  <Text style={[styles.stageDotText, stageFilter === stage.key && styles.stageDotTextActive]}>{stage.label}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -930,45 +992,94 @@ export default function WszystkieWydatkiScreen() {
                 <TouchableOpacity style={[styles.pill, fTyp === TYPE_SERVICE && styles.pillOn]} onPress={() => setFTyp(TYPE_SERVICE)}>
                   <Text style={[styles.pillText, fTyp === TYPE_SERVICE && styles.pillTextOn]}>{t('type.service')}</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={[styles.pill, fTyp === TYPE_OTHER && styles.pillOn]} onPress={() => setFTyp(TYPE_OTHER)}>
+                  <Text style={[styles.pillText, fTyp === TYPE_OTHER && styles.pillTextOn]}>{t('type.other')}</Text>
+                </TouchableOpacity>
               </View>
 
-              <Text style={styles.lbl}>{t('modal.categoryLabel')}</Text>
-              <View style={styles.catGrid}>
-                {CATEGORY_OPTIONS.map((option) => {
-                  const on = normalize(fKategoria) === normalize(option.value);
-                  return (
-                    <TouchableOpacity key={option.value} onPress={() => setFKategoria(option.value)} style={[styles.catTile, on && styles.catTileOn]} activeOpacity={0.85}>
-                      <Text style={[styles.catTileText, on && styles.catTileTextOn]}>
-                        {getBudgetCategoryLabel(option.value, t, true)}
-                      </Text>
+              <View style={styles.compactDateGroup}>
+                <View style={styles.compactDateField}>
+                  <Text style={styles.compactDateLabel}>{t('modal.dateOptional')}</Text>
+                  <View style={styles.dateRow}>
+                    <AppInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" />
+                    <TouchableOpacity style={styles.calBtn} onPress={() => openDatePicker('data')} activeOpacity={0.85}>
+                      <Text style={styles.calIcon}>📅</Text>
                     </TouchableOpacity>
-                  );
-                })}
+                  </View>
+                </View>
+
+                {fStatus === STATUS_PLANNED && (
+                  <View style={styles.compactDateField}>
+                    <Text style={styles.compactDateLabel}>{t('modal.plannedDateLabel')}</Text>
+                    <View style={styles.dateRow}>
+                      <AppInput value={fPlanowanaData} onChangeText={setFPlanowanaData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" />
+                      <TouchableOpacity style={styles.calBtn} onPress={() => openDatePicker('planned')} activeOpacity={0.85}>
+                        <Text style={styles.calIcon}>📅</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
               </View>
 
-              <Text style={styles.lbl}>{t('modal.dateOptional')}</Text>
-              <AppInput value={fData} onChangeText={setFData} style={styles.input} placeholder="YYYY-MM-DD" />
-
-              {fStatus === STATUS_PLANNED && (
-                <>
-                  <Text style={styles.lbl}>{t('modal.plannedDateLabel')}</Text>
-                  <AppInput value={fPlanowanaData} onChangeText={setFPlanowanaData} style={styles.input} placeholder="YYYY-MM-DD" />
-                </>
+              {datePickerOpen && (
+                Platform.OS === 'ios' ? (
+                  <View style={styles.iosDateWrap}>
+                    <DateTimePicker value={datePickerValue} mode="date" display="spinner" locale={datePickerLocale} onChange={onDatePicked} />
+                    <TouchableOpacity style={styles.iosDateOk} onPress={() => {
+                      setDatePickerOpen(false);
+                      const next = toYYYYMMDD(datePickerValue);
+                      if (datePickerTarget === 'planned') setFPlanowanaData(next);
+                      else setFData(next);
+                    }} activeOpacity={0.85}>
+                      <Text style={styles.iosDateOkText}>{t('modal.setDate')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <DateTimePicker value={datePickerValue} mode="date" display="default" locale={datePickerLocale} onChange={onDatePicked} />
+                )
               )}
 
-              {etapy.length > 0 && (
+              {(stageGroupOptions.length > 0 || etapy.length > 0) && (
                 <>
                   <Text style={styles.lbl}>{t('modal.stageLabel')}</Text>
-                  <View style={styles.catGrid}>
-                    <TouchableOpacity onPress={() => setFEtapId(null)} style={[styles.catTile, !fEtapId && styles.catTileOn]} activeOpacity={0.85}>
-                      <Text style={[styles.catTileText, !fEtapId && styles.catTileTextOn]}>{t('modal.noStage')}</Text>
+                  <View style={styles.compactStageGrid}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setFEtapId(null);
+                        setFStageKey(null);
+                      }}
+                      style={[styles.compactStageChip, !fStageKey && !fEtapId && styles.compactStageChipOn]}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.compactStageChipText, !fStageKey && !fEtapId && styles.compactStageChipTextOn]}>{t('modal.noStage')}</Text>
                     </TouchableOpacity>
-                    {etapy.map((etap) => {
-                      const on = fEtapId === etap.id;
+                    {(stageGroupOptions.length > 0 ? stageGroupOptions : etapy.map((etap, index) => ({
+                      key: `legacy:${etap.id}`,
+                      label: getStageGroupDisplayName(t, stageGroupCodeFromLegacyStage(etap)),
+                      legacyId: etap.id,
+                      stageCode: stageCodeFromLegacyStage(etap, index),
+                      stageGroupCode: stageGroupCodeFromLegacyStage(etap),
+                      source: 'legacy',
+                      orderIndex: index,
+                    } as StagePickerOption))).map((etap) => {
+                      const on = stageGroupOptions.length > 0 ? fStageKey === etap.key : fEtapId === etap.legacyId;
                       return (
-                        <TouchableOpacity key={etap.id} onPress={() => setFEtapId(etap.id)} style={[styles.catTile, on && styles.catTileOn]} activeOpacity={0.85}>
-                          <Text style={[styles.catTileText, on && styles.catTileTextOn]} numberOfLines={2}>
-                            {etap.nazwa || t('modal.stageFallback')}
+                        <TouchableOpacity
+                          key={etap.key}
+                          onPress={() => {
+                            if (stageGroupOptions.length > 0) {
+                              setFStageKey(etap.key);
+                              setFEtapId(etap.legacyId ?? null);
+                            } else {
+                              setFStageKey(null);
+                              setFEtapId(etap.legacyId ?? null);
+                            }
+                          }}
+                          style={[styles.compactStageChip, on && styles.compactStageChipOn]}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={[styles.compactStageChipText, on && styles.compactStageChipTextOn]} numberOfLines={1}>
+                            {etap.label}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -1262,11 +1373,59 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: 18,
   },
-  modalCardOuter: { marginBottom: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
-  modalCard: { padding: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 0, backgroundColor: '#000000' },
+  modalCardOuter: {
+    marginBottom: 0,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    overflow: 'hidden',
+  },
+  modalCard: {
+    padding: 16,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.12)',
+    backgroundColor: '#050B0A',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: -6 },
+    elevation: 10,
+  },
   modalTitle: { color: NEON, fontWeight: '900', fontSize: 18, marginBottom: 12, textAlign: 'center' },
   lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
   input: {},
+  dateRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  calBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  calIcon: { fontSize: 18 },
+  iosDateWrap: {
+    marginTop: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  iosDateOk: {
+    margin: 12,
+    alignSelf: 'flex-end',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+  },
+  iosDateOkText: { color: NEON, fontWeight: '900', fontSize: 12 },
   row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
   pill: {
     flex: 1,
@@ -1296,6 +1455,26 @@ const styles = StyleSheet.create({
   catTileOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
   catTileText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
   catTileTextOn: { color: 'rgba(220,255,245,0.98)' },
+  compactStageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 2 },
+  compactStageChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  compactStageChipOn: { borderColor: 'rgba(37,240,200,0.40)', backgroundColor: 'rgba(37,240,200,0.12)' },
+  compactStageChipText: { color: '#94A3B8', fontWeight: '800', fontSize: 12, letterSpacing: 0 },
+  compactStageChipTextOn: { color: 'rgba(220,255,245,0.98)' },
+  compactDateGroup: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  compactDateField: { flex: 1, gap: 6 },
+  compactDateLabel: { color: '#94A3B8', fontSize: 11, fontWeight: '800' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   modalBtn: { flex: 1 },
 });

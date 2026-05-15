@@ -222,7 +222,8 @@
   "type": {
     "material": "Material",
     "service": "Dienstleistung",
-    "mixed": "Material + Dienstleistung"
+    "mixed": "Material + Dienstleistung",
+    "other": "Andere"
   },
   "modal": {
     "title": "Ausgabe hinzufügen",

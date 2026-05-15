@@ -19,6 +19,7 @@ import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { supabase } from '../../../../lib/supabase'
+import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
 import * as FileSystem from 'expo-file-system/legacy'
@@ -30,9 +31,12 @@ import { colors, radius, spacing, typography } from '../../../../src/ui/theme'
 const ACCENT = colors.accent
 const NEON = colors.accentBright
 const DEFAULT_MODEL_URL = 'https://pkgeautweumkupfxfjoo.supabase.co/storage/v1/object/public/models/dom_small.glb'
+const BUCKET_MODELS = 'models'
 const BUCKET_RZUTY = 'rzuty_projektu'
 const MAX_PLAN_UPLOAD_BYTES = 15 * 1024 * 1024
+const MAX_MODEL_UPLOAD_BYTES = 50 * 1024 * 1024
 const ALLOWED_PLAN_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic'])
+const ALLOWED_MODEL_EXTENSIONS = new Set(['glb', 'gltf'])
 
 type Projekt = {
   id: string
@@ -111,6 +115,59 @@ function keyFromStoredUrl(storedUrl: string) {
   }
 
   return null
+}
+
+function keyFromStoredModelUrl(storedUrl: string) {
+  const rawValue = String(storedUrl || '').trim()
+  if (!rawValue) return null
+  if (!/^https?:\/\//i.test(rawValue)) return rawValue.replace(/^\/+/, '') || null
+
+  const publicMarker = `/storage/v1/object/public/${BUCKET_MODELS}/`
+  const signedMarker = `/storage/v1/object/sign/${BUCKET_MODELS}/`
+
+  const publicIdx = rawValue.indexOf(publicMarker)
+  if (publicIdx !== -1) {
+    return rawValue.slice(publicIdx + publicMarker.length).split('?')[0]
+  }
+
+  const signedIdx = rawValue.indexOf(signedMarker)
+  if (signedIdx !== -1) {
+    return rawValue.slice(signedIdx + signedMarker.length).split('?')[0]
+  }
+
+  return null
+}
+
+function getFileExt(value: string) {
+  const base = String(value || '').split('/').pop() || value || ''
+  const match = /\.([^.]+)$/.exec(base.trim())
+  return match?.[1]?.toLowerCase() || ''
+}
+
+function isAllowedModelFile(nameOrUri: string, mimeType?: string | null) {
+  const ext = getFileExt(nameOrUri)
+  if (ALLOWED_MODEL_EXTENSIONS.has(ext)) return true
+
+  const mime = String(mimeType || '').toLowerCase()
+  if (!mime) return false
+
+  return (
+    mime.includes('gltf') ||
+    mime === 'model/gltf-binary' ||
+    mime === 'model/gltf+json' ||
+    mime === 'application/octet-stream' ||
+    mime === 'application/json'
+  )
+}
+
+function guessModelMimeType(nameOrUri: string, mimeType?: string | null) {
+  const provided = String(mimeType || '').trim().toLowerCase()
+  if (provided) return provided
+
+  const ext = getFileExt(nameOrUri)
+  if (ext === 'gltf') return 'application/json'
+  if (ext === 'glb') return 'application/octet-stream'
+  return 'application/octet-stream'
 }
 
 async function withSignedUrls(rows: Rzut[]): Promise<Rzut[]> {
@@ -197,6 +254,7 @@ export default function ProjektScreen() {
   const [pendingPlanPreset, setPendingPlanPreset] = useState<string | null>(null)
   const [planNameOpen, setPlanNameOpen] = useState(false)
   const [planUploading, setPlanUploading] = useState(false)
+  const [modelUploading, setModelUploading] = useState(false)
   const setupModalOpenedRef = useRef(false)
 
   useEffect(() => {
@@ -306,11 +364,153 @@ export default function ProjektScreen() {
     return inserted as any
   }
 
-  const handleChangeModel = () => {
-    Alert.alert(
-      t('model3dTitle', { defaultValue: 'Model 3D' }),
-      t('model3dNextStep', { defaultValue: 'Upload .glb/.gltf w następnym kroku.' })
-    )
+  const handleChangeModel = async () => {
+    try {
+      if (modelUploading) return
+
+      if (!userId) {
+        Alert.alert(
+          t('notLoggedTitle', { defaultValue: 'Brak logowania' }),
+          t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' })
+        )
+        return
+      }
+
+      const proj = await ensureProjektExists()
+      if (!proj?.id) return
+
+      const picked = await DocumentPicker.getDocumentAsync({
+        multiple: false,
+        copyToCacheDirectory: true,
+        type: ['model/*', 'application/octet-stream', 'application/json', 'application/gltf-binary', 'application/gltf+json'],
+      })
+
+      if (picked.canceled) return
+
+      const asset = picked.assets?.[0]
+      if (!asset?.uri) return
+
+      const fileName = asset.name || asset.uri.split('/').pop() || 'model'
+      const fileSize = typeof asset.size === 'number' ? asset.size : null
+
+      if (fileSize !== null && fileSize <= 0) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('model3dEmptyFile', { defaultValue: 'Wybrany plik jest pusty.' })
+        )
+        return
+      }
+
+      if (fileSize !== null && fileSize > MAX_MODEL_UPLOAD_BYTES) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('model3dTooLarge', { defaultValue: 'Model jest zbyt duży. Maksymalny rozmiar to 50 MB.' })
+        )
+        return
+      }
+
+      if (!isAllowedModelFile(fileName, asset.mimeType)) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('model3dInvalidFile', { defaultValue: 'Możesz dodać tylko plik .glb lub .gltf.' })
+        )
+        return
+      }
+
+      setModelUploading(true)
+
+      const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const ext = getFileExt(fileName) || 'glb'
+      const normalizedFileName = safeName.toLowerCase().endsWith(`.${ext}`) ? safeName : `${safeName}.${ext}`
+      const path = `${userId}/projekty/${proj.id}/${Date.now()}_${normalizedFileName}`
+      const contentType = guessModelMimeType(fileName, asset.mimeType)
+
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' as any })
+      if (!base64) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('model3dEmptyFile', { defaultValue: 'Wybrany plik jest pusty.' })
+        )
+        return
+      }
+
+      const bytes = base64ToUint8Array(base64)
+      if (!bytes.byteLength) {
+        Alert.alert(
+          t('errorTitle', { defaultValue: 'Błąd' }),
+          t('model3dEmptyFile', { defaultValue: 'Wybrany plik jest pusty.' })
+        )
+        return
+      }
+
+      const previousModelUrl = proj.model_url || null
+
+      const { error: uploadError } = await supabase.storage.from(BUCKET_MODELS).upload(path, bytes, {
+        contentType,
+        upsert: false,
+      })
+
+      if (uploadError) {
+        Alert.alert(
+          t('uploadFailedTitle', { defaultValue: 'Upload nieudany' }),
+          uploadError.message
+        )
+        return
+      }
+
+      const { data: publicUrlData } = supabase.storage.from(BUCKET_MODELS).getPublicUrl(path)
+      const publicUrl = publicUrlData?.publicUrl
+      if (!publicUrl) {
+        const { error: rollbackError } = await supabase.storage.from(BUCKET_MODELS).remove([path])
+        if (rollbackError) {
+          console.warn('[Projekt] nie udało się wycofać modelu po braku publicUrl:', rollbackError.message)
+        }
+        Alert.alert(
+          t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }),
+          t('model3dUrlError', { defaultValue: 'Nie udało się uzyskać publicznego adresu modelu.' })
+        )
+        return
+      }
+
+      const { data: updated, error: updateError } = await supabase
+        .from('projekty')
+        .update({ model_url: publicUrl })
+        .eq('user_id', userId)
+        .eq('id', proj.id)
+        .select('*')
+        .single()
+
+      if (updateError) {
+        const { error: rollbackError } = await supabase.storage.from(BUCKET_MODELS).remove([path])
+        if (rollbackError) {
+          console.warn('[Projekt] rollback modelu nie powiódł się:', rollbackError.message)
+        }
+        Alert.alert(
+          t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }),
+          updateError.message
+        )
+        return
+      }
+
+      setProjekt(updated as any)
+
+      const previousModelPath =
+        previousModelUrl && previousModelUrl !== DEFAULT_MODEL_URL ? keyFromStoredModelUrl(previousModelUrl) : null
+      if (previousModelPath && previousModelPath !== path) {
+        const { error: removeError } = await supabase.storage.from(BUCKET_MODELS).remove([previousModelPath])
+        if (removeError) {
+          console.warn('[Projekt] nie udało się usunąć poprzedniego modelu:', removeError.message)
+        }
+      }
+    } catch (e: any) {
+      console.error('[Projekt] change model error:', e?.message || e)
+      Alert.alert(
+        t('errorTitle', { defaultValue: 'Błąd' }),
+        e?.message || t('model3dSaveFailed', { defaultValue: 'Nie udało się zapisać modelu 3D.' })
+      )
+    } finally {
+      setModelUploading(false)
+    }
   }
 
   const uploadRzutAndSave = async () => {
@@ -632,15 +832,8 @@ export default function ProjektScreen() {
               <Model3DView url={modelUrl} />
             </View>
 
-            <AppButton title={t('change3dModel')} onPress={handleChangeModel} style={styles.modelCta} />
+            <AppButton title={t('change3dModel')} onPress={handleChangeModel} loading={modelUploading} style={styles.modelCta} />
 
-            <Text style={styles.modelHint}>
-              {t('modelHint', {
-                defaultValue: i18n.language?.startsWith('pl')
-                  ? 'Dotknij i przeciągnij aby obrócić model'
-                  : 'Touch and drag to rotate',
-              })}
-            </Text>
           </View>
         </View>
 

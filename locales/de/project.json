@@ -61,6 +61,11 @@
   "fieldFacadeLength": "Fassadenlänge (m)",
   "model3dTitle": "3D-Modell",
   "model3dNextStep": "Nächster Schritt: .glb/.gltf hochladen und projekty.model_url aktualisieren.",
+  "model3dEmptyFile": "Die ausgewählte Datei ist leer.",
+  "model3dTooLarge": "Das Modell ist zu groß. Maximale Größe: 50 MB.",
+  "model3dInvalidFile": "Du kannst nur eine .glb- oder .gltf-Datei hinzufügen.",
+  "model3dUrlError": "Die öffentliche URL für das Modell konnte nicht ermittelt werden.",
+  "model3dSaveFailed": "Das 3D-Modell konnte nicht gespeichert werden.",
   "model": {
     "hintRotateZoom": "Ziehen zum Drehen • Zum Zoomen ziehen",
     "errorTitle": "3D-Modellfehler",

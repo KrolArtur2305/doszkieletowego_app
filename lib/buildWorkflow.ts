@@ -52,6 +52,19 @@ export function preferredStartStageCode(buildType: unknown, currentStageCode: un
   return code;
 }
 
+export function remapStageCodeForBuildType(stageCode: unknown, buildType: unknown): string {
+  const workflowType = normalizeBuildType(buildType);
+  const prefix = workflowStagePrefix(workflowType);
+  const code = String(stageCode ?? '').trim().toUpperCase();
+
+  if (!code) return `${prefix}1`;
+  if (code.startsWith(prefix)) return code;
+  if (code.startsWith('A') || code.startsWith('B')) {
+    return `${prefix}${code.slice(1)}`;
+  }
+  return `${prefix}1`;
+}
+
 export function resolveRuntimeCurrentStageCode<T extends { nazwa_code?: string | null; status?: string | null }>(
   rows: T[],
   buildType: unknown,
@@ -115,6 +128,24 @@ export function getSuggestionStageCodes<T extends { nazwa_code?: string | null; 
     .slice(startIndex, startIndex + windowSize)
     .map((row) => String(row.nazwa_code ?? '').trim().toUpperCase())
     .filter(Boolean);
+}
+
+function pad2(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+export function resolveOnboardingCurrentStageCode(buildType: unknown, buildStage: unknown): string {
+  const workflowType = normalizeBuildType(buildType);
+  const prefix = workflowType === 'szkieletowy' ? 'B' : 'A';
+  const value = normalize(buildStage);
+
+  let stageNumber = 1;
+  if (value.includes('otwart')) stageNumber = 3;
+  else if (value.includes('zamkn')) stageNumber = 4;
+  else if (value.includes('wykoncz')) stageNumber = 11;
+  else stageNumber = 1;
+
+  return `${prefix}${pad2(stageNumber)}_01`;
 }
 
 export function isDoneStageStatus(status: unknown): boolean {

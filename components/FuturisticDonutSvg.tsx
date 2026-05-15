@@ -160,6 +160,22 @@ export function FuturisticDonutSvg({
               </LinearGradient>
             </Defs>
 
+            <AnimatedCircle
+              cx={cx}
+              cy={cy}
+              r={r}
+              stroke="rgba(0,0,0,0.28)"
+              strokeWidth={stroke + 14}
+              strokeLinecap="round"
+              fill="transparent"
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={dashoffset}
+              rotation={rot}
+              originX={cx}
+              originY={cy}
+              opacity={0.35}
+            />
+
             <Circle
               cx={cx}
               cy={cy}
@@ -167,6 +183,22 @@ export function FuturisticDonutSvg({
               stroke="rgba(255,255,255,0.08)"
               strokeWidth={stroke}
               fill="transparent"
+            />
+
+            <AnimatedCircle
+              cx={cx}
+              cy={cy}
+              r={r}
+              stroke="rgba(255,255,255,0.16)"
+              strokeWidth={Math.max(10, stroke - 2)}
+              strokeLinecap="round"
+              fill="transparent"
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={dashoffset}
+              rotation={rot}
+              originX={cx}
+              originY={cy}
+              opacity={0.42}
             />
 
             <AnimatedCircle

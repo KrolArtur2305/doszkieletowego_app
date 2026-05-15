@@ -222,7 +222,8 @@
   "type": {
     "material": "Materiał",
     "service": "Usługa",
-    "mixed": "Materiał + Usługa"
+    "mixed": "Materiał + Usługa",
+    "other": "Inne"
   },
   "modal": {
     "title": "Dodaj wydatek",

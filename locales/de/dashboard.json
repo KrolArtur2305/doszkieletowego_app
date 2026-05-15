@@ -26,6 +26,8 @@
   "progress": {
     "currentStageLabel": "AKTUELLE PHASE",
     "nextStageLabel": "NÄCHSTE PHASE",
+    "stageRealizationLabel": "PHASENFORTSCHRITT",
+    "stageRealizationHint": "{{done}} von {{total}} Schritten abgeschlossen",
     "estimatedCompletionLabel": "VORAUSSICHTLICHES FERTIGSTELLUNGSDATUM",
     "estimatedCompletionPlaceholder": "—",
     "allDone": "Alle Phasen abgeschlossen",
@@ -69,6 +71,73 @@
       "thu": "Do",
       "fri": "Fr",
       "sat": "Sa"
+    },
+    "workConditionsTitle": "Bedingungen auf der Baustelle",
+    "emptyText": "Im Profil ist noch kein Baustandort hinterlegt.",
+    "emptyFallback": "Standort ergänzen, um die Prognose zu sehen.",
+    "emptyCta": "Standort ergänzen",
+    "dayNotes": {
+      "clear": "Trocken",
+      "cloudy": "Bewölkt",
+      "rain": "Regen möglich",
+      "snow": "Schnee möglich",
+      "wind": "Windig",
+      "cold": "Kühl",
+      "hot": "Heiß",
+      "storm": "Gewitter",
+      "mixed": "Wechselhaft"
+    },
+    "workHints": {
+      "allRain": {
+        "0": "Die nächsten Tage können Außenarbeiten erschweren.",
+        "1": "Materialschutz hat jetzt Vorrang.",
+        "2": "Außenarbeiten besser auf ein trockeneres Zeitfenster verschieben."
+      },
+      "rainTodayTomorrow": {
+        "0": "Die nächsten Tage sind nass, also Material und offene Stellen schützen.",
+        "1": "Die Bedingungen sprechen eher für Arbeit unter Dach.",
+        "2": "Heute am besten Dinge erledigen, die keinen Regen vertragen."
+      },
+      "rainToday": {
+        "0": "Heute können Außenarbeiten schwierig werden.",
+        "1": "Achten Sie auf Material und offene Bauteile.",
+        "2": "Draußen ist es heute besser mit Schutzmaßnahmen."
+      },
+      "rainTomorrow": {
+        "0": "Heute ist ein gutes Fenster für Außenarbeiten, morgen kann es regnen.",
+        "1": "Draußen heute besser noch alles abschließen.",
+        "2": "Material vor dem morgigen Regen sichern."
+      },
+      "rainAfterTomorrow": {
+        "0": "Heute und morgen eignen sich gut für Außenarbeiten.",
+        "1": "In 2 Tagen kann Regen kommen, also Material schützen.",
+        "2": "Gute Zeit für Außenarbeiten, bevor das Wetter kippt."
+      },
+      "windy": {
+        "0": "Bei Arbeiten in der Höhe und mit leichten Materialien vorsichtig sein.",
+        "1": "Folie, Membranen und lose Teile prüfen.",
+        "2": "Stärkerer Wind kann Außenmontagen erschweren."
+      },
+      "cold": {
+        "0": "Achten Sie auf temperaturempfindliche Materialien.",
+        "1": "Bedingungen für Nassarbeiten und Bauchemie prüfen.",
+        "2": "Niedrige Temperaturen verlangen mehr Vorsicht bei der Planung."
+      },
+      "hot": {
+        "0": "Wasser, Pausen und Schutz für Materialien einplanen.",
+        "1": "Material nicht überhitzen und direkte Sonne vermeiden.",
+        "2": "Bei Hitze lieber kürzere Arbeitsblöcke planen."
+      },
+      "noRain": {
+        "0": "Gute Bedingungen für Außenarbeiten in den nächsten Tagen.",
+        "1": "Die kommenden Tage eignen sich gut für Arbeiten draußen.",
+        "2": "Gutes Wetter für Lieferungen, Aufräumen und Arbeiten rund um die Baustelle."
+      },
+      "fallback": {
+        "0": "Vor Außenarbeiten die Bedingungen prüfen.",
+        "1": "Die Prognose sollte vor der Entscheidung noch einmal manuell geprüft werden.",
+        "2": "Vor dem Start lohnt sich ein kurzer Blick auf die aktuellen Daten."
+      }
     }
   },
   "modal": {

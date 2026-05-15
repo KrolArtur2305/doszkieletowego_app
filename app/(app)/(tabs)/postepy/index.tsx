@@ -1,11 +1,11 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
@@ -13,40 +13,31 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
-import { getStageLabel } from '../../../../lib/localizedLabels';
 import {
-  filterWorkflowStages,
-  preferredStartStageCode,
-  resolveRuntimeCurrentStageCode,
-} from '../../../../lib/buildWorkflow';
+  MAIN_STAGE_TIMELINE,
+  ORDER_NOW_BY_GROUP,
+  getGroupDisplayKey,
+  normalizeWorkflowCode,
+  resolveCurrentStageGroupCode,
+  summarizeGroupProgress,
+  type StageGroupCode,
+  type StageTemplateRow,
+  type UserStageRow,
+} from '../../../../lib/postepyModel';
+import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { AppHeader } from '../../../../src/ui/components';
+import { colors } from '../../../../src/ui/theme';
 
-type EtapRow = {
-  id: string;
-  user_id: string;
-  nazwa: string;
-  nazwa_code?: string | null;
-  kolejnosc: number | null;
-  status: string | null;
-  data_wykonania: string | null;
-  notatka: string | null;
+type ProfileRow = {
+  build_type: string | null;
+  current_stage_code: string | null;
 };
 
-const NEON = '#25F0C8';
+const NEON = colors.accentBright;
 
-// MUSI pasować do constraint w Supabase
-const STATUS_DONE = 'zrealizowany';
-const STATUS_DEFAULT = 'planowany';
-
-function normStatus(s: string | null | undefined) {
-  return String(s ?? '').toLowerCase().trim();
-}
-function isDoneStatus(s: string | null | undefined) {
-  return normStatus(s) === STATUS_DONE;
-}
-function safeOrder(n: number | null | undefined) {
-  return typeof n === 'number' && Number.isFinite(n) ? n : 9999;
+function safeNumber(n: number | null | undefined) {
+  return typeof n === 'number' && Number.isFinite(n) ? n : 0;
 }
 
 export default function PostepyScreen() {
@@ -56,8 +47,10 @@ export default function PostepyScreen() {
   const userId = session?.user?.id;
 
   const [loading, setLoading] = useState(true);
-  const [etapy, setEtapy] = useState<EtapRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [templates, setTemplates] = useState<StageTemplateRow[]>([]);
+  const [userStages, setUserStages] = useState<UserStageRow[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,53 +62,55 @@ export default function PostepyScreen() {
       setError(null);
 
       if (!userId) {
-        setEtapy([]);
-        setLoading(false);
+        if (!cancelled) {
+          setProfile(null);
+          setTemplates([]);
+          setUserStages([]);
+          setLoading(false);
+        }
         return;
       }
 
       try {
-        const { data, error } = await supabase
-          .from('etapy')
-          .select('id,user_id,nazwa,nazwa_code,kolejnosc,status,data_wykonania,notatka')
+        const { data: profileRes, error: profileError } = await supabase
+          .from('profiles')
+          .select('build_type, current_stage_code')
           .eq('user_id', userId)
-          .order('kolejnosc', { ascending: true });
+          .single();
 
-        if (error) throw error;
-        if (!cancelled) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('build_type, current_stage_code')
+        if (profileError) throw profileError;
+
+        const workflowCode = normalizeWorkflowCode((profileRes as ProfileRow | null)?.build_type);
+
+        const [templateRes, userStageRes] = await Promise.all([
+          supabase
+            .from('stage_templates')
+            .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
+            .eq('workflow_code', workflowCode)
+            .eq('is_active', true)
+            .order('order_index', { ascending: true }),
+          supabase
+            .from('user_stages')
+            .select('id, user_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at')
             .eq('user_id', userId)
-            .single();
+            .order('order_index', { ascending: true }),
+        ]);
 
-          if (profileError) throw profileError;
+        const nextProfile = (profileRes as ProfileRow | null) ?? null;
+        const nextTemplates = (templateRes.data ?? []) as StageTemplateRow[];
+        const nextUserStages = (userStageRes.data ?? []) as UserStageRow[];
 
-          const workflowRows = filterWorkflowStages((data ?? []) as EtapRow[], profileData?.build_type);
-          const preferredStageCode = preferredStartStageCode(profileData?.build_type, profileData?.current_stage_code);
-          const rowsToUse = workflowRows.length > 0 ? workflowRows : ((data ?? []) as EtapRow[]);
-          const preferredIndex = rowsToUse.findIndex(
-            (row) => String(row.nazwa_code ?? '').trim().toUpperCase() === preferredStageCode
-          );
-          const orderedRows =
-            preferredIndex > 0 ? [...rowsToUse.slice(preferredIndex), ...rowsToUse.slice(0, preferredIndex)] : rowsToUse;
-          setEtapy(orderedRows);
-
-          const storedStageCode = String(profileData?.current_stage_code ?? '').trim().toUpperCase();
-          const runtimeStageCode = resolveRuntimeCurrentStageCode((data ?? []) as EtapRow[], profileData?.build_type, storedStageCode);
-          if (runtimeStageCode !== storedStageCode) {
-            await supabase
-              .from('profiles')
-              .upsert(
-                { user_id: userId, current_stage_code: runtimeStageCode },
-                { onConflict: 'user_id' }
-              );
-          }
+        if (!cancelled) {
+          setProfile(nextProfile);
+          setTemplates(templateRes.error ? [] : nextTemplates);
+          setUserStages(userStageRes.error ? [] : nextUserStages);
         }
       } catch (e: any) {
         if (!cancelled) {
           setError(e?.message ?? t('errors.fetchFailed'));
-          setEtapy([]);
+          setProfile(null);
+          setTemplates([]);
+          setUserStages([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -126,190 +121,173 @@ export default function PostepyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, userId]);
+  }, [authLoading, userId, t]);
 
-  const { progressPercent, topStages, obecny, nastepny, completedMilestones, hasAnyStages } =
-    useMemo(() => {
-      if (etapy.length === 0) {
-        return {
-          progressPercent: 0,
-          topStages: [] as Array<{ id: string; label: string; done: boolean }>,
-          obecny: null as null | { title: string; date: string | null; description: string | null },
-          nastepny: null as null | { title: string; date: string | null; description: string | null },
-          completedMilestones: [] as Array<{ id: string; title: string; date: string | null; notes: string | null }>,
-          hasAnyStages: false,
-        };
-      }
-
-      const sorted = [...etapy].sort((a, b) => safeOrder(a.kolejnosc) - safeOrder(b.kolejnosc));
-
-      const total = sorted.length;
-      const doneCount = sorted.filter((e) => isDoneStatus(e.status)).length;
-      const percent = total ? Math.round((doneCount / total) * 100) : 0;
-
-      // top4 – szybkie “kropki” postępu
-      const top4 = sorted.slice(0, 4).map((e) => ({
-        id: e.id,
-        label: getStageLabel(e.nazwa, t),
-        done: isDoneStatus(e.status),
-      }));
-
-      // obecny = pierwszy niezrealizowany, nastepny = kolejny po nim
-      const current = sorted.find((e) => !isDoneStatus(e.status)) ?? null;
-      const idx = current ? sorted.findIndex((x) => x.id === current.id) : -1;
-      const next = idx >= 0 ? sorted[idx + 1] ?? null : null;
-
-      const obecnyStage = current
-        ? {
-            title: getStageLabel(current.nazwa, t),
-            date: current.data_wykonania ? String(current.data_wykonania).slice(0, 10) : null,
-            description: current.notatka ?? null,
-          }
-        : null;
-
-      const nastepnyStage = next
-        ? {
-            title: getStageLabel(next.nazwa, t),
-            date: next.data_wykonania ? String(next.data_wykonania).slice(0, 10) : null,
-            description: next.notatka ?? null,
-          }
-        : null;
-
-      // historia – ostatnie 6 zrealizowanych
-      const completed = sorted
-        .filter((e) => isDoneStatus(e.status))
-        .slice()
-        .reverse()
-        .slice(0, 6)
-        .map((e) => ({
-          id: e.id,
-          title: getStageLabel(e.nazwa, t),
-          date: e.data_wykonania ? String(e.data_wykonania).slice(0, 10) : null,
-          notes: e.notatka ?? null,
-        }));
-
+  const viewModel = useMemo(() => {
+    const workflowCode = normalizeWorkflowCode(profile?.build_type);
+    const currentStageCode = String(profile?.current_stage_code ?? '').trim().toUpperCase();
+    const currentGroupCode = resolveCurrentStageGroupCode(templates, profile?.build_type, currentStageCode);
+    const currentGroupLabelKey = getGroupDisplayKey(currentGroupCode);
+    const currentGroupLabel = t(currentGroupLabelKey, { defaultValue: t('fallback.currentGroup') });
+    const currentProgress = summarizeGroupProgress(userStages, [], currentGroupCode);
+    const currentPercent = currentProgress.total > 0 ? Math.round((currentProgress.done / currentProgress.total) * 100) : 0;
+    const currentTimelineIndex = Math.max(
+      0,
+      MAIN_STAGE_TIMELINE.findIndex((item) => item.stage_group_code === currentGroupCode)
+    );
+    const timeline = MAIN_STAGE_TIMELINE.map((item, index) => {
+      const progress = summarizeGroupProgress(userStages, [], item.stage_group_code);
       return {
-        progressPercent: percent,
-        topStages: top4,
-        obecny: obecnyStage,
-        nastepny: nastepnyStage,
-        completedMilestones: completed,
-        hasAnyStages: true,
+        ...item,
+        title: t(item.label_key, { defaultValue: item.stage_group_code }),
+        done: index < currentTimelineIndex || progress.total > 0 && progress.done >= progress.total,
+        active: index === currentTimelineIndex,
+        progressPercent: progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0,
       };
-    }, [etapy, t]);
+    });
+    const nextTimelineItem = timeline[currentTimelineIndex + 1] ?? null;
+    const nextImportantItem = nextTimelineItem ?? timeline[timeline.length - 1] ?? null;
+    const orderNowTemplates = ORDER_NOW_BY_GROUP[currentGroupCode] ?? ORDER_NOW_BY_GROUP.foundations;
+    const orderNowItems = orderNowTemplates.map((item) => ({
+      name: t(item.name_key, { defaultValue: item.name_key.split('.').pop() ?? item.name_key }),
+      leadTime: t(item.lead_time_key, { defaultValue: '' }),
+    }));
+
+    return {
+      workflowCode,
+      currentStageCode,
+      currentGroupCode,
+      currentGroupLabel,
+      currentProgress,
+      currentPercent,
+      timeline,
+      nextTimelineItem,
+      nextImportantItem,
+      orderNowItems,
+    };
+  }, [profile?.build_type, profile?.current_stage_code, templates, t, userStages]);
+
+  const onOpenAll = () => router.push('/(app)/(tabs)/postepy/wszystkie');
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: 140 }}
+      contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
         <AppHeader title={t('screenTitle', { defaultValue: 'Postępy' })} />
       </View>
 
-      {/* POSTĘP */}
-      <BlurView intensity={16} tint="dark" style={styles.card}>
-        <Text style={styles.cardLabel}>{t('progress.cardLabel')}</Text>
+      {!!error && <Text style={styles.error}>{error}</Text>}
 
-        {loading ? (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator color={NEON} />
-            <Text style={styles.loadingText}>{t('common.loading')}</Text>
+      <BlurView intensity={18} tint="dark" style={styles.heroCard}>
+        <View style={styles.heroTopRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardLabel}>{t('hero.cardLabel')}</Text>
+            <Text style={styles.heroTitle}>{viewModel.currentGroupLabel}</Text>
+            <Text style={styles.heroMeta}>
+              {t('hero.completedSteps', {
+                done: safeNumber(viewModel.currentProgress.done),
+                total: safeNumber(viewModel.currentProgress.total),
+              })}
+            </Text>
           </View>
-        ) : !hasAnyStages ? (
-          <Text style={styles.muted}>{t('progress.noStages')}</Text>
-        ) : (
-          <>
-            <Text style={styles.sectionTitle}>{t('progress.progressPercent', { percent: progressPercent })}</Text>
+          <View style={styles.heroDonutWrap}>
+            {loading ? (
+              <ActivityIndicator color={NEON} />
+            ) : (
+              <FuturisticDonutSvg
+                value={viewModel.currentPercent / 100}
+                label=""
+                isActive
+                size={96}
+                stroke={11}
+              />
+            )}
+          </View>
+        </View>
 
-            <View style={styles.batteryWrapper}>
-              <View style={styles.batteryBody}>
-                <View style={[styles.batteryFill, { width: `${progressPercent}%` }]} />
+        <View style={styles.timelineWrap}>
+          <Text style={styles.timelineLabel}>{t('timeline.cardLabel')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.timelineRow}>
+            {viewModel.timeline.map((item) => (
+              <View key={item.stage_group_code} style={styles.timelineItem}>
+                <View style={[styles.timelineDot, item.done && styles.timelineDotDone, item.active && styles.timelineDotActive]} />
+                <Text style={[styles.timelineText, item.done && styles.timelineTextDone, item.active && styles.timelineTextActive]} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                <Text style={styles.timelinePct}>{item.progressPercent}%</Text>
               </View>
-              <View style={styles.batteryCap} />
-            </View>
-
-            <View style={styles.stageRow}>
-              {topStages.map((stage) => (
-                <View key={stage.id} style={styles.stageItem}>
-                  <View style={[styles.stageDot, stage.done && styles.stageDotDone]} />
-                  <Text style={[styles.stageLabel, stage.done && styles.stageLabelDone]} numberOfLines={2}>
-                    {stage.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </>
-        )}
+            ))}
+          </ScrollView>
+        </View>
       </BlurView>
 
-      {/* OBECNY + KOLEJNY */}
       <BlurView intensity={16} tint="dark" style={styles.card}>
-        <Text style={styles.cardLabel}>{t('stages.cardLabel')}</Text>
-
-        {loading ? (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator color={NEON} />
-            <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        <View style={styles.sectionHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardLabel}>{t('orders.cardLabel')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('orders.subtitle')}</Text>
           </View>
-        ) : obecny ? (
-          <>
-            <Text style={styles.smallLabel}>{t('stages.currentStageLabel')}</Text>
-            <Text style={styles.sectionTitle}>{obecny.title}</Text>
-
-            {!!obecny.date && <Text style={styles.stageDate}>{obecny.date}</Text>}
-            {!!obecny.description && <Text style={styles.stageDescription}>{obecny.description}</Text>}
-
-            <View style={styles.sep} />
-
-            <Text style={styles.smallLabel}>{t('stages.nextStageLabel')}</Text>
-            <Text style={styles.nextTitle}>{nastepny?.title ?? t('common.none')}</Text>
-            {!!nastepny?.date && <Text style={styles.stageDate}>{nastepny.date}</Text>}
-          </>
-        ) : (
-          <Text style={styles.muted}>{t('stages.allDone')}</Text>
-        )}
-
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => router.push('/(app)/(tabs)/postepy/wszystkie')}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.primaryButtonText}>{t('stages.checkAll')}</Text>
-          <Feather name="arrow-right" size={18} color="#022C22" />
-        </TouchableOpacity>
-      </BlurView>
-
-      {/* HISTORIA */}
-      <BlurView intensity={16} tint="dark" style={styles.card}>
-        <Text style={styles.cardLabel}>{t('history.cardLabel')}</Text>
-        <Text style={styles.sectionTitle}>{t('history.completedTitle')}</Text>
-
-        {loading ? (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator color={NEON} />
-            <Text style={styles.loadingText}>{t('common.loading')}</Text>
-          </View>
-        ) : completedMilestones.length > 0 ? (
-          completedMilestones.map((m) => (
-            <View key={m.id} style={styles.milestoneRow}>
-              <View style={styles.milestoneIcon}>
-                <Feather name="check" size={16} color="#022C22" />
+        </View>
+        <View style={styles.orderList}>
+          {viewModel.orderNowItems.map((item) => (
+            <View key={item.name} style={styles.orderRow}>
+              <View style={styles.orderIcon}>
+                <Feather name="clock" size={14} color={NEON} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.milestoneTitle}>{m.title}</Text>
-                {!!m.date && <Text style={styles.milestoneMeta}>{m.date}</Text>}
-                {!!m.notes && <Text style={styles.milestoneNotes}>{m.notes}</Text>}
+                <Text style={styles.orderName}>{item.name}</Text>
+                <Text style={styles.orderLead}>{item.leadTime}</Text>
               </View>
             </View>
-          ))
-        ) : (
-          <Text style={styles.muted}>{t('history.noCompleted')}</Text>
-        )}
+          ))}
+        </View>
       </BlurView>
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      <BlurView intensity={16} tint="dark" style={styles.card}>
+        <Text style={styles.cardLabel}>{t('upcoming.cardLabel')}</Text>
+        <Text style={styles.stageName}>{viewModel.nextTimelineItem?.title ?? t('common.none')}</Text>
+        <Text style={styles.muted}>{t('upcoming.hint')}</Text>
+      </BlurView>
+
+      <BlurView intensity={16} tint="dark" style={styles.card}>
+        <Text style={styles.cardLabel}>{t('nextStage.cardLabel')}</Text>
+        <Text style={styles.stageName}>{viewModel.nextImportantItem?.title ?? t('common.none')}</Text>
+        <Text style={styles.muted}>{t('nextStage.hint')}</Text>
+      </BlurView>
+
+      <TouchableOpacity activeOpacity={0.92} onPress={onOpenAll}>
+        <BlurView intensity={16} tint="dark" style={styles.card}>
+          <View style={styles.substageTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardLabel}>{t('substeps.cardLabel')}</Text>
+              <Text style={styles.sectionTitle}>
+                {t('substeps.completed', {
+                  done: safeNumber(viewModel.currentProgress.done),
+                  total: safeNumber(viewModel.currentProgress.total),
+                })}
+              </Text>
+            </View>
+            <FuturisticDonutSvg
+              value={viewModel.currentPercent / 100}
+              label=""
+              isActive
+              size={68}
+              stroke={9}
+            />
+          </View>
+          <View style={styles.substageCta}>
+            <Text style={styles.substageCtaText}>{t('substeps.cta')}</Text>
+            <Feather name="arrow-right" size={15} color={NEON} />
+          </View>
+        </BlurView>
+      </TouchableOpacity>
+
+      {!loading && !viewModel.currentProgress.total && (
+        <Text style={styles.muted}>{t('fallback.noCurrentStage')}</Text>
+      )}
     </ScrollView>
   );
 }
@@ -321,11 +299,27 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     backgroundColor: 'transparent',
   },
+  content: {
+    paddingBottom: 140,
+  },
   header: {
     minHeight: 120,
-    marginBottom: 14,
+    marginBottom: 12,
   },
-
+  error: {
+    color: '#FCA5A5',
+    marginBottom: 8,
+    fontWeight: '800',
+  },
+  heroCard: {
+    borderRadius: 28,
+    padding: 16,
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.026)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.14)',
+    overflow: 'hidden',
+  },
   card: {
     borderRadius: 28,
     padding: 16,
@@ -335,15 +329,156 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
     overflow: 'hidden',
   },
-
   cardLabel: {
     color: 'rgba(255,255,255,0.55)',
     textTransform: 'uppercase',
-    letterSpacing: 1.4,
-    fontSize: 12,
+    letterSpacing: 1.2,
+    fontSize: 11.5,
     fontWeight: '800',
   },
-
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  heroDonutWrap: {
+    width: 112,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 25,
+    fontWeight: '900',
+    marginTop: 8,
+    letterSpacing: -0.3,
+  },
+  heroMeta: {
+    color: 'rgba(255,255,255,0.68)',
+    marginTop: 6,
+    fontWeight: '700',
+    fontSize: 13.5,
+  },
+  timelineWrap: {
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    paddingTop: 12,
+  },
+  timelineLabel: {
+    color: 'rgba(255,255,255,0.46)',
+    fontSize: 11,
+    fontWeight: '800',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  timelineRow: {
+    gap: 14,
+    paddingBottom: 2,
+  },
+  timelineItem: {
+    width: 74,
+    alignItems: 'center',
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'transparent',
+    marginBottom: 6,
+  },
+  timelineDotDone: {
+    backgroundColor: NEON,
+    borderColor: NEON,
+    shadowColor: NEON,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  timelineDotActive: {
+    borderColor: NEON,
+    backgroundColor: 'rgba(37,240,200,0.18)',
+  },
+  timelineText: {
+    color: 'rgba(255,255,255,0.48)',
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  timelineTextDone: { color: '#FFFFFF' },
+  timelineTextActive: { color: NEON },
+  timelinePct: {
+    marginTop: 3,
+    color: 'rgba(255,255,255,0.34)',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  sectionSubtitle: {
+    marginTop: 4,
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  orderList: {
+    marginTop: 10,
+    gap: 10,
+  },
+  orderRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  orderIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.12)',
+  },
+  orderName: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 14.5,
+  },
+  orderLead: {
+    color: 'rgba(255,255,255,0.56)',
+    marginTop: 2,
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  stageName: {
+    color: '#FFFFFF',
+    fontSize: 21,
+    fontWeight: '900',
+    marginTop: 8,
+  },
+  muted: {
+    color: 'rgba(255,255,255,0.50)',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  substageTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   sectionTitle: {
     color: '#FFFFFF',
     fontSize: 22,
@@ -352,134 +487,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     letterSpacing: -0.2,
   },
-
-  muted: { color: 'rgba(255,255,255,0.50)', marginTop: 10, lineHeight: 20 },
-
-  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
-  loadingText: { color: 'rgba(255,255,255,0.55)', fontWeight: '800' },
-
-  // battery
-  batteryWrapper: {
+  substageCta: {
+    marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 14,
-    gap: 12,
-  },
-  batteryBody: {
-    flex: 1,
-    height: 44,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  batteryFill: {
-    height: '100%',
-    backgroundColor: NEON,
-  },
-  batteryCap: {
-    width: 10,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-  },
-
-  // top stages row
-  stageRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    gap: 10,
-  },
-  stageItem: { alignItems: 'center', flex: 1 },
-  stageDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-    marginBottom: 6,
-    backgroundColor: 'transparent',
-  },
-  stageDotDone: {
-    backgroundColor: NEON,
-    borderColor: NEON,
-    shadowColor: NEON,
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  stageLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 11.5, textAlign: 'center' },
-  stageLabelDone: { color: '#FFFFFF', fontWeight: '800' },
-
-  // current / next
-  smallLabel: {
-    marginTop: 10,
-    color: 'rgba(255,255,255,0.42)',
-    fontSize: 12.5,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  nextTitle: {
-    marginTop: 6,
-    color: '#FFFFFF',
-    fontSize: 16.5,
-    fontWeight: '900',
-    letterSpacing: -0.2,
-  },
-
-  stageDate: { color: NEON, fontWeight: '800', marginTop: 2 },
-  stageDescription: {
-    color: 'rgba(255,255,255,0.70)',
-    marginTop: 10,
-    lineHeight: 20,
-    fontWeight: '600',
-  },
-
-  sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 14 },
-
-  primaryButton: {
-    borderRadius: 18,
-    backgroundColor: NEON,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     gap: 8,
-    marginTop: 14,
   },
-  primaryButtonText: {
-    color: '#022C22',
+  substageCtaText: {
+    color: NEON,
     fontWeight: '900',
-    fontSize: 16,
+    fontSize: 12.5,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-
-  // history
-  milestoneRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
-  },
-  milestoneIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: NEON,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  milestoneTitle: {
-    color: '#FFFFFF',
-    fontSize: 15.5,
-    fontWeight: '900',
-  },
-  milestoneMeta: { color: 'rgba(255,255,255,0.50)', marginTop: 2, fontWeight: '700' },
-  milestoneNotes: { color: 'rgba(255,255,255,0.70)', marginTop: 4, lineHeight: 19, fontWeight: '600' },
-
-  error: { color: '#FCA5A5', marginTop: 8, fontWeight: '800' },
 });

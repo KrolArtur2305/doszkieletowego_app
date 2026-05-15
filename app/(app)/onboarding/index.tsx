@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../src/ui/components';
+import { resolveOnboardingCurrentStageCode } from '../../../lib/buildWorkflow';
 import {
   BUDDY_AVATAR_OPTIONS,
   DEFAULT_BUDDY_AVATAR_ID,
@@ -173,6 +174,7 @@ export default function OnboardingScreen() {
         {
           user_id: userId,
           build_type: value,
+          current_stage_code: buildStage ? resolveOnboardingCurrentStageCode(value, buildStage) : null,
           onboarding_step: 'build_stage',
           onboarding_completed: false,
         },
@@ -221,6 +223,7 @@ export default function OnboardingScreen() {
         {
           user_id: userId,
           build_stage: value,
+          current_stage_code: resolveOnboardingCurrentStageCode(buildType, value),
           onboarding_step: 'budget',
           onboarding_completed: false,
         },

@@ -21,6 +21,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import { getStageLabel } from '../../../../lib/localizedLabels';
+import {
+  getLegacyStageLabelFromGroupCode,
+  MAIN_STAGE_TIMELINE,
+  resolveCurrentStageGroupCode,
+  type StageGroupCode,
+} from '../../../../lib/postepyModel';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { useTranslation } from 'react-i18next';
 import { AppButton, AppCard, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components';
@@ -66,9 +72,15 @@ type ActivityItem = {
 };
 
 type WeatherDay = {
+  date: string;
   label: string;
-  temp: string;
   icon: string;
+  tempMax: number;
+  tempMin: number;
+  weatherCode: number;
+  precipitationProbability: number | null;
+  precipitationSum: number | null;
+  windSpeed: number | null;
 };
 
 const STATUS_DONE = 'zrealizowany';
@@ -160,6 +172,101 @@ function weatherCodeToIcon(code: number): string {
   if (code <= 82) return '🌧️';
   if (code <= 86) return '❄️';
   return '⛈️';
+}
+
+function isRainyWeatherCode(code: number) {
+  return (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99);
+}
+
+function isSnowyWeatherCode(code: number) {
+  return (code >= 71 && code <= 77) || code === 85 || code === 86;
+}
+
+function isStormyWeatherCode(code: number) {
+  return code >= 95 && code <= 99;
+}
+
+function dayOfYear(date: Date) {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date.getTime() - start.getTime();
+  return Math.floor(diff / 86400000);
+}
+
+function isWindyForecast(day: Pick<WeatherDay, 'windSpeed'>) {
+  return safeNumber(day.windSpeed) >= 35;
+}
+
+function isColdForecast(day: Pick<WeatherDay, 'tempMax' | 'tempMin'>) {
+  return safeNumber(day.tempMin) <= 0 || safeNumber(day.tempMax) <= 5;
+}
+
+function isHotForecast(day: Pick<WeatherDay, 'tempMax'>) {
+  return safeNumber(day.tempMax) >= 30;
+}
+
+function hasRainForecast(day: Pick<WeatherDay, 'weatherCode' | 'precipitationProbability' | 'precipitationSum'>) {
+  const code = Number(day.weatherCode ?? 0);
+  const rainProbability = safeNumber(day.precipitationProbability);
+  const precipitation = safeNumber(day.precipitationSum);
+  return (
+    isRainyWeatherCode(code) ||
+    isSnowyWeatherCode(code) ||
+    isStormyWeatherCode(code) ||
+    rainProbability >= 40 ||
+    precipitation >= 0.6
+  );
+}
+
+function getWeatherDayNoteKey(day: Pick<WeatherDay, 'weatherCode' | 'tempMax' | 'tempMin' | 'windSpeed'>) {
+  const code = Number(day.weatherCode ?? 0);
+
+  if (isStormyWeatherCode(code)) return 'weather.dayNotes.storm';
+  if (isRainyWeatherCode(code)) return 'weather.dayNotes.rain';
+  if (isSnowyWeatherCode(code)) return 'weather.dayNotes.snow';
+  if (isWindyForecast(day)) return 'weather.dayNotes.wind';
+  if (isHotForecast(day)) return 'weather.dayNotes.hot';
+  if (isColdForecast(day)) return 'weather.dayNotes.cold';
+  if (code === 0) return 'weather.dayNotes.clear';
+  if (code <= 3) return 'weather.dayNotes.cloudy';
+  return 'weather.dayNotes.mixed';
+}
+
+function pickWeatherVariantIndex(forecast: WeatherDay[], locale: string) {
+  const localeSeed = Array.from(locale).reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  const weatherSeed = forecast.reduce((sum, day, index) => {
+    return (
+      sum +
+      Math.round(safeNumber(day.weatherCode)) +
+      Math.round(safeNumber(day.tempMax) * 3) +
+      Math.round(safeNumber(day.precipitationProbability) / 10) +
+      Math.round(safeNumber(day.precipitationSum) * 10) +
+      Math.round(safeNumber(day.windSpeed)) +
+      index
+    );
+  }, 0);
+  return Math.abs(localeSeed + weatherSeed + dayOfYear(new Date())) % 3;
+}
+
+function getWeatherWorkHint(forecast: WeatherDay[], locale: string) {
+  const days = forecast.slice(0, 3);
+  if (days.length < 3) return 'weather.workHints.fallback.0';
+
+  const rainFlags = days.map((day) => hasRainForecast(day));
+  const windyFlags = days.map((day) => isWindyForecast(day));
+  const coldFlags = days.map((day) => isColdForecast(day));
+  const hotFlags = days.map((day) => isHotForecast(day));
+  const variant = pickWeatherVariantIndex(days, locale);
+
+  if (rainFlags[0] && rainFlags[1] && rainFlags[2]) return `weather.workHints.allRain.${variant}`;
+  if (rainFlags[0] && rainFlags[1]) return `weather.workHints.rainTodayTomorrow.${variant}`;
+  if (rainFlags[0] && !rainFlags[1] && !rainFlags[2]) return `weather.workHints.rainToday.${variant}`;
+  if (!rainFlags[0] && rainFlags[1] && !rainFlags[2]) return `weather.workHints.rainTomorrow.${variant}`;
+  if (!rainFlags[0] && !rainFlags[1] && rainFlags[2]) return `weather.workHints.rainAfterTomorrow.${variant}`;
+  if (windyFlags.some(Boolean)) return `weather.workHints.windy.${variant}`;
+  if (coldFlags.some(Boolean)) return `weather.workHints.cold.${variant}`;
+  if (hotFlags.some(Boolean)) return `weather.workHints.hot.${variant}`;
+  if (!rainFlags.some(Boolean)) return `weather.workHints.noRain.${variant}`;
+  return `weather.workHints.fallback.${variant}`;
 }
 
 function getWeekdayKey(date: Date) {
@@ -453,7 +560,7 @@ export default function DashboardScreen() {
 
         const url =
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-          `&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,windspeed_10m_max&timezone=auto&forecast_days=3`;
 
         const res = await fetch(url);
         if (!res.ok) throw new Error('WEATHER_FETCH_FAILED');
@@ -461,19 +568,27 @@ export default function DashboardScreen() {
         if (!alive) return;
 
         const weatherCodes = data.daily.weather_code ?? data.daily.weathercode ?? [];
+        const rainProbabilities = data.daily.precipitation_probability_max ?? [];
+        const precipitationSums = data.daily.precipitation_sum ?? [];
+        const windSpeeds = data.daily.windspeed_10m_max ?? [];
+        const tempMaxValues = data.daily.temperature_2m_max ?? [];
+        const tempMinValues = data.daily.temperature_2m_min ?? [];
 
         const days: WeatherDay[] = data.daily.time.map((dateStr: string, i: number) => {
           const d = new Date(dateStr);
           const weekdayKey = getWeekdayKey(d);
-
           const label = t(`weather.days.${weekdayKey}`);
 
-          const maxT = Math.round(data.daily.temperature_2m_max[i]);
-
           return {
+            date: dateStr,
             label,
-            temp: `${maxT}°`,
             icon: weatherCodeToIcon(Number(weatherCodes[i] ?? 0)),
+            tempMax: Math.round(Number(tempMaxValues[i] ?? 0)),
+            tempMin: Math.round(Number(tempMinValues[i] ?? 0)),
+            weatherCode: Number(weatherCodes[i] ?? 0),
+            precipitationProbability: Number.isFinite(Number(rainProbabilities[i])) ? Number(rainProbabilities[i]) : null,
+            precipitationSum: Number.isFinite(Number(precipitationSums[i])) ? Number(precipitationSums[i]) : null,
+            windSpeed: Number.isFinite(Number(windSpeeds[i])) ? Number(windSpeeds[i]) : null,
           };
         });
 
@@ -638,30 +753,67 @@ export default function DashboardScreen() {
         const user = userData?.user;
         if (!user) return;
 
-        const res = await supabase
-          .from('etapy')
-          .select('id,user_id,nazwa,kolejnosc,status')
-          .eq('user_id', user.id)
-          .order('kolejnosc', { ascending: true });
+        const [profileRes, templatesRes, userStagesRes] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('build_type, current_stage_code')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('stage_templates')
+            .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
+            .eq('is_active', true)
+            .order('order_index', { ascending: true }),
+          supabase
+            .from('user_stages')
+            .select('id, user_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at')
+            .eq('user_id', user.id)
+            .order('order_index', { ascending: true }),
+        ]);
 
-        if (res.error) throw res.error;
-        const rows = (res.data ?? []) as EtapRow[];
-        const sorted = [...rows].sort((a, b) => (a.kolejnosc ?? 9999) - (b.kolejnosc ?? 9999));
+        if (profileRes.error) throw profileRes.error;
+        if (templatesRes.error) throw templatesRes.error;
+        if (userStagesRes.error) throw userStagesRes.error;
 
-        const total = sorted.length;
-        const doneCount = sorted.filter((e) => isDone(e.status)).length;
-        const currentIndex = sorted.findIndex((e) => !isDone(e.status));
-        const current = currentIndex >= 0 ? sorted[currentIndex] : null;
-        const next = currentIndex >= 0 ? sorted[currentIndex + 1] ?? null : null;
+        const profileData = profileRes.data as { build_type?: string | null; current_stage_code?: string | null } | null;
+        const templates = (templatesRes.data ?? []) as Array<{ id: string; workflow_code?: string | null; stage_group_code?: string | null; stage_code?: string | null; name_key?: string | null; order_index?: number | null; is_active?: boolean | null }>;
+        const userStages = (userStagesRes.data ?? []) as Array<{ stage_group_code?: string | null; status?: string | null }>;
+        const effectiveStageCode = String(profileData?.current_stage_code ?? '').trim().toUpperCase();
+        const currentTemplate =
+          templates.find((row) => String(row.stage_code ?? '').trim().toUpperCase() === effectiveStageCode) ??
+          templates[0] ??
+          null;
+        const currentGroupCode =
+          (currentTemplate?.stage_group_code as StageGroupCode | undefined) ??
+          resolveCurrentStageGroupCode([], profileData?.build_type, effectiveStageCode);
+        const currentGroupIndex = MAIN_STAGE_TIMELINE.findIndex((item) => item.stage_group_code === currentGroupCode);
+        const currentStageLabel = getStageLabel(getLegacyStageLabelFromGroupCode(currentGroupCode), tStages);
+        const nextGroup = MAIN_STAGE_TIMELINE[currentGroupIndex + 1] ?? null;
+        const nextGroupLabel = nextGroup
+          ? getStageLabel(getLegacyStageLabelFromGroupCode(nextGroup.stage_group_code), tStages)
+          : t('common:dash');
+
+        const templateCount = templates.filter((row) => String(row.stage_group_code ?? '').trim() === currentGroupCode).length;
+        const currentGroupStats = userStages.length
+          ? {
+              total: userStages.filter((row) => String(row.stage_group_code ?? '').trim() === currentGroupCode).length,
+              done: userStages.filter((row) => String(row.stage_group_code ?? '').trim() === currentGroupCode && String(row.status ?? '').trim().toLowerCase() === 'done').length,
+            }
+          : {
+              total: 0,
+              done: 0,
+            };
+        const total = currentGroupStats.total > 0 ? currentGroupStats.total : templateCount;
+        const doneCount = currentGroupStats.done;
 
         if (!alive) return;
 
         const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-        setObecnyEtap(current ? getStageLabel(current.nazwa, tStages) : (total > 0 ? t('progress.allDone') : t('progress.noStages')));
-        setKolejnyEtap(next ? getStageLabel(next.nazwa, tStages) : t('common:dash'));
-        setMilestonesText(total > 0 ? `${doneCount} / ${total}` : t('common:dash'));
+        setObecnyEtap(currentStageLabel);
+        setKolejnyEtap(nextGroupLabel);
+        setMilestonesText(`${doneCount} / ${total}`);
         setProgressValue(total > 0 ? clamp01(doneCount / total) : 0);
-        setProgressPercent(pct);
+        setProgressPercent(total > 0 ? Math.round((doneCount / total) * 100) : 0);
       } catch {
         setObecnyEtap(t('common:dash'));
         setKolejnyEtap(t('common:dash'));
@@ -741,6 +893,8 @@ export default function DashboardScreen() {
     return t('progress.estimatedCompletionPlaceholder');
   }, [t]);
 
+  const weatherHasData = !!(weather && weather.length > 0 && !weatherLoading);
+
   const dailyBrief = useMemo(() => {
     if (progressLoading || statusLoading) return '';
     return buildBrief(todayTaskCount, budgetUtil, obecnyEtap, t);
@@ -748,19 +902,6 @@ export default function DashboardScreen() {
 
   const glowOpacity = heroGlow.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.55] });
   const glowScale = heroGlow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] });
-
-  const scanX = useRef(new Animated.Value(-60)).current;
-  useEffect(() => {
-    scanX.setValue(-60);
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(scanX, { toValue: W + 60, duration: 2400, useNativeDriver: true }),
-        Animated.timing(scanX, { toValue: -60, duration: 10, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [scanX]);
 
   const handleMomentumEnd = (e: any) => {
     const x = e?.nativeEvent?.contentOffset?.x ?? 0;
@@ -795,25 +936,6 @@ export default function DashboardScreen() {
                 </Text>
               )}
             </View>
-            <View style={styles.heroWeatherWrap}>
-              {!weatherLoading && weather && weather.length > 0 ? (
-                weather.slice(0, 3).map((day, i) => (
-                  <View key={i} style={styles.heroWeatherChip}>
-                    <Text style={styles.heroWeatherLabel}>{day.label}</Text>
-                    <Text style={styles.heroWeatherIcon}>{day.icon}</Text>
-                    <Text style={styles.heroWeatherTemp}>{day.temp}</Text>
-                  </View>
-                ))
-              ) : (
-                [0, 1, 2].map((i) => (
-                  <View key={i} style={styles.heroWeatherChip}>
-                    <Text style={styles.heroWeatherLabel}>—</Text>
-                    <Text style={styles.heroWeatherIcon}>·</Text>
-                    <Text style={styles.heroWeatherTemp}>—</Text>
-                  </View>
-                ))
-              )}
-            </View>
           </View>
 
           <Animated.View style={[styles.heroSubtitleWrap, { opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }]}>
@@ -821,11 +943,67 @@ export default function DashboardScreen() {
           </Animated.View>
         </View>
 
+        <View style={styles.weatherCardOuter}>
+          <AppCard contentStyle={styles.weatherCard} withShadow={false} glow={false}>
+            <View style={styles.weatherRow}>
+              <View style={styles.weatherLeft}>
+                <View style={styles.weatherLeftHeader}>
+                  <Text style={styles.weatherLeftIcon}>
+                    {!weatherLoading && weather && weather.length > 0 ? weather[0].icon : '📍'}
+                  </Text>
+                  <View style={styles.weatherLeftTextWrap}>
+                    <Text style={styles.weatherLeftTitle} numberOfLines={1}>
+                      {t('weather.workConditionsTitle')}
+                    </Text>
+                    <Text style={styles.weatherLeftHint} numberOfLines={1}>
+                      {weatherHasData ? t(getWeatherWorkHint(weather, appLocale)) : t('weather.emptyText')}
+                    </Text>
+                  </View>
+                </View>
+                {!weatherHasData && (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={styles.weatherCta}
+                    onPress={() => router.push('/(app)/inwestycja')}
+                  >
+                    <Text style={styles.weatherCtaText}>{t('weather.emptyCta')}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={styles.weatherDaysWrap}>
+                {weatherHasData ? (
+                  weather.slice(0, 3).map((day, i) => (
+                    <View key={`${day.date}-${i}`} style={styles.weatherDay}>
+                      <Text style={styles.weatherDayLabel}>{day.label}</Text>
+                      <Text style={styles.weatherDayIcon}>{day.icon}</Text>
+                      <Text style={styles.weatherDayTemp}>{day.tempMax}°</Text>
+                      <Text style={styles.weatherDayNote} numberOfLines={1}>
+                        {t(getWeatherDayNoteKey(day))}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  [0, 1, 2].map((i) => (
+                    <View key={i} style={styles.weatherDay}>
+                      <Text style={styles.weatherDayLabel}>—</Text>
+                      <Text style={styles.weatherDayIcon}>·</Text>
+                      <Text style={styles.weatherDayTemp}>—</Text>
+                      <Text style={styles.weatherDayNote} numberOfLines={1}>
+                        {t('weather.emptyFallback')}
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </View>
+            </View>
+          </AppCard>
+        </View>
+
         {/* ── PROGRESS CARD (etapy) ── */}
         <View style={styles.progressCardOuter}>
           <AppCard contentStyle={styles.progressCard} glow>
-            <Animated.View pointerEvents="none" style={[styles.progressScan, { transform: [{ translateX: scanX }, { rotate: '-12deg' }] }]} />
-
+            <View pointerEvents="none" style={styles.progressTopSheen} />
             <View style={styles.progressRow}>
               <Text style={styles.progressLabel}>{t('progress.currentStageLabel')}</Text>
               {progressLoading
@@ -843,21 +1021,26 @@ export default function DashboardScreen() {
               </View>
             )}
 
-            <View style={styles.estimatedWrap}>
-              <Text style={styles.progressLabel}>
-                {t('progress.estimatedCompletionLabel')}
+            <View style={styles.progressColumn}>
+              <View style={styles.progressRow}>
+                <Text style={styles.progressLabel}>{t('progress.stageRealizationLabel')}</Text>
+                {progressLoading
+                  ? <Text style={styles.progressValue}>{t('common:loading')}</Text>
+                  : <Text style={styles.progressValue}>{`${progressPercent}%`}</Text>
+                }
+              </View>
+
+              <View style={styles.stageProgressTrack}>
+                <Animated.View style={[styles.stageProgressFill, { width: `${progressPercent}%` as any }]} />
+              </View>
+              <Text style={styles.stageProgressHint}>
+                {progressLoading
+                  ? t('common:loading')
+                  : t('progress.stageRealizationHint', {
+                      done: milestonesText.split(' / ')[0] ?? '0',
+                      total: milestonesText.split(' / ')[1] ?? '0',
+                    })}
               </Text>
-              <Text style={styles.estimatedValue}>{estimatedCompletionText}</Text>
-            </View>
-
-            <View style={styles.sep} />
-
-            <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>{t('progress.nextStageLabel')}</Text>
-              {progressLoading
-                ? <Text style={styles.progressValue}>{t('common:loading')}</Text>
-                : <Text style={styles.progressValue}>{kolejnyEtap}</Text>
-              }
             </View>
 
             <TouchableOpacity
@@ -873,7 +1056,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* ── DONUT CAROUSEL ── */}
-        <View style={{ marginTop: 16 }}>
+        <View style={styles.budgetCarouselOuter}>
           <Animated.FlatList
             ref={(r) => (listRef.current = r as any)}
             data={donutData}
@@ -1248,18 +1431,19 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
-  content: { paddingTop: 16, paddingHorizontal: 18, paddingBottom: 140 },
+  content: { paddingTop: 6, paddingHorizontal: 18, paddingBottom: 140 },
 
   // ── HERO — ZMIENIONE (tylko ta sekcja, reszta styles identyczna z doc 13) ──
-  hero: { marginTop: 6, marginBottom: 8 },
+  hero: { marginTop: 0, marginBottom: 8 },
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 0,
+    marginLeft: -14,
   },
   heroLogo: {
-    width: 68,
-    height: 68,
+    width: 100,
+    height: 100,
     flexShrink: 0,
     opacity: 0.98,
   },
@@ -1267,6 +1451,7 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
     minWidth: 0,
+    marginLeft: -10,
   },
   heroTitleGlow: {
     position: 'absolute',
@@ -1280,7 +1465,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     width: '100%',
-    color: ACCENT,
+    color: '#34f0c8',
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: -0.3,
@@ -1290,41 +1475,126 @@ const styles = StyleSheet.create({
   heroName: {
     width: '100%',
     marginTop: -4,
-    color: ACCENT,
+    color: '#34f0c8',
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: -0.3,
     textShadowColor: 'rgba(25,112,92,0.18)',
     textShadowRadius: 18,
   },
-  heroWeatherWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexShrink: 0,
-  },
-  heroWeatherChip: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 28,
-  },
-  heroWeatherLabel: {
-    color: 'rgba(255,255,255,0.38)',
-    fontSize: 10,
-    fontWeight: '900',
-    textTransform: 'lowercase',
-  },
-  heroWeatherIcon: { fontSize: 14, lineHeight: 16 },
-  heroWeatherTemp: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
-  heroSubtitleWrap: { marginTop: 8, width: '100%' },
+  heroSubtitleWrap: { marginTop: 5, width: '100%' },
   heroSubtitle: {
-    color: 'rgba(255,255,255,0.60)',
-    fontSize: 15.5,
-    fontWeight: '400',
-    lineHeight: 22,
+    color: 'rgba(255,255,255,0.84)',
+    fontSize: 16.5,
+    fontWeight: '500',
+    lineHeight: 21,
     maxWidth: '96%',
   },
   // ── koniec zmian hero ──
+
+  weatherCardOuter: { marginTop: 10 },
+  weatherCard: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(9,11,14,0.62)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  weatherRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+  },
+  weatherLeft: {
+    flex: 0.58,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
+  weatherLeftHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
+  },
+  weatherLeftIcon: {
+    fontSize: 20,
+    lineHeight: 22,
+    marginTop: 0,
+  },
+  weatherLeftTextWrap: {
+    flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  weatherLeftTitle: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    lineHeight: 14,
+    fontWeight: '800',
+    letterSpacing: -0.1,
+  },
+  weatherLeftHint: {
+    color: 'rgba(255,255,255,0.66)',
+    fontSize: 9.5,
+    lineHeight: 11,
+    marginTop: 1,
+  },
+  weatherCta: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.20)',
+  },
+  weatherCtaText: {
+    color: '#D8FFF6',
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0,
+  },
+  weatherDaysWrap: {
+    flex: 0.42,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 3,
+    alignItems: 'center',
+  },
+  weatherDay: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 0,
+  },
+  weatherDayLabel: {
+    color: 'rgba(255,255,255,0.52)',
+    fontSize: 8.5,
+    lineHeight: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  weatherDayIcon: {
+    fontSize: 14,
+    lineHeight: 16,
+    marginTop: 1,
+  },
+  weatherDayTemp: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '800',
+    marginTop: 0,
+  },
+  weatherDayNote: {
+    color: 'rgba(255,255,255,0.60)',
+    fontSize: 8,
+    lineHeight: 9,
+    marginTop: 0,
+    textAlign: 'center',
+  },
 
   briefOuter: { marginTop: 10, borderRadius: 20, overflow: 'hidden' },
   briefCard: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'rgba(37,240,200,0.04)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.14)' },
@@ -1332,21 +1602,65 @@ const styles = StyleSheet.create({
   briefIcon: { fontSize: 16, marginTop: 1 },
   briefText: { flex: 1, color: 'rgba(255,255,255,0.80)', fontSize: 13.5, fontWeight: '700', lineHeight: 20 },
 
-  progressCardOuter: { marginTop: 14, borderRadius: 28 },
-  progressCard: { borderRadius: 28, padding: 18, backgroundColor: 'transparent', borderWidth: 0 },
-  progressScan: {
-    position: 'absolute', top: -40, width: 120, height: 120, borderRadius: 999,
-    backgroundColor: 'rgba(37,240,200,0.04)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.10)',
-    shadowColor: NEON, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 0 },
+  progressCardOuter: {
+    marginTop: 14,
+    borderRadius: 28,
+    shadowColor: NEON,
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
   },
+  progressCard: {
+    borderRadius: 28,
+    padding: 18,
+    backgroundColor: 'rgba(10,12,15,0.52)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
+    overflow: 'hidden',
+  },
+  progressColumn: { gap: 8, marginTop: 2 },
   progressRow: { paddingVertical: 10 },
-  progressLabel: { color: 'rgba(255,255,255,0.42)', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.8 },
-  progressValue: { marginTop: 6, color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.2 },
+  progressLabel: { color: 'rgba(255,255,255,0.44)', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.9 },
+  progressValue: { marginTop: 6, color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.2, textShadowColor: 'rgba(37,240,200,0.22)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10 },
 
   miniBarWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
-  miniBarTrack: { flex: 1, height: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
-  miniBarFill: { height: '100%', backgroundColor: NEON, borderRadius: 999, shadowColor: NEON, shadowOpacity: 0.5, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
-  miniBarLabel: { color: NEON, fontSize: 11.5, fontWeight: '900', minWidth: 32, textAlign: 'right' },
+  miniBarTrack: { flex: 1, height: 7, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  miniBarFill: { height: '100%', backgroundColor: NEON, borderRadius: 999, shadowColor: NEON, shadowOpacity: 0.58, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
+  miniBarLabel: { color: NEON, fontSize: 11.5, fontWeight: '900', minWidth: 32, textAlign: 'right', textShadowColor: 'rgba(37,240,200,0.28)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
+  stageProgressTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  stageProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#35F3CE',
+    shadowColor: NEON,
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  stageProgressHint: { marginTop: 2, color: 'rgba(255,255,255,0.66)', fontSize: 12, fontWeight: '700' },
+  progressTopSheen: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    top: 0,
+    height: 42,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
 
   estimatedWrap: { paddingTop: 8, paddingBottom: 12 },
   estimatedValue: { marginTop: 6, color: 'rgba(255,255,255,0.82)', fontSize: 14.5, fontWeight: '800' },
@@ -1361,18 +1675,30 @@ const styles = StyleSheet.create({
   carouselHintText: { display: 'none' } as any,
   carouselHintArrow: { color: 'rgba(37,240,200,0.40)', fontSize: 18, fontWeight: '900' },
 
+  budgetCarouselOuter: {
+    marginTop: 16,
+    paddingVertical: 8,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.015)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    shadowColor: '#000',
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+  },
   donutSlide: { borderRadius: 24, overflow: 'visible' },
-  donutGlowWrap: { position: 'absolute', left: 12, right: 12, top: 18, bottom: 18, borderRadius: 999, shadowColor: NEON, shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } },
-  donutInnerWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
+  donutGlowWrap: { position: 'absolute', left: 16, right: 16, top: 14, bottom: 18, borderRadius: 999, shadowColor: NEON, shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
+  donutInnerWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
   donutSubText: { marginTop: 8, color: 'rgba(255,255,255,0.46)', fontSize: 12.5, fontWeight: '700' },
   donutDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8 },
-  donutDot: { width: 6, height: 6, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.15)' },
-  donutDotActive: { backgroundColor: NEON, shadowColor: NEON, shadowOpacity: 0.6, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
+  donutDot: { width: 6, height: 6, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.14)' },
+  donutDotActive: { backgroundColor: NEON, shadowColor: NEON, shadowOpacity: 0.72, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
 
   sectionWrap: { marginTop: 18 },
   sectionTitleWrap: { justifyContent: 'center', marginBottom: 12 },
-  sectionOuter: { borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 26, shadowOffset: { width: 0, height: 14 } },
-  sectionGlass: { borderRadius: 28, padding: 16, backgroundColor: 'rgba(255,255,255,0.026)' },
+  sectionOuter: { borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 22, shadowOffset: { width: 0, height: 12 } },
+  sectionGlass: { borderRadius: 28, padding: 16, backgroundColor: 'rgba(255,255,255,0.024)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
 
   sectionLabelSmall: { color: 'rgba(255,255,255,0.42)', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
 

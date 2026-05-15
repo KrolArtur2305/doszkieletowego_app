@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,39 +13,48 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
-import { getStageLabel } from '../../../../lib/localizedLabels';
 import {
-  filterWorkflowStages,
-  preferredStartStageCode,
-  resolveRuntimeCurrentStageCode,
-} from '../../../../lib/buildWorkflow';
-import { AppInput } from '../../../../src/ui/components';
+  isDoneStageStatus,
+  isHiddenStageStatus,
+  resolveCurrentStageGroupCode,
+  summarizeGroupProgress,
+  type StageGroupCode,
+  type StageTemplateRow,
+  type UserStageRow,
+} from '../../../../lib/postepyModel';
+import { getStageDisplayName, getStageGroupDisplayName } from '../../../../lib/stageModel';
 
-type EtapRow = {
-  id: string;
-  user_id: string;
-  nazwa: string;
-  nazwa_code?: string | null;
-  kolejnosc: number | null;
+type ProfileRow = {
+  build_type: string | null;
+  current_stage_code: string | null;
+};
+
+type StageItem = {
+  key: string;
+  title: string;
+  stageCode: string;
+  groupCode: StageGroupCode;
+  orderIndex: number;
   status: string | null;
-  notatka: string | null;
-  utworzono?: string | null;
+  userStage: UserStageRow | null;
+  templateId: string | null;
 };
 
 const NEON = '#25F0C8';
 
-// MUSI pasować do constraint w Supabase
-const STATUS_DONE = 'zrealizowany';
-const STATUS_DEFAULT = 'planowany';
-
-function normStatus(s: string | null | undefined) {
-  return String(s ?? '').toLowerCase().trim();
-}
-function isDoneStatus(s: string | null | undefined) {
-  return normStatus(s) === STATUS_DONE;
-}
 function safeOrder(n: number | null | undefined) {
   return typeof n === 'number' && Number.isFinite(n) ? n : 9999;
+}
+
+function normalizeBuildType(buildType: string | null | undefined) {
+  return String(buildType ?? '').trim().toLowerCase() === 'szkieletowy' ? 'timber_frame' : 'masonry';
+}
+
+function upsertItemStatus(items: StageItem[], rowId: string | null | undefined, status: string) {
+  if (!rowId) return items;
+  return items.map((item) =>
+    item.userStage?.id === rowId ? { ...item, status } : item
+  );
 }
 
 export default function WszystkieEtapyScreen() {
@@ -54,43 +63,75 @@ export default function WszystkieEtapyScreen() {
 
   const [loading, setLoading] = useState(true);
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({});
-  const [etapy, setEtapy] = useState<EtapRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [templates, setTemplates] = useState<StageTemplateRow[]>([]);
+  const [userStages, setUserStages] = useState<UserStageRow[]>([]);
 
-  // notatki – lokalny draft
-  const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
-  const noteTimers = useRef<Record<string, any>>({});
-
-  // „pokaż poprzednie”
   const [showPrevCount, setShowPrevCount] = useState(0);
   const PREV_STEP = 10;
 
-  const sorted = useMemo(() => {
-    return [...etapy].sort((a, b) => safeOrder(a.kolejnosc) - safeOrder(b.kolejnosc));
-  }, [etapy]);
+  const stageItems = useMemo(() => {
+    const templateItems: StageItem[] = templates.map((template) => {
+      const match =
+        userStages.find(
+          (row) =>
+            String(row.template_id ?? '').trim() === String(template.id ?? '').trim() ||
+            String(row.stage_code ?? '').trim().toUpperCase() === String(template.stage_code ?? '').trim().toUpperCase()
+        ) ?? null;
 
-  // logika: domyślnie ukryj zrealizowane, a „pokaż poprzednie” dokłada po 10
+      return {
+        key: `template-${template.id}`,
+        title: getStageDisplayName(t, {
+          stageCode: template.stage_code,
+          nameKey: template.name_key,
+          legacyName: String(template.stage_group_code ?? ''),
+        }),
+        stageCode: String(template.stage_code ?? '').trim().toUpperCase(),
+        groupCode: (template.stage_group_code as StageGroupCode) ?? 'foundations',
+        orderIndex: safeOrder(template.order_index),
+        status: match?.status ?? 'pending',
+        userStage: match,
+        templateId: template.id,
+      };
+    });
+
+    const customItems: StageItem[] = userStages
+      .filter((row) => String(row.source ?? '').trim().toLowerCase() === 'custom')
+      .map((row) => ({
+        key: `custom-${row.id}`,
+        title: row.custom_name?.trim() || t('all.customStage', { defaultValue: 'Etap własny' }),
+        stageCode: String(row.stage_code ?? '').trim().toUpperCase(),
+        groupCode: resolveCurrentStageGroupCode(templates, profile?.build_type, row.stage_code),
+        orderIndex: safeOrder(row.order_index),
+        status: row.status ?? 'pending',
+        userStage: row,
+        templateId: row.template_id ?? null,
+      }));
+
+    return [...templateItems, ...customItems].sort((a, b) => a.orderIndex - b.orderIndex || a.title.localeCompare(b.title));
+  }, [profile?.build_type, t, templates, userStages]);
+
   const listView = useMemo(() => {
-    if (sorted.length === 0) {
-      return { visible: [] as EtapRow[], hiddenPrevDone: [] as EtapRow[] };
+    const visible = stageItems.filter((item) => !isHiddenStageStatus(item.status));
+
+    if (visible.length === 0) {
+      return { visible: [] as StageItem[], hiddenPrevDone: [] as StageItem[] };
     }
 
-    const firstNotDoneIdx = sorted.findIndex((e) => !isDoneStatus(e.status));
-
-    // jeśli wszystkie zrealizowane -> pokaż wszystko, żeby nie było pustki
+    const firstNotDoneIdx = visible.findIndex((item) => !isDoneStageStatus(item.status));
     if (firstNotDoneIdx === -1) {
-      return { visible: sorted, hiddenPrevDone: [] as EtapRow[] };
+      return { visible, hiddenPrevDone: [] as StageItem[] };
     }
 
-    const prevDone = sorted.slice(0, firstNotDoneIdx).filter((e) => isDoneStatus(e.status));
-    const rest = sorted.slice(firstNotDoneIdx);
-
+    const prevDone = visible.slice(0, firstNotDoneIdx).filter((item) => isDoneStageStatus(item.status));
+    const rest = visible.slice(firstNotDoneIdx);
     const sliceCount = Math.min(showPrevCount, prevDone.length);
     const prevToShow = sliceCount > 0 ? prevDone.slice(prevDone.length - sliceCount) : [];
     const hiddenPrev = prevDone.slice(0, Math.max(0, prevDone.length - sliceCount));
 
     return { visible: [...prevToShow, ...rest], hiddenPrevDone: hiddenPrev };
-  }, [sorted, showPrevCount]);
+  }, [showPrevCount, stageItems]);
 
   useEffect(() => {
     let alive = true;
@@ -106,53 +147,48 @@ export default function WszystkieEtapyScreen() {
 
         if (!user) {
           if (!alive) return;
-          setEtapy([]);
+          setProfile(null);
+          setTemplates([]);
+          setUserStages([]);
           return;
         }
-
-        const { data, error } = await supabase
-          .from('etapy')
-          .select('id,user_id,nazwa,nazwa_code,kolejnosc,status,notatka,utworzono')
-          .eq('user_id', user.id)
-          .order('kolejnosc', { ascending: true });
-
-        if (error) throw error;
-
-        if (!alive) return;
 
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('build_type, current_stage_code')
           .eq('user_id', user.id)
           .single();
-
         if (profileError) throw profileError;
 
-        const rows = filterWorkflowStages((data ?? []) as EtapRow[], profileData?.build_type);
-        const preferredStageCode = preferredStartStageCode(profileData?.build_type, profileData?.current_stage_code);
-        const rowsToUse = rows.length > 0 ? rows : ((data ?? []) as EtapRow[]);
-        const preferredIndex = rowsToUse.findIndex((row) => String(row.nazwa_code ?? '').trim().toUpperCase() === preferredStageCode);
-        const orderedRows =
-          preferredIndex > 0 ? [...rowsToUse.slice(preferredIndex), ...rowsToUse.slice(0, preferredIndex)] : rowsToUse;
-        setEtapy(orderedRows);
+        const workflowCode = normalizeBuildType((profileData as ProfileRow | null)?.build_type);
+        const [templateRes, userStageRes] = await Promise.all([
+          supabase
+            .from('stage_templates')
+            .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
+            .eq('workflow_code', workflowCode)
+            .eq('is_active', true)
+            .order('order_index', { ascending: true }),
+          supabase
+            .from('user_stages')
+            .select('id, user_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at')
+            .eq('user_id', user.id)
+            .order('order_index', { ascending: true }),
+        ]);
 
-        const storedStageCode = String(profileData?.current_stage_code ?? '').trim().toUpperCase();
-        const runtimeStageCode = resolveRuntimeCurrentStageCode((data ?? []) as EtapRow[], profileData?.build_type, storedStageCode);
-        if (runtimeStageCode !== storedStageCode) {
-          await supabase
-            .from('profiles')
-            .upsert({ user_id: user.id, current_stage_code: runtimeStageCode }, { onConflict: 'user_id' });
-        }
+        if (templateRes.error) throw templateRes.error;
+        if (userStageRes.error) throw userStageRes.error;
 
-        const draft: Record<string, string> = {};
-        for (const r of orderedRows) draft[r.id] = r.notatka ?? '';
-        setNoteDraft(draft);
-
+        if (!alive) return;
+        setProfile((profileData as ProfileRow | null) ?? null);
+        setTemplates((templateRes.data ?? []) as StageTemplateRow[]);
+        setUserStages((userStageRes.data ?? []) as UserStageRow[]);
         setShowPrevCount(0);
       } catch (e: any) {
         if (!alive) return;
         setError(e?.message ?? t('errors.fetchFailed'));
-        setEtapy([]);
+        setProfile(null);
+        setTemplates([]);
+        setUserStages([]);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -160,69 +196,74 @@ export default function WszystkieEtapyScreen() {
     };
 
     load();
-
     return () => {
       alive = false;
-      Object.values(noteTimers.current).forEach((t) => clearTimeout(t));
-      noteTimers.current = {};
     };
-  }, []);
+  }, [t]);
 
   const setSaving = (id: string, v: boolean) => {
     setSavingIds((prev) => ({ ...prev, [id]: v }));
   };
 
-  const updateStatus = async (row: EtapRow) => {
-    const newStatus = isDoneStatus(row.status) ? STATUS_DEFAULT : STATUS_DONE;
+  const updateStatus = async (item: StageItem) => {
+    const nextStatus = isDoneStageStatus(item.status) ? 'pending' : 'done';
+    const userId = item.userStage?.user_id ?? null;
+    if (!userId) return;
 
-    // optimistic
-    setEtapy((prev) => prev.map((e) => (e.id === row.id ? { ...e, status: newStatus } : e)));
+    const optimisticRowId = item.userStage?.id ?? null;
+    if (optimisticRowId) {
+      setUserStages((prev) =>
+        prev.map((row) => (row.id === optimisticRowId ? { ...row, status: nextStatus } : row))
+      );
+    }
 
     try {
-      setSaving(row.id, true);
+      setSaving(item.key, true);
 
-      const { error } = await supabase
-        .from('etapy')
-        .update({ status: newStatus })
-        .eq('id', row.id);
+      if (item.userStage?.id) {
+        const { error } = await supabase.from('user_stages').update({ status: nextStatus }).eq('id', item.userStage.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('user_stages')
+          .insert({
+            user_id: userId,
+            template_id: item.templateId,
+            workflow_code: normalizeBuildType(profile?.build_type),
+            stage_group_code: item.groupCode,
+            stage_code: item.stageCode || null,
+            source: 'template',
+            status: nextStatus,
+            order_index: item.orderIndex,
+          })
+          .select('id, user_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at')
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
+        if (data) {
+          setUserStages((prev) => [...prev, data as UserStageRow]);
+        }
+      }
     } catch (e: any) {
-      // rollback
-      setEtapy((prev) => prev.map((e) => (e.id === row.id ? { ...e, status: row.status } : e)));
+      if (optimisticRowId) {
+        setUserStages((prev) =>
+          prev.map((row) => (row.id === optimisticRowId ? { ...row, status: item.status } : row))
+        );
+      }
       setError(e?.message ?? t('errors.updateFailed'));
     } finally {
-      setSaving(row.id, false);
+      setSaving(item.key, false);
     }
-  };
-
-  const scheduleSaveNote = (rowId: string, value: string) => {
-    if (noteTimers.current[rowId]) clearTimeout(noteTimers.current[rowId]);
-
-    noteTimers.current[rowId] = setTimeout(async () => {
-      try {
-        setSaving(rowId, true);
-        const { error } = await supabase.from('etapy').update({ notatka: value }).eq('id', rowId);
-        if (error) throw error;
-      } catch (e: any) {
-        setError(e?.message ?? t('errors.noteSaveFailed'));
-      } finally {
-        setSaving(rowId, false);
-      }
-    }, 650);
-  };
-
-  const onChangeNote = (rowId: string, text: string) => {
-    setNoteDraft((prev) => ({ ...prev, [rowId]: text }));
-    scheduleSaveNote(rowId, text);
   };
 
   const canShowPrev = !loading && listView.hiddenPrevDone.length > 0;
 
+  const currentGroupCode = resolveCurrentStageGroupCode(templates, profile?.build_type, profile?.current_stage_code);
+  const currentProgress = summarizeGroupProgress(userStages, [], currentGroupCode);
+
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* HEADER */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
             <Feather name="arrow-left" size={18} color="#EAFBF6" />
@@ -234,14 +275,37 @@ export default function WszystkieEtapyScreen() {
           <View style={{ width: 62 }} />
         </View>
 
-        {/* LISTA */}
+        <BlurView intensity={16} tint="dark" style={styles.card}>
+          <View style={styles.summaryRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardLabel}>{t('hero.cardLabel', { defaultValue: 'Postępy' })}</Text>
+              <Text style={styles.sectionTitle}>
+                {t('all.completed', {
+                  done: currentProgress.done,
+                  total: currentProgress.total,
+                  defaultValue: `${currentProgress.done} / ${currentProgress.total}`,
+                })}
+              </Text>
+              <Text style={styles.muted}>
+                {t('all.hint', { defaultValue: 'Widok oparty o stage_templates i user_stages.' })}
+              </Text>
+            </View>
+            <View style={styles.miniPill}>
+              <Feather name="layers" size={14} color={NEON} />
+              <Text style={styles.miniPillText}>
+                {t('all.visible', { count: listView.visible.length, defaultValue: `${listView.visible.length}` })}
+              </Text>
+            </View>
+          </View>
+        </BlurView>
+
         <BlurView intensity={16} tint="dark" style={styles.card}>
           {loading ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator color={NEON} />
               <Text style={styles.loadingText}>{t('common.loading')}</Text>
             </View>
-          ) : sorted.length === 0 ? (
+          ) : stageItems.length === 0 ? (
             <Text style={styles.muted}>{t('all.noStagesHint')}</Text>
           ) : (
             <View>
@@ -260,15 +324,15 @@ export default function WszystkieEtapyScreen() {
                 </TouchableOpacity>
               )}
 
-              {listView.visible.map((row) => {
-                const done = isDoneStatus(row.status);
-                const saving = !!savingIds[row.id];
+              {listView.visible.map((item) => {
+                const done = isDoneStageStatus(item.status);
+                const saving = !!savingIds[item.key];
 
                 return (
-                  <View key={row.id} style={styles.row}>
+                  <View key={item.key} style={styles.row}>
                     <TouchableOpacity
                       style={[styles.checkbox, done && styles.checkboxDone]}
-                      onPress={() => updateStatus(row)}
+                      onPress={() => updateStatus(item)}
                       activeOpacity={0.85}
                     >
                       {done ? <Feather name="check" size={16} color="#022C22" /> : null}
@@ -276,22 +340,15 @@ export default function WszystkieEtapyScreen() {
 
                     <View style={{ flex: 1 }}>
                       <View style={styles.rowTop}>
-                        <Text style={styles.rowTitle}>
-                          {row.kolejnosc ? `${row.kolejnosc}. ` : ''}
-                          {getStageLabel(row.nazwa, t)}
+                        <Text style={styles.rowTitle} numberOfLines={1}>
+                          {item.title}
                         </Text>
-
                         {saving ? <ActivityIndicator size="small" color={NEON} /> : null}
                       </View>
 
-                      <AppInput
-                        value={noteDraft[row.id] ?? ''}
-                        onChangeText={(text) => onChangeNote(row.id, text)}
-                        placeholder={t('all.notePlaceholder')}
-                        placeholderTextColor="rgba(255,255,255,0.35)"
-                        style={styles.note}
-                        multiline
-                      />
+                      <Text style={styles.rowMeta} numberOfLines={1}>
+                        {getStageGroupDisplayName(t, item.groupCode)}
+                      </Text>
                     </View>
                   </View>
                 );
@@ -346,6 +403,41 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cardLabel: {
+    color: 'rgba(255,255,255,0.55)',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  sectionTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    marginTop: 8,
+    letterSpacing: -0.2,
+  },
+  miniPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.14)',
+    backgroundColor: 'rgba(37,240,200,0.06)',
+  },
+  miniPillText: {
+    color: NEON,
+    fontWeight: '900',
+    fontSize: 12,
+  },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
   loadingText: { color: 'rgba(255,255,255,0.55)', fontWeight: '800' },
 
@@ -397,18 +489,10 @@ const styles = StyleSheet.create({
 
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   rowTitle: { color: '#FFFFFF', fontWeight: '900', fontSize: 15.5, flex: 1 },
-
-  note: {
-    marginTop: 10,
-    minHeight: 44,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.85)',
+  rowMeta: {
+    marginTop: 6,
+    color: 'rgba(255,255,255,0.55)',
     fontWeight: '700',
-    lineHeight: 20,
+    fontSize: 11.5,
   },
 });

@@ -8,6 +8,8 @@
     "nameRequired": "Der Projektname ist erforderlich, um fortzufahren.",
     "locationRequired": "Der Projektstandort ist erforderlich, um fortzufahren.",
     "selectLocationFromList": "Bitte wähle einen Ort aus der Liste aus.",
+    "changeBuildTypeTitle": "Bauart ändern?",
+    "changeBuildTypeMsg": "Wenn du die Bauart änderst, wird die aktuelle Phase neu berechnet und der Fortschritt an den neuen Workflow angepasst.",
     "invalidBudgetTitle": "Ungültiges Budget",
     "invalidBudgetMsg": "Das Budget darf nicht negativ sein.",
     "errorTitle": "Fehler",
@@ -19,6 +21,7 @@
   "form": {
     "nameLabel": "Projektname",
     "namePlaceholder": "z. B. Haus bei Krakau",
+    "buildTypeLabel": "Bauart",
     "countryLabel": "Land",
     "locationLabel": "Ort",
     "locationPlaceholder": "Stadt, Ort oder Adresse eingeben",
@@ -27,6 +30,11 @@
     "datePlaceholder": "Datum auswählen",
     "plannedBudgetLabel": "Geplantes Budget",
     "plannedBudgetPlaceholder": "z. B. 450000"
+  },
+  "buildTypes": {
+    "murowany": "Massivbau",
+    "szkieletowy": "Holzrahmenbau",
+    "inny": "Andere"
   },
   "modal": {
     "pickStartTitle": "Startdatum wählen",
@@ -37,6 +45,7 @@
     "saveAndContinue": "Speichern & weiter",
     "saveAndContinueToApp": "Speichern und zur App wechseln",
     "save": "Speichern",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "changeTypeConfirm": "Bauart ändern"
   }
 }

@@ -13,6 +13,67 @@
     "noStages": "No stages.",
     "progressPercent": "Construction at {{percent}}%"
   },
+  "hero": {
+    "cardLabel": "Current stage",
+    "completedSteps": "{{done}} of {{total}} steps completed"
+  },
+  "timeline": {
+    "cardLabel": "Main stages"
+  },
+  "mainTimeline": {
+    "stanZero": "Groundwork",
+    "foundations": "Foundations",
+    "construction": "Structure",
+    "ssz": "Closed shell",
+    "installations": "Installations",
+    "developerState": "Developer state",
+    "finishing": "Finishing"
+  },
+  "orders": {
+    "cardLabel": "Order now",
+    "subtitle": "Items with longer lead times",
+    "leadTime": {
+      "short": "1-2 weeks",
+      "medium": "2-4 weeks",
+      "long": "4-8 weeks"
+    },
+    "geodetist": "Surveyor",
+    "rebar": "Rebar",
+    "concrete": "Concrete",
+    "windows": "Windows",
+    "roofTruss": "Roof trusses",
+    "joinery": "Joinery",
+    "roofing": "Roof covering",
+    "gutters": "Gutters",
+    "scaffolding": "Scaffolding",
+    "doors": "Exterior doors",
+    "sills": "Window sills",
+    "foils": "Protective foils",
+    "electrical": "Electrical installation",
+    "plumbing": "Plumbing",
+    "ventilation": "Ventilation",
+    "plasters": "Plastering",
+    "screeds": "Screeds",
+    "painting": "Painting"
+  },
+  "upcoming": {
+    "cardLabel": "Coming up",
+    "hint": "This stage will matter soon"
+  },
+  "nextStage": {
+    "cardLabel": "Next stage",
+    "hint": "Next main workflow stage"
+  },
+  "substeps": {
+    "cardLabel": "Current stage substeps",
+    "completed": "{{done}} of {{total}} substeps completed",
+    "cta": "Check details"
+  },
+  "fallback": {
+    "currentGroup": "Current stage",
+    "noCurrentStage": "Could not determine the current stage.",
+    "stage": "Construction stage"
+  },
   "names": {
     "planning": "Planning",
     "stanZero": "Groundwork",
@@ -21,6 +82,24 @@
     "installations": "Installations",
     "developerState": "Developer finish",
     "finishing": "Finishing"
+  },
+  "stageTemplates": {
+    "masonry": {
+      "A01_01": "Base preparation",
+      "A03_01": "Open shell - phase 1",
+      "A03_02": "Open shell - phase 2",
+      "A04_01": "Closed shell",
+      "A05_01": "Roof structure",
+      "A06_01": "Pre-installations"
+    },
+    "timberFrame": {
+      "B01_01": "Base preparation",
+      "B03_01": "Frame shell - phase 1",
+      "B03_02": "Frame shell - phase 2",
+      "B04_01": "Closed shell",
+      "B05_01": "Roof structure",
+      "B06_01": "Pre-installations"
+    }
   },
   "stages": {
     "cardLabel": "Stages",
