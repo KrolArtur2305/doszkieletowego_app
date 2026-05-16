@@ -41,6 +41,7 @@ import {
   normalizeExpenseType as normalizeExpenseTypeCode,
   stageCodeFromLegacyStage,
   stageGroupCodeFromLegacyStage,
+  stageGroupCodeFromStageCode,
   type ExpenseCategoryCode,
   type ExpenseType,
   type StagePickerOption,
@@ -63,11 +64,11 @@ const TYPE_OTHER = 'other';
 const logo = require('../../../assets/logo.png');
 
 const CATEGORY_OPTIONS = [
-  { value: 'foundations' },
-  { value: 'open_shell' },
-  { value: 'closed_shell' },
-  { value: 'installations' },
-  { value: 'developer_state' },
+  { value: 'stan_zero' },
+  { value: 'sso' },
+  { value: 'ssz' },
+  { value: 'instalacje' },
+  { value: 'wykonczenie' },
   { value: 'other' },
 ] as const;
 
@@ -417,16 +418,16 @@ export default function WszystkieWydatkiScreen() {
       const bDate = new Date(expenseDateForMonth(b) || b.created_at || 0).getTime() || 0;
 
       if (sortBy === 'stage') {
-        const aStage = getStageDisplayName(t, {
-          stageCode: a.stage_code,
-          legacyName: a.etap_id ? stageNameById[a.etap_id] : null,
-          fallback: t('fallback.stage', { defaultValue: 'Etap budowy' }),
-        });
-        const bStage = getStageDisplayName(t, {
-          stageCode: b.stage_code,
-          legacyName: b.etap_id ? stageNameById[b.etap_id] : null,
-          fallback: t('fallback.stage', { defaultValue: 'Etap budowy' }),
-        });
+        const aStage = getStageGroupDisplayName(
+          t,
+          stageGroupCodeFromStageCode(a.stage_code, stageTemplates),
+          t('fallback.stage', { defaultValue: 'Etap budowy' })
+        );
+        const bStage = getStageGroupDisplayName(
+          t,
+          stageGroupCodeFromStageCode(b.stage_code, stageTemplates),
+          t('fallback.stage', { defaultValue: 'Etap budowy' })
+        );
         const byStage = (aStage || '').localeCompare(bStage || '', datePickerLocale);
         if (byStage !== 0) return byStage;
       }
@@ -497,7 +498,8 @@ export default function WszystkieWydatkiScreen() {
     setFKategoria(expenseCategoryCodeFromLegacyLabel(expense.expense_category_code ?? expense.kategoria));
     setFStatus(normalizeExpenseStatus(expense.status));
     setFTyp(normalizeExpenseTypeCode(expense.expense_type ?? expense.typ));
-    setFData(expense.data || '');
+    const expenseStatus = normalizeExpenseStatus(expense.status);
+    setFData((expenseStatus === STATUS_PLANNED ? expense.planowana_data || expense.data : expense.data || expense.planowana_data) || '');
     setFPlanowanaData(expense.planowana_data || '');
     setFEtapId(expense.etap_id || null);
     const stageMatch =
@@ -563,8 +565,8 @@ export default function WszystkieWydatkiScreen() {
         status: fStatus,
         typ: expenseType,
         expense_type: expenseType,
-        data: fData.trim() || null,
-        planowana_data: fStatus === STATUS_PLANNED && fPlanowanaData.trim() ? fPlanowanaData.trim() : null,
+        data: fStatus === STATUS_PLANNED ? null : (fData.trim() || null),
+        planowana_data: fStatus === STATUS_PLANNED && fData.trim() ? fData.trim() : null,
         etap_id: fEtapId || null,
         stage_group_code: stageGroupCode,
         stage_code: stageCode,
@@ -643,11 +645,11 @@ export default function WszystkieWydatkiScreen() {
     const status = normalizeExpenseStatus(item.status);
     const type = normalizeExpenseTypeCode(item.expense_type ?? item.typ);
     const expenseCategoryLabel = getBudgetCategoryLabel(item.expense_category_code ?? item.kategoria, t);
-    const stageLabel = getStageDisplayName(t, {
-      stageCode: item.stage_code,
-      legacyName: item.etap_id && stageNameById[item.etap_id] ? stageNameById[item.etap_id] : null,
-      fallback: t('fallback.stage', { defaultValue: 'Etap budowy' }),
-    });
+    const stageLabel = getStageGroupDisplayName(
+      t,
+      stageGroupCodeFromStageCode(item.stage_code, stageTemplates),
+      t('fallback.stage', { defaultValue: 'Etap budowy' })
+    );
     return (
       <Swipeable renderRightActions={() => renderRightActions(item)} overshootRight={false} rightThreshold={40}>
         <TouchableOpacity
@@ -845,11 +847,11 @@ export default function WszystkieWydatkiScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.suggestionTitle} numberOfLines={1}>{suggestionName(item)}</Text>
                   <Text style={styles.suggestionHint}>
-                    Etap: {getStageDisplayName(t, {
-                      stageCode: item.stage_code,
-                      legacyName: item.stage_name,
-                      fallback: t('fallback.stage', { defaultValue: 'Etap budowy' }),
-                    })}
+                    {getStageGroupDisplayName(
+                      t,
+                      stageGroupCodeFromStageCode(item.stage_code, stageTemplates),
+                      t('fallback.stage', { defaultValue: 'Etap budowy' })
+                    )}
                   </Text>
                 </View>
                 <View style={styles.suggestionMiniCta}>
@@ -999,7 +1001,7 @@ export default function WszystkieWydatkiScreen() {
 
               <View style={styles.compactDateGroup}>
                 <View style={styles.compactDateField}>
-                  <Text style={styles.compactDateLabel}>{t('modal.dateOptional')}</Text>
+                  <Text style={styles.compactDateLabel}>{t('modal.dateLabel')}</Text>
                   <View style={styles.dateRow}>
                     <AppInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" />
                     <TouchableOpacity style={styles.calBtn} onPress={() => openDatePicker('data')} activeOpacity={0.85}>
@@ -1007,18 +1009,6 @@ export default function WszystkieWydatkiScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-
-                {fStatus === STATUS_PLANNED && (
-                  <View style={styles.compactDateField}>
-                    <Text style={styles.compactDateLabel}>{t('modal.plannedDateLabel')}</Text>
-                    <View style={styles.dateRow}>
-                      <AppInput value={fPlanowanaData} onChangeText={setFPlanowanaData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" />
-                      <TouchableOpacity style={styles.calBtn} onPress={() => openDatePicker('planned')} activeOpacity={0.85}>
-                        <Text style={styles.calIcon}>📅</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
               </View>
 
               {datePickerOpen && (
@@ -1384,13 +1374,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.12)',
+    borderColor: 'rgba(37,240,200,0.18)',
     backgroundColor: '#050B0A',
     shadowColor: '#25F0C8',
-    shadowOpacity: 0.12,
-    shadowRadius: 22,
+    shadowOpacity: 0.16,
+    shadowRadius: 26,
     shadowOffset: { width: 0, height: -6 },
-    elevation: 10,
+    elevation: 12,
   },
   modalTitle: { color: NEON, fontWeight: '900', fontSize: 18, marginBottom: 12, textAlign: 'center' },
   lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
@@ -1402,9 +1392,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(37,240,200,0.24)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   calIcon: { fontSize: 18 },
   iosDateWrap: {
@@ -1412,7 +1407,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.16)',
+    borderColor: 'rgba(37,240,200,0.18)',
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
   iosDateOk: {
@@ -1421,9 +1416,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(37,240,200,0.10)',
+    backgroundColor: 'rgba(37,240,200,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.22)',
+    borderColor: 'rgba(37,240,200,0.28)',
   },
   iosDateOkText: { color: NEON, fontWeight: '900', fontSize: 12 },
   row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
@@ -1433,10 +1428,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(37,240,200,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  pillOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
+  pillOn: { borderColor: 'rgba(37,240,200,0.42)', backgroundColor: 'rgba(37,240,200,0.14)' },
   pillText: { color: '#94A3B8', fontWeight: '800' },
   pillTextOn: { color: 'rgba(220,255,245,0.98)' },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingVertical: 2 },
@@ -1444,24 +1444,12 @@ const styles = StyleSheet.create({
     width: '30%',
     minWidth: 84,
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  catTileOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
-  catTileText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
-  catTileTextOn: { color: 'rgba(220,255,245,0.98)' },
-  compactStageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 2 },
-  compactStageChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.16)',
+    borderColor: 'rgba(37,240,200,0.18)',
     backgroundColor: 'rgba(255,255,255,0.04)',
     shadowColor: '#25F0C8',
     shadowOpacity: 0.08,
@@ -1469,7 +1457,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  compactStageChipOn: { borderColor: 'rgba(37,240,200,0.40)', backgroundColor: 'rgba(37,240,200,0.12)' },
+  catTileOn: { borderColor: 'rgba(37,240,200,0.42)', backgroundColor: 'rgba(37,240,200,0.12)' },
+  catTileText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
+  catTileTextOn: { color: 'rgba(220,255,245,0.98)' },
+  compactStageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 2 },
+  compactStageChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  compactStageChipOn: { borderColor: 'rgba(37,240,200,0.50)', backgroundColor: 'rgba(37,240,200,0.14)' },
   compactStageChipText: { color: '#94A3B8', fontWeight: '800', fontSize: 12, letterSpacing: 0 },
   compactStageChipTextOn: { color: 'rgba(220,255,245,0.98)' },
   compactDateGroup: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },

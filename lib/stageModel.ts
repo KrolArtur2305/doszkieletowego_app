@@ -9,12 +9,11 @@ export type ExpenseCategoryCode =
   | 'other';
 
 export type StageGroupCode =
-  | 'foundations'
-  | 'open_shell'
-  | 'roof'
-  | 'closed_shell'
-  | 'installations'
-  | 'developer_state'
+  | 'stan_zero'
+  | 'sso'
+  | 'ssz'
+  | 'instalacje'
+  | 'wykonczenie'
   | 'other';
 
 export type ExpenseType = 'material' | 'service' | 'mixed' | 'other';
@@ -62,6 +61,8 @@ export type StagePickerOption = {
   orderIndex: number;
 };
 
+const MAIN_STAGE_GROUP_ORDER: StageGroupCode[] = ['stan_zero', 'sso', 'ssz', 'instalacje', 'wykonczenie'];
+
 export function buildStageGroupPickerOptions(
   t: Translate,
   stageOptions: StagePickerOption[]
@@ -73,10 +74,14 @@ export function buildStageGroupPickerOptions(
     grouped.set(key, {
       ...option,
       key: `group:${key}`,
-      label: getStageGroupDisplayName(t, key, 'Etap budowy'),
+      label: getStageGroupDisplayName(t, key),
     });
   }
-  return [...grouped.values()];
+  return [...grouped.values()].sort((a, b) => {
+    const ai = MAIN_STAGE_GROUP_ORDER.indexOf(a.stageGroupCode);
+    const bi = MAIN_STAGE_GROUP_ORDER.indexOf(b.stageGroupCode);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
 }
 
 function normalize(value: unknown) {
@@ -91,6 +96,17 @@ function looksLikeTechnicalStageCode(value: unknown) {
   const raw = normalize(value).replace(/\s+/g, '');
   if (!raw) return false;
   return /^([ab]\d{2}_\d{2}|\d+|ssz|sso)$/i.test(raw);
+}
+
+export function normalizeStageGroupCode(value: unknown): StageGroupCode {
+  const raw = normalize(value);
+  if (!raw) return 'other';
+  if (raw === 'stan_zero' || raw === 'stan zero' || raw === 'zero' || raw === 'fundations' || raw === 'foundations' || raw === 'fundamenty') return 'stan_zero';
+  if (raw === 'sso' || raw === 'open_shell' || raw === 'stan surowy otwarty' || raw === 'surowy otwarty' || raw === 'otwarty') return 'sso';
+  if (raw === 'ssz' || raw === 'closed_shell' || raw === 'stan surowy zamkniety' || raw === 'stan surowy zamknięty' || raw === 'surowy zamkniety' || raw === 'zamkniety') return 'ssz';
+  if (raw === 'installations' || raw === 'instalacje' || raw === 'instalacja' || raw === 'roof' || raw === 'dach') return 'instalacje';
+  if (raw === 'wykonczenie' || raw === 'wykończenie' || raw === 'developer_state' || raw === 'stan deweloperski' || raw === 'deweloperski' || raw === 'finish' || raw === 'finishing') return 'wykonczenie';
+  return 'other';
 }
 
 export function normalizeExpenseCategoryCode(value: unknown): ExpenseCategoryCode {
@@ -147,16 +163,45 @@ export function stageCodeFromLegacyCode(value: unknown): string | null {
   return null;
 }
 
+export function stageGroupCodeFromStageCode(
+  stageCode: unknown,
+  stageTemplates?: Pick<StageTemplateLike, 'stage_code' | 'stage_group_code'>[]
+): StageGroupCode {
+  const raw = String(stageCode ?? '').trim().toUpperCase();
+  if (!raw) return 'other';
+
+  const compact = raw.replace(/[^A-Z0-9]/g, '');
+  if (!compact) return 'other';
+
+  const templateMatch = (stageTemplates ?? []).find((row) => {
+    const templateCode = String(row.stage_code ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return templateCode === compact && normalizeStageGroupCode(row.stage_group_code) !== 'other';
+  });
+  if (templateMatch?.stage_group_code) {
+    return normalizeStageGroupCode(templateMatch.stage_group_code);
+  }
+
+  const prefixMatch = compact.match(/^([AB])(\d{1,2})/);
+  if (!prefixMatch) return 'other';
+
+  const n = Number.parseInt(prefixMatch[2], 10);
+  if (!Number.isFinite(n)) return 'other';
+  if (n <= 2) return 'stan_zero';
+  if (n <= 3) return 'sso';
+  if (n <= 4) return 'ssz';
+  if (n <= 6) return 'instalacje';
+  return 'wykonczenie';
+}
+
 function stageGroupFromStageName(stageName: string) {
   if (!stageName) return 'other';
 
   const normalized = normalize(stageName);
-  if (normalized.includes('fund') || normalized.includes('zero') || normalized.includes('podstaw')) return 'foundations';
-  if (normalized.includes('dach') || normalized.includes('roof')) return 'roof';
-  if (normalized.includes('instal')) return 'installations';
-  if (normalized.includes('dewel')) return 'developer_state';
-  if (normalized.includes('zamkni') || normalized.includes('closed') || normalized.includes('ssz')) return 'closed_shell';
-  if (normalized.includes('otwart') || normalized.includes('open') || normalized.includes('sso') || normalized.includes('surow')) return 'open_shell';
+  if (normalized.includes('fund') || normalized.includes('zero') || normalized.includes('podstaw')) return 'stan_zero';
+  if (normalized.includes('otwart') || normalized.includes('open') || normalized.includes('sso') || normalized.includes('surow')) return 'sso';
+  if (normalized.includes('zamkni') || normalized.includes('closed') || normalized.includes('ssz')) return 'ssz';
+  if (normalized.includes('instal') || normalized.includes('dach') || normalized.includes('roof')) return 'instalacje';
+  if (normalized.includes('dewel') || normalized.includes('wykoncz') || normalized.includes('finish')) return 'wykonczenie';
   return 'other';
 }
 
@@ -170,12 +215,11 @@ export function stageGroupCodeFromLegacyStage(stage?: LegacyStageLike | null): S
   if (legacyCode.startsWith('A') || legacyCode.startsWith('B')) {
     const n = Number.parseInt(legacyCode.slice(1), 10);
     if (Number.isFinite(n)) {
-      if (n <= 2) return 'foundations';
-      if (n <= 4) return 'open_shell';
-      if (n <= 5) return 'closed_shell';
-      if (n <= 6) return 'roof';
-      if (n <= 9) return 'installations';
-      return 'developer_state';
+      if (n <= 2) return 'stan_zero';
+      if (n <= 3) return 'sso';
+      if (n <= 4) return 'ssz';
+      if (n <= 6) return 'instalacje';
+      return 'wykonczenie';
     }
   }
 
@@ -224,24 +268,40 @@ export function getStageDisplayName(
 }
 
 export function getStageGroupDisplayName(t: Translate, groupCode: unknown, fallback = 'Etap budowy') {
-  const normalized = normalize(groupCode);
+  const normalized = normalizeStageGroupCode(groupCode);
   if (!normalized) return t('fallback.stage', { defaultValue: fallback });
 
   switch (normalized) {
-    case 'foundations':
-      return t('mainTimeline.stanZero', { defaultValue: 'Stan zero' });
-    case 'open_shell':
-      return t('mainTimeline.foundations', { defaultValue: 'Fundamenty' });
-    case 'roof':
-      return t('mainTimeline.construction', { defaultValue: 'Konstrukcja' });
-    case 'closed_shell':
-      return t('mainTimeline.ssz', { defaultValue: 'Stan surowy zamknięty' });
-    case 'installations':
-      return t('mainTimeline.installations', { defaultValue: 'Instalacje' });
-    case 'developer_state':
-      return t('mainTimeline.finishing', { defaultValue: 'Wykończenie' });
+    case 'stan_zero':
+      return t('mainTimeline.stanZero', { ns: 'stages', defaultValue: 'Stan zero' });
+    case 'sso':
+      return t('mainTimeline.sso', { ns: 'stages', defaultValue: 'Stan surowy otwarty' });
+    case 'ssz':
+      return t('mainTimeline.ssz', { ns: 'stages', defaultValue: 'Stan surowy zamkniety' });
+    case 'instalacje':
+      return t('mainTimeline.installations', { ns: 'stages', defaultValue: 'Instalacje' });
+    case 'wykonczenie':
+      return t('mainTimeline.finishing', { ns: 'stages', defaultValue: 'Wykonczenie' });
     default:
       return t('fallback.stage', { defaultValue: fallback });
+  }
+}
+
+export function getStageGroupCompactLabel(t: Translate, groupCode: unknown) {
+  const normalized = normalizeStageGroupCode(groupCode);
+  switch (normalized) {
+    case 'stan_zero':
+      return 'S0';
+    case 'sso':
+      return 'SSO';
+    case 'ssz':
+      return 'SSZ';
+    case 'instalacje':
+      return 'INST';
+    case 'wykonczenie':
+      return 'WYK';
+    default:
+      return getStageGroupDisplayName(t, groupCode);
   }
 }
 
@@ -289,7 +349,7 @@ export function buildStagePickerOptions(
 
   const mapTemplate = (row: StageTemplateLike): StagePickerOption => {
     const stageCode = String(row.stage_code ?? '').trim().toUpperCase() || null;
-    const groupCode = normalize(row.stage_group_code) as StageGroupCode;
+    const groupCode = normalizeStageGroupCode(row.stage_group_code);
     const label = getStageDisplayName(t, {
       stageCode,
       nameKey: row.name_key,
@@ -300,7 +360,7 @@ export function buildStagePickerOptions(
       key: `template:${row.id}`,
       label,
       stageCode,
-      stageGroupCode: (groupCode || 'other') as StageGroupCode,
+      stageGroupCode: groupCode,
       legacyId: legacy?.id ?? null,
       source: 'template',
       orderIndex: typeof row.order_index === 'number' && Number.isFinite(row.order_index) ? row.order_index : 0,
@@ -312,7 +372,7 @@ export function buildStagePickerOptions(
       (template) => String(template.id ?? '') === String(row.template_id ?? '')
     ) ?? (row.stage_code ? templateRows.find((template) => String(template.stage_code ?? '').trim().toUpperCase() === String(row.stage_code ?? '').trim().toUpperCase()) ?? null : null);
     const stageCode = String(row.stage_code ?? matchedTemplate?.stage_code ?? '').trim().toUpperCase() || null;
-    const groupCode = normalize(row.stage_group_code ?? matchedTemplate?.stage_group_code) as StageGroupCode;
+    const groupCode = normalizeStageGroupCode(row.stage_group_code ?? matchedTemplate?.stage_group_code);
     const label = getStageDisplayName(t, {
       stageCode,
       nameKey: row.custom_name_key || matchedTemplate?.name_key,
@@ -324,14 +384,18 @@ export function buildStagePickerOptions(
       key: `user:${row.id}`,
       label,
       stageCode,
-      stageGroupCode: (groupCode || 'other') as StageGroupCode,
+      stageGroupCode: groupCode,
       legacyId: legacy?.id ?? null,
       source: row.source === 'custom' ? 'user' : 'template',
       orderIndex: typeof row.order_index === 'number' && Number.isFinite(row.order_index) ? row.order_index : 0,
     };
   };
 
-  const preferred = userRows.length > 0 ? userRows.map(mapUserStage) : templateRows.map(mapTemplate);
+  const templateOptions = templateRows.map(mapTemplate);
+  const customUserOptions = userRows
+    .filter((row) => String(row.source ?? '').trim().toLowerCase() === 'custom')
+    .map(mapUserStage);
+  const preferred = [...templateOptions, ...customUserOptions];
   const fallback = legacyRows.map((row, index) => {
     const stageCode = stageCodeFromLegacyCode(row.nazwa_code);
     const groupCode = stageGroupCodeFromLegacyStage(row);

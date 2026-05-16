@@ -15,18 +15,16 @@
   },
   "hero": {
     "cardLabel": "Aktualny etap",
-    "completedSteps": "{{done}} z {{total}} kroków ukończone"
+    "completedSteps": "{{done}} z {{total}} etapów ukończone"
   },
   "timeline": {
     "cardLabel": "Główne etapy"
   },
   "mainTimeline": {
     "stanZero": "Stan zero",
-    "foundations": "Fundamenty",
-    "construction": "Konstrukcja",
-    "ssz": "SSZ",
+    "sso": "Stan surowy otwarty",
+    "ssz": "Stan surowy zamknięty",
     "installations": "Instalacje",
-    "developerState": "Stan deweloperski",
     "finishing": "Wykończenie"
   },
   "orders": {
@@ -58,15 +56,23 @@
   },
   "upcoming": {
     "cardLabel": "Zbliża się",
-    "hint": "Ten etap stanie się ważny za chwilę"
+    "stageLine": "Etap {{stage}}",
+    "hint": "Ten etap stanie się ważny za chwilę",
+    "hints": {
+      "stan_zero": "Przygotuj działkę, wytyczenie i formalności, żeby wejść w budowę bez przestojów.",
+      "sso": "To moment na konstrukcję domu, więc warto dopiąć ekipy, materiał ścienny i dach.",
+      "ssz": "Zamknięcie budynku wymaga stolarki, dachu i obróbek zaplanowanych z wyprzedzeniem.",
+      "instalacje": "Przed instalacjami dobrze zatwierdzić układ punktów elektrycznych, wodnych, ogrzewania i wentylacji.",
+      "wykonczenie": "Przed wykończeniem warto domknąć decyzje o podłogach, łazienkach, drzwiach i osprzęcie."
+    }
   },
   "nextStage": {
     "cardLabel": "Kolejny etap",
     "hint": "Następny główny etap workflow"
   },
   "substeps": {
-    "cardLabel": "Podetapy bieżącego etapu",
-    "completed": "{{done}} z {{total}} podetapów ukończone",
+    "cardLabel": "Kroki bieżącego etapu",
+    "completed": "{{done}} z {{total}} kroków ukończone",
     "cta": "Sprawdź szczegóły"
   },
   "fallback": {
@@ -85,36 +91,69 @@
   },
   "stageTemplates": {
     "masonry": {
-      "A01_01": "Podbudowa i przygotowanie",
-      "A02_01": "Geodeta i wytyczenie",
-      "A03_01": "Stan surowy otwarty - etap 1",
-      "A03_02": "Stan surowy otwarty - etap 2",
-      "A04_01": "Stan surowy zamkniety",
-      "A05_01": "Wiezba dachowa",
-      "A06_01": "Pokrycie dachu",
-      "A07_01": "Instalacje elektryczne",
-      "A08_01": "Instalacje wodno-kanalizacyjne",
-      "A09_01": "Tynki wewnetrzne",
-      "A10_01": "Wylewki",
-      "A11_01": "Montaz stolarki",
-      "A12_01": "Malowanie",
-      "A13_01": "Odbiory i dokumenty"
+      "A01_01": "Przygotowanie działki",
+      "A01_02": "Wytyczenie budynku",
+      "A01_03": "Prace ziemne i wykopy",
+      "A01_04": "Instalacje podposadzkowe",
+      "A01_05": "Fundamenty / płyta fundamentowa",
+      "A03_01": "Konstrukcja ścian nośnych",
+      "A03_02": "Konstrukcja stropu",
+      "A03_03": "Konstrukcja dachu",
+      "A03_04": "Pokrycie dachowe",
+      "A03_05": "Kominy i elementy dachowe",
+      "A03_06": "Schody konstrukcyjne",
+      "A04_01": "Montaż okien",
+      "A04_02": "Montaż drzwi zewnętrznych",
+      "A04_03": "Montaż bramy garażowej",
+      "A04_04": "Zamknięcie dachu i obróbki",
+      "A04_05": "Elewacja wstępna / przygotowanie elewacji",
+      "A05_01": "Instalacja elektryczna",
+      "A05_02": "Instalacja wodno-kanalizacyjna",
+      "A05_03": "Instalacja grzewcza",
+      "A05_04": "Wentylacja i rekuperacja",
+      "A05_05": "Tynki wewnętrzne",
+      "A05_06": "Wylewki",
+      "A07_01": "Gładzie i przygotowanie ścian",
+      "A07_02": "Malowanie ścian i sufitów",
+      "A07_03": "Układanie podłóg",
+      "A07_04": "Wykończenie łazienek",
+      "A07_05": "Montaż drzwi wewnętrznych",
+      "A07_06": "Montaż osprzętu elektrycznego"
     },
     "timberFrame": {
-      "B01_01": "Podbudowa i przygotowanie",
-      "B02_01": "Geodeta i wytyczenie",
-      "B03_01": "Stan szkieletu - etap 1",
-      "B03_02": "Stan szkieletu - etap 2",
-      "B04_01": "Stan zamkniety",
-      "B05_01": "Wiezba dachowa",
-      "B06_01": "Pokrycie dachu",
-      "B07_01": "Instalacje elektryczne",
-      "B08_01": "Instalacje wodno-kanalizacyjne",
-      "B09_01": "Wykończenie suche",
-      "B10_01": "Wylewki",
-      "B11_01": "Montaz stolarki",
-      "B12_01": "Malowanie",
-      "B13_01": "Odbiory i dokumenty"
+      "B01_01": "Przygotowanie działki",
+      "B01_02": "Wytyczenie budynku",
+      "B01_03": "Prace ziemne i wykopy",
+      "B01_04": "Instalacje podposadzkowe",
+      "B01_05": "Fundamenty / płyta fundamentowa",
+      "B03_01": "Konstrukcja ścian nośnych",
+      "B03_02": "Konstrukcja stropu",
+      "B03_03": "Konstrukcja dachu",
+      "B03_04": "Pokrycie dachowe",
+      "B03_05": "Kominy i elementy dachowe",
+      "B03_06": "Schody konstrukcyjne",
+      "B04_01": "Poszycie i usztywnienie konstrukcji",
+      "B04_02": "Wiatroizolacja",
+      "B04_03": "Izolacja konstrukcji",
+      "B04_04": "Paroizolacja",
+      "B04_05": "Montaż stolarki okiennej",
+      "B04_06": "Montaż drzwi zewnętrznych",
+      "B04_07": "Pokrycie dachowe i obróbki",
+      "B04_08": "Rynny i odwodnienie dachu",
+      "B04_09": "Pokrycie elewacyjne",
+      "B05_01": "Wykonanie rusztu instalacyjnego",
+      "B05_02": "Instalacja elektryczna",
+      "B05_03": "Instalacja wodno-kanalizacyjna",
+      "B05_04": "Instalacja grzewcza",
+      "B05_05": "Wentylacja i rekuperacja",
+      "B05_06": "Zamknięcie ścian wewnętrznych",
+      "B07_01": "Montaż płyt gipsowo-kartonowych",
+      "B07_02": "Szpachlowanie i gładzie",
+      "B07_03": "Malowanie ścian i sufitów",
+      "B07_04": "Układanie podłóg",
+      "B07_05": "Wykończenie łazienek",
+      "B07_06": "Montaż drzwi wewnętrznych",
+      "B07_07": "Montaż osprzętu elektrycznego"
     }
   },
   "stages": {

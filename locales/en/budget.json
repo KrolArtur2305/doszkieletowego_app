@@ -235,6 +235,7 @@
     "amountPlaceholder": "e.g. 12500",
     "statusLabel": "Expense status",
     "typeLabel": "Expense type",
+    "dateLabel": "Date",
     "dateOptional": "Date — optional",
     "plannedDateLabel": "Planned date",
     "stageLabel": "Construction stage",

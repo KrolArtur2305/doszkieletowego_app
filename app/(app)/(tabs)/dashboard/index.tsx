@@ -24,8 +24,11 @@ import { getStageLabel } from '../../../../lib/localizedLabels';
 import {
   getLegacyStageLabelFromGroupCode,
   MAIN_STAGE_TIMELINE,
+  normalizeWorkflowCode,
   resolveCurrentStageGroupCode,
-  type StageGroupCode,
+  summarizeGroupProgress,
+  type StageTemplateRow,
+  type UserStageRow,
 } from '../../../../lib/postepyModel';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { useTranslation } from 'react-i18next';
@@ -348,10 +351,10 @@ export default function DashboardScreen() {
   // ── Donut carousel ──
   const CONTENT_PAD_X = 18;
   const CONTENT_W = W - CONTENT_PAD_X * 2;
-  const CARD_W = Math.min(300, Math.round(CONTENT_W * 0.78));
-  const GAP = 14;
+  const CARD_W = Math.min(274, Math.round(CONTENT_W * 0.72));
+  const GAP = 10;
   const SNAP = CARD_W + GAP;
-  const SIDE = Math.max(0, Math.round((CONTENT_W - CARD_W) / 2));
+  const SIDE = Math.max(8, Math.round((CONTENT_W - CARD_W) / 2));
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -386,6 +389,8 @@ export default function DashboardScreen() {
   const [milestonesText, setMilestonesText] = useState<string>('—');
   const [progressValue, setProgressValue] = useState<number>(0);
   const [progressPercent, setProgressPercent] = useState<number>(0);
+  const [overallMilestonesText, setOverallMilestonesText] = useState<string>('—');
+  const [overallProgressValue, setOverallProgressValue] = useState<number>(0);
   const heroGreeting = useMemo(
     () => `${t('hero.welcome')}${imie ? ` ${imie}` : ''}`,
     [imie, t]
@@ -406,12 +411,12 @@ export default function DashboardScreen() {
       { key: 'czas', value: clamp01(timeUtil), label: t('donuts.timeLabel') },
       {
         key: 'postep',
-        value: clamp01(progressValue),
+        value: clamp01(overallProgressValue),
         label: t('donuts.progressLabel'),
         onPress: () => router.push('/(app)/(tabs)/postepy'),
       },
     ],
-    [budgetUtil, timeUtil, progressValue, router, t]
+    [budgetUtil, timeUtil, overallProgressValue, router, t]
   );
 
   useFocusEffect(
@@ -671,7 +676,7 @@ export default function DashboardScreen() {
           });
         }
 
-        setActivity(items.slice(0, 5));
+        setActivity(items.slice(0, 3));
       } catch {
         setActivity([]);
       } finally {
@@ -776,50 +781,49 @@ export default function DashboardScreen() {
         if (userStagesRes.error) throw userStagesRes.error;
 
         const profileData = profileRes.data as { build_type?: string | null; current_stage_code?: string | null } | null;
-        const templates = (templatesRes.data ?? []) as Array<{ id: string; workflow_code?: string | null; stage_group_code?: string | null; stage_code?: string | null; name_key?: string | null; order_index?: number | null; is_active?: boolean | null }>;
-        const userStages = (userStagesRes.data ?? []) as Array<{ stage_group_code?: string | null; status?: string | null }>;
+        const templates = (templatesRes.data ?? []) as StageTemplateRow[];
+        const userStages = (userStagesRes.data ?? []) as UserStageRow[];
+        const workflowCode = normalizeWorkflowCode(profileData?.build_type);
+        const workflowTemplates = templates.filter((row) => row.workflow_code === workflowCode);
         const effectiveStageCode = String(profileData?.current_stage_code ?? '').trim().toUpperCase();
-        const currentTemplate =
-          templates.find((row) => String(row.stage_code ?? '').trim().toUpperCase() === effectiveStageCode) ??
-          templates[0] ??
-          null;
-        const currentGroupCode =
-          (currentTemplate?.stage_group_code as StageGroupCode | undefined) ??
-          resolveCurrentStageGroupCode([], profileData?.build_type, effectiveStageCode);
-        const currentGroupIndex = MAIN_STAGE_TIMELINE.findIndex((item) => item.stage_group_code === currentGroupCode);
+        const currentGroupCode = resolveCurrentStageGroupCode(workflowTemplates, profileData?.build_type, effectiveStageCode);
+        const currentGroupIndex = Math.max(0, MAIN_STAGE_TIMELINE.findIndex((item) => item.stage_group_code === currentGroupCode));
         const currentStageLabel = getStageLabel(getLegacyStageLabelFromGroupCode(currentGroupCode), tStages);
         const nextGroup = MAIN_STAGE_TIMELINE[currentGroupIndex + 1] ?? null;
         const nextGroupLabel = nextGroup
           ? getStageLabel(getLegacyStageLabelFromGroupCode(nextGroup.stage_group_code), tStages)
           : t('common:dash');
 
-        const templateCount = templates.filter((row) => String(row.stage_group_code ?? '').trim() === currentGroupCode).length;
-        const currentGroupStats = userStages.length
-          ? {
-              total: userStages.filter((row) => String(row.stage_group_code ?? '').trim() === currentGroupCode).length,
-              done: userStages.filter((row) => String(row.stage_group_code ?? '').trim() === currentGroupCode && String(row.status ?? '').trim().toLowerCase() === 'done').length,
-            }
-          : {
-              total: 0,
-              done: 0,
-            };
-        const total = currentGroupStats.total > 0 ? currentGroupStats.total : templateCount;
+        const currentGroupStats = summarizeGroupProgress(userStages, [], currentGroupCode, workflowTemplates);
+        const total = currentGroupStats.total;
         const doneCount = currentGroupStats.done;
+        const timeline = MAIN_STAGE_TIMELINE.map((item, index) => {
+          const progress = summarizeGroupProgress(userStages, [], item.stage_group_code, workflowTemplates);
+          return {
+            ...item,
+            done: index < currentGroupIndex || (progress.total > 0 && progress.done >= progress.total),
+          };
+        });
+        const overallDone = timeline.filter((item) => item.done).length;
+        const overallTotal = MAIN_STAGE_TIMELINE.length;
 
         if (!alive) return;
 
-        const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
         setObecnyEtap(currentStageLabel);
         setKolejnyEtap(nextGroupLabel);
         setMilestonesText(`${doneCount} / ${total}`);
         setProgressValue(total > 0 ? clamp01(doneCount / total) : 0);
         setProgressPercent(total > 0 ? Math.round((doneCount / total) * 100) : 0);
+        setOverallMilestonesText(`${overallDone} / ${overallTotal}`);
+        setOverallProgressValue(overallTotal > 0 ? clamp01(overallDone / overallTotal) : 0);
       } catch {
         setObecnyEtap(t('common:dash'));
         setKolejnyEtap(t('common:dash'));
         setMilestonesText(t('common:dash'));
         setProgressValue(0);
         setProgressPercent(0);
+        setOverallMilestonesText(t('common:dash'));
+        setOverallProgressValue(0);
       } finally {
         if (alive) setProgressLoading(false);
       }
@@ -1012,15 +1016,6 @@ export default function DashboardScreen() {
               }
             </View>
 
-            {!progressLoading && progressPercent > 0 && (
-              <View style={styles.miniBarWrap}>
-                <View style={styles.miniBarTrack}>
-                  <Animated.View style={[styles.miniBarFill, { width: `${progressPercent}%` as any }]} />
-                </View>
-                <Text style={styles.miniBarLabel}>{progressPercent}%</Text>
-              </View>
-            )}
-
             <View style={styles.progressColumn}>
               <View style={styles.progressRow}>
                 <Text style={styles.progressLabel}>{t('progress.stageRealizationLabel')}</Text>
@@ -1084,19 +1079,37 @@ export default function DashboardScreen() {
             }}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-              { useNativeDriver: false }
+              { useNativeDriver: true }
             )}
             onMomentumScrollEnd={handleMomentumEnd}
             renderItem={({ item, index }) => {
               const center = index * SNAP;
               const inputRange = [center - SNAP, center, center + SNAP];
-              const scale = scrollX.interpolate({ inputRange, outputRange: [0.92, 1.06, 0.92], extrapolate: 'clamp' });
-              const opacity = scrollX.interpolate({ inputRange, outputRange: [0.75, 1, 0.75], extrapolate: 'clamp' });
+              const scale = scrollX.interpolate({ inputRange, outputRange: [0.87, 1.06, 0.87], extrapolate: 'clamp' });
+              const opacity = scrollX.interpolate({ inputRange, outputRange: [0.68, 1, 0.68], extrapolate: 'clamp' });
               const glow = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
+              const translateY = scrollX.interpolate({ inputRange, outputRange: [16, 0, 16], extrapolate: 'clamp' });
+              const translateX = scrollX.interpolate({ inputRange, outputRange: [14, 0, -14], extrapolate: 'clamp' });
+              const rotateY = scrollX.interpolate({ inputRange, outputRange: ['12deg', '0deg', '-12deg'], extrapolate: 'clamp' });
               const isActiveSlide = index === activeIndex;
 
               return (
-                <Animated.View style={[styles.donutSlide, { width: CARD_W, opacity, transform: [{ scale }] }]}>
+                <Animated.View
+                  style={[
+                    styles.donutSlide,
+                    {
+                      width: CARD_W,
+                      opacity,
+                      transform: [
+                        { perspective: 1200 },
+                        { translateX },
+                        { translateY },
+                        { rotateY },
+                        { scale },
+                      ],
+                    },
+                  ]}
+                >
                   <Animated.View pointerEvents="none" style={[styles.donutGlowWrap, { opacity: glow }]} />
                   <View style={styles.donutInnerWrap}>
                     <FuturisticDonutSvg
@@ -1104,8 +1117,8 @@ export default function DashboardScreen() {
                       label={item.label}
                       onPressLabel={item.onPress}
                       isActive={isActiveSlide}
-                      size={210}
-                      stroke={16}
+                      size={198}
+                      stroke={15}
                     />
                     {item.key === 'budzet' && (
                       <Text style={styles.donutSubText}>
@@ -1123,16 +1136,11 @@ export default function DashboardScreen() {
                       <Text style={styles.donutSubText}>
                         {progressLoading
                           ? t('progress.loadingProgress')
-                          : milestonesText !== t('common:dash')
-                          ? t('progress.completed', { milestones: milestonesText })
+                          : overallMilestonesText !== t('common:dash')
+                          ? t('progress.completed', { milestones: overallMilestonesText })
                           : t('progress.noStages')}
                       </Text>
                     )}
-                  </View>
-                  <View style={styles.donutDots}>
-                    {donutData.map((_, di) => (
-                      <View key={di} style={[styles.donutDot, di === activeIndex && styles.donutDotActive]} />
-                    ))}
                   </View>
                 </Animated.View>
               );
@@ -1691,10 +1699,6 @@ const styles = StyleSheet.create({
   donutGlowWrap: { position: 'absolute', left: 16, right: 16, top: 14, bottom: 18, borderRadius: 999, shadowColor: NEON, shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
   donutInnerWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
   donutSubText: { marginTop: 8, color: 'rgba(255,255,255,0.46)', fontSize: 12.5, fontWeight: '700' },
-  donutDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8 },
-  donutDot: { width: 6, height: 6, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.14)' },
-  donutDotActive: { backgroundColor: NEON, shadowColor: NEON, shadowOpacity: 0.72, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
-
   sectionWrap: { marginTop: 18 },
   sectionTitleWrap: { justifyContent: 'center', marginBottom: 12 },
   sectionOuter: { borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 22, shadowOffset: { width: 0, height: 12 } },

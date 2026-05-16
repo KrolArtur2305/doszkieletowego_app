@@ -235,6 +235,7 @@
     "amountPlaceholder": "z. B. 12500",
     "statusLabel": "Ausgabenstatus",
     "typeLabel": "Ausgabentyp",
+    "dateLabel": "Datum",
     "dateOptional": "Datum - optional",
     "plannedDateLabel": "Geplantes Datum",
     "stageLabel": "Bauphase",

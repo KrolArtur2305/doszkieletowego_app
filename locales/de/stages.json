@@ -15,18 +15,16 @@
   },
   "hero": {
     "cardLabel": "Aktuelle Phase",
-    "completedSteps": "{{done}} von {{total}} Schritten abgeschlossen"
+    "completedSteps": "{{done}} von {{total}} Phasen abgeschlossen"
   },
   "timeline": {
     "cardLabel": "Hauptphasen"
   },
   "mainTimeline": {
     "stanZero": "Bauvorbereitung",
-    "foundations": "Fundamente",
-    "construction": "Konstruktion",
+    "sso": "Offener Rohbau",
     "ssz": "Geschlossener Rohbau",
     "installations": "Installationen",
-    "developerState": "Ausbau",
     "finishing": "Ausbau"
   },
   "orders": {
@@ -58,15 +56,23 @@
   },
   "upcoming": {
     "cardLabel": "Steht an",
-    "hint": "Diese Phase wird gleich wichtig"
+    "stageLine": "Phase {{stage}}",
+    "hint": "Diese Phase wird gleich wichtig",
+    "hints": {
+      "stan_zero": "Bereite Grundstück, Absteckung und Unterlagen vor, damit der Baustart ohne Verzögerung läuft.",
+      "sso": "Das ist die Konstruktionsphase, daher sollten Gewerke, Wandmaterial und Dach früh abgestimmt sein.",
+      "ssz": "Für den geschlossenen Rohbau müssen Fenster, Türen, Dach und Anschlüsse rechtzeitig geplant sein.",
+      "instalacje": "Vor den Installationen sollten Elektro-, Sanitär-, Heizungs- und Lüftungspunkte bestätigt sein.",
+      "wykonczenie": "Vor dem Ausbau sollten Entscheidungen zu Böden, Bädern, Türen und Ausstattung stehen."
+    }
   },
   "nextStage": {
     "cardLabel": "Nächste Phase",
     "hint": "Nächste Hauptphase im Workflow"
   },
   "substeps": {
-    "cardLabel": "Unterphasen der aktuellen Phase",
-    "completed": "{{done}} von {{total}} Unterphasen abgeschlossen",
+    "cardLabel": "Schritte der aktuellen Phase",
+    "completed": "{{done}} von {{total}} Schritten abgeschlossen",
     "cta": "Details prüfen"
   },
   "fallback": {
@@ -85,20 +91,69 @@
   },
   "stageTemplates": {
     "masonry": {
-      "A01_01": "Vorbereitung des Untergrunds",
-      "A03_01": "Offener Rohbau - Phase 1",
-      "A03_02": "Offener Rohbau - Phase 2",
-      "A04_01": "Geschlossener Rohbau",
-      "A05_01": "Dachkonstruktion",
-      "A06_01": "Vorinstallationen"
+      "A01_01": "Grundstück vorbereiten",
+      "A01_02": "Gebäude abstecken",
+      "A01_03": "Erdarbeiten und Aushub",
+      "A01_04": "Installationen unter der Bodenplatte",
+      "A01_05": "Fundamente / Fundamentplatte",
+      "A03_01": "Tragende Wände",
+      "A03_02": "Deckenkonstruktion",
+      "A03_03": "Dachkonstruktion",
+      "A03_04": "Dacheindeckung",
+      "A03_05": "Schornsteine und Dachelemente",
+      "A03_06": "Konstruktive Treppen",
+      "A04_01": "Fenstermontage",
+      "A04_02": "Montage der Außentüren",
+      "A04_03": "Montage des Garagentors",
+      "A04_04": "Dachabschluss und Anschlüsse",
+      "A04_05": "Fassade vorbereiten",
+      "A05_01": "Elektroinstallation",
+      "A05_02": "Sanitärinstallation",
+      "A05_03": "Heizungsinstallation",
+      "A05_04": "Lüftung und Wärmerückgewinnung",
+      "A05_05": "Innenputz",
+      "A05_06": "Estrich",
+      "A07_01": "Spachtelarbeiten und Wandvorbereitung",
+      "A07_02": "Wände und Decken streichen",
+      "A07_03": "Bodenbeläge verlegen",
+      "A07_04": "Bäder ausbauen",
+      "A07_05": "Innentüren montieren",
+      "A07_06": "Elektroausstattung montieren"
     },
     "timberFrame": {
-      "B01_01": "Vorbereitung des Untergrunds",
-      "B03_01": "Holzrahmen - Phase 1",
-      "B03_02": "Holzrahmen - Phase 2",
-      "B04_01": "Geschlossener Rohbau",
-      "B05_01": "Dachkonstruktion",
-      "B06_01": "Vorinstallationen"
+      "B01_01": "Grundstück vorbereiten",
+      "B01_02": "Gebäude abstecken",
+      "B01_03": "Erdarbeiten und Aushub",
+      "B01_04": "Installationen unter der Bodenplatte",
+      "B01_05": "Fundamente / Fundamentplatte",
+      "B03_01": "Tragende Wände",
+      "B03_02": "Deckenkonstruktion",
+      "B03_03": "Dachkonstruktion",
+      "B03_04": "Dacheindeckung",
+      "B03_05": "Schornsteine und Dachelemente",
+      "B03_06": "Konstruktive Treppen",
+      "B04_01": "Beplankung und Aussteifung",
+      "B04_02": "Winddichtung",
+      "B04_03": "Konstruktionsdämmung",
+      "B04_04": "Dampfbremse",
+      "B04_05": "Fenstermontage",
+      "B04_06": "Montage der Außentüren",
+      "B04_07": "Dacheindeckung und Anschlüsse",
+      "B04_08": "Dachrinnen und Entwässerung",
+      "B04_09": "Fassadenbekleidung",
+      "B05_01": "Installationsebene herstellen",
+      "B05_02": "Elektroinstallation",
+      "B05_03": "Sanitärinstallation",
+      "B05_04": "Heizungsinstallation",
+      "B05_05": "Lüftung und Wärmerückgewinnung",
+      "B05_06": "Innenwände schließen",
+      "B07_01": "Gipskartonplatten montieren",
+      "B07_02": "Spachtelarbeiten",
+      "B07_03": "Wände und Decken streichen",
+      "B07_04": "Bodenbeläge verlegen",
+      "B07_05": "Bäder ausbauen",
+      "B07_06": "Innentüren montieren",
+      "B07_07": "Elektroausstattung montieren"
     }
   },
   "stages": {

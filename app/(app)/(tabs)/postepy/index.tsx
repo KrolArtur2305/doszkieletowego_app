@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
@@ -35,9 +35,31 @@ type ProfileRow = {
 };
 
 const NEON = colors.accentBright;
+const USER_STAGE_SELECT =
+  'id, user_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at';
 
 function safeNumber(n: number | null | undefined) {
   return typeof n === 'number' && Number.isFinite(n) ? n : 0;
+}
+
+function safeTranslated(t: (key: string, options?: any) => string, key: string, fallback: string) {
+  const resolved = String(t(key, { defaultValue: fallback }) ?? '').trim();
+  if (!resolved) return fallback;
+  if (resolved === key) return fallback;
+  if (/^(orderNow|orders|mainTimeline|fallback)\./.test(resolved)) return fallback;
+  return resolved;
+}
+
+function progressWithTemplateFallback(
+  userStages: UserStageRow[],
+  templates: StageTemplateRow[],
+  groupCode: StageGroupCode
+) {
+  return summarizeGroupProgress(userStages, [], groupCode, templates);
+}
+
+function getUpcomingHintKey(groupCode?: StageGroupCode | null) {
+  return groupCode ? `upcoming.hints.${groupCode}` : 'upcoming.hint';
 }
 
 export default function PostepyScreen() {
@@ -52,7 +74,7 @@ export default function PostepyScreen() {
   const [templates, setTemplates] = useState<StageTemplateRow[]>([]);
   const [userStages, setUserStages] = useState<UserStageRow[]>([]);
 
-  useEffect(() => {
+  const loadProgress = useCallback(() => {
     let cancelled = false;
 
     const load = async () => {
@@ -91,8 +113,9 @@ export default function PostepyScreen() {
             .order('order_index', { ascending: true }),
           supabase
             .from('user_stages')
-            .select('id, user_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at')
+            .select(USER_STAGE_SELECT)
             .eq('user_id', userId)
+            .eq('workflow_code', workflowCode)
             .order('order_index', { ascending: true }),
         ]);
 
@@ -123,20 +146,22 @@ export default function PostepyScreen() {
     };
   }, [authLoading, userId, t]);
 
+  useFocusEffect(loadProgress);
+
   const viewModel = useMemo(() => {
     const workflowCode = normalizeWorkflowCode(profile?.build_type);
     const currentStageCode = String(profile?.current_stage_code ?? '').trim().toUpperCase();
     const currentGroupCode = resolveCurrentStageGroupCode(templates, profile?.build_type, currentStageCode);
     const currentGroupLabelKey = getGroupDisplayKey(currentGroupCode);
     const currentGroupLabel = t(currentGroupLabelKey, { defaultValue: t('fallback.currentGroup') });
-    const currentProgress = summarizeGroupProgress(userStages, [], currentGroupCode);
+    const currentProgress = progressWithTemplateFallback(userStages, templates, currentGroupCode);
     const currentPercent = currentProgress.total > 0 ? Math.round((currentProgress.done / currentProgress.total) * 100) : 0;
     const currentTimelineIndex = Math.max(
       0,
       MAIN_STAGE_TIMELINE.findIndex((item) => item.stage_group_code === currentGroupCode)
     );
     const timeline = MAIN_STAGE_TIMELINE.map((item, index) => {
-      const progress = summarizeGroupProgress(userStages, [], item.stage_group_code);
+      const progress = progressWithTemplateFallback(userStages, templates, item.stage_group_code);
       return {
         ...item,
         title: t(item.label_key, { defaultValue: item.stage_group_code }),
@@ -145,12 +170,23 @@ export default function PostepyScreen() {
         progressPercent: progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0,
       };
     });
+    const overallProgress = {
+      done: timeline.filter((item) => item.done).length,
+      total: MAIN_STAGE_TIMELINE.length,
+    };
+    const overallPercent = overallProgress.total > 0 ? Math.round((overallProgress.done / overallProgress.total) * 100) : 0;
     const nextTimelineItem = timeline[currentTimelineIndex + 1] ?? null;
-    const nextImportantItem = nextTimelineItem ?? timeline[timeline.length - 1] ?? null;
-    const orderNowTemplates = ORDER_NOW_BY_GROUP[currentGroupCode] ?? ORDER_NOW_BY_GROUP.foundations;
+    const nextTimelineHint = t(getUpcomingHintKey(nextTimelineItem?.stage_group_code), {
+      defaultValue: t('upcoming.hint'),
+    });
+    const orderNowTemplates = ORDER_NOW_BY_GROUP[currentGroupCode] ?? ORDER_NOW_BY_GROUP.stan_zero;
     const orderNowItems = orderNowTemplates.map((item) => ({
-      name: t(item.name_key, { defaultValue: item.name_key.split('.').pop() ?? item.name_key }),
-      leadTime: t(item.lead_time_key, { defaultValue: '' }),
+      name: safeTranslated(t, item.name_key, item.name_key.split('.').pop() ?? item.name_key),
+      leadTime: safeTranslated(
+        t,
+        item.lead_time_key,
+        item.lead_time_key.endsWith('.short') ? '1-2 tyg.' : item.lead_time_key.endsWith('.medium') ? '2-4 tyg.' : '4-8 tyg.'
+      ),
     }));
 
     return {
@@ -160,9 +196,11 @@ export default function PostepyScreen() {
       currentGroupLabel,
       currentProgress,
       currentPercent,
+      overallProgress,
+      overallPercent,
       timeline,
       nextTimelineItem,
-      nextImportantItem,
+      nextTimelineHint,
       orderNowItems,
     };
   }, [profile?.build_type, profile?.current_stage_code, templates, t, userStages]);
@@ -188,8 +226,8 @@ export default function PostepyScreen() {
             <Text style={styles.heroTitle}>{viewModel.currentGroupLabel}</Text>
             <Text style={styles.heroMeta}>
               {t('hero.completedSteps', {
-                done: safeNumber(viewModel.currentProgress.done),
-                total: safeNumber(viewModel.currentProgress.total),
+                done: safeNumber(viewModel.overallProgress.done),
+                total: safeNumber(viewModel.overallProgress.total),
               })}
             </Text>
           </View>
@@ -198,7 +236,7 @@ export default function PostepyScreen() {
               <ActivityIndicator color={NEON} />
             ) : (
               <FuturisticDonutSvg
-                value={viewModel.currentPercent / 100}
+                value={viewModel.overallPercent / 100}
                 label=""
                 isActive
                 size={96}
@@ -224,40 +262,6 @@ export default function PostepyScreen() {
         </View>
       </BlurView>
 
-      <BlurView intensity={16} tint="dark" style={styles.card}>
-        <View style={styles.sectionHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardLabel}>{t('orders.cardLabel')}</Text>
-            <Text style={styles.sectionSubtitle}>{t('orders.subtitle')}</Text>
-          </View>
-        </View>
-        <View style={styles.orderList}>
-          {viewModel.orderNowItems.map((item) => (
-            <View key={item.name} style={styles.orderRow}>
-              <View style={styles.orderIcon}>
-                <Feather name="clock" size={14} color={NEON} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.orderName}>{item.name}</Text>
-                <Text style={styles.orderLead}>{item.leadTime}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </BlurView>
-
-      <BlurView intensity={16} tint="dark" style={styles.card}>
-        <Text style={styles.cardLabel}>{t('upcoming.cardLabel')}</Text>
-        <Text style={styles.stageName}>{viewModel.nextTimelineItem?.title ?? t('common.none')}</Text>
-        <Text style={styles.muted}>{t('upcoming.hint')}</Text>
-      </BlurView>
-
-      <BlurView intensity={16} tint="dark" style={styles.card}>
-        <Text style={styles.cardLabel}>{t('nextStage.cardLabel')}</Text>
-        <Text style={styles.stageName}>{viewModel.nextImportantItem?.title ?? t('common.none')}</Text>
-        <Text style={styles.muted}>{t('nextStage.hint')}</Text>
-      </BlurView>
-
       <TouchableOpacity activeOpacity={0.92} onPress={onOpenAll}>
         <BlurView intensity={16} tint="dark" style={styles.card}>
           <View style={styles.substageTopRow}>
@@ -274,8 +278,8 @@ export default function PostepyScreen() {
               value={viewModel.currentPercent / 100}
               label=""
               isActive
-              size={68}
-              stroke={9}
+              size={96}
+              stroke={11}
             />
           </View>
           <View style={styles.substageCta}>
@@ -284,6 +288,46 @@ export default function PostepyScreen() {
           </View>
         </BlurView>
       </TouchableOpacity>
+
+      <BlurView intensity={16} tint="dark" style={styles.card}>
+        <View style={styles.sectionHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.orderCardLabel}>{t('orders.cardLabel')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('orders.subtitle')}</Text>
+          </View>
+        </View>
+        <View style={styles.orderList}>
+          {viewModel.orderNowItems.map((item) => (
+            <View key={item.name} style={styles.orderRow}>
+              <View style={styles.orderIcon}>
+                <Feather name="clock" size={13} color={NEON} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.orderName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={styles.orderLead} numberOfLines={1}>
+                  {viewModel.currentGroupLabel}
+                </Text>
+              </View>
+              <View style={styles.orderPill}>
+                <Text style={styles.orderPillText}>{item.leadTime}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </BlurView>
+
+      <BlurView intensity={16} tint="dark" style={styles.card}>
+        <Text style={styles.cardLabel}>{t('upcoming.cardLabel')}</Text>
+        <Text style={styles.stageName}>
+          {t('upcoming.stageLine', {
+            stage: viewModel.nextTimelineItem?.title ?? t('common.none'),
+            defaultValue: `Etap ${viewModel.nextTimelineItem?.title ?? t('common.none')}`,
+          })}
+        </Text>
+        <Text style={styles.muted}>{viewModel.nextTimelineHint}</Text>
+      </BlurView>
 
       {!loading && !viewModel.currentProgress.total && (
         <Text style={styles.muted}>{t('fallback.noCurrentStage')}</Text>
@@ -335,6 +379,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     fontSize: 11.5,
     fontWeight: '800',
+  },
+  orderCardLabel: {
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    fontSize: 12,
+    fontWeight: '900',
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -422,23 +473,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionSubtitle: {
-    marginTop: 4,
-    color: 'rgba(255,255,255,0.62)',
-    fontSize: 12.5,
+    marginTop: 3,
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 12.2,
     fontWeight: '700',
   },
   orderList: {
-    marginTop: 10,
-    gap: 10,
+    marginTop: 9,
+    gap: 8,
   },
   orderRow: {
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    paddingHorizontal: 11,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.028)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
   },
@@ -448,20 +499,36 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(37,240,200,0.08)',
+    backgroundColor: 'rgba(37,240,200,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.12)',
+    borderColor: 'rgba(37,240,200,0.16)',
   },
   orderName: {
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 14.5,
+    fontSize: 14,
   },
   orderLead: {
-    color: 'rgba(255,255,255,0.56)',
-    marginTop: 2,
-    fontSize: 11.5,
+    color: 'rgba(255,255,255,0.58)',
+    marginTop: 1,
+    fontSize: 11.1,
     fontWeight: '700',
+  },
+  orderPill: {
+    paddingHorizontal: 9,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+  },
+  orderPillText: {
+    color: NEON,
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.2,
   },
   stageName: {
     color: '#FFFFFF',

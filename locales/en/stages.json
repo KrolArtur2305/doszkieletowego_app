@@ -15,18 +15,16 @@
   },
   "hero": {
     "cardLabel": "Current stage",
-    "completedSteps": "{{done}} of {{total}} steps completed"
+    "completedSteps": "{{done}} of {{total}} stages completed"
   },
   "timeline": {
     "cardLabel": "Main stages"
   },
   "mainTimeline": {
     "stanZero": "Groundwork",
-    "foundations": "Foundations",
-    "construction": "Structure",
+    "sso": "Open shell",
     "ssz": "Closed shell",
     "installations": "Installations",
-    "developerState": "Developer state",
     "finishing": "Finishing"
   },
   "orders": {
@@ -58,15 +56,23 @@
   },
   "upcoming": {
     "cardLabel": "Coming up",
-    "hint": "This stage will matter soon"
+    "stageLine": "{{stage}} stage",
+    "hint": "This stage will matter soon",
+    "hints": {
+      "stan_zero": "Prepare the plot, set-out and paperwork so the build can start without delays.",
+      "sso": "This is the structural phase, so line up crews, wall materials and the roof scope early.",
+      "ssz": "Closing the shell depends on windows, doors, roofing and flashings being planned ahead.",
+      "instalacje": "Before installations, confirm electrical, plumbing, heating and ventilation points.",
+      "wykonczenie": "Before finishing, lock in decisions for floors, bathrooms, doors and fixtures."
+    }
   },
   "nextStage": {
     "cardLabel": "Next stage",
     "hint": "Next main workflow stage"
   },
   "substeps": {
-    "cardLabel": "Current stage substeps",
-    "completed": "{{done}} of {{total}} substeps completed",
+    "cardLabel": "Current stage steps",
+    "completed": "{{done}} of {{total}} steps completed",
     "cta": "Check details"
   },
   "fallback": {
@@ -85,20 +91,69 @@
   },
   "stageTemplates": {
     "masonry": {
-      "A01_01": "Base preparation",
-      "A03_01": "Open shell - phase 1",
-      "A03_02": "Open shell - phase 2",
-      "A04_01": "Closed shell",
-      "A05_01": "Roof structure",
-      "A06_01": "Pre-installations"
+      "A01_01": "Site preparation",
+      "A01_02": "Building set-out",
+      "A01_03": "Earthworks and excavation",
+      "A01_04": "Under-slab installations",
+      "A01_05": "Foundations / foundation slab",
+      "A03_01": "Load-bearing wall structure",
+      "A03_02": "Floor structure",
+      "A03_03": "Roof structure",
+      "A03_04": "Roof covering",
+      "A03_05": "Chimneys and roof elements",
+      "A03_06": "Structural stairs",
+      "A04_01": "Window installation",
+      "A04_02": "Exterior door installation",
+      "A04_03": "Garage door installation",
+      "A04_04": "Roof closure and flashings",
+      "A04_05": "Initial facade / facade preparation",
+      "A05_01": "Electrical installation",
+      "A05_02": "Plumbing and sewage installation",
+      "A05_03": "Heating installation",
+      "A05_04": "Ventilation and heat recovery",
+      "A05_05": "Interior plastering",
+      "A05_06": "Screeds",
+      "A07_01": "Skim coats and wall preparation",
+      "A07_02": "Painting walls and ceilings",
+      "A07_03": "Flooring installation",
+      "A07_04": "Bathroom finishing",
+      "A07_05": "Interior door installation",
+      "A07_06": "Electrical fixtures installation"
     },
     "timberFrame": {
-      "B01_01": "Base preparation",
-      "B03_01": "Frame shell - phase 1",
-      "B03_02": "Frame shell - phase 2",
-      "B04_01": "Closed shell",
-      "B05_01": "Roof structure",
-      "B06_01": "Pre-installations"
+      "B01_01": "Site preparation",
+      "B01_02": "Building set-out",
+      "B01_03": "Earthworks and excavation",
+      "B01_04": "Under-slab installations",
+      "B01_05": "Foundations / foundation slab",
+      "B03_01": "Load-bearing wall structure",
+      "B03_02": "Floor structure",
+      "B03_03": "Roof structure",
+      "B03_04": "Roof covering",
+      "B03_05": "Chimneys and roof elements",
+      "B03_06": "Structural stairs",
+      "B04_01": "Sheathing and structural bracing",
+      "B04_02": "Wind barrier",
+      "B04_03": "Structure insulation",
+      "B04_04": "Vapor barrier",
+      "B04_05": "Window joinery installation",
+      "B04_06": "Exterior door installation",
+      "B04_07": "Roof covering and flashings",
+      "B04_08": "Gutters and roof drainage",
+      "B04_09": "Facade cladding",
+      "B05_01": "Installation service cavity",
+      "B05_02": "Electrical installation",
+      "B05_03": "Plumbing and sewage installation",
+      "B05_04": "Heating installation",
+      "B05_05": "Ventilation and heat recovery",
+      "B05_06": "Closing internal walls",
+      "B07_01": "Plasterboard installation",
+      "B07_02": "Jointing and skim coats",
+      "B07_03": "Painting walls and ceilings",
+      "B07_04": "Flooring installation",
+      "B07_05": "Bathroom finishing",
+      "B07_06": "Interior door installation",
+      "B07_07": "Electrical fixtures installation"
     }
   },
   "stages": {

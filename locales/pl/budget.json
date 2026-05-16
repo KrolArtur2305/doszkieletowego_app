@@ -235,6 +235,7 @@
     "amountPlaceholder": "np. 12500",
     "statusLabel": "Status wydatku",
     "typeLabel": "Typ wydatku",
+    "dateLabel": "Data",
     "dateOptional": "Data - opcjonalnie",
     "plannedDateLabel": "Planowana data",
     "stageLabel": "Etap budowy",

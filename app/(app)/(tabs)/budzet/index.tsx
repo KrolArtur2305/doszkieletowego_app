@@ -33,6 +33,7 @@ import {
   normalizeExpenseType as normalizeExpenseTypeCode,
   stageCodeFromLegacyStage,
   stageGroupCodeFromLegacyStage,
+  stageGroupCodeFromStageCode,
   type ExpenseCategoryCode,
   type ExpenseType,
   type StagePickerOption,
@@ -65,11 +66,11 @@ const TYPE_MIXED = 'mixed';
 const TYPE_OTHER = 'other';
 
 const CATEGORY_OPTIONS = [
-  { value: 'foundations' },
-  { value: 'open_shell' },
-  { value: 'closed_shell' },
-  { value: 'installations' },
-  { value: 'developer_state' },
+  { value: 'stan_zero' },
+  { value: 'sso' },
+  { value: 'ssz' },
+  { value: 'instalacje' },
+  { value: 'wykonczenie' },
   { value: 'other' },
 ] as const;
 
@@ -601,14 +602,14 @@ export default function BudzetScreen() {
         expense_category_code: expenseCategoryCode,
         kwota: kw,
         status: fStatus,
-        data: fData?.trim() ? fData.trim() : null,
+        data: fStatus === STATUS_PLANNED ? null : (fData?.trim() ? fData.trim() : null),
         typ: expenseType,
         expense_type: expenseType,
         etap_id: fEtapId || null,
         stage_group_code: stageGroupCode,
         stage_code: stageCode,
         suggestion_key: fSuggestionKey || null,
-        planowana_data: fStatus === STATUS_PLANNED && fPlanowanaData.trim() ? fPlanowanaData.trim() : null,
+        planowana_data: fStatus === STATUS_PLANNED && fData.trim() ? fData.trim() : null,
         opis: fOpis.trim() || null,
         sklep: fSklep.trim() || null,
         ...(storageKey ? { plik: storageKey } : editingExpense ? {} : { plik: null }),
@@ -670,7 +671,8 @@ export default function BudzetScreen() {
     setFKategoria(expenseCategoryCodeFromLegacyLabel(expense.expense_category_code ?? expense.kategoria));
     setFStatus(normalizeExpenseStatus(expense.status));
     setFTyp(normalizeExpenseTypeCode(expense.expense_type ?? expense.typ));
-    setFData(expense.data || '');
+    const expenseStatus = normalizeExpenseStatus(expense.status);
+    setFData((expenseStatus === STATUS_PLANNED ? expense.planowana_data || expense.data : expense.data || expense.planowana_data) || '');
     setFPlanowanaData(expense.planowana_data || '');
     setFEtapId(expense.etap_id || null);
     const stageMatch =
@@ -704,6 +706,38 @@ export default function BudzetScreen() {
   const suggestionName = useCallback((suggestion: SuggestionView) => {
     return getSuggestionDisplayName(t, suggestion);
   }, [t]);
+
+  const resolveMainStageGroupLabel = useCallback((expense: {
+    stage_code?: string | null;
+    stage_group_code?: string | null;
+    etap_id?: string | null;
+  }) => {
+    const stageCode = String(expense.stage_code ?? '').trim().toUpperCase();
+    const stageGroupCode = String(expense.stage_group_code ?? '').trim().toLowerCase();
+
+    if (stageGroupCode) {
+      return getStageGroupDisplayName(t, stageGroupCode, '');
+    }
+
+    if (stageCode) {
+      const resolvedGroup = stageGroupCodeFromStageCode(stageCode, stageTemplates);
+      if (resolvedGroup !== 'other') {
+        return getStageGroupDisplayName(t, resolvedGroup, '');
+      }
+    }
+
+    if (expense.etap_id) {
+      const legacyStage = etapy.find((stage) => stage.id === expense.etap_id) ?? null;
+      if (legacyStage) {
+        const legacyGroup = stageGroupCodeFromLegacyStage(legacyStage);
+        if (legacyGroup !== 'other') {
+          return getStageGroupDisplayName(t, legacyGroup, '');
+        }
+      }
+    }
+
+    return '';
+  }, [etapy, stageTemplates, t]);
 
   const suggestionTypeLabel = useCallback((type: string | null | undefined) => {
     const normalized = normalize(type);
@@ -853,7 +887,11 @@ export default function BudzetScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.suggestionTitle} numberOfLines={1}>{suggestionName(suggestion)}</Text>
-                  <Text style={styles.suggestionHint}>{t('suggestions.mayBeNeededAtThisStage')}</Text>
+                  {resolveMainStageGroupLabel(suggestion) ? (
+                    <Text style={styles.suggestionStage} numberOfLines={1}>
+                      {resolveMainStageGroupLabel(suggestion)}
+                    </Text>
+                  ) : null}
                 </View>
                 <View style={styles.suggestionMiniCta}>
                   <Text style={styles.suggestionMiniCtaText}>{t('suggestions.add')}</Text>
@@ -947,6 +985,9 @@ export default function BudzetScreen() {
                 <Text style={styles.rankText}>#{index + 1}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemName} numberOfLines={1}>{w.nazwa || t('expense.defaultName')}</Text>
+                  <Text style={styles.itemStage} numberOfLines={1}>
+                    {resolveMainStageGroupLabel(w)}
+                  </Text>
                   <Text style={styles.itemMeta} numberOfLines={1}>
                     {w.data ? formatDateByLocale(w.data, datePickerLocale) : '—'}
                   </Text>
@@ -1017,7 +1058,7 @@ export default function BudzetScreen() {
 
               <View style={styles.compactDateGroup}>
                 <View style={styles.compactDateField}>
-                  <Text style={styles.compactDateLabel}>{t('modal.dateOptional')}</Text>
+                  <Text style={styles.compactDateLabel}>{t('modal.dateLabel')}</Text>
                   <View style={styles.dateRow}>
                     <AppInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" />
                     <TouchableOpacity style={styles.calBtn} onPress={openDatePicker} activeOpacity={0.85}>
@@ -1025,13 +1066,6 @@ export default function BudzetScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-
-                {fStatus === STATUS_PLANNED && (
-                  <View style={styles.compactDateField}>
-                    <Text style={styles.compactDateLabel}>{t('modal.plannedDateLabel')}</Text>
-                    <AppInput value={fPlanowanaData} onChangeText={setFPlanowanaData} style={styles.input} placeholder="YYYY-MM-DD" />
-                  </View>
-                )}
               </View>
 
               {datePickerOpen && (
@@ -1294,6 +1328,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.05)',
   },
   suggestionTitle: { color: '#F8FAFC', fontSize: 14, fontWeight: '800' },
+  suggestionStage: { color: 'rgba(120,255,220,0.84)', fontSize: 10.5, fontWeight: '800', marginTop: 2 },
   suggestionMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   suggestionPill: {
     borderRadius: 999,
@@ -1395,6 +1430,7 @@ const styles = StyleSheet.create({
   itemRowPlanned: { opacity: 0.65 },
   itemName: { color: '#F8FAFC', fontWeight: '800' },
   itemNamePlanned: { color: 'rgba(255,255,255,0.65)' },
+  itemStage: { color: 'rgba(120,255,220,0.84)', fontSize: 10.5, fontWeight: '800', marginTop: 2 },
   itemMeta: { color: '#94A3B8', fontSize: 12, marginTop: 3 },
   itemAmount: { color: 'rgba(220,255,245,0.95)', fontWeight: '900' },
   itemAmountPlanned: { color: 'rgba(255,255,255,0.40)' },
@@ -1457,22 +1493,10 @@ const styles = StyleSheet.create({
     width: '30%',
     minWidth: 84,
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  catTileOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
-  catTileText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
-  catTileTextOn: { color: 'rgba(220,255,245,0.98)' },
-  compactStageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 2 },
-  compactStageChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.16)',
     backgroundColor: 'rgba(255,255,255,0.04)',
@@ -1482,7 +1506,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  compactStageChipOn: { borderColor: 'rgba(37,240,200,0.40)', backgroundColor: 'rgba(37,240,200,0.12)' },
+  catTileOn: { borderColor: 'rgba(37,240,200,0.42)', backgroundColor: 'rgba(37,240,200,0.12)' },
+  catTileText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
+  catTileTextOn: { color: 'rgba(220,255,245,0.98)' },
+  compactStageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 2 },
+  compactStageChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.09,
+    shadowRadius: 11,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  compactStageChipOn: { borderColor: 'rgba(37,240,200,0.44)', backgroundColor: 'rgba(37,240,200,0.14)' },
   compactStageChipText: { color: '#94A3B8', fontWeight: '800', fontSize: 12, letterSpacing: 0 },
   compactStageChipTextOn: { color: 'rgba(220,255,245,0.98)' },
   compactDateGroup: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
@@ -1490,30 +1531,68 @@ const styles = StyleSheet.create({
   compactDateLabel: { color: '#94A3B8', fontSize: 11, fontWeight: '800' },
   row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
   pill: {
-    flex: 1, borderRadius: 999, paddingVertical: 10, alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)',
+    flex: 1,
+    borderRadius: 999,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
-  pillOn: { borderColor: 'rgba(25,112,92,0.65)', backgroundColor: 'rgba(25,112,92,0.14)' },
+  pillOn: { borderColor: 'rgba(37,240,200,0.40)', backgroundColor: 'rgba(37,240,200,0.12)' },
   pillText: { color: '#94A3B8', fontWeight: '800' },
   pillTextOn: { color: 'rgba(220,255,245,0.98)' },
   dateRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   calBtn: {
-    width: 48, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(25,112,92,0.45)', backgroundColor: 'rgba(25,112,92,0.10)',
+    width: 48,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.24)',
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   calIcon: { fontSize: 18 },
   iosDateWrap: {
-    marginTop: 10, borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.03)',
+    marginTop: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   iosDateOk: {
-    paddingVertical: 10, alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(25,112,92,0.10)',
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(37,240,200,0.12)',
+    backgroundColor: 'rgba(37,240,200,0.08)',
   },
   iosDateOkText: { color: 'rgba(220,255,245,0.98)', fontWeight: '900' },
   fileBtn: {
-    marginTop: 12, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 12,
-    borderWidth: 1, borderColor: 'rgba(25,112,92,0.40)', backgroundColor: 'rgba(25,112,92,0.08)',
+    marginTop: 12,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   fileBtnText: { color: '#E2E8F0', fontWeight: '800', fontSize: 12 },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },

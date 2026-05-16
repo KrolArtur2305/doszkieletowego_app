@@ -10,8 +10,8 @@ function normalize(value: unknown) {
 
 export function normalizeBuildType(value: unknown): BuildType {
   const valueNorm = normalize(value);
-  if (valueNorm === 'szkieletowy') return 'szkieletowy';
-  if (valueNorm === 'murowany') return 'murowany';
+  if (valueNorm === 'szkieletowy' || valueNorm === 'timber_frame' || valueNorm === 'timber frame') return 'szkieletowy';
+  if (valueNorm === 'murowany' || valueNorm === 'masonry') return 'murowany';
   if (valueNorm === 'inny') return 'inny';
   return 'murowany';
 }
@@ -142,7 +142,8 @@ export function resolveOnboardingCurrentStageCode(buildType: unknown, buildStage
   let stageNumber = 1;
   if (value.includes('otwart')) stageNumber = 3;
   else if (value.includes('zamkn')) stageNumber = 4;
-  else if (value.includes('wykoncz')) stageNumber = 11;
+  else if (value.includes('instal')) stageNumber = 5;
+  else if (value.includes('wykoncz')) stageNumber = 7;
   else stageNumber = 1;
 
   return `${prefix}${pad2(stageNumber)}_01`;
