@@ -78,6 +78,10 @@ type UploadPhotoAsset = {
   fileSize?: number | null;
 };
 
+type PendingPhotoAsset = UploadPhotoAsset & {
+  id: string;
+};
+
 function sanitizeFolderName(input: string) {
   return input
     .normalize('NFD')
@@ -137,6 +141,7 @@ export default function ZdjeciaScreen() {
 
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhotoAsset[]>([]);
 
   // ADD FORM
   const [selectedEtapForUpload, setSelectedEtapForUpload] = useState<string>('');
@@ -367,8 +372,6 @@ export default function ZdjeciaScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortOrder, selectedEtap]);
 
-  const canPick = useMemo(() => true, []);
-
   // ✅ etapy w filtrze: tylko te, które realnie mają zdjęcia (plus all)
   const filterEtapy = useMemo(() => {
     if (!etapUsageSet.size) return [];
@@ -377,7 +380,7 @@ export default function ZdjeciaScreen() {
 
   const uploadEtapy = useMemo(() => etapy, [etapy]);
 
-  const handlePickAndUpload = async () => {
+  const handlePickPhotos = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
       Alert.alert(
@@ -407,30 +410,8 @@ export default function ZdjeciaScreen() {
 
     if (!assets.length) return;
 
-    const successCount = 0;
-    const failureCount = 0;
     const invalidType = assets.find((asset) => !isAllowedImageAsset(asset));
     if (invalidType) {
-      if (successCount === assets.length) {
-        Alert.alert(
-          tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
-          tt('photos:alerts.photoAdded', { defaultValue: 'Dodano zdjęcia.' }),
-        );
-        return;
-      }
-
-      if (successCount > 0 && failureCount > 0) {
-        Alert.alert(
-          tt('photos:alerts.successTitle', { defaultValue: 'Sukces' }),
-          tt('photos:alerts.partialUploadResult', {
-            defaultValue: 'Dodano {{successCount}} zdjęć, {{failureCount}} nie udało się dodać.',
-            successCount,
-            failureCount,
-          }),
-        );
-        return;
-      }
-
       Alert.alert(
         tt('common:errorTitle', { defaultValue: 'Błąd' }),
         tt('photos:alerts.invalidFileType', { defaultValue: 'Możesz dodać tylko pliki JPG, PNG, WEBP lub HEIC.' }),
@@ -456,7 +437,19 @@ export default function ZdjeciaScreen() {
       return;
     }
 
-    await uploadPhotosBatchSafe(assets);
+    setPendingPhotos((current) => {
+      const next = [...current];
+      for (const asset of assets) {
+        const existing = next.find((item) => item.uri === asset.uri && item.fileName === asset.fileName);
+        if (!existing) {
+          next.push({
+            ...asset,
+            id: `${asset.uri}:${asset.fileName ?? asset.fileSize ?? Math.random().toString(36).slice(2)}`,
+          });
+        }
+      }
+      return next;
+    });
   };
 
   const openDatePicker = () => {
@@ -469,6 +462,7 @@ export default function ZdjeciaScreen() {
     setTakenAt(null);
     setOpis('');
     setTagsInput('');
+    setPendingPhotos([]);
     setShowDatePicker(false);
     setUploadDropdownOpen(false);
   };
@@ -494,6 +488,18 @@ export default function ZdjeciaScreen() {
     const nextDate = selected ?? datePickerValue;
     setDatePickerValue(nextDate);
     setTakenAt(nextDate);
+  };
+
+  const handleSavePendingPhotos = async () => {
+    if (!pendingPhotos.length) {
+      Alert.alert(
+        tt('common:errorTitle', { defaultValue: 'Błąd' }),
+        tt('photos:alerts.noPhotosSelected', { defaultValue: 'Najpierw dodaj zdjęcia.' }),
+      );
+      return;
+    }
+
+    await uploadPhotosBatchSafe(pendingPhotos);
   };
 
   const uploadPhotosBatch = async (assets: UploadPhotoAsset[]) => {
@@ -575,6 +581,7 @@ export default function ZdjeciaScreen() {
         setTakenAt(null);
         setOpis('');
         setTagsInput('');
+        setPendingPhotos([]);
         setUploadDropdownOpen(false);
 
         await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
@@ -1112,6 +1119,40 @@ export default function ZdjeciaScreen() {
               style={styles.input}
             />
 
+            <Text style={styles.modalLabel}>{tt('photos:addModal.photosLabel', { defaultValue: 'Zdjęcia' })}</Text>
+            <View style={styles.photoSection}>
+              <TouchableOpacity style={styles.addPhotosButton} activeOpacity={0.85} onPress={handlePickPhotos}>
+                <Ionicons name="images-outline" size={18} color={COLORS.brand} />
+                <Text style={styles.addPhotosButtonText}>
+                  {tt('photos:addModal.pickPhoto', { defaultValue: 'Dodaj zdjęcie' })}
+                </Text>
+              </TouchableOpacity>
+
+              {pendingPhotos.length > 0 && (
+                <View style={styles.pendingPhotosList}>
+                  {pendingPhotos.map((photo, index) => (
+                    <View key={photo.id} style={styles.pendingPhotoItem}>
+                      <View style={styles.pendingPhotoMeta}>
+                        <View style={styles.pendingPhotoIndex}>
+                          <Text style={styles.pendingPhotoIndexText}>{index + 1}</Text>
+                        </View>
+                        <Text style={styles.pendingPhotoName} numberOfLines={1}>
+                          {photo.fileName || photo.uri.split('/').pop() || tt('photos:addModal.photoFallback', { defaultValue: 'Zdjęcie' })}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setPendingPhotos((current) => current.filter((item) => item.id !== photo.id))}
+                        activeOpacity={0.8}
+                        style={styles.pendingPhotoRemove}
+                      >
+                        <Ionicons name="close" size={16} color="rgba(255,255,255,0.7)" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
             {uploading && uploadProgress && (
               <View style={styles.uploadProgressRow}>
                 <ActivityIndicator color={COLORS.brand} />
@@ -1134,16 +1175,16 @@ export default function ZdjeciaScreen() {
               />
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonPrimary, !canPick && { opacity: 0.55 }]}
-                onPress={handlePickAndUpload}
-                disabled={uploading || !canPick}
+                style={[styles.modalButton, styles.modalButtonPrimary, pendingPhotos.length === 0 && { opacity: 0.55 }]}
+                onPress={handleSavePendingPhotos}
+                disabled={uploading || pendingPhotos.length === 0}
                 activeOpacity={0.85}
               >
                 {uploading ? (
                   <ActivityIndicator color={COLORS.bg} />
                 ) : (
                   <Text style={styles.modalButtonTextPrimary}>
-                    {tt('photos:addModal.pickPhoto', { defaultValue: 'Wybierz zdjęcia' })}
+                    {tt('photos:addModal.save', { defaultValue: 'Zapisz' })}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -1472,6 +1513,79 @@ const styles = StyleSheet.create({
 
   textArea: { minHeight: 78, borderRadius: RADIUS.input, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12, paddingVertical: 10, color: '#FFFFFF', fontWeight: '800' },
   input: { borderRadius: RADIUS.input, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12, paddingVertical: 10, color: '#FFFFFF', fontWeight: '800' },
+
+  photoSection: {
+    gap: 10,
+  },
+  addPhotosButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(37,240,200,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.26)',
+  },
+  addPhotosButtonText: {
+    color: THEME_COLORS.neon,
+    fontWeight: '900',
+    fontSize: 14,
+  },
+  pendingPhotosList: {
+    gap: 8,
+  },
+  pendingPhotoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  pendingPhotoMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  pendingPhotoIndex: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+  },
+  pendingPhotoIndexText: {
+    color: THEME_COLORS.neon,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  pendingPhotoName: {
+    flex: 1,
+    minWidth: 0,
+    color: COLORS.text,
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  pendingPhotoRemove: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
 
   uploadProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
   uploadProgressText: { color: COLORS.muted, fontWeight: '800' },
