@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Image,
@@ -23,7 +24,7 @@ import { supabase } from '../../../lib/supabase';
 import { syncAllTaskReminders } from '../../../lib/notifications';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../components/FloatingAddButton';
-import { AppButton, AppHeader, AppInput } from '../../../src/ui/components';
+import { AppHeader, AppInput } from '../../../src/ui/components';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -627,7 +628,20 @@ export default function ZadaniaScreen() {
         transparent
         onRequestClose={closeModal}
       >
-        <Pressable style={styles.modalOverlay} onPress={Keyboard.dismiss}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => {
+            if (showDatePicker) {
+              setShowDatePicker(false);
+              return;
+            }
+            if (showTimePicker) {
+              setShowTimePicker(false);
+              return;
+            }
+            Keyboard.dismiss();
+          }}
+        >
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderSide} />
@@ -771,12 +785,18 @@ export default function ZadaniaScreen() {
                 </TouchableOpacity>
               )}
 
-              <AppButton
-                title={saving ? t('modal.saving') : t('modal.save')}
+              <TouchableOpacity
                 onPress={saveTask}
                 disabled={saving}
-                style={styles.saveBtn}
-              />
+                style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+                activeOpacity={0.88}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#0B1120" />
+                ) : (
+                  <Text style={styles.saveBtnText}>{t('modal.save')}</Text>
+                )}
+              </TouchableOpacity>
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -1224,6 +1244,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: NEON,
     alignItems: 'center',
+  },
+  saveBtnDisabled: {
+    opacity: 0.82,
   },
   saveBtnText: {
     color: '#0B1120',

@@ -6,6 +6,7 @@ import {
   Dimensions,
   Image,
   KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -568,13 +569,28 @@ export default function DziennikScreen() {
         visible={modalOpen}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setModalOpen(false)}
+        onRequestClose={() => {
+          if (showDatePicker) {
+            setShowDatePicker(false);
+            return;
+          }
+          setModalOpen(false);
+        }}
       >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.modalScreen}>
+          <Pressable
+            style={styles.modalScreen}
+            onPress={() => {
+              if (showDatePicker) {
+                setShowDatePicker(false);
+                return;
+              }
+              Keyboard.dismiss();
+            }}
+          >
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderSide} />
               <Text style={[styles.modalTitle, !editingWpis && styles.modalTitleNeon]}>
@@ -782,7 +798,7 @@ export default function DziennikScreen() {
 
               <View style={{ height: 40 }} />
             </ScrollView>
-          </View>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
 

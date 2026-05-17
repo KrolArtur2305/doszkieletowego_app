@@ -160,7 +160,9 @@
     "budgetHigh": "Budget is {{pct}}% used.",
     "budgetOk": "Budget is on track: {{pct}}%.",
     "currentStage": "Current stage: {{stage}}.",
-    "allGood": "Everything looks stable for today."
+    "allGood": "Everything looks stable for today.",
+    "tasksToday_few": "You have {{count}} tasks today.",
+    "tasksToday_many": "You have {{count}} tasks today."
   },
   "activity": {
     "title": "Recent activity",
@@ -192,7 +194,11 @@
     "emptyTitle": "Quiet day",
     "emptyText": "You do not have any tasks today. You can add new ones or check upcoming dates.",
     "upcomingTitle": "Coming up next",
-    "upcomingHint": "next deadlines"
+    "upcomingHint": "next deadlines",
+    "summary_few": "You have {{count}} tasks today.",
+    "summary_many": "You have {{count}} tasks today.",
+    "countLabel_few": "{{count}} items",
+    "countLabel_many": "{{count}} items"
   },
   "buddy": {
     "analyzing": "AI Construction Manager",

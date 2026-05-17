@@ -5,7 +5,6 @@
   "buildingParams": "Parametry budynku",
   "projectPlans": "Rzuty projektu",
   "change3dModel": "Dodaj / podmień model 3D",
-
   "tilePowU": "Pow. użytkowa",
   "tileFloors": "Kondygnacje",
   "tileRooms": "Pomieszczenia",
@@ -15,7 +14,6 @@
   "tileRoofArea": "Pow. dachu",
   "tileFacadeWidth": "Szer. elewacji",
   "tileFacadeLength": "Dł. elewacji",
-
   "addPlan": "Dodaj rzut",
   "planDefaultName": "Rzut",
   "planNameModalTitle": "Dodaj rzut",
@@ -32,30 +30,24 @@
     "right": "Prawa strona"
   },
   "planHint": "Kliknij: podgląd • Przytrzymaj: usuń",
-
   "noPlansTitle": "Brak rzutów",
   "noPlansSubtitle": "Dodaj pierwszy rzut (jpg/png/webp).",
-
   "errorTitle": "Błąd",
   "loadError": "Nie udało się wczytać danych projektu z Supabase.",
   "createProjectError": "Nie udało się utworzyć projektu w Supabase.",
   "addPlanError": "Nie udało się dodać rzutu.",
   "deletePlanError": "Nie udało się usunąć rzutu.",
-
   "deletePlanTitle": "Usunąć rzut?",
   "deletePlanDesc": "To usunie plik ze Storage oraz rekord z bazy danych.",
-
   "cancel": "Anuluj",
   "delete": "Usuń",
   "save": "Zapisz",
-
   "editParamsTitle": "Edytuj parametry",
   "saveErrorTitle": "Błąd zapisu",
   "fieldGroupGeneral": "Ogólne",
   "fieldGroupSurfaces": "Powierzchnie",
   "fieldGroupStructure": "Bryła",
   "fieldGroupFacade": "Elewacja",
-
   "fieldProjectName": "Nazwa projektu",
   "fieldPowU": "Pow. użytkowa (m²)",
   "fieldFloors": "Kondygnacje",
@@ -66,7 +58,6 @@
   "fieldRoofArea": "Pow. dachu (m²)",
   "fieldFacadeWidth": "Szer. elewacji (m)",
   "fieldFacadeLength": "Dł. elewacji (m)",
-
   "model3dTitle": "Model 3D",
   "model3dNextStep": "Następny krok: upload .glb/.gltf + aktualizacja projekty.model_url.",
   "model3dEmptyFile": "Wybrany plik jest pusty.",
@@ -74,17 +65,16 @@
   "model3dInvalidFile": "Możesz dodać tylko plik .glb lub .gltf.",
   "model3dUrlError": "Nie udało się uzyskać publicznego adresu modelu.",
   "model3dSaveFailed": "Nie udało się zapisać modelu 3D.",
-
   "model": {
     "hintRotateZoom": "Przeciągnij aby obrócić • Szczypnij aby przybliżyć",
     "errorTitle": "Błąd modelu 3D",
     "loadFailed": "Nie udało się załadować modelu."
   },
-
   "notLoggedTitle": "Brak logowania",
   "notLoggedDesc": "Zaloguj się ponownie.",
   "noAccessTitle": "Brak dostępu",
   "noAccessPhotosDesc": "Nadaj dostęp do galerii, aby dodać rzut.",
   "uploadFailedTitle": "Upload nieudany",
-  "urlError": "Nie udało się uzyskać URL pliku."
+  "urlError": "Nie udało się uzyskać URL pliku.",
+  "edit": "Edytuj"
 }

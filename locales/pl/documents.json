@@ -1,7 +1,8 @@
 {
-  "screen": { "title": "Dokumenty" },
+  "screen": {
+    "title": "Dokumenty"
+  },
   "loading": "Ładowanie…",
-
   "types": {
     "all": "Wszystkie rodzaje",
     "umowa": "Umowa",
@@ -12,18 +13,15 @@
     "pozwolenia": "Pozwolenia",
     "inne": "Inne"
   },
-
   "sort": {
     "newest": "Najnowsze",
     "oldest": "Najstarsze"
   },
-
   "empty": {
     "title": "Brak dokumentów",
     "subtitle": "Dodaj pierwsze dokumenty do projektu.",
     "cta": "Dodaj dokument"
   },
-
   "addModal": {
     "title": "Dodaj dokument",
     "labels": {
@@ -39,7 +37,6 @@
     },
     "saving": "Zapisywanie…"
   },
-
   "alerts": {
     "loadDocsError": "Nie udało się wczytać dokumentów.",
     "openError": "Nie udało się otworzyć dokumentu.",
@@ -50,5 +47,11 @@
     "addError": "Nie udało się dodać dokumentu.",
     "successTitle": "Sukces",
     "docAdded": "Dodano dokument."
+  },
+  "preview": {
+    "pdfInfo": "Podgląd PDF otworzysz przyciskiem poniżej.",
+    "fileInfo": "Ten typ pliku otworzysz w aplikacji systemowej przyciskiem poniżej.",
+    "openPdf": "Otwórz PDF",
+    "openFile": "Otwórz plik"
   }
 }

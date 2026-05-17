@@ -1,4 +1,5 @@
 {
+  "screenTitle": "Progress",
   "common": {
     "loading": "Loading…",
     "none": "None"
@@ -173,6 +174,18 @@
     "title": "All construction stages",
     "noStagesHint": "No stages. (Check Supabase seed.)",
     "showPrevious": "Show previous ({{count}})",
-    "notePlaceholder": "Add a note to the stage…"
+    "notePlaceholder": "Add a note to the stage…",
+    "customStage": "Custom stage",
+    "completed": "{{done}} / {{total}} completed",
+    "hint": "Based on your current construction stages.",
+    "visible": "{{count}} visible",
+    "markApplicable": "Applies",
+    "markNotApplicable": "Not applicable",
+    "completion": {
+      "defaultBuddyName": "AI Construction Supervisor",
+      "title": "Stage completed",
+      "body": "Good luck with the next stage: {{stage}}.",
+      "cta": "Continue"
+    }
   }
 }

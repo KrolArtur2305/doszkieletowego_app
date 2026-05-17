@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 export function useSupabaseAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -8,6 +8,14 @@ export function useSupabaseAuth() {
 
   useEffect(() => {
     let alive = true;
+
+    if (!isSupabaseConfigured) {
+      setSession(null);
+      setLoading(false);
+      return () => {
+        alive = false;
+      };
+    }
 
     (async () => {
       try {

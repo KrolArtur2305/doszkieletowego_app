@@ -10,11 +10,13 @@ import {
   TouchableWithoutFeedback,
   TouchableOpacity,
 } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
 import { getAuthCallbackRedirectUri } from '../../src/services/auth/deepLinkAuth';
+import { isAppleSignInAvailable, signInWithAppleMobile } from '../../src/services/auth/appleAuth';
 import { signInWithFacebookMobile, signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
 import { AppButton, AppHeader, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, spacing, typography } from '../../src/ui/theme';
@@ -29,6 +31,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +54,22 @@ export default function LoginScreen() {
       sub.subscription.unsubscribe();
     };
   }, [router]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    isAppleSignInAvailable()
+      .then((available) => {
+        if (mounted) setAppleAvailable(available);
+      })
+      .catch(() => {
+        if (mounted) setAppleAvailable(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const onLogin = async () => {
     setError(null);
@@ -89,9 +109,27 @@ export default function LoginScreen() {
       await signInWithGoogleMobile();
     } catch (err) {
       console.error('Google login error:', err);
-      Alert.alert('Błąd logowania Google');
+      Alert.alert(t('login.alerts.googleError'));
     } finally {
       setGoogleLoading(false);
+    }
+  }
+
+  async function handleAppleLogin() {
+    if (appleLoading || googleLoading || facebookLoading || loading) return;
+    setAppleLoading(true);
+    try {
+      await signInWithAppleMobile();
+    } catch (err: any) {
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        console.error('Apple login error:', err);
+        Alert.alert(
+          t('login.alerts.appleError'),
+          __DEV__ && err?.message ? String(err.message) : undefined
+        );
+      }
+    } finally {
+      setAppleLoading(false);
     }
   }
 
@@ -101,7 +139,7 @@ export default function LoginScreen() {
       await signInWithFacebookMobile();
     } catch (err) {
       console.error('Facebook login error:', err);
-      Alert.alert('Błąd logowania Facebook');
+      Alert.alert(t('login.alerts.facebookError'));
     } finally {
       setFacebookLoading(false);
     }
@@ -144,10 +182,24 @@ export default function LoginScreen() {
                   style={styles.primaryBtn}
                 />
 
+                {appleAvailable ? (
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                    cornerRadius={10}
+                    style={[
+                      styles.googleBtn,
+                      styles.appleButton,
+                      (appleLoading || googleLoading || facebookLoading || loading) && styles.appleButtonDisabled,
+                    ]}
+                    onPress={handleAppleLogin}
+                  />
+                ) : null}
+
                 {GOOGLE_AUTH_ENABLED ? (
                   <AppButton
-                    title={googleLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : t('login.form.googleCta')}
-                    disabled={googleLoading || facebookLoading || loading}
+                    title={googleLoading ? t('common:loading', { defaultValue: 'Loading...' }) : t('login.form.googleCta')}
+                    disabled={googleLoading || appleLoading || facebookLoading || loading}
                     onPress={handleGoogleLogin}
                     variant="secondary"
                     style={styles.googleBtn}
@@ -156,8 +208,8 @@ export default function LoginScreen() {
 
                 {FACEBOOK_AUTH_ENABLED ? (
                   <AppButton
-                    title={facebookLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : t('login.form.facebookCta')}
-                    disabled={facebookLoading || googleLoading || loading}
+                    title={facebookLoading ? t('common:loading', { defaultValue: 'Loading...' }) : t('login.form.facebookCta')}
+                    disabled={facebookLoading || appleLoading || googleLoading || loading}
                     onPress={handleFacebookLogin}
                     variant="secondary"
                     style={styles.googleBtn}
@@ -215,6 +267,13 @@ const styles = StyleSheet.create({
   primaryBtn: { marginTop: spacing.xs + 2 },
   googleBtn: {
     marginTop: spacing.lg,
+  },
+  appleButton: {
+    width: '100%',
+    height: 52,
+  },
+  appleButtonDisabled: {
+    opacity: 0.55,
   },
   forgotWrap: { marginTop: spacing.lg - 2, alignItems: 'center' },
   forgotText: { color: colors.textSoft, fontSize: 16, lineHeight: 22, fontWeight: '700' },

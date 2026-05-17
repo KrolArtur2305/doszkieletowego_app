@@ -5,8 +5,8 @@
     "scheme": "buildiq",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./app/assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./app/assets/logo-square.png",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./app/assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,11 +14,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "1",
+      "usesAppleSignIn": true,
+      "buildNumber": "3",
       "bundleIdentifier": "pl.buildiq.mobile",
       "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "BuildIQ needs photo library access so you can add construction photos and project images.",
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -28,7 +29,7 @@
       "versionCode": 1,
       "package": "pl.buildiq.mobile",
       "adaptiveIcon": {
-        "foregroundImage": "./app/assets/adaptive-icon.png",
+        "foregroundImage": "./app/assets/logo-square.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -38,7 +39,6 @@
       "favicon": "./app/assets/favicon.png"
     },
     "plugins": [
-      "expo-dev-client",
       "expo-router",
       "expo-asset",
       "expo-font",
@@ -49,7 +49,8 @@
           "color": "#ffffff",
           "sounds": []
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},

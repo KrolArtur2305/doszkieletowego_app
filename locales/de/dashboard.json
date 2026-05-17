@@ -160,7 +160,9 @@
     "budgetHigh": "Budget zu {{pct}}% ausgeschöpft.",
     "budgetOk": "Budget unter Kontrolle: {{pct}}%.",
     "currentStage": "Aktuelle Phase: {{stage}}.",
-    "allGood": "Heute sieht alles stabil aus."
+    "allGood": "Heute sieht alles stabil aus.",
+    "tasksToday_few": "Sie haben heute {{count}} Aufgaben.",
+    "tasksToday_many": "Sie haben heute {{count}} Aufgaben."
   },
   "activity": {
     "title": "Letzte Aktivität",
@@ -192,7 +194,11 @@
     "emptyTitle": "Ruhiger Tag",
     "emptyText": "Sie haben heute keine Aufgaben. Sie können neue hinzufügen oder kommende Termine prüfen.",
     "upcomingTitle": "Als Nächstes",
-    "upcomingHint": "nächste Termine"
+    "upcomingHint": "nächste Termine",
+    "summary_few": "Sie haben heute {{count}} Aufgaben.",
+    "summary_many": "Sie haben heute {{count}} Aufgaben.",
+    "countLabel_few": "{{count}} Einträge",
+    "countLabel_many": "{{count}} Einträge"
   },
   "buddy": {
     "analyzing": "KI-Bauleiter",

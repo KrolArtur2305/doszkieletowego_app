@@ -377,7 +377,7 @@ export default function WszystkieEtapyScreen() {
             <Text style={styles.backText}>{t('all.back')}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.title}>{t('substeps.cardLabel')}</Text>
+          <Text style={styles.title}>{t('all.title')}</Text>
 
           <View style={{ width: 62 }} />
         </View>
@@ -385,7 +385,7 @@ export default function WszystkieEtapyScreen() {
         <BlurView intensity={16} tint="dark" style={styles.card}>
           <View style={styles.summaryRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardLabel}>{t('hero.cardLabel', { defaultValue: 'Postępy' })}</Text>
+              <Text style={styles.cardLabel}>{t('hero.cardLabel')}</Text>
               <Text style={styles.sectionTitle}>
                 {t('all.completed', {
                   done: currentProgress.done,
@@ -456,7 +456,7 @@ export default function WszystkieEtapyScreen() {
                           color={notApplicable ? 'rgba(255,255,255,0.42)' : NEON}
                         />
                         <Text style={[styles.notApplicableText, notApplicable && styles.notApplicableTextActive]}>
-                          {notApplicable ? 'Dotyczy' : 'Nie dotyczy'}
+                          {notApplicable ? t('all.markApplicable') : t('all.markNotApplicable')}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -477,7 +477,7 @@ export default function WszystkieEtapyScreen() {
           disabled={savingAll}
           style={[styles.footerButton, styles.cancelButton, savingAll && styles.footerButtonDisabled]}
         >
-          <Text style={styles.cancelButtonText}>Anuluj</Text>
+          <Text style={styles.cancelButtonText}>{t('cancel', { ns: 'common' })}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           activeOpacity={0.86}
@@ -492,7 +492,7 @@ export default function WszystkieEtapyScreen() {
           {savingAll ? (
             <ActivityIndicator size="small" color="#022C22" />
           ) : (
-            <Text style={styles.saveButtonText}>Zapisz</Text>
+            <Text style={styles.saveButtonText}>{t('save', { ns: 'common' })}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -513,11 +513,11 @@ export default function WszystkieEtapyScreen() {
               />
             </View>
             <Text style={styles.completionEyebrow}>
-              {String(profile?.ai_buddy_name ?? '').trim() || 'Kierownik budowy AI'}
+              {String(profile?.ai_buddy_name ?? '').trim() || t('all.completion.defaultBuddyName')}
             </Text>
-            <Text style={styles.completionTitle}>Gratulacje ukończenia etapu</Text>
+            <Text style={styles.completionTitle}>{t('all.completion.title')}</Text>
             <Text style={styles.completionBody}>
-              Powodzenia z kolejnym etapem: {completionModal.nextStageName}.
+              {t('all.completion.body', { stage: completionModal.nextStageName })}
             </Text>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -527,7 +527,7 @@ export default function WszystkieEtapyScreen() {
                 router.replace('/(app)/(tabs)/postepy');
               }}
             >
-              <Text style={styles.completionButtonText}>Dalej</Text>
+              <Text style={styles.completionButtonText}>{t('all.completion.cta')}</Text>
             </TouchableOpacity>
           </BlurView>
         </View>

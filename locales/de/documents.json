@@ -1,7 +1,8 @@
 {
-  "screen": { "title": "Dokumente" },
+  "screen": {
+    "title": "Dokumente"
+  },
   "loading": "Laden…",
-
   "types": {
     "all": "Alle Typen",
     "umowa": "Vertrag",
@@ -12,18 +13,15 @@
     "pozwolenia": "Genehmigungen",
     "inne": "Sonstiges"
   },
-
   "sort": {
     "newest": "Neueste",
     "oldest": "Älteste"
   },
-
   "empty": {
     "title": "Keine Dokumente",
     "subtitle": "Füge die ersten Dokumente zum Projekt hinzu.",
     "cta": "Dokument hinzufügen"
   },
-
   "addModal": {
     "title": "Dokument hinzufügen",
     "labels": {
@@ -39,7 +37,6 @@
     },
     "saving": "Speichern…"
   },
-
   "alerts": {
     "loadDocsError": "Dokumente konnten nicht geladen werden.",
     "openError": "Dokument konnte nicht geöffnet werden.",
@@ -50,5 +47,11 @@
     "addError": "Dokument konnte nicht hinzugefügt werden.",
     "successTitle": "Erfolg",
     "docAdded": "Dokument hinzugefügt."
+  },
+  "preview": {
+    "pdfInfo": "Die PDF-Vorschau öffnest du über die Schaltfläche unten.",
+    "fileInfo": "Diesen Dateityp öffnest du über die Schaltfläche unten in einer System-App.",
+    "openPdf": "PDF öffnen",
+    "openFile": "Datei öffnen"
   }
 }

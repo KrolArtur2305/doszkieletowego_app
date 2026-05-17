@@ -161,7 +161,8 @@
     "budgetHigh": "Budżet jest wykorzystany w {{pct}}%.",
     "budgetOk": "Budżet jest pod kontrolą: {{pct}}%.",
     "currentStage": "Obecny etap: {{stage}}.",
-    "allGood": "Na dziś wszystko wygląda stabilnie."
+    "allGood": "Na dziś wszystko wygląda stabilnie.",
+    "tasksToday_other": "Na dziś masz {{count}} zadań."
   },
   "activity": {
     "title": "Ostatnia aktywność",
@@ -195,7 +196,9 @@
     "emptyTitle": "Spokojny dzień",
     "emptyText": "Nie masz dziś żadnych zadań. Możesz dodać nowe albo sprawdzić kolejne terminy.",
     "upcomingTitle": "Dalej w kolejce",
-    "upcomingHint": "następne terminy"
+    "upcomingHint": "następne terminy",
+    "summary_other": "Na dziś masz {{count}} zadań.",
+    "countLabel_other": "{{count}} pozycji"
   },
   "buddy": {
     "analyzing": "Kierownik budowy AI",

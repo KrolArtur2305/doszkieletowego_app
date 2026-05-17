@@ -5,7 +5,6 @@
   "buildingParams": "Building parameters",
   "projectPlans": "Project floor plans",
   "change3dModel": "Add / replace 3D model",
-
   "tilePowU": "Usable area",
   "tileFloors": "Floors",
   "tileRooms": "Rooms",
@@ -15,7 +14,6 @@
   "tileRoofArea": "Roof area",
   "tileFacadeWidth": "Facade width",
   "tileFacadeLength": "Facade length",
-
   "addPlan": "Add floor plan",
   "planDefaultName": "Floor plan",
   "planNameModalTitle": "Name the floor plan",
@@ -32,30 +30,24 @@
     "right": "Right side"
   },
   "planHint": "Tap: preview • Hold: delete",
-
   "noPlansTitle": "No floor plans",
   "noPlansSubtitle": "Add your first floor plan (jpg/png/webp).",
-
   "errorTitle": "Error",
   "loadError": "Failed to load project data from Supabase.",
   "createProjectError": "Failed to create project in Supabase.",
   "addPlanError": "Failed to add floor plan.",
   "deletePlanError": "Failed to delete floor plan.",
-
   "deletePlanTitle": "Delete floor plan?",
   "deletePlanDesc": "This will remove the file from Storage and the database record.",
-
   "cancel": "Cancel",
   "delete": "Delete",
   "save": "Save",
-
   "editParamsTitle": "Edit parameters",
   "saveErrorTitle": "Save error",
   "fieldGroupGeneral": "General",
   "fieldGroupSurfaces": "Surfaces",
   "fieldGroupStructure": "Structure",
   "fieldGroupFacade": "Facade",
-
   "fieldProjectName": "Project name",
   "fieldPowU": "Usable area (m²)",
   "fieldFloors": "Floors",
@@ -66,7 +58,6 @@
   "fieldRoofArea": "Roof area (m²)",
   "fieldFacadeWidth": "Facade width (m)",
   "fieldFacadeLength": "Facade length (m)",
-
   "model3dTitle": "3D model",
   "model3dNextStep": "Next step: upload .glb/.gltf and update projekty.model_url.",
   "model3dEmptyFile": "The selected file is empty.",
@@ -74,17 +65,16 @@
   "model3dInvalidFile": "You can only add a .glb or .gltf file.",
   "model3dUrlError": "Could not get a public URL for the model.",
   "model3dSaveFailed": "Could not save the 3D model.",
-
   "model": {
     "hintRotateZoom": "Drag to rotate • Pinch to zoom",
     "errorTitle": "3D model error",
     "loadFailed": "Failed to load the model."
   },
-
   "notLoggedTitle": "Not logged in",
   "notLoggedDesc": "Please log in again.",
   "noAccessTitle": "No access",
   "noAccessPhotosDesc": "Grant gallery access to add a floor plan.",
   "uploadFailedTitle": "Upload failed",
-  "urlError": "Failed to retrieve file URL."
+  "urlError": "Failed to retrieve file URL.",
+  "edit": "Edit"
 }

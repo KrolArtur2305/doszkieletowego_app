@@ -99,7 +99,7 @@ export default function ResetPasswordScreen() {
 
   const goToLogin = async () => {
     await supabase.auth.signOut();
-    router.replace('/(auth)/login');
+    router.replace('/(auth)/welcome');
   };
 
   return (

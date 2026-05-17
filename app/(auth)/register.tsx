@@ -10,10 +10,13 @@ import {
   TouchableWithoutFeedback,
   TouchableOpacity,
 } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
+import { getAuthCallbackRedirectUri } from '../../src/services/auth/deepLinkAuth';
+import { isAppleSignInAvailable, signInWithAppleMobile } from '../../src/services/auth/appleAuth';
 import { signInWithFacebookMobile, signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
 import { AppButton, AppHeader, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, spacing, typography } from '../../src/ui/theme';
@@ -29,6 +32,8 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +51,22 @@ export default function RegisterScreen() {
     };
   }, [router]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    isAppleSignInAvailable()
+      .then((available) => {
+        if (mounted) setAppleAvailable(available);
+      })
+      .catch(() => {
+        if (mounted) setAppleAvailable(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const onRegister = async () => {
     setError(null);
 
@@ -60,7 +81,7 @@ export default function RegisterScreen() {
       email: e,
       password,
       options: {
-        emailRedirectTo: 'https://mybuildiq.com/auth/callback',
+        emailRedirectTo: getAuthCallbackRedirectUri(),
       },
     });
 
@@ -84,9 +105,27 @@ export default function RegisterScreen() {
       await signInWithGoogleMobile();
     } catch (err) {
       console.error('Google login error:', err);
-      Alert.alert('Błąd logowania Google');
+      Alert.alert(t('register.alerts.googleError'));
     } finally {
       setGoogleLoading(false);
+    }
+  }
+
+  async function handleAppleLogin() {
+    if (appleLoading || googleLoading || facebookLoading || loading) return;
+    setAppleLoading(true);
+    try {
+      await signInWithAppleMobile();
+    } catch (err: any) {
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        console.error('Apple login error:', err);
+        Alert.alert(
+          t('register.alerts.appleError'),
+          __DEV__ && err?.message ? String(err.message) : undefined
+        );
+      }
+    } finally {
+      setAppleLoading(false);
     }
   }
 
@@ -96,7 +135,7 @@ export default function RegisterScreen() {
       await signInWithFacebookMobile();
     } catch (err) {
       console.error('Facebook login error:', err);
-      Alert.alert('Błąd logowania Facebook');
+      Alert.alert(t('register.alerts.facebookError'));
     } finally {
       setFacebookLoading(false);
     }
@@ -148,10 +187,24 @@ export default function RegisterScreen() {
                   style={styles.primaryBtn}
                 />
 
+                {appleAvailable ? (
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                    cornerRadius={10}
+                    style={[
+                      styles.googleBtn,
+                      styles.appleButton,
+                      (appleLoading || googleLoading || facebookLoading || loading) && styles.appleButtonDisabled,
+                    ]}
+                    onPress={handleAppleLogin}
+                  />
+                ) : null}
+
                 {GOOGLE_AUTH_ENABLED ? (
                   <AppButton
-                    title={googleLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : t('register.form.googleCta')}
-                    disabled={googleLoading || facebookLoading || loading}
+                    title={googleLoading ? t('common:loading', { defaultValue: 'Loading...' }) : t('register.form.googleCta')}
+                    disabled={googleLoading || appleLoading || facebookLoading || loading}
                     onPress={handleGoogleLogin}
                     variant="secondary"
                     style={styles.googleBtn}
@@ -160,8 +213,8 @@ export default function RegisterScreen() {
 
                 {FACEBOOK_AUTH_ENABLED ? (
                   <AppButton
-                    title={facebookLoading ? t('common:loading', { defaultValue: 'Ładowanie...' }) : t('register.form.facebookCta')}
-                    disabled={facebookLoading || googleLoading || loading}
+                    title={facebookLoading ? t('common:loading', { defaultValue: 'Loading...' }) : t('register.form.facebookCta')}
+                    disabled={facebookLoading || appleLoading || googleLoading || loading}
                     onPress={handleFacebookLogin}
                     variant="secondary"
                     style={styles.googleBtn}
@@ -169,7 +222,7 @@ export default function RegisterScreen() {
                 ) : null}
 
                 <TouchableOpacity
-                  onPress={() => router.replace('/(auth)/login')}
+                  onPress={() => router.push('/(auth)/login')}
                   style={styles.bottomLinkWrap}
                   activeOpacity={0.85}
                 >
@@ -216,6 +269,13 @@ const styles = StyleSheet.create({
   primaryBtn: { marginTop: spacing.xs + 2 },
   googleBtn: {
     marginTop: spacing.lg,
+  },
+  appleButton: {
+    width: '100%',
+    height: 52,
+  },
+  appleButtonDisabled: {
+    opacity: 0.55,
   },
   bottomLinkWrap: { marginTop: spacing.lg + 2, alignItems: 'center' },
   bottomLink: { color: colors.textMuted, ...typography.body },

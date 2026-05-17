@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   RefreshControl,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -438,10 +439,6 @@ export default function BudzetScreen() {
       setCurrentWorkflowType(normalizedBuildType);
       setCurrentStageCode(currentStageCode);
 
-      console.log('[Budget] build_type', buildTypeRaw);
-      console.log('[Budget] normalized_build_type', normalizedBuildType);
-      console.log('[Budget] current_stage_code', currentStageCodeRaw);
-
       const [templateRes, userStageRes] = await Promise.all([
         supabase
           .from('stage_templates')
@@ -496,16 +493,6 @@ export default function BudzetScreen() {
           !usedSuggestionKeys.has(suggestion.expense_key) &&
           normalizeExpenseTypeCode(suggestion.default_type) === TYPE_MATERIAL
       ).slice(0, 3);
-
-      console.log('[BudgetSuggestionsDebug]', {
-        userId,
-        normalizedBuildType,
-        currentStageCode,
-        stageCodes,
-        rawSuggestionsCount: rawSuggestions.length,
-        usedSuggestionKeys: Array.from(usedSuggestionKeys),
-        visibleSuggestionsCount: visibleSuggestions.length,
-      });
 
       if (suggestionRes.error) {
         setStageSuggestions([]);
@@ -1018,7 +1005,16 @@ export default function BudzetScreen() {
 
         {/* MODAL */}
         <Modal visible={addOpen} animationType="slide" transparent onRequestClose={() => setAddOpen(false)}>
-          <View style={styles.modalBackdrop}>
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => {
+              if (datePickerOpen) {
+                setDatePickerOpen(false);
+                return;
+              }
+              setAddOpen(false);
+            }}
+          >
             <ScrollView
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -1137,7 +1133,7 @@ export default function BudzetScreen() {
               </View>
             </AppCard>
             </ScrollView>
-          </View>
+          </Pressable>
         </Modal>
 
         <View style={{ height: 26 }} />

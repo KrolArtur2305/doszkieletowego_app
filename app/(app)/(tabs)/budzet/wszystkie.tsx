@@ -303,10 +303,6 @@ export default function WszystkieWydatkiScreen() {
       const stageCodes = getSuggestionStageCodesFromCurrentStageCode(normalizedBuildType, currentStageCode);
       const usedSuggestionKeys = new Set(expenseRows.map((expense) => expense.suggestion_key).filter(Boolean));
 
-      console.log('[Budget/List] build_type', buildTypeRaw);
-      console.log('[Budget/List] normalized_build_type', normalizedBuildType);
-      console.log('[Budget/List] current_stage_code', currentStageCode);
-
       const [templateRes, userStageRes] = await Promise.all([
         supabase
           .from('stage_templates')
@@ -344,17 +340,6 @@ export default function WszystkieWydatkiScreen() {
           (suggestion) => !!suggestion.expense_key && !usedSuggestionKeys.has(suggestion.expense_key)
         );
 
-        console.log('[BudgetSuggestionsDebug]', {
-          userId,
-          normalizedBuildType,
-          currentStageCode,
-          stageCodes,
-          rawSuggestionsCount: rawSuggestions.length,
-          usedSuggestionKeys: Array.from(usedSuggestionKeys),
-          visibleSuggestionsCount: visibleSuggestions.length,
-        });
-
-        console.log('[Budget/List] suggestions found', visibleSuggestions.length);
         setStageSuggestions(visibleSuggestions);
       }
 

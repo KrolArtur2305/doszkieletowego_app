@@ -6,7 +6,8 @@
     "count_one": "1 wpis",
     "count_few": "{{count}} wpisy",
     "count_many": "{{count}} wpisów",
-    "count": "{{count}} wpisów"
+    "count": "{{count}} wpisów",
+    "count_other": "{{count}} wpisów"
   },
   "empty": {
     "title": "Brak wpisów",

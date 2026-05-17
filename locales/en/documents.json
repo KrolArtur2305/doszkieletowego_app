@@ -1,7 +1,8 @@
 {
-  "screen": { "title": "Documents" },
+  "screen": {
+    "title": "Documents"
+  },
   "loading": "Loading…",
-
   "types": {
     "all": "All types",
     "umowa": "Contract",
@@ -12,18 +13,15 @@
     "pozwolenia": "Permits",
     "inne": "Other"
   },
-
   "sort": {
     "newest": "Newest",
     "oldest": "Oldest"
   },
-
   "empty": {
     "title": "No documents",
     "subtitle": "Add your first documents to the project.",
     "cta": "Add document"
   },
-
   "addModal": {
     "title": "Add document",
     "labels": {
@@ -39,7 +37,6 @@
     },
     "saving": "Saving…"
   },
-
   "alerts": {
     "loadDocsError": "Failed to load documents.",
     "openError": "Failed to open the document.",
@@ -50,5 +47,11 @@
     "addError": "Failed to add the document.",
     "successTitle": "Success",
     "docAdded": "Document added."
+  },
+  "preview": {
+    "pdfInfo": "PDF preview opens with the button below.",
+    "fileInfo": "This file type opens in a system app with the button below.",
+    "openPdf": "Open PDF",
+    "openFile": "Open file"
   }
 }

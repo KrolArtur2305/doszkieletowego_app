@@ -63,7 +63,7 @@ function todayYMD() {
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { t } = useTranslation(['onboarding', 'buddy']);
+  const { t } = useTranslation(['onboarding', 'buddy', 'common']);
   const { session } = useSupabaseAuth();
   const userId = session?.user?.id;
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
@@ -194,19 +194,19 @@ export default function OnboardingScreen() {
 
   const confirmLogout = () => {
     Alert.alert(
-      'Wylogować się?',
-      'Czy chcesz się wylogować?',
+      t('alerts.logoutTitle'),
+      t('alerts.logoutMessage'),
       [
-        { text: 'Anuluj', style: 'cancel' },
+        { text: t('cancel', { ns: 'common' }), style: 'cancel' },
         {
-          text: 'Wyloguj',
+          text: t('alerts.logoutAction'),
           style: 'destructive',
           onPress: async () => {
             try {
               await supabase.auth.signOut();
               router.replace('/(auth)/welcome');
             } catch (e: any) {
-              Alert.alert('Błąd', e?.message ?? 'Nie udało się wylogować.');
+              Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.logoutError'));
             }
           },
         },
@@ -284,7 +284,7 @@ export default function OnboardingScreen() {
       if (spent > 0 && !existingExpenseRes?.data?.id) {
         const { error: expenseError } = await supabase.from('wydatki').insert({
           user_id: userId,
-          nazwa: 'Koszty poniesione przed rozpoczęciem korzystania z aplikacji',
+          nazwa: t('budget.initialExpenseName'),
           kwota: spent,
           status: 'poniesiony',
           kategoria: 'Inne',

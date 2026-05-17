@@ -5,7 +5,9 @@
     "oldest": "Älteste",
     "count_one": "1 Eintrag",
     "count_other": "{{count}} Einträge",
-    "count": "{{count}} Einträge"
+    "count": "{{count}} Einträge",
+    "count_few": "{{count}} Einträge",
+    "count_many": "{{count}} Einträge"
   },
   "empty": {
     "title": "Keine Einträge",

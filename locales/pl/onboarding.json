@@ -14,7 +14,11 @@
     "loadProfileError": "Nie udało się pobrać profilu.",
     "firstNameRequired": "Podaj imię.",
     "invalidPhone": "Podaj poprawny numer telefonu.",
-    "saveProfileError": "Nie udało się zapisać profilu."
+    "saveProfileError": "Nie udało się zapisać profilu.",
+    "logoutTitle": "Wylogować się?",
+    "logoutMessage": "Czy chcesz się wylogować?",
+    "logoutAction": "Wyloguj",
+    "logoutError": "Nie udało się wylogować."
   },
   "steps": {
     "buildTypeTitle": "Jaką budowę prowadzisz?",
@@ -39,7 +43,8 @@
     "spentLabel": "Już poniesione wydatki",
     "currency": "PLN",
     "plannedPlaceholder": "np. 450000",
-    "spentPlaceholder": "np. 25000"
+    "spentPlaceholder": "np. 25000",
+    "initialExpenseName": "Koszty poniesione przed rozpoczęciem korzystania z aplikacji"
   },
   "profile": {
     "firstName": "Imię *",
@@ -51,5 +56,37 @@
   },
   "actions": {
     "next": "Dalej"
+  },
+  "guided": {
+    "loading": "Przygotowuję przewodnik startowy...",
+    "defaultBuddyName": "Kierownik",
+    "alerts": {
+      "prepareError": "Nie udało się przygotować przewodnika startowego.",
+      "finishError": "Nie udało się zakończyć przewodnika."
+    },
+    "actions": {
+      "start": "Zaczynamy",
+      "skip": "Pomiń na razie"
+    },
+    "welcome": {
+      "title": "Witaj, {{name}}",
+      "subtitle": "Jestem {{buddy}}, Twój kierownik budowy AI",
+      "body": "Pokażę Ci teraz najważniejsze funkcje aplikacji."
+    },
+    "project": {
+      "title": "Projekt",
+      "body": "Wpisz dane i dodaj rzuty, żeby mieć wszystko w jednym miejscu.",
+      "cta": "Uzupełnij dane o projekcie"
+    },
+    "budget": {
+      "title": "Budżet",
+      "body": "Dodawaj wydatki, kontroluj koszty i zarządzaj budżetem. W analizie pomoże Twój kierownik AI."
+    },
+    "control": {
+      "title": "Wszystko pod kontrolą",
+      "progress": "Postępy - wiesz, na jakim etapie jesteś, co robić dalej i jakich błędów uniknąć",
+      "photos": "Zdjęcia - dokumentujesz budowę i masz wszystko pod ręką",
+      "documents": "Dokumenty - przechowujesz umowy z wykonawcami, faktury i ważne pliki"
+    }
   }
 }

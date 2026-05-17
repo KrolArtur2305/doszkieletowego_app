@@ -24,6 +24,7 @@ import { decode as decodeBase64 } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { workflowBuildType } from '../../../../lib/buildWorkflow';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../src/ui/components';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
@@ -38,6 +39,7 @@ type EtapZdjecia = {
   id: string;
   nazwa: string;
   kolejnosc: number;
+  source?: 'workflow' | 'legacy';
 };
 
 type Zdjecie = {
@@ -120,6 +122,7 @@ export default function ZdjeciaScreen() {
 
   const [zdjecia, setZdjecia] = useState<Zdjecie[]>([]);
   const [etapy, setEtapy] = useState<EtapZdjecia[]>([]);
+  const [legacyEtapyMap, setLegacyEtapyMap] = useState<Record<string, string>>({});
   const [selectedEtap, setSelectedEtap] = useState<string>('all');
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -160,12 +163,20 @@ export default function ZdjeciaScreen() {
     [etapy],
   );
 
+  const combinedStageNameMap = useMemo(
+    () => ({
+      ...legacyEtapyMap,
+      ...etapNameMap,
+    }),
+    [etapNameMap, legacyEtapyMap]
+  );
+
   const getEtapName = useCallback(
     (etapId: string | null | undefined) => {
       if (!etapId) return tt('photos:misc.stageFallback', { defaultValue: 'Etap' });
-      return etapNameMap[etapId] ?? tt('photos:misc.stageFallback', { defaultValue: 'Etap' });
+      return combinedStageNameMap[etapId] ?? tt('photos:misc.stageFallback', { defaultValue: 'Etap' });
     },
-    [etapNameMap, tt],
+    [combinedStageNameMap, tt],
   );
 
   const getSignedUrlForPath = useCallback(async (filePath: string) => {
@@ -200,13 +211,72 @@ export default function ZdjeciaScreen() {
 
   const loadEtapy = async () => {
     try {
-      const { data, error } = await supabase
-        .from('etapy_zdjecia')
-        .select('id,nazwa,kolejnosc')
-        .order('kolejnosc', { ascending: true });
+      const userId = await getUserId();
+      if (!userId) {
+        setEtapy([]);
+        setLegacyEtapyMap({});
+        return;
+      }
 
-      if (error) throw error;
-      setEtapy((data || []) as EtapZdjecia[]);
+      const [{ data: profileData, error: profileError }, { data: legacyData, error: legacyError }] =
+        await Promise.all([
+          supabase
+            .from('profiles')
+            .select('build_type')
+            .eq('user_id', userId)
+            .maybeSingle(),
+          supabase
+            .from('etapy_zdjecia')
+            .select('id,nazwa,kolejnosc')
+            .order('kolejnosc', { ascending: true }),
+        ]);
+
+      if (profileError) throw profileError;
+      if (legacyError) throw legacyError;
+
+      const currentWorkflow = workflowBuildType((profileData as { build_type?: string | null } | null)?.build_type);
+      const workflowCode = currentWorkflow === 'szkieletowy' ? 'timber_frame' : 'masonry';
+
+      const { data: templateData, error: templateError } = await supabase
+        .from('stage_templates')
+        .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
+        .eq('workflow_code', workflowCode)
+        .eq('is_active', true)
+        .order('order_index', { ascending: true });
+
+      if (templateError) throw templateError;
+
+      const nextLegacyMap = ((legacyData ?? []) as { id: string; nazwa: string }[]).reduce<Record<string, string>>(
+        (acc, row) => {
+          acc[row.id] = row.nazwa;
+          return acc;
+        },
+        {}
+      );
+
+      setLegacyEtapyMap(nextLegacyMap);
+
+      const workflowStages = (templateData ?? []).map((row: any) => ({
+        id: String(row.id),
+        nazwa: String(t(String(row.name_key ?? row.stage_code ?? 'photos:misc.stageFallback'), {
+          defaultValue: String(row.stage_code ?? row.id),
+        })),
+        kolejnosc: Number(row.order_index ?? 0),
+        source: 'workflow' as const,
+      }));
+
+      if (workflowStages.length > 0) {
+        setEtapy(workflowStages);
+        setSelectedEtapForUpload((current) => current || workflowStages[0]?.id || '');
+        return;
+      }
+
+      const legacyStages = ((legacyData ?? []) as EtapZdjecia[]).map((row) => ({
+        ...row,
+        source: 'legacy' as const,
+      }));
+      setEtapy(legacyStages);
+      setSelectedEtapForUpload((current) => current || legacyStages[0]?.id || '');
     } catch (e) {
       console.error('Błąd ładowania etapów zdjęć:', e);
       Alert.alert(
@@ -392,6 +462,30 @@ export default function ZdjeciaScreen() {
   const openDatePicker = () => {
     setDatePickerValue(takenAt ?? new Date());
     setShowDatePicker(true);
+  };
+
+  const resetAddForm = () => {
+    setSelectedEtapForUpload('');
+    setTakenAt(null);
+    setOpis('');
+    setTagsInput('');
+    setShowDatePicker(false);
+    setUploadDropdownOpen(false);
+  };
+
+  const handleAddModalBackdropPress = () => {
+    if (showDatePicker) {
+      setShowDatePicker(false);
+      return;
+    }
+
+    if (uploadDropdownOpen) {
+      setUploadDropdownOpen(false);
+      return;
+    }
+
+    setAddModalVisible(false);
+    resetAddForm();
   };
 
   const onDatePicked = (event: any, selected?: Date) => {
@@ -922,9 +1016,9 @@ export default function ZdjeciaScreen() {
       <FloatingAddButton onPress={() => setAddModalVisible(true)} />
 
       {/* ADD MODAL */}
-      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
-        <View style={styles.modalBlackOverlay}>
-          <View style={styles.modalContent}>
+      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={handleAddModalBackdropPress}>
+        <Pressable style={styles.modalBlackOverlay} onPress={handleAddModalBackdropPress}>
+          <Pressable style={styles.modalContent} onPress={() => {}}>
             <Text style={styles.modalTitle}>{tt('photos:addModal.title', { defaultValue: 'Dodaj zdjęcia' })}</Text>
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.stageLabel', { defaultValue: 'Etap' })}</Text>
@@ -999,38 +1093,6 @@ export default function ZdjeciaScreen() {
               )}
             </TouchableOpacity>
 
-            {showDatePicker && (
-              Platform.OS === 'ios' ? (
-                <View style={styles.iosDateWrap}>
-                  <DateTimePicker
-                    value={datePickerValue}
-                    mode="date"
-                    display="spinner"
-                    locale={dateLocale}
-                    onChange={onDatePicked}
-                  />
-                  <TouchableOpacity
-                    style={styles.iosDateOk}
-                    onPress={() => {
-                      setShowDatePicker(false);
-                      setTakenAt(datePickerValue);
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.iosDateOkText}>{tt('photos:addModal.setDate')}</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <DateTimePicker
-                  value={datePickerValue}
-                  mode="date"
-                  display="default"
-                  locale={dateLocale}
-                  onChange={onDatePicked}
-                />
-              )
-            )}
-
             <Text style={styles.modalLabel}>{tt('photos:addModal.descLabel', { defaultValue: 'Opis' })}</Text>
             <AppInput
               value={opis}
@@ -1066,11 +1128,7 @@ export default function ZdjeciaScreen() {
                 style={[styles.modalButton, styles.modalButtonSecondary]}
                 onPress={() => {
                   setAddModalVisible(false);
-                  setSelectedEtapForUpload('');
-                  setTakenAt(null);
-                  setOpis('');
-                  setTagsInput('');
-                  setUploadDropdownOpen(false);
+                  resetAddForm();
                 }}
                 disabled={uploading}
               />
@@ -1090,8 +1148,52 @@ export default function ZdjeciaScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={() => setShowDatePicker(false)}>
+        <Pressable style={styles.datePickerBackdrop} onPress={() => setShowDatePicker(false)}>
+          <Pressable style={styles.datePickerCard} onPress={() => {}}>
+            <Text style={styles.datePickerModalTitle}>{tt('photos:addModal.dateLabel', { defaultValue: 'Data' })}</Text>
+            <DateTimePicker
+              value={datePickerValue}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              locale={dateLocale}
+              onChange={(event, selected) => {
+                if (selected) {
+                  setDatePickerValue(selected);
+                  if (Platform.OS === 'android') {
+                    setTakenAt(selected);
+                  }
+                }
+                if (Platform.OS === 'android' && event?.type !== 'set') {
+                  setShowDatePicker(false);
+                }
+              }}
+            />
+            <View style={styles.datePickerActions}>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(false)}
+                style={[styles.datePickerActionBtn, styles.datePickerCancelBtn]}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.datePickerCancelText}>{tt('common:cancel', { defaultValue: 'Anuluj' })}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setTakenAt(datePickerValue);
+                  setShowDatePicker(false);
+                }}
+                style={[styles.datePickerActionBtn, styles.datePickerConfirmBtn]}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.datePickerConfirmText}>{tt('photos:addModal.setDate')}</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* PREVIEW MODAL */}
@@ -1297,6 +1399,59 @@ const styles = StyleSheet.create({
   dateButton: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(25,112,92,0.28)', backgroundColor: 'rgba(255,255,255,0.03)' },
   dateButtonText: { color: COLORS.text, fontWeight: '800', flex: 1 },
   dateClear: { paddingHorizontal: 6, paddingVertical: 2 },
+  datePickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  datePickerCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 22,
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    padding: 18,
+  },
+  datePickerModalTitle: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 12,
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 14,
+  },
+  datePickerActionBtn: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  datePickerCancelBtn: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  datePickerConfirmBtn: {
+    backgroundColor: 'rgba(37,240,200,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.28)',
+  },
+  datePickerCancelText: {
+    color: 'rgba(255,255,255,0.82)',
+    fontWeight: '900',
+  },
+  datePickerConfirmText: {
+    color: THEME_COLORS.neon,
+    fontWeight: '900',
+  },
   iosDateWrap: {
     marginTop: 8,
     borderRadius: 16,

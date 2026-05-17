@@ -6,6 +6,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -1355,8 +1356,21 @@ export default function DashboardScreen() {
 
       {/* ── ADD TASK MODAL ── */}
       <Modal visible={taskModalOpen} transparent animationType="fade" onRequestClose={() => setTaskModalOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => {
+            if (showDatePicker) {
+              setShowDatePicker(false);
+              return;
+            }
+            if (showTimePicker) {
+              setShowTimePicker(false);
+              return;
+            }
+            setTaskModalOpen(false);
+          }}
+        >
+          <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>{t('modal.addTaskTitle')}</Text>
             <Text style={styles.modalSubtitle}>{t('modal.selectedDate', { date: selectedYMD })}</Text>
 
@@ -1428,8 +1442,8 @@ export default function DashboardScreen() {
             </View>
 
             <Text style={styles.modalHint}>{t('modal.hint')}</Text>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </AppScreen>
   );

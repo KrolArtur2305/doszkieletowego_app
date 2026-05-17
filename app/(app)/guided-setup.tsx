@@ -13,6 +13,7 @@ import {
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 
 import { supabase } from '../../lib/supabase'
 import { AppButton, AppScreen } from '../../src/ui/components'
@@ -36,6 +37,7 @@ type ProfileData = {
 
 export default function GuidedSetupScreen() {
   const router = useRouter()
+  const { t } = useTranslation(['onboarding', 'common'])
   const { step: stepParam } = useLocalSearchParams<{ step?: string | string[] }>()
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 10
 
@@ -96,7 +98,7 @@ export default function GuidedSetupScreen() {
         })
       } catch (e: any) {
         if (!alive) return
-        Alert.alert('Błąd', e?.message ?? 'Nie udało się przygotować przewodnika startowego.')
+        Alert.alert(t('onboarding:alerts.errorTitle'), e?.message ?? t('onboarding:guided.alerts.prepareError'))
       } finally {
         if (alive) setLoading(false)
       }
@@ -106,7 +108,7 @@ export default function GuidedSetupScreen() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [t])
 
   const firstName = useMemo(() => String(profile.imie ?? '').trim() || 'Budowniczy', [profile.imie])
   const avatarId: BuddyAvatarId =
@@ -138,7 +140,7 @@ export default function GuidedSetupScreen() {
 
       router.replace('/(app)/(tabs)/dashboard')
     } catch (e: any) {
-      Alert.alert('Błąd', e?.message ?? 'Nie udało się zakończyć przewodnika.')
+      Alert.alert(t('onboarding:alerts.errorTitle'), e?.message ?? t('onboarding:guided.alerts.finishError'))
     } finally {
       setSaving(false)
     }
@@ -156,7 +158,7 @@ export default function GuidedSetupScreen() {
         {loading ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator color={NEON} />
-            <Text style={styles.loadingText}>Przygotowuję przewodnik startowy...</Text>
+            <Text style={styles.loadingText}>{t('onboarding:guided.loading')}</Text>
           </View>
         ) : (
           <BlurView intensity={18} tint="dark" style={styles.card}>
@@ -176,49 +178,53 @@ export default function GuidedSetupScreen() {
 
             {step === 0 ? (
               <>
-                <Text style={styles.title}>Witaj, {firstName}</Text>
-                <Text style={styles.subtitle}>Jestem {String(profile.ai_buddy_name ?? '').trim() || 'Kierownik'}, Twój kierownik budowy AI</Text>
-                <Text style={styles.body}>
-                  Pokażę Ci teraz najważniejsze funkcje aplikacji.
+                <Text style={styles.title}>{t('onboarding:guided.welcome.title', { name: firstName })}</Text>
+                <Text style={styles.subtitle}>
+                  {t('onboarding:guided.welcome.subtitle', {
+                    buddy: String(profile.ai_buddy_name ?? '').trim() || t('onboarding:guided.defaultBuddyName'),
+                  })}
                 </Text>
-                <AppButton title="Zaczynamy" onPress={next} style={styles.primaryBtn} />
+                <Text style={styles.body}>
+                  {t('onboarding:guided.welcome.body')}
+                </Text>
+                <AppButton title={t('onboarding:guided.actions.start')} onPress={next} style={styles.primaryBtn} />
               </>
             ) : null}
 
             {step === 1 ? (
               <>
-                <Text style={styles.title}>Projekt</Text>
+                <Text style={styles.title}>{t('onboarding:guided.project.title')}</Text>
                 <Text style={styles.body}>
-                  Wpisz dane, dodaj rzuty - miej wszystko w jednym miejscu i uniknij pomyłek.
+                  {t('onboarding:guided.project.body')}
                 </Text>
                 <AppButton
-                  title="Uzupełnij dane o projekcie"
+                  title={t('onboarding:guided.project.cta')}
                   onPress={() => router.push('/(app)/(tabs)/projekt?setup=1&guidedStep=1')}
                   style={styles.primaryBtn}
                 />
-                <AppButton title="Pomiń na razie" variant="secondary" onPress={next} style={styles.secondaryBtn} />
+                <AppButton title={t('onboarding:guided.actions.skip')} variant="secondary" onPress={next} style={styles.secondaryBtn} />
               </>
             ) : null}
 
             {step === 2 ? (
               <>
-                <Text style={styles.title}>Budżet</Text>
+                <Text style={styles.title}>{t('onboarding:guided.budget.title')}</Text>
                 <Text style={styles.body}>
-                  Dodawaj wydatki, kontroluj koszty i zarządzaj budżetem profesjonalnie. Analizą zajmie się Twój kierownik AI.
+                  {t('onboarding:guided.budget.body')}
                 </Text>
-                <AppButton title="Dalej" onPress={next} style={styles.primaryBtn} />
+                <AppButton title={t('onboarding:actions.next')} onPress={next} style={styles.primaryBtn} />
               </>
             ) : null}
 
             {step === 3 ? (
               <>
-                <Text style={styles.title}>Wszystko pod kontrolą</Text>
+                <Text style={styles.title}>{t('onboarding:guided.control.title')}</Text>
                 <View style={styles.infoList}>
-                  <Text style={styles.infoItem}>Postępy - wiesz, na jakim etapie jesteś, co robić dalej i jakich błędów uniknąć</Text>
-                  <Text style={styles.infoItem}>Zdjęcia - dokumentujesz budowę i masz wszystko pod ręką</Text>
-                  <Text style={styles.infoItem}>Dokumenty - przechowujesz umowy z wykonawcami, faktury i wszystkie ważne dokumenty</Text>
+                  <Text style={styles.infoItem}>{t('onboarding:guided.control.progress')}</Text>
+                  <Text style={styles.infoItem}>{t('onboarding:guided.control.photos')}</Text>
+                  <Text style={styles.infoItem}>{t('onboarding:guided.control.documents')}</Text>
                 </View>
-                <AppButton title="Zaczynamy" onPress={finish} loading={saving} disabled={saving} style={styles.primaryBtn} />
+                <AppButton title={t('onboarding:guided.actions.start')} onPress={finish} loading={saving} disabled={saving} style={styles.primaryBtn} />
               </>
             ) : null}
           </BlurView>

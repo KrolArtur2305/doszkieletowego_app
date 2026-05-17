@@ -14,7 +14,11 @@
     "loadProfileError": "Profil konnte nicht geladen werden.",
     "firstNameRequired": "Bitte Vornamen eingeben.",
     "invalidPhone": "Bitte eine gültige Telefonnummer eingeben.",
-    "saveProfileError": "Profil konnte nicht gespeichert werden."
+    "saveProfileError": "Profil konnte nicht gespeichert werden.",
+    "logoutTitle": "Abmelden?",
+    "logoutMessage": "Möchtest du dich abmelden?",
+    "logoutAction": "Abmelden",
+    "logoutError": "Abmeldung fehlgeschlagen."
   },
   "steps": {
     "buildTypeTitle": "Welche Art von Bau führen Sie durch?",
@@ -39,7 +43,8 @@
     "spentLabel": "Bereits entstandene Kosten",
     "currency": "PLN",
     "plannedPlaceholder": "z. B. 450000",
-    "spentPlaceholder": "z. B. 25000"
+    "spentPlaceholder": "z. B. 25000",
+    "initialExpenseName": "Kosten vor Beginn der App-Nutzung"
   },
   "profile": {
     "firstName": "Vorname *",
@@ -51,5 +56,37 @@
   },
   "actions": {
     "next": "Weiter"
+  },
+  "guided": {
+    "loading": "Starter-Guide wird vorbereitet...",
+    "defaultBuddyName": "Bauleiter",
+    "alerts": {
+      "prepareError": "Der Starter-Guide konnte nicht vorbereitet werden.",
+      "finishError": "Der Guide konnte nicht abgeschlossen werden."
+    },
+    "actions": {
+      "start": "Los geht's",
+      "skip": "Vorerst überspringen"
+    },
+    "welcome": {
+      "title": "Willkommen, {{name}}",
+      "subtitle": "Ich bin {{buddy}}, dein KI-Bauleiter",
+      "body": "Ich zeige dir jetzt die wichtigsten Funktionen der App."
+    },
+    "project": {
+      "title": "Projekt",
+      "body": "Gib Daten ein und füge Pläne hinzu, damit alles an einem Ort bleibt.",
+      "cta": "Projektdaten ergänzen"
+    },
+    "budget": {
+      "title": "Budget",
+      "body": "Füge Ausgaben hinzu, kontrolliere Kosten und verwalte dein Budget. Dein KI-Bauleiter hilft bei der Analyse."
+    },
+    "control": {
+      "title": "Alles unter Kontrolle",
+      "progress": "Fortschritt - du weißt, in welcher Phase du bist und was als Nächstes ansteht",
+      "photos": "Fotos - dokumentiere den Bau und halte alles griffbereit",
+      "documents": "Dokumente - speichere Verträge, Rechnungen und wichtige Dateien"
+    }
   }
 }

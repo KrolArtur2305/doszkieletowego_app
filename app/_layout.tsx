@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 import { initI18n } from '../lib/i18n';
+import { isSupabaseConfigured, supabaseConfigError } from '../lib/supabase';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import {
   configurePurchases,
@@ -61,6 +62,24 @@ export default function RootLayout() {
   }, [session?.user?.id]);
 
   const showLoader = loading || !i18nReady;
+  const configErrorScreen = !isSupabaseConfigured ? (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: '#000000',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '700', marginBottom: 10, textAlign: 'center' }}>
+        Blad konfiguracji aplikacji
+      </Text>
+      <Text style={{ color: '#b8c0cc', fontSize: 14, lineHeight: 20, textAlign: 'center' }}>
+        {supabaseConfigError ?? 'Brakuje konfiguracji Supabase w tym buildzie.'}
+      </Text>
+    </View>
+  ) : null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -68,7 +87,7 @@ export default function RootLayout() {
         <StatusBar style="light" translucent />
 
         <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-          {showLoader ? (
+          {configErrorScreen ?? (showLoader ? (
             <View
               style={{
                 flex: 1,
@@ -93,7 +112,7 @@ export default function RootLayout() {
               <Stack.Screen name="auth-callback" />
               <Stack.Screen name="reset-password" />
             </Stack>
-          )}
+          ))}
         </SafeAreaView>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -5,16 +5,18 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    `Supabase ENV missing: url=${String(supabaseUrl)} key=${supabaseAnonKey ? 'set' : 'missing'}`
-  );
-}
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const supabaseConfigError = isSupabaseConfigured
+  ? null
+  : `Supabase ENV missing: url=${String(supabaseUrl)} key=${supabaseAnonKey ? 'set' : 'missing'}`;
+
+const resolvedSupabaseUrl = supabaseUrl ?? 'https://placeholder.supabase.co';
+const resolvedSupabaseAnonKey = supabaseAnonKey ?? 'placeholder-anon-key';
 
 export const publicConfig = {
-  supabaseUrl,
-  supabaseAnonKey,
-  aiChatEndpoint: `${supabaseUrl}/functions/v1/ai-chat`,
+  supabaseUrl: resolvedSupabaseUrl,
+  supabaseAnonKey: resolvedSupabaseAnonKey,
+  aiChatEndpoint: `${resolvedSupabaseUrl}/functions/v1/ai-chat`,
   revenueCat: {
     iosApiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? null,
     androidApiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? null,
@@ -25,7 +27,7 @@ export const publicConfig = {
   },
 } as const;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(resolvedSupabaseUrl, resolvedSupabaseAnonKey, {
   auth: {
     storage: {
       getItem: (key: string) => SecureStore.getItemAsync(key),

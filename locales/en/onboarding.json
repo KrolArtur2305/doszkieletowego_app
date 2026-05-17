@@ -14,7 +14,11 @@
     "loadProfileError": "Failed to load the profile.",
     "firstNameRequired": "Enter first name.",
     "invalidPhone": "Enter a valid phone number.",
-    "saveProfileError": "Failed to save the profile."
+    "saveProfileError": "Failed to save the profile.",
+    "logoutTitle": "Log out?",
+    "logoutMessage": "Do you want to log out?",
+    "logoutAction": "Log out",
+    "logoutError": "Could not log out."
   },
   "steps": {
     "buildTypeTitle": "What type of build are you managing?",
@@ -39,7 +43,8 @@
     "spentLabel": "Already incurred expenses",
     "currency": "PLN",
     "plannedPlaceholder": "e.g. 450000",
-    "spentPlaceholder": "e.g. 25000"
+    "spentPlaceholder": "e.g. 25000",
+    "initialExpenseName": "Expenses incurred before starting to use the app"
   },
   "profile": {
     "firstName": "First name *",
@@ -51,5 +56,37 @@
   },
   "actions": {
     "next": "Next"
+  },
+  "guided": {
+    "loading": "Preparing your starter guide...",
+    "defaultBuddyName": "Supervisor",
+    "alerts": {
+      "prepareError": "Failed to prepare the starter guide.",
+      "finishError": "Failed to finish the guide."
+    },
+    "actions": {
+      "start": "Let's start",
+      "skip": "Skip for now"
+    },
+    "welcome": {
+      "title": "Welcome, {{name}}",
+      "subtitle": "I'm {{buddy}}, your AI construction supervisor",
+      "body": "I'll show you the most important app features."
+    },
+    "project": {
+      "title": "Project",
+      "body": "Enter the data and add drawings so everything stays in one place.",
+      "cta": "Complete project details"
+    },
+    "budget": {
+      "title": "Budget",
+      "body": "Add expenses, control costs and manage your budget. Your AI supervisor will help with analysis."
+    },
+    "control": {
+      "title": "Everything under control",
+      "progress": "Progress - know your current stage, what to do next and which mistakes to avoid",
+      "photos": "Photos - document the build and keep everything close at hand",
+      "documents": "Documents - store contractor agreements, invoices and key files"
+    }
   }
 }

@@ -665,7 +665,7 @@ export default function DokumentyScreen() {
               >
                 <Ionicons name="filter" size={14} color={COLORS.brand} />
                 <Text style={styles.controlButtonTextCompact} numberOfLines={1}>
-                  Rodzaj
+                  {tt('documents:addModal.labels.type')}
                 </Text>
                 <Ionicons
                   name={filterDropdownOpen ? 'chevron-up' : 'chevron-down'}
@@ -832,8 +832,8 @@ export default function DokumentyScreen() {
 
                 <Text style={styles.previewFallbackInfo}>
                   {previewKind === 'pdf'
-                    ? 'Podgląd PDF otworzysz po kliknięciu przycisku poniżej.'
-                    : 'Ten typ pliku otworzysz w aplikacji systemowej po kliknięciu przycisku poniżej.'}
+                    ? tt('documents:preview.pdfInfo')
+                    : tt('documents:preview.fileInfo')}
                 </Text>
 
                 <TouchableOpacity
@@ -843,7 +843,7 @@ export default function DokumentyScreen() {
                 >
                   <Ionicons name="open-outline" size={18} color={THEME_COLORS.neon} />
                   <Text style={styles.previewOpenButtonText}>
-                    {previewKind === 'pdf' ? 'Otwórz PDF' : 'Otwórz plik'}
+                    {previewKind === 'pdf' ? tt('documents:preview.openPdf') : tt('documents:preview.openFile')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -862,7 +862,7 @@ export default function DokumentyScreen() {
         >
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
             <Pressable style={styles.modalContent} onPress={() => {}}>
-              <Text style={styles.modalTitle}>Dodaj dokument</Text>
+              <Text style={styles.modalTitle}>{tt('documents:addModal.title')}</Text>
 
               <Text style={styles.modalLabel}>{tt('documents:addModal.labels.titleOptional')}</Text>
               <AppInput

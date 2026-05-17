@@ -105,7 +105,7 @@ export default function UstawieniaScreen() {
         await removePushToken(user.id);
       }
       await supabase.auth.signOut();
-      router.replace('/(auth)/login');
+      router.replace('/(auth)/welcome');
     } catch (e: any) {
       Alert.alert(
         t('common:errorTitle'),

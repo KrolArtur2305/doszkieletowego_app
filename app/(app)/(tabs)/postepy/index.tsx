@@ -214,7 +214,7 @@ export default function PostepyScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <AppHeader title={t('screenTitle', { defaultValue: 'Postępy' })} />
+        <AppHeader title={t('screenTitle')} />
       </View>
 
       {!!error && <Text style={styles.error}>{error}</Text>}
