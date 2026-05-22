@@ -72,6 +72,15 @@ const COLORS = {
 
 const bucketName = 'dokumenty';
 const APP_LOGO = require('../../../assets/logo.png');
+const DOCUMENT_COVERS = {
+  umowa: require('../../../../assets/document-covers/umowa.png'),
+  faktura: require('../../../../assets/document-covers/faktura.png'),
+  paragon: require('../../../../assets/document-covers/paragon.png'),
+  oferta: require('../../../../assets/document-covers/oferta.png'),
+  projekt: require('../../../../assets/document-covers/projekt.png'),
+  pozwolenia: require('../../../../assets/document-covers/pozwolenie.png'),
+  inne: require('../../../../assets/document-covers/inne.png'),
+} as const;
 const MAX_DOCUMENT_UPLOAD_BYTES = 20 * 1024 * 1024;
 const ALLOWED_DOCUMENT_EXTENSIONS = new Set([
   'pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt',
@@ -145,6 +154,11 @@ function getFileIcon(path?: string | null): keyof typeof Ionicons.glyphMap {
   if (['doc', 'docx'].includes(ext)) return 'document-text-outline';
   if (['xls', 'xlsx', 'csv'].includes(ext)) return 'grid-outline';
   return 'document-outline';
+}
+
+function getDocCover(type: DocTypeKey) {
+  if (type === 'all') return DOCUMENT_COVERS.inne;
+  return DOCUMENT_COVERS[type] ?? DOCUMENT_COVERS.inne;
 }
 
 const DOC_TYPES: { key: DocTypeKey; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -538,6 +552,7 @@ export default function DokumentyScreen() {
     const type = normalizeType(item.kategoria);
     const dateTxt = formatDateLocale(item.created_at || null, dateLocale);
     const iconName = getFileIcon(item.plik_url);
+    const cover = getDocCover(type);
 
     return (
       <TouchableOpacity
@@ -548,19 +563,25 @@ export default function DokumentyScreen() {
       >
         <BlurView intensity={25} tint="dark" style={styles.cardBlur}>
           <View style={styles.docCardInner}>
-            <View style={styles.docIconWrap}>
-              <Ionicons name={iconName} size={22} color={COLORS.brand} />
+            <View style={styles.docCoverWrap}>
+              <Image source={cover} style={styles.docCoverImage} contentFit="cover" cachePolicy="memory-disk" />
+              <View style={styles.docCoverOverlay} />
+              <View style={styles.docIconWrap}>
+                <Ionicons name={iconName} size={18} color="#FFFFFF" />
+              </View>
             </View>
 
-            <Text style={styles.docTitle} numberOfLines={2}>
-              {item.tytul}
-            </Text>
-
-            {!!item.notatki && (
-              <Text style={styles.docDesc} numberOfLines={2}>
-                {item.notatki}
+            <View style={styles.docTextBlock}>
+              <Text style={styles.docTitle} numberOfLines={2}>
+                {item.tytul}
               </Text>
-            )}
+
+              {!!item.notatki && (
+                <Text style={styles.docDesc} numberOfLines={1}>
+                  {item.notatki}
+                </Text>
+              )}
+            </View>
 
             <View style={styles.docMetaRow}>
               <Text style={styles.docType} numberOfLines={1}>
@@ -578,6 +599,7 @@ export default function DokumentyScreen() {
     const type = normalizeType(item.kategoria);
     const dateTxt = formatDateLocale(item.created_at || null, dateLocale);
     const iconName = getFileIcon(item.plik_url);
+    const cover = getDocCover(type);
 
     return (
       <TouchableOpacity
@@ -587,8 +609,10 @@ export default function DokumentyScreen() {
         activeOpacity={0.85}
       >
         <BlurView intensity={22} tint="dark" style={styles.listBlur}>
-          <View style={styles.listLeftIcon}>
-            <Ionicons name={iconName} size={22} color={COLORS.brand} />
+          <View style={styles.listCoverWrap}>
+            <Image source={cover} style={styles.listCoverImage} contentFit="cover" cachePolicy="memory-disk" />
+            <View style={styles.listCoverOverlay} />
+            <Ionicons name={iconName} size={17} color="#FFFFFF" />
           </View>
 
           <View style={{ flex: 1 }}>
@@ -1181,17 +1205,37 @@ const styles = StyleSheet.create({
   gridRow: { gap: 16, paddingHorizontal: 8, marginBottom: 16 },
   gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * 1.22, borderRadius: 18, overflow: 'hidden' },
   cardBlur: { flex: 1, borderWidth: 1, borderColor: COLORS.cardBorder },
-  docCardInner: { flex: 1, padding: 14, backgroundColor: 'rgba(0,0,0,0.12)' },
+  docCardInner: { flex: 1, backgroundColor: 'rgba(0,0,0,0.12)' },
+  docCoverWrap: {
+    position: 'relative',
+    height: '58%',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  docCoverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  docCoverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+  },
   docIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(25,112,92,0.14)',
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.42)',
     borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.35)',
+    borderColor: 'rgba(255,255,255,0.24)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+  },
+  docTextBlock: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
   },
   docTitle: { color: COLORS.text, fontWeight: '900', fontSize: 14, lineHeight: 18 },
   docDesc: {
@@ -1203,7 +1247,9 @@ const styles = StyleSheet.create({
   },
   docMetaRow: {
     marginTop: 'auto',
+    marginHorizontal: 14,
     paddingTop: 10,
+    paddingBottom: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.08)',
   },
@@ -1227,15 +1273,25 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  listLeftIcon: {
-    width: 44,
-    height: 44,
+  listCoverWrap: {
+    width: 54,
+    height: 66,
     borderRadius: 14,
-    backgroundColor: 'rgba(25,112,92,0.14)',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.35)',
+    borderColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  listCoverImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  listCoverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.16)',
   },
   listTitle: { color: COLORS.text, fontWeight: '900', fontSize: 14 },
   listMeta: { marginTop: 4, color: 'rgba(255,255,255,0.60)', fontWeight: '800', fontSize: 12 },

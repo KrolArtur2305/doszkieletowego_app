@@ -20,7 +20,7 @@ import type { PurchasesPackage } from 'react-native-purchases'
 import { useSubscription } from '../../../../../hooks/useSubscription'
 import type { SubscriptionPlanKey } from '../../../../../src/config/subscriptionPlans'
 import { isSubscriptionUiReadOnly } from '../../../../../src/services/subscription/launchMode'
-import { restorePurchasesSafe } from '../../../../../src/services/subscription/revenuecat'
+import { purchasePackageSafe, restorePurchasesSafe } from '../../../../../src/services/subscription/revenuecat'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
@@ -79,6 +79,10 @@ function getTrialDaysRemaining(trialEndsAt: string | null): number | null {
   return Math.max(0, Math.ceil((end - Date.now()) / (1000 * 60 * 60 * 24)))
 }
 
+function revenueCatPlanForPaywallPlan(planKey: PaywallPlanKey): RevenueCatPlanKey {
+  return planKey === 'free_trial' ? 'expert' : planKey
+}
+
 export default function CheckoutScreen() {
   const router = useRouter()
   const { t } = useTranslation('subscription')
@@ -90,6 +94,7 @@ export default function CheckoutScreen() {
     planKey === 'free_trial' || planKey === 'expert' ? planKey : 'pro'
   const [selectedPlan, setSelectedPlan] = useState<PaywallPlanKey>(initialPlan)
   const [billing, setBilling] = useState<BillingCycle>('monthly')
+  const [purchasing, setPurchasing] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const introAnim = useRef(new Animated.Value(0)).current
 
@@ -121,13 +126,47 @@ export default function CheckoutScreen() {
 
   const getPlanPeriod = () => (billing === 'monthly' ? t('month') : t('billingYearly'))
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    if (purchasing) return
+
     if (subscriptionUiReadOnly) {
       Alert.alert(t('paywall.devAlertTitle'), t('paywall.devAlertMessage'))
       return
     }
 
-    Alert.alert(t('paywall.devAlertTitle'), t('paywall.devAlertMessage'))
+    const purchasePlan = revenueCatPlanForPaywallPlan(selectedPlan)
+    const selectedPackage = findPackage(availablePackages, purchasePlan, billing)
+
+    if (!selectedPackage) {
+      Alert.alert(
+        t('paywall.purchaseUnavailableTitle', { defaultValue: 'Plan niedostepny' }),
+        t('paywall.purchaseUnavailableMessage', { defaultValue: 'Nie udalo sie pobrac produktu z App Store. Sprobuj ponownie za chwile.' })
+      )
+      return
+    }
+
+    setPurchasing(true)
+    try {
+      const result = await purchasePackageSafe(selectedPackage)
+
+      if (result.cancelled) return
+
+      await refresh()
+
+      if (result.customerInfo) {
+        Alert.alert(
+          t('checkout.successTitle'),
+          t('checkout.successMessage')
+        )
+      } else {
+        Alert.alert(
+          t('paywall.purchaseErrorTitle', { defaultValue: 'Platnosc nieudana' }),
+          t('paywall.purchaseErrorMessage', { defaultValue: 'Nie udalo sie dokonczyc zakupu. Sprobuj ponownie.' })
+        )
+      }
+    } finally {
+      setPurchasing(false)
+    }
   }
 
   const handleRestore = async () => {
@@ -313,7 +352,12 @@ export default function CheckoutScreen() {
         </BlurView>
 
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.92}>
+          <TouchableOpacity
+            style={styles.continueBtn}
+            onPress={handleContinue}
+            activeOpacity={0.92}
+            disabled={purchasing}
+          >
             <View pointerEvents="none" style={styles.continueGlowLeft} />
             <View pointerEvents="none" style={styles.continueGlowRight} />
             <View pointerEvents="none" style={styles.continueSheen} />

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,13 @@ import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../src/ui/components';
 import { resolveOnboardingCurrentStageCode } from '../../../lib/buildWorkflow';
 import {
+  CURRENCY_OPTIONS,
+  defaultCurrencyForLanguage,
+  getStoredCurrency,
+  setAppCurrency,
+  type AppCurrency,
+} from '../../../lib/currency';
+import {
   BUDDY_AVATAR_OPTIONS,
   DEFAULT_BUDDY_AVATAR_ID,
   type BuddyAvatarId,
@@ -44,11 +51,11 @@ const BUILD_TYPES = [
 ] as const;
 
 const BUILD_STAGES = [
-  { value: 'planowanie', key: 'buildStages.planowanie' },
-  { value: 'stan_zero', key: 'buildStages.stan_zero' },
-  { value: 'stan_surowy_otwarty', key: 'buildStages.stan_surowy_otwarty' },
-  { value: 'stan_surowy_zamkniety', key: 'buildStages.stan_surowy_zamkniety' },
-  { value: 'wykonczenie', key: 'buildStages.wykonczenie' },
+  { value: 'planowanie', key: 'buildStages.planowanie', infoKey: 'buildStageInfo.planowanie' },
+  { value: 'stan_zero', key: 'buildStages.stan_zero', infoKey: 'buildStageInfo.stan_zero' },
+  { value: 'stan_surowy_otwarty', key: 'buildStages.stan_surowy_otwarty', infoKey: 'buildStageInfo.stan_surowy_otwarty' },
+  { value: 'stan_surowy_zamkniety', key: 'buildStages.stan_surowy_zamkniety', infoKey: 'buildStageInfo.stan_surowy_zamkniety' },
+  { value: 'wykonczenie', key: 'buildStages.wykonczenie', infoKey: 'buildStageInfo.wykonczenie' },
 ] as const;
 
 function toNumber(value: string) {
@@ -57,13 +64,31 @@ function toNumber(value: string) {
   return Number.isFinite(n) ? n : null;
 }
 
+function formatBudgetValue(value: string, locale: string, currency: string) {
+  const n = toNumber(value);
+  if (n === null) return '';
+
+  const formatted = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(n);
+
+  const compact = new Intl.NumberFormat(locale, {
+    notation: 'compact',
+    maximumFractionDigits: n >= 1000000 ? 1 : 0,
+  }).format(n);
+
+  return `${formatted} (${compact})`;
+}
+
 function todayYMD() {
   return new Date().toISOString().split('T')[0];
 }
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { t } = useTranslation(['onboarding', 'buddy', 'common']);
+  const { t, i18n } = useTranslation(['onboarding', 'buddy', 'common']);
   const { session } = useSupabaseAuth();
   const userId = session?.user?.id;
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
@@ -77,9 +102,27 @@ export default function OnboardingScreen() {
   const [buildStage, setBuildStage] = useState<string>('');
   const [plannedBudget, setPlannedBudget] = useState('');
   const [spentBudget, setSpentBudget] = useState('');
+  const [budgetCurrency, setBudgetCurrency] = useState<AppCurrency>(() =>
+    defaultCurrencyForLanguage(i18n.resolvedLanguage || i18n.language)
+  );
   const [buddyName, setBuddyName] = useState('');
   const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
   const buddyFloat = useRef(new Animated.Value(0)).current;
+  const locale = useMemo(() => {
+    const lang = i18n.resolvedLanguage || i18n.language || 'pl';
+    if (lang.startsWith('en')) return 'en-US';
+    if (lang.startsWith('de')) return 'de-DE';
+    return 'pl-PL';
+  }, [i18n.language, i18n.resolvedLanguage]);
+
+  const plannedBudgetPreview = useMemo(
+    () => formatBudgetValue(plannedBudget, locale, budgetCurrency),
+    [budgetCurrency, locale, plannedBudget]
+  );
+  const spentBudgetPreview = useMemo(
+    () => formatBudgetValue(spentBudget, locale, budgetCurrency),
+    [budgetCurrency, locale, spentBudget]
+  );
 
   useEffect(() => {
     if (step !== 'buddy') return;
@@ -130,6 +173,7 @@ export default function OnboardingScreen() {
             .eq('user_id', userId)
             .maybeSingle(),
         ]);
+        const storedCurrency = await getStoredCurrency();
 
         if (!alive) return;
 
@@ -142,6 +186,7 @@ export default function OnboardingScreen() {
 
         setBuildType(String(profileRes.data?.build_type ?? '').trim());
         setBuildStage(String(profileRes.data?.build_stage ?? '').trim());
+        setBudgetCurrency(storedCurrency);
         setBuddyName(String(profileRes.data?.ai_buddy_name ?? '').trim());
         setAvatarId(
           profileRes.data?.ai_buddy_avatar === 'avatar2' || profileRes.data?.ai_buddy_avatar === 'avatar3'
@@ -280,6 +325,7 @@ export default function OnboardingScreen() {
 
       if (investmentRes.error) throw investmentRes.error;
       if (existingExpenseRes?.error) throw existingExpenseRes.error;
+      await setAppCurrency(budgetCurrency);
 
       if (spent > 0 && !existingExpenseRes?.data?.id) {
         const { error: expenseError } = await supabase.from('wydatki').insert({
@@ -340,20 +386,24 @@ export default function OnboardingScreen() {
   const renderBuildStage = () => (
     <>
       {renderBackButton(() => setStep('build_type'))}
-      <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
-      <Text style={styles.title}>{t('steps.buildStageTitle')}</Text>
+      <Image source={APP_LOGO} style={styles.stageLogo} resizeMode="contain" />
+      <Text style={styles.stageTitle}>{t('steps.buildStageTitle')}</Text>
 
-      <View style={styles.tileGrid}>
+      <View style={styles.stageGrid}>
         {BUILD_STAGES.map((item) => (
           <TouchableOpacity
             key={item.value}
             onPress={() => saveBuildStage(item.value)}
             disabled={saving}
             activeOpacity={0.88}
-            style={styles.tileOuter}
+            style={styles.stageTileOuter}
           >
-            <BlurView intensity={18} tint="dark" style={styles.tile}>
-              <Text style={styles.tileTitle}>{t(item.key)}</Text>
+            <BlurView intensity={18} tint="dark" style={styles.stageTile}>
+              <View style={styles.infoBadge}>
+                <Text style={styles.infoBadgeText}>I</Text>
+              </View>
+              <Text style={styles.stageTileTitle}>{t(item.key)}</Text>
+              <Text style={styles.stageTileInfo} numberOfLines={3}>{t(item.infoKey)}</Text>
             </BlurView>
           </TouchableOpacity>
         ))}
@@ -377,6 +427,33 @@ export default function OnboardingScreen() {
 
       <BlurView intensity={18} tint="dark" style={styles.formCard}>
         <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>{t('budget.currencyLabel')}</Text>
+          <View style={styles.currencyGrid}>
+            {CURRENCY_OPTIONS.map((option) => {
+              const active = budgetCurrency === option.code;
+              return (
+                <TouchableOpacity
+                  key={option.code}
+                  onPress={async () => {
+                    setBudgetCurrency(option.code);
+                    await setAppCurrency(option.code);
+                  }}
+                  activeOpacity={0.86}
+                  style={[styles.currencyTile, active && styles.currencyTileActive]}
+                >
+                  <Text style={[styles.currencyCode, active && styles.currencyCodeActive]}>
+                    {option.code}
+                  </Text>
+                  <Text style={[styles.currencySymbol, active && styles.currencyCodeActive]}>
+                    {option.symbol}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>{t('budget.plannedLabel')}</Text>
           <AppInput
             value={plannedBudget}
@@ -385,6 +462,11 @@ export default function OnboardingScreen() {
             keyboardType="numeric"
             style={styles.input}
           />
+          {plannedBudgetPreview ? (
+            <Text style={styles.amountPreview}>{t('budget.previewLabel')}: {plannedBudgetPreview}</Text>
+          ) : (
+            <Text style={styles.amountHint}>{t('budget.previewHint')}</Text>
+          )}
         </View>
 
         <View style={styles.fieldWrapLast}>
@@ -396,6 +478,11 @@ export default function OnboardingScreen() {
             keyboardType="numeric"
             style={styles.input}
           />
+          {spentBudgetPreview ? (
+            <Text style={styles.amountPreview}>{t('budget.previewLabel')}: {spentBudgetPreview}</Text>
+          ) : (
+            <Text style={styles.amountHint}>{t('budget.previewHint')}</Text>
+          )}
         </View>
       </BlurView>
 
@@ -672,6 +759,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 0,
   },
+  stageLogo: {
+    width: 112,
+    height: 112,
+    alignSelf: 'center',
+    marginTop: -6,
+    marginBottom: -4,
+  },
   loadingWrap: {
     paddingVertical: 60,
     alignItems: 'center',
@@ -690,6 +784,14 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     textAlign: 'center',
   },
+  stageTitle: {
+    color: NEON,
+    fontSize: 27,
+    fontWeight: '900',
+    letterSpacing: -0.25,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
   subtitle: {
     color: 'rgba(255,255,255,0.52)',
     fontSize: 14,
@@ -701,9 +803,64 @@ const styles = StyleSheet.create({
   tileGrid: {
     gap: 12,
   },
+  stageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   tileOuter: {
     borderRadius: 24,
     overflow: 'hidden',
+  },
+  stageTileOuter: {
+    width: '48%',
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  stageTile: {
+    position: 'relative',
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingTop: 22,
+    paddingBottom: 10,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    borderWidth: 1.3,
+    borderColor: 'rgba(37,240,200,0.34)',
+    minHeight: 112,
+  },
+  infoBadge: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.13)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.52)',
+  },
+  infoBadgeText: {
+    color: NEON,
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '900',
+  },
+  stageTileTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 17,
+    fontWeight: '900',
+    textAlign: 'left',
+    paddingRight: 16,
+  },
+  stageTileInfo: {
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 10.5,
+    lineHeight: 13,
+    fontWeight: '700',
+    marginTop: 5,
   },
   tile: {
     alignItems: 'center',
@@ -750,6 +907,53 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: 'rgba(255,255,255,0.08)',
+  },
+  amountPreview: {
+    marginTop: 7,
+    color: 'rgba(37,240,200,0.88)',
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  amountHint: {
+    marginTop: 7,
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  currencyGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  currencyTile: {
+    minWidth: 58,
+    flexGrow: 1,
+    borderRadius: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  currencyTileActive: {
+    backgroundColor: 'rgba(37,240,200,0.12)',
+    borderColor: 'rgba(37,240,200,0.44)',
+  },
+  currencyCode: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  currencyCodeActive: {
+    color: NEON,
+  },
+  currencySymbol: {
+    marginTop: 2,
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 10.5,
+    fontWeight: '800',
   },
   primaryBtn: {
     marginTop: 18,

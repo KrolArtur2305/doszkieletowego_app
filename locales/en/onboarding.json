@@ -34,16 +34,26 @@
   "buildStages": {
     "planowanie": "Planning",
     "stan_zero": "Foundations",
-    "stan_surowy_otwarty": "Shell open",
-    "stan_surowy_zamkniety": "Shell closed",
+    "stan_surowy_otwarty": "Open shell stage",
+    "stan_surowy_zamkniety": "Closed shell stage",
     "wykonczenie": "Finishing"
   },
+  "buildStageInfo": {
+    "planowanie": "Design, permits, team selection and preparation before work starts.",
+    "stan_zero": "Site prepared, foundations and underground elements completed.",
+    "stan_surowy_otwarty": "Walls, floors and roof are up, but windows and doors are not installed yet.",
+    "stan_surowy_zamkniety": "The building is closed with roof, windows and external doors.",
+    "wykonczenie": "Installations and interiors: plaster, floors, fixtures and details."
+  },
   "budget": {
+    "currencyLabel": "Budget currency",
     "plannedLabel": "Planned budget",
     "spentLabel": "Already incurred expenses",
     "currency": "PLN",
     "plannedPlaceholder": "e.g. 450000",
     "spentPlaceholder": "e.g. 25000",
+    "previewLabel": "Entered",
+    "previewHint": "After typing, we show the amount clearly, e.g. 80,000 or 800,000.",
     "initialExpenseName": "Expenses incurred before starting to use the app"
   },
   "profile": {

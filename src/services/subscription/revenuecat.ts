@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import type { CustomerInfo, PurchasesOfferings } from 'react-native-purchases';
+import type { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
 import { publicConfig } from '../../../lib/supabase';
 import { isLaunchPaymentsDisabled } from './launchMode';
 import type { RevenueCatSupportStatus } from './types';
@@ -8,6 +8,12 @@ import type { RevenueCatSupportStatus } from './types';
 type RevenueCatPlatformConfig = {
   platform: 'ios' | 'android';
   apiKey: string | null;
+};
+
+export type PurchasePackageResult = {
+  customerInfo: CustomerInfo | null;
+  cancelled: boolean;
+  error: unknown | null;
 };
 
 let configuredApiKey: string | null = null;
@@ -187,5 +193,25 @@ export async function restorePurchasesSafe(): Promise<CustomerInfo | null> {
   } catch (error) {
     console.warn('[RevenueCat] restorePurchasesSafe failed:', error);
     return null;
+  }
+}
+
+export async function purchasePackageSafe(pkg: PurchasesPackage): Promise<PurchasePackageResult> {
+  try {
+    const ready = await ensureConfigured();
+    if (!ready) {
+      return { customerInfo: null, cancelled: false, error: new Error('RevenueCat is not ready.') };
+    }
+
+    const Purchases = await getPurchasesModule();
+    const result = await Purchases.purchasePackage(pkg);
+    return { customerInfo: result.customerInfo ?? null, cancelled: false, error: null };
+  } catch (error: any) {
+    if (error?.userCancelled) {
+      return { customerInfo: null, cancelled: true, error: null };
+    }
+
+    console.warn('[RevenueCat] purchasePackageSafe failed:', error);
+    return { customerInfo: null, cancelled: false, error };
   }
 }

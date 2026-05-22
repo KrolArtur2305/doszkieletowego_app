@@ -34,16 +34,26 @@
   "buildStages": {
     "planowanie": "Planowanie",
     "stan_zero": "Stan zero",
-    "stan_surowy_otwarty": "SSO",
-    "stan_surowy_zamkniety": "SSZ",
+    "stan_surowy_otwarty": "Stan surowy otwarty",
+    "stan_surowy_zamkniety": "Stan surowy zamkniety",
     "wykonczenie": "Wykończenie"
   },
+  "buildStageInfo": {
+    "planowanie": "Projekt, formalnosci, wybor ekipy i przygotowanie startu.",
+    "stan_zero": "Dzialka przygotowana, wykonane fundamenty i elementy pod ziemia.",
+    "stan_surowy_otwarty": "Stoja sciany, stropy i dach, ale bez okien i drzwi.",
+    "stan_surowy_zamkniety": "Budynek jest zamkniety: okna, drzwi i dach sa gotowe.",
+    "wykonczenie": "Instalacje i wnetrza: tynki, posadzki, montaze i detale."
+  },
   "budget": {
+    "currencyLabel": "Waluta budzetu",
     "plannedLabel": "Planowany budżet",
     "spentLabel": "Już poniesione wydatki",
     "currency": "PLN",
     "plannedPlaceholder": "np. 450000",
     "spentPlaceholder": "np. 25000",
+    "previewLabel": "Wpisano",
+    "previewHint": "Po wpisaniu pokazemy kwote czytelnie, np. 80 000 albo 800 000.",
     "initialExpenseName": "Koszty poniesione przed rozpoczęciem korzystania z aplikacji"
   },
   "profile": {
@@ -51,7 +61,7 @@
     "lastName": "Nazwisko",
     "phone": "Telefon",
     "firstNamePlaceholder": "np. Adam",
-    "lastNamePlaceholder": "",
+    "lastNamePlaceholder": "np. Kowalski",
     "phonePlaceholder": "np. 600123456"
   },
   "actions": {

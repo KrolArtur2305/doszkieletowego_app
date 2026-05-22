@@ -34,16 +34,26 @@
   "buildStages": {
     "planowanie": "Planung",
     "stan_zero": "Fundament",
-    "stan_surowy_otwarty": "Rohbau offen",
-    "stan_surowy_zamkniety": "Rohbau geschlossen",
+    "stan_surowy_otwarty": "Offener Rohbau",
+    "stan_surowy_zamkniety": "Geschlossener Rohbau",
     "wykonczenie": "Ausbau"
   },
+  "buildStageInfo": {
+    "planowanie": "Planung, Genehmigungen, Teamwahl und Vorbereitung vor dem Start.",
+    "stan_zero": "Grundstuck vorbereitet, Fundamente und unterirdische Elemente fertig.",
+    "stan_surowy_otwarty": "Wande, Decken und Dach stehen, Fenster und Turen fehlen noch.",
+    "stan_surowy_zamkniety": "Das Gebaude ist mit Dach, Fenstern und Aussenturen geschlossen.",
+    "wykonczenie": "Installationen und Innenausbau: Putz, Boden, Montage und Details."
+  },
   "budget": {
+    "currencyLabel": "Budgetwahrung",
     "plannedLabel": "Geplantes Budget",
     "spentLabel": "Bereits entstandene Kosten",
     "currency": "PLN",
     "plannedPlaceholder": "z. B. 450000",
     "spentPlaceholder": "z. B. 25000",
+    "previewLabel": "Eingegeben",
+    "previewHint": "Nach der Eingabe zeigen wir den Betrag klar an, z. B. 80.000 oder 800.000.",
     "initialExpenseName": "Kosten vor Beginn der App-Nutzung"
   },
   "profile": {
