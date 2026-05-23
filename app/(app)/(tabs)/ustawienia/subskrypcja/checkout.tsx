@@ -35,6 +35,10 @@ type RevenueCatPlanKey = Exclude<PaywallPlanKey, 'free_trial'>
 const PAYWALL_PLAN_KEYS: PaywallPlanKey[] = ['free_trial', 'pro', 'expert']
 const REVENUECAT_PLAN_KEYS: RevenueCatPlanKey[] = ['pro', 'expert']
 
+function expectedProductId(planKey: RevenueCatPlanKey, billing: BillingCycle): string {
+  return `buildiq_${planKey}_${billing}`
+}
+
 function packageMatchesPlan(pkg: PurchasesPackage, planKey: RevenueCatPlanKey): boolean {
   const productId = pkg.product.identifier.toLowerCase()
   const packageId = pkg.identifier.toLowerCase()
@@ -66,6 +70,7 @@ function findPackage(
   billing: BillingCycle,
 ): PurchasesPackage | null {
   return (
+    packages.find((pkg) => pkg.product.identifier.toLowerCase() === expectedProductId(planKey, billing)) ??
     packages.find((pkg) => packageMatchesPlan(pkg, planKey) && packageMatchesBilling(pkg, billing)) ??
     packages.find((pkg) => packageMatchesPlan(pkg, planKey)) ??
     null
@@ -121,7 +126,7 @@ export default function CheckoutScreen() {
     }
 
     const pkg = findPackage(availablePackages, key as RevenueCatPlanKey, billing)
-    return pkg?.product.priceString ?? t(`paywall.plans.${key}.samplePrice`)
+    return pkg?.product.priceString ?? t('paywall.priceInStore')
   }
 
   const getPlanPeriod = () => (billing === 'monthly' ? t('month') : t('billingYearly'))

@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "usesAppleSignIn": true,
-      "buildNumber": "4",
+      "buildNumber": "5",
       "bundleIdentifier": "pl.buildiq.mobile",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "BuildIQ needs photo library access so you can add construction photos and project images.",
