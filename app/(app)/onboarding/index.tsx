@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
+import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 import { AppButton, AppInput } from '../../../src/ui/components';
 import { resolveOnboardingCurrentStageCode } from '../../../lib/buildWorkflow';
 import {
@@ -341,18 +342,21 @@ export default function OnboardingScreen() {
         if (expenseError) throw expenseError;
       }
 
+      const appleUser = isAppleAuthUser(session?.user);
+      const nextStep = appleUser ? 'investment' : 'profile';
       const { error: profileError } = await supabase.from('profiles').upsert(
         {
           user_id: userId,
-          onboarding_step: 'profile',
+          onboarding_step: nextStep,
           onboarding_completed: false,
+          ...(appleUser ? { profil_wypelniony: true } : {}),
         },
         { onConflict: 'user_id' }
       );
 
       if (profileError) throw profileError;
 
-      router.replace('/(app)/onboarding/profile');
+      router.replace(appleUser ? '/(app)/onboarding/inwestycja' : '/(app)/onboarding/profile');
     } catch (e: any) {
       Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveBudgetError'));
     } finally {

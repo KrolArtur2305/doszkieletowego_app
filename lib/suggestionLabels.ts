@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 
 type SuggestionLike = {
+  expense_name?: string | null;
   expense_name_key?: string | null;
   expense_key?: string | null;
 };
@@ -22,6 +23,9 @@ const humanizeKey = (rawKey: string) => {
 };
 
 export const getSuggestionDisplayName = (t: TFunction, suggestion: SuggestionLike) => {
+  const explicitName = String(suggestion.expense_name ?? '').trim();
+  if (explicitName) return explicitName;
+
   const nameKey = String(suggestion.expense_name_key ?? '').trim();
   if (nameKey) {
     const translated = String(t(nameKey, { defaultValue: '' }) ?? '').trim();
@@ -33,4 +37,3 @@ export const getSuggestionDisplayName = (t: TFunction, suggestion: SuggestionLik
   const expenseKey = String(suggestion.expense_key ?? '').trim();
   return humanizeKey(expenseKey || nameKey || 'expense');
 };
-

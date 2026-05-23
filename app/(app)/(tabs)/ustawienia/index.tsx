@@ -39,6 +39,7 @@ export default function UstawieniaScreen() {
   const subscriptionUiReadOnly = isSubscriptionUiReadOnly();
 
   const [loading, setLoading] = useState(true);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [displayName, setDisplayName] = useState(t('settings:fallbackUser'));
   const [email, setEmail] = useState('');
 
@@ -114,6 +115,60 @@ export default function UstawieniaScreen() {
     }
   };
 
+  const handleDeleteAccount = () => {
+    if (deletingAccount) return;
+
+    Alert.alert(
+      t('settings:appSettings.deleteAccount.confirmTitle'),
+      t('settings:appSettings.deleteAccount.confirmMessage'),
+      [
+        { text: t('common:cancel'), style: 'cancel' },
+        {
+          text: t('settings:appSettings.deleteAccount.confirmBtn'),
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingAccount(true);
+            try {
+              const {
+                data: { user },
+              } = await supabase.auth.getUser();
+
+              if (user) {
+                await removePushToken(user.id);
+              }
+
+              const { error } = await supabase.functions.invoke('delete-account', {
+                method: 'POST',
+              });
+
+              if (error) throw error;
+
+              try {
+                await supabase.auth.signOut();
+              } catch (signOutError) {
+                console.warn('Sign out after account deletion failed:', signOutError);
+              }
+              Alert.alert(
+                t('settings:appSettings.deleteAccount.successTitle', { defaultValue: 'Gotowe' }),
+                t('settings:appSettings.deleteAccount.successMessage', {
+                  defaultValue: 'Konto zostało usunięte.',
+                })
+              );
+              router.replace('/(auth)/welcome');
+            } catch (e: any) {
+              Alert.alert(
+                t('settings:appSettings.deleteAccount.errorTitle'),
+                e?.message ?? t('settings:appSettings.deleteAccount.errorMessage')
+              );
+            } finally {
+              setDeletingAccount(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const menuItems: MenuItem[] = useMemo(
     () => [
       {
@@ -163,8 +218,18 @@ export default function UstawieniaScreen() {
         icon: 'alert-triangle',
         onPress: () => router.push('/(app)/(tabs)/ustawienia/zglos_problem'),
       },
+      {
+        key: 'delete-account',
+        title: t('settings:appSettings.deleteAccount.title'),
+        subtitle: deletingAccount
+          ? t('settings:appSettings.deleteAccount.deleting', { defaultValue: 'Usuwanie...' })
+          : t('settings:appSettings.deleteAccount.subtitle'),
+        icon: 'trash-2',
+        danger: true,
+        onPress: handleDeleteAccount,
+      },
     ],
-    [router, subscriptionUiReadOnly, t]
+    [deletingAccount, router, subscriptionUiReadOnly, t]
   );
 
   return (
@@ -196,12 +261,12 @@ export default function UstawieniaScreen() {
               <AppCard style={styles.tileFrame} contentStyle={styles.tile} withShadow={false}>
                 <View style={styles.iconRing}>
                   <View style={styles.iconInner}>
-                    <Feather name={item.icon} size={20} color={colors.accent} />
+                    <Feather name={item.icon} size={20} color={item.danger ? colors.danger : colors.accent} />
                   </View>
                 </View>
 
                 <View style={styles.tileTextWrap}>
-                  <Text style={styles.tileTitle}>{item.title}</Text>
+                  <Text style={[styles.tileTitle, item.danger && styles.tileTitleDanger]}>{item.title}</Text>
                   {!!item.subtitle && <Text style={styles.tileSubtitle}>{item.subtitle}</Text>}
                 </View>
 
@@ -312,6 +377,9 @@ const styles = StyleSheet.create({
   tileTitle: {
     color: colors.text,
     ...typography.cardTitle,
+  },
+  tileTitleDanger: {
+    color: colors.danger,
   },
   tileSubtitle: {
     marginTop: spacing.xs,

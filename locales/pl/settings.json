@@ -103,6 +103,9 @@
       "confirmTitle": "Usuń konto",
       "confirmMessage": "Tego nie da się cofnąć. Wszystkie dane zostaną usunięte.",
       "confirmBtn": "Usuń konto",
+      "deleting": "Usuwanie...",
+      "successTitle": "Gotowe",
+      "successMessage": "Konto zostało usunięte.",
       "errorTitle": "Błąd",
       "errorMessage": "Nie udało się usunąć konta. Skontaktuj się z pomocą."
     }

@@ -159,11 +159,16 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     backgroundColor: colors.bg,
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
+    borderTopColor: colors.accentBright,
+    borderTopWidth: 2,
     height: 64,
     paddingBottom: 10,
     paddingTop: 10,
+    shadowColor: colors.accentBright,
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 12,
   },
   tabBarLabel: {
     ...typography.label,

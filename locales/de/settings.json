@@ -103,6 +103,9 @@
       "confirmTitle": "Konto löschen",
       "confirmMessage": "Dieser Vorgang kann nicht rückgängig gemacht werden. Alle deine Daten werden gelöscht.",
       "confirmBtn": "Konto löschen",
+      "deleting": "Wird gelöscht...",
+      "successTitle": "Fertig",
+      "successMessage": "Dein Konto wurde gelöscht.",
       "errorTitle": "Fehler",
       "errorMessage": "Konto konnte nicht gelöscht werden. Kontaktiere den Support."
     }

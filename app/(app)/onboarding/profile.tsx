@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { AppButton, AppInput } from '../../../src/ui/components';
+import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 
 const BG = '#000000';
 const ACCENT = '#19705C';
@@ -55,6 +56,22 @@ export default function OnboardingProfileScreen() {
         }
 
         const user = userRes.user;
+        if (isAppleAuthUser(user)) {
+          await supabase.from('profiles').upsert(
+            {
+              user_id: user.id,
+              email: user.email ?? null,
+              profil_wypelniony: true,
+              onboarding_step: 'investment',
+              onboarding_completed: false,
+            },
+            { onConflict: 'user_id' }
+          );
+
+          router.replace('/(app)/onboarding/inwestycja');
+          return;
+        }
+
         const { data } = await supabase
           .from('profiles')
           .select('imie, nazwisko, telefon')

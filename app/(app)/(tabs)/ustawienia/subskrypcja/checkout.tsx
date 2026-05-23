@@ -93,7 +93,7 @@ export default function CheckoutScreen() {
   const { t } = useTranslation('subscription')
   const { planKey } = useLocalSearchParams<{ planKey?: SubscriptionPlanKey }>()
   const subscriptionUiReadOnly = isSubscriptionUiReadOnly()
-  const { access, offerings, refresh } = useSubscription()
+  const { access, offerings, refresh, loading, error } = useSubscription()
 
   const initialPlan: PaywallPlanKey =
     planKey === 'free_trial' || planKey === 'expert' ? planKey : 'pro'
@@ -111,6 +111,7 @@ export default function CheckoutScreen() {
     () => offerings?.current?.availablePackages ?? [],
     [offerings]
   )
+  const productsUnavailable = !loading && availablePackages.length === 0
 
   useEffect(() => {
     Animated.timing(introAnim, {
@@ -265,6 +266,19 @@ export default function CheckoutScreen() {
             )
           })}
         </View>
+
+        {productsUnavailable ? (
+          <Text style={styles.storeErrorText}>
+            {error
+              ? t('paywall.productsErrorWithReason', {
+                  defaultValue: 'Nie udało się pobrać cen z App Store: {{reason}}',
+                  reason: error,
+                })
+              : t('paywall.productsError', {
+                  defaultValue: 'Nie udało się pobrać cen z App Store. Plany nadal są widoczne, spróbuj ponownie za chwilę.',
+                })}
+          </Text>
+        ) : null}
 
         <View style={styles.cardsRow}>
           {PAYWALL_PLAN_KEYS.map((key) => {
@@ -526,6 +540,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(37,240,200,0.12)',
   },
   saveBadgeText: { color: NEON, fontSize: 8.5, fontWeight: '900' },
+  storeErrorText: {
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: -6,
+    marginBottom: 7,
+    paddingHorizontal: 12,
+  },
   cardsRow: {
     flexDirection: 'row',
     alignItems: 'center',

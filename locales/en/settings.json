@@ -103,6 +103,9 @@
       "confirmTitle": "Delete account",
       "confirmMessage": "This cannot be undone. All your data will be permanently deleted.",
       "confirmBtn": "Delete account",
+      "deleting": "Deleting...",
+      "successTitle": "Done",
+      "successMessage": "Your account has been deleted.",
       "errorTitle": "Error",
       "errorMessage": "Failed to delete account. Please contact support."
     }

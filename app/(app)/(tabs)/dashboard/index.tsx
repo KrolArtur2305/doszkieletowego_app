@@ -392,9 +392,13 @@ export default function DashboardScreen() {
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [overallMilestonesText, setOverallMilestonesText] = useState<string>('—');
   const [overallProgressValue, setOverallProgressValue] = useState<number>(0);
-  const heroGreeting = useMemo(
-    () => `${t('hero.welcome')}${imie ? ` ${imie}` : ''}`,
+  const heroDisplayName = useMemo(
+    () => imie.trim() || t('hero.fallbackName'),
     [imie, t]
+  );
+  const heroGreeting = useMemo(
+    () => `${t('hero.welcome')} ${heroDisplayName}`,
+    [heroDisplayName, t]
   );
   const splitHeroGreeting = heroGreeting.length > 16;
 
@@ -935,9 +939,9 @@ export default function DashboardScreen() {
               <Text style={styles.heroTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
                 {splitHeroGreeting ? t('hero.welcome') : heroGreeting}
               </Text>
-              {splitHeroGreeting && !!imie && (
+              {splitHeroGreeting && !!heroDisplayName && (
                 <Text style={styles.heroName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.58}>
-                  {imie}
+                  {heroDisplayName}
                 </Text>
               )}
             </View>

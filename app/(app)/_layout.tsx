@@ -4,6 +4,7 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
+import { isAppleAuthUser } from '../../src/services/auth/appleAuth';
 import { GUIDED_SETUP_ENABLED, GUIDED_SETUP_VERSION } from '../../src/services/guidedSetup/launchMode';
 import {
   configureNotifications,
@@ -178,6 +179,9 @@ export default function AppLayout() {
     if (!session) return null;
     if (onboardingStep === null || onboardingCompleted === null) return null;
 
+    const appleUser = isAppleAuthUser(session.user);
+    const effectiveProfileComplete = profileComplete === true || appleUser;
+
     if (
       onboardingStep === 'build_type' ||
       onboardingStep === 'build_stage' ||
@@ -186,12 +190,14 @@ export default function AppLayout() {
       return '/(app)/onboarding';
     }
 
-    if (onboardingStep === 'profile') return '/(app)/onboarding/profile';
+    if (onboardingStep === 'profile') {
+      return appleUser ? '/(app)/onboarding/inwestycja' : '/(app)/onboarding/profile';
+    }
     if (onboardingStep === 'investment') return '/(app)/onboarding/inwestycja';
     if (onboardingStep === 'buddy') return '/(app)/onboarding';
 
     if (onboardingStep === 'done') {
-      if (profileComplete !== true) return '/(app)/onboarding/profile';
+      if (effectiveProfileComplete !== true) return '/(app)/onboarding/profile';
       if (investmentComplete !== true) return '/(app)/onboarding/inwestycja';
       if (onboardingCompleted !== true) return '/(app)/onboarding';
       if (GUIDED_SETUP_ENABLED && guidedSetupCompleted !== true) return '/(app)/guided-setup';
@@ -221,7 +227,7 @@ export default function AppLayout() {
       session &&
       onboardingStep === 'done' &&
       onboardingCompleted === true &&
-      profileComplete === true &&
+      (profileComplete === true || isAppleAuthUser(session.user)) &&
       investmentComplete === true &&
       guidedSetupCompleted === true &&
       (

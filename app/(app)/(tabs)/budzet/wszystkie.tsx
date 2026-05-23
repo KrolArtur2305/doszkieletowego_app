@@ -23,10 +23,22 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import {
-  getSuggestionStageCodesFromCurrentStageCode,
   resolveRuntimeCurrentStageCode,
   workflowBuildType,
 } from '../../../../lib/buildWorkflow';
+import {
+  EXPENSE_SUGGESTION_STAGES,
+  createCustomExpenseSuggestion,
+  currentSuggestionStage,
+  getAllSystemExpenseSuggestions,
+  loadExpenseSuggestionPrefs,
+  mergeSuggestionPrefs,
+  saveExpenseSuggestionPrefs,
+  suggestionStageToGroupCode,
+  type ExpenseSuggestionItem,
+  type ExpenseSuggestionStage,
+  type StoredExpenseSuggestionPrefs,
+} from '../../../../lib/budgetExpenseSuggestions';
 import { getSuggestionDisplayName } from '../../../../lib/suggestionLabels';
 import {
   getBudgetCategoryLabel,
@@ -106,15 +118,21 @@ type EtapRow = {
   kolejnosc: number | null;
 };
 
-type BudgetStageSuggestion = {
+type BudgetStageSuggestion = ExpenseSuggestionItem & {
   id: string;
   build_type: string | null;
   stage_code: string | null;
+  stage_group_code?: string | null;
+  stage_key?: ExpenseSuggestionStage;
+  expense_name?: string | null;
   expense_key: string | null;
   expense_name_key: string | null;
   default_type: string | null;
   priority: number | null;
   is_active: boolean | null;
+  source?: 'system' | 'custom';
+  hidden?: boolean;
+  notApplicable?: boolean;
 };
 
 type SuggestionView = BudgetStageSuggestion & {
@@ -190,6 +208,17 @@ export default function WszystkieWydatkiScreen() {
   const [currentWorkflowType, setCurrentWorkflowType] = useState<string>('murowany');
   const [currentStageCode, setCurrentStageCode] = useState<string>('');
   const [stageSuggestions, setStageSuggestions] = useState<SuggestionView[]>([]);
+  const [suggestionPrefs, setSuggestionPrefs] = useState<StoredExpenseSuggestionPrefs>({
+    hidden: [],
+    notApplicable: [],
+    custom: [],
+  });
+  const [expandedSuggestionStages, setExpandedSuggestionStages] = useState<Set<ExpenseSuggestionStage>>(
+    () => new Set(['stan_zero'])
+  );
+  const [customSuggestionOpen, setCustomSuggestionOpen] = useState(false);
+  const [customSuggestionName, setCustomSuggestionName] = useState('');
+  const [customSuggestionStage, setCustomSuggestionStage] = useState<ExpenseSuggestionStage>('stan_zero');
   const [activeStageId, setActiveStageId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('mine');
   const [filter, setFilter] = useState<FilterType>('all');
@@ -300,8 +329,8 @@ export default function WszystkieWydatkiScreen() {
       const currentStageCode = String((profileRes.data as any)?.current_stage_code ?? '').trim().toUpperCase();
       setCurrentWorkflowType(normalizedBuildType);
       setCurrentStageCode(currentStageCode);
-      const stageCodes = getSuggestionStageCodesFromCurrentStageCode(normalizedBuildType, currentStageCode);
-      const usedSuggestionKeys = new Set(expenseRows.map((expense) => expense.suggestion_key).filter(Boolean));
+      const currentSuggestionStageKey = currentSuggestionStage(currentStageCode);
+      setExpandedSuggestionStages(new Set([currentSuggestionStageKey]));
 
       const [templateRes, userStageRes] = await Promise.all([
         supabase
@@ -322,26 +351,11 @@ export default function WszystkieWydatkiScreen() {
       setStageTemplates((templateRes.data ?? []) as StageTemplateLike[]);
       setUserStages((userStageRes.data ?? []) as UserStageLike[]);
 
-      const suggestionRes = await supabase
-        .from('budget_stage_suggestions')
-        .select('*')
-        .eq('build_type', normalizedBuildType)
-        .in('stage_code', stageCodes)
-        .eq('is_active', true)
-        .eq('include_in_budget', true)
-        .order('stage_code', { ascending: true })
-        .order('priority', { ascending: true });
-
-      if (suggestionRes.error) {
-        setStageSuggestions([]);
-      } else {
-        const rawSuggestions = (suggestionRes.data ?? []) as BudgetStageSuggestion[];
-        const visibleSuggestions = rawSuggestions.filter(
-          (suggestion) => !!suggestion.expense_key && !usedSuggestionKeys.has(suggestion.expense_key)
-        );
-
-        setStageSuggestions(visibleSuggestions);
-      }
+      const prefs = await loadExpenseSuggestionPrefs(authUser.id);
+      setSuggestionPrefs(prefs);
+      setStageSuggestions(
+        mergeSuggestionPrefs(getAllSystemExpenseSuggestions(normalizedBuildType), prefs, normalizedBuildType)
+      );
 
       const storedStageCode = currentStageCode;
       const runtimeStageCode = resolveRuntimeCurrentStageCode(stageRows, normalizedBuildType, storedStageCode);
@@ -366,6 +380,87 @@ export default function WszystkieWydatkiScreen() {
     if (tab === 'suggested') setActiveTab('suggested');
     if (tab === 'mine') setActiveTab('mine');
   }, [tab]);
+
+  const suggestionSections = useMemo(() => {
+    return EXPENSE_SUGGESTION_STAGES.map((stage) => ({
+      stage,
+      groupCode: suggestionStageToGroupCode(stage),
+      title: getStageGroupDisplayName(t, suggestionStageToGroupCode(stage)),
+      items: stageSuggestions.filter((suggestion) => suggestion.stage_key === stage),
+    }));
+  }, [stageSuggestions, t]);
+
+  const toggleSuggestionStage = useCallback((stage: ExpenseSuggestionStage) => {
+    setExpandedSuggestionStages((prev) => {
+      const next = new Set(prev);
+      if (next.has(stage)) next.delete(stage);
+      else next.add(stage);
+      return next;
+    });
+  }, []);
+
+  const persistSuggestionPrefs = useCallback(async (nextPrefs: StoredExpenseSuggestionPrefs) => {
+    if (!userId) return;
+    setSuggestionPrefs(nextPrefs);
+    await saveExpenseSuggestionPrefs(userId, nextPrefs);
+    const hidden = new Set(nextPrefs.hidden ?? []);
+    const notApplicable = new Set(nextPrefs.notApplicable ?? []);
+    setStageSuggestions(
+      mergeSuggestionPrefs(getAllSystemExpenseSuggestions(currentWorkflowType as any), nextPrefs, currentWorkflowType as any)
+        .map((item) => ({
+          ...item,
+          hidden: hidden.has(item.id),
+          notApplicable: notApplicable.has(item.id),
+        }))
+    );
+  }, [currentWorkflowType, userId]);
+
+  const hideSuggestion = useCallback((suggestion: SuggestionView) => {
+    const id = suggestion.id || suggestion.expense_key;
+    if (!id) return;
+    persistSuggestionPrefs({
+      ...suggestionPrefs,
+      hidden: Array.from(new Set([...(suggestionPrefs.hidden ?? []), id])),
+    });
+  }, [persistSuggestionPrefs, suggestionPrefs]);
+
+  const markSuggestionNotApplicable = useCallback((suggestion: SuggestionView) => {
+    const id = suggestion.id || suggestion.expense_key;
+    if (!id) return;
+    persistSuggestionPrefs({
+      ...suggestionPrefs,
+      notApplicable: Array.from(new Set([...(suggestionPrefs.notApplicable ?? []), id])),
+    });
+  }, [persistSuggestionPrefs, suggestionPrefs]);
+
+  const restoreSuggestion = useCallback((suggestion: SuggestionView) => {
+    const id = suggestion.id || suggestion.expense_key;
+    if (!id) return;
+    persistSuggestionPrefs({
+      ...suggestionPrefs,
+      hidden: (suggestionPrefs.hidden ?? []).filter((item) => item !== id),
+      notApplicable: (suggestionPrefs.notApplicable ?? []).filter((item) => item !== id),
+    });
+  }, [persistSuggestionPrefs, suggestionPrefs]);
+
+  const saveCustomSuggestion = useCallback(async () => {
+    const name = customSuggestionName.trim();
+    if (!name) {
+      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('suggestions.customNameRequired', { defaultValue: 'Podaj nazwę wydatku.' }));
+      return;
+    }
+    const nextPrefs = {
+      ...suggestionPrefs,
+      custom: [
+        ...(suggestionPrefs.custom ?? []),
+        createCustomExpenseSuggestion(currentWorkflowType as any, customSuggestionStage, name),
+      ],
+    };
+    await persistSuggestionPrefs(nextPrefs);
+    setExpandedSuggestionStages((prev) => new Set([...prev, customSuggestionStage]));
+    setCustomSuggestionName('');
+    setCustomSuggestionOpen(false);
+  }, [currentWorkflowType, customSuggestionName, customSuggestionStage, persistSuggestionPrefs, suggestionPrefs, t]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -598,8 +693,10 @@ export default function WszystkieWydatkiScreen() {
     setFData('');
     setFPlanowanaData('');
     const suggestionStageCode = String(suggestion.stage_code ?? '').trim().toUpperCase();
+    const suggestionStageGroupCode = String((suggestion as any).stage_group_code ?? '').trim().toLowerCase();
     const stageMatch =
       stageGroupOptions.find((option) => option.stageCode && option.stageCode === suggestionStageCode) ??
+      stageGroupOptions.find((option) => option.stageGroupCode && option.stageGroupCode === suggestionStageGroupCode) ??
       stageGroupOptions.find((option) => option.legacyId && option.legacyId === suggestion.stage_id) ??
       stageGroupOptions[0] ??
       null;
@@ -820,33 +917,165 @@ export default function WszystkieWydatkiScreen() {
             windowSize={8}
           />
         ) : (
-          <FlatList
-            data={stageSuggestions}
-            keyExtractor={(item) => item.id}
+          <ScrollView
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={NEON} />}
-            ListEmptyComponent={<Text style={styles.empty}>{t('empty.noSuggestions')}</Text>}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.suggestionCard} onPress={() => openSuggestionExpense(item)} activeOpacity={0.9}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.suggestionTitle} numberOfLines={1}>{suggestionName(item)}</Text>
-                  <Text style={styles.suggestionHint}>
-                    {getStageGroupDisplayName(
-                      t,
-                      stageGroupCodeFromStageCode(item.stage_code, stageTemplates),
-                      t('fallback.stage', { defaultValue: 'Etap budowy' })
-                    )}
-                  </Text>
+          >
+            <TouchableOpacity
+              style={styles.addCustomSuggestionBtn}
+              onPress={() => {
+                setCustomSuggestionStage(currentSuggestionStage(currentStageCode));
+                setCustomSuggestionOpen(true);
+              }}
+              activeOpacity={0.86}
+            >
+              <Feather name="plus" size={15} color={NEON} />
+              <Text style={styles.addCustomSuggestionText}>
+                {t('suggestions.addCustom', { defaultValue: 'Dodaj własną sugestię' })}
+              </Text>
+            </TouchableOpacity>
+
+            {suggestionSections.every((section) => section.items.length === 0) ? (
+              <Text style={styles.empty}>{t('empty.noSuggestions')}</Text>
+            ) : suggestionSections.map((section) => {
+              const expanded = expandedSuggestionStages.has(section.stage);
+              return (
+                <View key={section.stage} style={styles.suggestionSection}>
+                  <TouchableOpacity
+                    style={styles.suggestionSectionHeader}
+                    onPress={() => toggleSuggestionStage(section.stage)}
+                    activeOpacity={0.86}
+                  >
+                    <Text style={styles.suggestionSectionTitle}>{section.title}</Text>
+                    <View style={styles.suggestionSectionMeta}>
+                      <Text style={styles.suggestionSectionCount}>{section.items.length}</Text>
+                      <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={NEON} />
+                    </View>
+                  </TouchableOpacity>
+
+                  {expanded ? section.items.map((item) => {
+                    const muted = item.hidden || item.notApplicable;
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[styles.suggestionCard, muted && styles.suggestionCardMuted]}
+                        onPress={() => openSuggestionExpense(item)}
+                        activeOpacity={0.9}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.suggestionTitle, muted && styles.suggestionTitleMuted]} numberOfLines={1}>
+                            {suggestionName(item)}
+                          </Text>
+                          <Text style={styles.suggestionHint}>
+                            {item.source === 'custom'
+                              ? t('suggestions.custom', { defaultValue: 'Własna sugestia' })
+                              : item.notApplicable
+                              ? t('suggestions.notApplicable', { defaultValue: 'Nie dotyczy' })
+                              : item.hidden
+                              ? t('suggestions.hidden', { defaultValue: 'Ukryte na dashboardzie' })
+                              : section.title}
+                          </Text>
+                        </View>
+                        <View style={styles.suggestionActions}>
+                          {muted ? (
+                            <TouchableOpacity
+                              onPress={(event) => {
+                                event.stopPropagation();
+                                restoreSuggestion(item);
+                              }}
+                              style={styles.suggestionIconBtn}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                              <Feather name="rotate-ccw" size={13} color="rgba(255,255,255,0.64)" />
+                            </TouchableOpacity>
+                          ) : (
+                            <>
+                              <TouchableOpacity
+                                onPress={(event) => {
+                                  event.stopPropagation();
+                                  hideSuggestion(item);
+                                }}
+                                style={styles.suggestionIconBtn}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              >
+                                <Feather name="eye-off" size={13} color="rgba(255,255,255,0.64)" />
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                onPress={(event) => {
+                                  event.stopPropagation();
+                                  markSuggestionNotApplicable(item);
+                                }}
+                                style={styles.suggestionIconBtn}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              >
+                                <Feather name="x-circle" size={13} color="rgba(255,255,255,0.64)" />
+                              </TouchableOpacity>
+                            </>
+                          )}
+                          <View style={styles.suggestionMiniCta}>
+                            <Text style={styles.suggestionMiniCtaText}>{t('suggestions.add')}</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }) : null}
                 </View>
-                <View style={styles.suggestionMiniCta}>
-                  <Text style={styles.suggestionMiniCtaText}>{t('suggestions.add')}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
+              );
+            })}
+          </ScrollView>
         )}
       </View>
+
+      <Modal visible={customSuggestionOpen} animationType="fade" transparent onRequestClose={() => setCustomSuggestionOpen(false)}>
+        <View style={styles.filterModalBackdrop}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setCustomSuggestionOpen(false)} />
+          <AppCard contentStyle={styles.filterModalCard} withShadow={false}>
+            <View style={styles.filterModalHeader}>
+              <Text style={styles.filterModalTitle}>{t('suggestions.addCustom', { defaultValue: 'Dodaj własną sugestię' })}</Text>
+              <TouchableOpacity onPress={() => setCustomSuggestionOpen(false)} style={styles.filterCloseBtn} activeOpacity={0.85}>
+                <Feather name="x" size={16} color="#EAFBF6" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.filterGroupLabel}>{t('modal.stageLabel')}</Text>
+            <View style={styles.modalChipRow}>
+              {EXPENSE_SUGGESTION_STAGES.map((stage) => {
+                const active = customSuggestionStage === stage;
+                return (
+                  <TouchableOpacity
+                    key={stage}
+                    onPress={() => setCustomSuggestionStage(stage)}
+                    style={[styles.filterPill, active && styles.filterPillActive]}
+                    activeOpacity={0.86}
+                  >
+                    <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>
+                      {getStageGroupDisplayName(t, suggestionStageToGroupCode(stage))}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.filterGroupLabel}>{t('modal.nameLabel')}</Text>
+            <AppInput
+              value={customSuggestionName}
+              onChangeText={setCustomSuggestionName}
+              placeholder={t('suggestions.customPlaceholder', { defaultValue: 'np. okna dachowe' })}
+              style={styles.input}
+            />
+
+            <View style={styles.filterModalActions}>
+              <TouchableOpacity style={styles.resetFiltersBtn} onPress={() => setCustomSuggestionOpen(false)} activeOpacity={0.85}>
+                <Text style={styles.resetFiltersText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.applyFiltersBtn} onPress={saveCustomSuggestion} activeOpacity={0.85}>
+                <Text style={styles.applyFiltersText}>{t('common.save')}</Text>
+              </TouchableOpacity>
+            </View>
+          </AppCard>
+        </View>
+      </Modal>
 
       <Modal visible={filtersOpen} animationType="fade" transparent onRequestClose={() => setFiltersOpen(false)}>
         <View style={styles.filterModalBackdrop}>
@@ -1254,6 +1483,19 @@ const styles = StyleSheet.create({
   loadingRow: { paddingVertical: 28, alignItems: 'center' },
   listContent: { paddingTop: 8, paddingBottom: 82 },
   empty: { color: '#94A3B8', paddingVertical: 18, textAlign: 'center' },
+  addCustomSuggestionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 11,
+    marginBottom: 10,
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
+  },
+  addCustomSuggestionText: { color: NEON, fontSize: 12, fontWeight: '900' },
   itemRow: {
     flexDirection: 'row',
     gap: 10,
@@ -1294,7 +1536,28 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.10)',
     backgroundColor: 'rgba(25,112,92,0.06)',
   },
+  suggestionSection: {
+    marginBottom: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.025)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  suggestionSectionHeader: {
+    minHeight: 48,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(25,112,92,0.07)',
+  },
+  suggestionSectionTitle: { color: '#F8FAFC', fontSize: 13, fontWeight: '900' },
+  suggestionSectionMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  suggestionSectionCount: { color: 'rgba(148,163,184,0.85)', fontSize: 11, fontWeight: '900' },
+  suggestionCardMuted: { opacity: 0.45 },
   suggestionTitle: { color: '#F8FAFC', fontSize: 14, fontWeight: '800' },
+  suggestionTitleMuted: { textDecorationLine: 'line-through' },
   suggestionMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   suggestionPill: {
     borderRadius: 999,
@@ -1315,6 +1578,18 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.18)',
   },
   suggestionMiniCtaText: { color: NEON, fontSize: 10.5, fontWeight: '900' },
+  suggestionActions: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  suggestionIconBtn: {
+    width: 26,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
   trashAction: {
     width: 88,
     alignItems: 'center',

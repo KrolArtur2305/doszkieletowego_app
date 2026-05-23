@@ -5,6 +5,7 @@
   },
   "hero": {
     "welcome": "Willkommen",
+    "fallbackName": "Builder",
     "datePrefix": "Heute ist {{date}},",
     "messages": {
       "busyDay": "ein intensiver Tag liegt vor Ihnen und mehrere Dinge warten auf den Abschluss.",

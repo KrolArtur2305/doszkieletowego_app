@@ -22,6 +22,7 @@ import { Image } from 'expo-image';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { WebView } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
@@ -147,6 +148,14 @@ function getPreviewKind(path?: string | null): PreviewKind {
   return 'file';
 }
 
+function getPdfPreviewUri(url: string) {
+  if (Platform.OS === 'android') {
+    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
+  }
+
+  return url;
+}
+
 function getFileIcon(path?: string | null): keyof typeof Ionicons.glyphMap {
   const ext = getFileExt(path);
   if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic'].includes(ext)) return 'image-outline';
@@ -206,6 +215,7 @@ export default function DokumentyScreen() {
   const [previewDoc, setPreviewDoc] = useState<DbDoc | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewWebFailed, setPreviewWebFailed] = useState(false);
 
   const topPad = 0;
 
@@ -366,9 +376,10 @@ export default function DokumentyScreen() {
       setPreviewVisible(true);
       setPreviewLoading(true);
       setPreviewUrl(null);
+      setPreviewWebFailed(false);
 
       const kind = getPreviewKind(doc.plik_url);
-      if (kind === 'image') {
+      if (kind === 'image' || kind === 'pdf') {
         const url = await getDocSignedUrl(doc);
         setPreviewUrl(url);
       }
@@ -391,6 +402,7 @@ export default function DokumentyScreen() {
     setPreviewDoc(null);
     setPreviewUrl(null);
     setPreviewLoading(false);
+    setPreviewWebFailed(false);
   };
 
   const deleteDoc = async (doc: DbDoc) => {
@@ -831,6 +843,23 @@ export default function DokumentyScreen() {
               </View>
             ) : previewKind === 'image' && previewUrl ? (
               <Image source={{ uri: previewUrl }} style={styles.previewImage} contentFit="contain" />
+            ) : previewKind === 'pdf' && previewUrl && !previewWebFailed ? (
+              <View style={styles.previewPdfWrap}>
+                <WebView
+                  source={{ uri: getPdfPreviewUri(previewUrl) }}
+                  style={styles.previewPdf}
+                  originWhitelist={['*']}
+                  startInLoadingState
+                  allowsBackForwardNavigationGestures
+                  renderLoading={() => (
+                    <View style={styles.previewWebLoading}>
+                      <ActivityIndicator size="large" color={COLORS.brand} />
+                    </View>
+                  )}
+                  onError={() => setPreviewWebFailed(true)}
+                  onHttpError={() => setPreviewWebFailed(true)}
+                />
+              </View>
             ) : (
               <View style={styles.previewFallbackCard}>
                 <View style={styles.previewFallbackIconWrap}>
@@ -1359,6 +1388,25 @@ const styles = StyleSheet.create({
   previewBody: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18 },
   previewLoadingWrap: { alignItems: 'center', justifyContent: 'center' },
   previewImage: { width: '100%', height: SCREEN_HEIGHT * 0.72, borderRadius: 20 },
+  previewPdfWrap: {
+    flex: 1,
+    alignSelf: 'stretch',
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  previewPdf: {
+    flex: 1,
+    backgroundColor: '#111827',
+  },
+  previewWebLoading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#111827',
+  },
   previewFallbackCard: {
     width: '100%',
     maxWidth: 460,

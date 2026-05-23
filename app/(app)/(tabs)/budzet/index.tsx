@@ -43,12 +43,17 @@ import {
 } from '../../../../lib/stageModel';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import {
-  filterWorkflowStages,
-  getSuggestionStageCodesFromCurrentStageCode,
-  preferredStartStageCode,
-  resolveRuntimeCurrentStageCode,
   workflowBuildType,
 } from '../../../../lib/buildWorkflow';
+import {
+  currentSuggestionStage,
+  getStageSuggestionItems,
+  loadExpenseSuggestionPrefs,
+  mergeSuggestionPrefs,
+  saveExpenseSuggestionPrefs,
+  type ExpenseSuggestionItem,
+  type StoredExpenseSuggestionPrefs,
+} from '../../../../lib/budgetExpenseSuggestions';
 import { getSuggestionDisplayName } from '../../../../lib/suggestionLabels';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
@@ -165,15 +170,20 @@ type EtapRow = {
   kolejnosc: number | null;
 };
 
-type BudgetStageSuggestion = {
+type BudgetStageSuggestion = ExpenseSuggestionItem & {
   id: string;
   build_type: string | null;
   stage_code: string | null;
+  stage_group_code?: string | null;
+  expense_name?: string | null;
   expense_key: string | null;
   expense_name_key: string | null;
   default_type: string | null;
   priority: number | null;
   is_active: boolean | null;
+  source?: 'system' | 'custom';
+  hidden?: boolean;
+  notApplicable?: boolean;
 };
 
 type SuggestionView = BudgetStageSuggestion & {
@@ -246,6 +256,11 @@ export default function BudzetScreen() {
   const [stageTemplates, setStageTemplates] = useState<StageTemplateLike[]>([]);
   const [userStages, setUserStages] = useState<UserStageLike[]>([]);
   const [stageSuggestions, setStageSuggestions] = useState<SuggestionView[]>([]);
+  const [suggestionPrefs, setSuggestionPrefs] = useState<StoredExpenseSuggestionPrefs>({
+    hidden: [],
+    notApplicable: [],
+    custom: [],
+  });
   const [activeStageId, setActiveStageId] = useState<string | null>(null);
   const [currentWorkflowType, setCurrentWorkflowType] = useState<string>('murowany');
   const [currentStageCode, setCurrentStageCode] = useState<string>('');
@@ -332,7 +347,10 @@ export default function BudzetScreen() {
     [wydatki]
   );
 
-  const topSuggestedExpenses = useMemo(() => stageSuggestions.slice(0, 3), [stageSuggestions]);
+  const topSuggestedExpenses = useMemo(
+    () => stageSuggestions.filter((suggestion) => !suggestion.hidden && !suggestion.notApplicable).slice(0, 5),
+    [stageSuggestions]
+  );
 
   const topPaidExpenses = useMemo(
     () => [...paidExpenses].sort((a, b) => safeNumber(b.kwota) - safeNumber(a.kwota)).slice(0, 3),
@@ -473,31 +491,21 @@ export default function BudzetScreen() {
       const fallbackStage = stageRows[0] ?? null;
       const currentStage = activeStage ?? fallbackStage ?? null;
       setActiveStageId(currentStage?.id ?? null);
-      const stageCodes = getSuggestionStageCodesFromCurrentStageCode(normalizedBuildType, currentStageCode);
       const usedSuggestionKeys = new Set(((expRes.data ?? []) as WydatkiRow[]).map((expense) => expense.suggestion_key).filter(Boolean));
-
-      const suggestionRes = await supabase
-        .from('budget_stage_suggestions')
-        .select('*')
-        .eq('build_type', normalizedBuildType)
-        .in('stage_code', stageCodes)
-        .eq('is_active', true)
-        .eq('include_in_budget', true)
-        .order('stage_code', { ascending: true })
-        .order('priority', { ascending: true });
-
-      const rawSuggestions = (suggestionRes.data ?? []) as BudgetStageSuggestion[];
+      const prefs = await loadExpenseSuggestionPrefs(userId);
+      setSuggestionPrefs(prefs);
+      const currentSuggestionStageKey = currentSuggestionStage(currentStageCode);
+      const rawSuggestions = mergeSuggestionPrefs(
+        getStageSuggestionItems(normalizedBuildType, currentSuggestionStageKey),
+        prefs,
+        normalizedBuildType
+      ).filter((suggestion) => suggestion.stage_key === currentSuggestionStageKey);
       const visibleSuggestions = rawSuggestions.filter(
         (suggestion) =>
           !!suggestion.expense_key &&
           !usedSuggestionKeys.has(suggestion.expense_key) &&
           normalizeExpenseTypeCode(suggestion.default_type) === TYPE_MATERIAL
-      ).slice(0, 3);
-
-      if (suggestionRes.error) {
-        setStageSuggestions([]);
-        return;
-      }
+      );
 
       setStageSuggestions(visibleSuggestions);
     } catch (e: any) {
@@ -506,6 +514,38 @@ export default function BudzetScreen() {
       setLoading(false);
     }
   }, [authLoading, userId]);
+
+  const updateSuggestionPrefs = useCallback(async (updater: (prefs: StoredExpenseSuggestionPrefs) => StoredExpenseSuggestionPrefs) => {
+    if (!userId) return;
+    const nextPrefs = updater(suggestionPrefs);
+    setSuggestionPrefs(nextPrefs);
+    await saveExpenseSuggestionPrefs(userId, nextPrefs);
+    const hidden = new Set(nextPrefs.hidden ?? []);
+    const notApplicable = new Set(nextPrefs.notApplicable ?? []);
+    setStageSuggestions((prev) => prev.map((item) => ({
+      ...item,
+      hidden: hidden.has(item.id),
+      notApplicable: notApplicable.has(item.id),
+    })));
+  }, [suggestionPrefs, userId]);
+
+  const hideSuggestion = useCallback((suggestion: SuggestionView) => {
+    const id = suggestion.id || suggestion.expense_key;
+    if (!id) return;
+    updateSuggestionPrefs((prefs) => ({
+      ...prefs,
+      hidden: Array.from(new Set([...(prefs.hidden ?? []), id])),
+    }));
+  }, [updateSuggestionPrefs]);
+
+  const markSuggestionNotApplicable = useCallback((suggestion: SuggestionView) => {
+    const id = suggestion.id || suggestion.expense_key;
+    if (!id) return;
+    updateSuggestionPrefs((prefs) => ({
+      ...prefs,
+      notApplicable: Array.from(new Set([...(prefs.notApplicable ?? []), id])),
+    }));
+  }, [updateSuggestionPrefs]);
 
   useEffect(() => {
     loadBudget();
@@ -743,8 +783,10 @@ export default function BudzetScreen() {
     setFData('');
     setFPlanowanaData('');
     const suggestionStageCode = String(suggestion.stage_code ?? '').trim().toUpperCase();
+    const suggestionStageGroupCode = String((suggestion as any).stage_group_code ?? '').trim().toLowerCase();
     const stageMatch =
       stageGroupOptions.find((option) => option.stageCode && option.stageCode === suggestionStageCode) ??
+      stageGroupOptions.find((option) => option.stageGroupCode && option.stageGroupCode === suggestionStageGroupCode) ??
       stageGroupOptions.find((option) => option.legacyId && option.legacyId === suggestion.stage_id) ??
       stageGroupOptions[0] ??
       null;
@@ -880,8 +922,30 @@ export default function BudzetScreen() {
                     </Text>
                   ) : null}
                 </View>
-                <View style={styles.suggestionMiniCta}>
-                  <Text style={styles.suggestionMiniCtaText}>{t('suggestions.add')}</Text>
+                <View style={styles.suggestionActions}>
+                  <TouchableOpacity
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      hideSuggestion(suggestion);
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={styles.suggestionIconBtn}
+                  >
+                    <Feather name="eye-off" size={13} color="rgba(255,255,255,0.58)" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      markSuggestionNotApplicable(suggestion);
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={styles.suggestionIconBtn}
+                  >
+                    <Feather name="x-circle" size={13} color="rgba(255,255,255,0.58)" />
+                  </TouchableOpacity>
+                  <View style={styles.suggestionMiniCta}>
+                    <Text style={styles.suggestionMiniCtaText}>{t('suggestions.add')}</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             ))
@@ -1345,6 +1409,18 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.18)',
   },
   suggestionMiniCtaText: { color: NEON, fontSize: 10.5, fontWeight: '900' },
+  suggestionActions: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  suggestionIconBtn: {
+    width: 26,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
   rankText: { width: 30, color: NEON, fontSize: 14, fontWeight: '900' },
   topExpenseRight: { alignItems: 'flex-end', gap: 6 },
   typeBadge: {
