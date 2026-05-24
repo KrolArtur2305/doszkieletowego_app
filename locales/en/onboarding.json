@@ -32,18 +32,18 @@
     "inny": "Other"
   },
   "buildStages": {
-    "planowanie": "Planning",
     "stan_zero": "Foundations",
-    "stan_surowy_otwarty": "Open shell stage",
-    "stan_surowy_zamkniety": "Closed shell stage",
+    "stan_surowy_otwarty": "Open shell",
+    "stan_surowy_zamkniety": "Closed shell",
+    "instalacje": "Installations",
     "wykonczenie": "Finishing"
   },
   "buildStageInfo": {
-    "planowanie": "Design, permits, team selection and preparation before work starts.",
-    "stan_zero": "Site prepared, foundations and underground elements completed.",
-    "stan_surowy_otwarty": "Walls, floors and roof are up, but windows and doors are not installed yet.",
-    "stan_surowy_zamkniety": "The building is closed with roof, windows and external doors.",
-    "wykonczenie": "Installations and interiors: plaster, floors, fixtures and details."
+    "stan_zero": "Choose this if you are starting earthworks and foundations.",
+    "stan_surowy_otwarty": "Choose this if foundations are done and you are starting the house structure and load-bearing walls.",
+    "stan_surowy_zamkniety": "Choose this if the house structure is done and you are starting the roof, joinery or facade.",
+    "instalacje": "Choose this if the building is closed and you are starting internal installations.",
+    "wykonczenie": "Choose this if installations are done and you are starting work that prepares the home for living."
   },
   "budget": {
     "currencyLabel": "Budget currency",

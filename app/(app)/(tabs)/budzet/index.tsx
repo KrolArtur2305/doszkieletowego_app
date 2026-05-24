@@ -348,7 +348,7 @@ export default function BudzetScreen() {
   );
 
   const topSuggestedExpenses = useMemo(
-    () => stageSuggestions.filter((suggestion) => !suggestion.hidden && !suggestion.notApplicable).slice(0, 5),
+    () => stageSuggestions.filter((suggestion) => !suggestion.hidden && !suggestion.notApplicable).slice(0, 3),
     [stageSuggestions]
   );
 
@@ -931,17 +931,7 @@ export default function BudzetScreen() {
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     style={styles.suggestionIconBtn}
                   >
-                    <Feather name="eye-off" size={13} color="rgba(255,255,255,0.58)" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={(event) => {
-                      event.stopPropagation();
-                      markSuggestionNotApplicable(suggestion);
-                    }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    style={styles.suggestionIconBtn}
-                  >
-                    <Feather name="x-circle" size={13} color="rgba(255,255,255,0.58)" />
+                    <Text style={styles.suggestionActionText}>{t('suggestions.hide', { defaultValue: 'Ukryj' })}</Text>
                   </TouchableOpacity>
                   <View style={styles.suggestionMiniCta}>
                     <Text style={styles.suggestionMiniCtaText}>{t('suggestions.add')}</Text>
@@ -1410,17 +1400,20 @@ const styles = StyleSheet.create({
   },
   suggestionMiniCtaText: { color: NEON, fontSize: 10.5, fontWeight: '900' },
   suggestionActions: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   suggestionIconBtn: {
-    width: 26,
-    height: 24,
-    borderRadius: 12,
+    minWidth: 48,
+    height: 28,
+    paddingHorizontal: 8,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.045)',
   },
+  suggestionActionText: { color: 'rgba(255,255,255,0.64)', fontSize: 10.5, fontWeight: '900' },
   rankText: { width: 30, color: NEON, fontSize: 14, fontWeight: '900' },
   topExpenseRight: { alignItems: 'flex-end', gap: 6 },
   typeBadge: {

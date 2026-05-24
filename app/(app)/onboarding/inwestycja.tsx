@@ -25,7 +25,6 @@ import { AppButton, AppInput, PlaceAutocomplete } from '../../../src/ui/componen
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
 
 const BG = '#000000';
-const ACCENT = '#19705C';
 const NEON = '#25F0C8';
 const APP_LOGO = require('../../assets/logo.png');
 
@@ -286,9 +285,6 @@ export default function OnboardingInvestmentScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View pointerEvents="none" style={styles.bg} />
-        <View pointerEvents="none" style={styles.glowTop} />
-        <View pointerEvents="none" style={styles.glowBottom} />
-
         <ScrollView contentContainerStyle={[styles.content, { paddingTop: topPad }]} keyboardShouldPersistTaps="handled">
           <TouchableOpacity onPress={handleBack} activeOpacity={0.8} style={styles.backButton}>
             <Feather name="chevron-left" size={20} color="#FFFFFF" />
@@ -324,6 +320,7 @@ export default function OnboardingInvestmentScreen() {
                   placeholder={t('form.locationPlaceholder')}
                   disabled={saving}
                   error={locationError}
+                  showSelectedDetails={false}
                 />
 
                 <View style={styles.row}>
@@ -412,26 +409,6 @@ function Field(props: {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
   bg: { ...StyleSheet.absoluteFillObject, backgroundColor: BG },
-  glowTop: {
-    position: 'absolute',
-    width: 360,
-    height: 360,
-    borderRadius: 999,
-    backgroundColor: ACCENT,
-    opacity: 0.12,
-    top: -180,
-    right: -120,
-  },
-  glowBottom: {
-    position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 999,
-    backgroundColor: NEON,
-    opacity: 0.04,
-    bottom: -120,
-    left: -120,
-  },
   content: {
     paddingHorizontal: 20,
     paddingBottom: 44,
@@ -483,6 +460,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    marginTop: 10,
   },
   fieldBlock: {
     marginBottom: 14,

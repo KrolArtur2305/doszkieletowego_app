@@ -28,6 +28,7 @@ type Props = {
   defaultCountryCode?: string;
   error?: string | null;
   disabled?: boolean;
+  showSelectedDetails?: boolean;
   onChangeText: (value: string) => void;
   onSelect: (place: PlaceSuggestion) => void;
 };
@@ -41,6 +42,7 @@ export function PlaceAutocomplete({
   defaultCountryCode = 'pl',
   error,
   disabled,
+  showSelectedDetails = true,
   onChangeText,
   onSelect,
 }: Props) {
@@ -116,7 +118,7 @@ export function PlaceAutocomplete({
         </View>
       ) : null}
 
-      {selectedPlace ? (
+      {selectedPlace && showSelectedDetails ? (
         <View style={styles.selectedBox}>
           <Feather name="map-pin" size={15} color={colors.accentBright} />
           <View style={styles.selectedTextWrap}>

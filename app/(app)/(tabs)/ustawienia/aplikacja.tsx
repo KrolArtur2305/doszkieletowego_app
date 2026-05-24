@@ -292,6 +292,35 @@ export default function UstawieniaAplikacjiScreen() {
           </BlurView>
         </View>
 
+        <Text style={styles.groupLabel}>
+          {t('settings:items.reportTitle')}
+        </Text>
+
+        <View style={styles.cardOuter}>
+          <BlurView intensity={16} tint="dark" style={styles.card}>
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/(tabs)/ustawienia/zglos_problem')}
+              activeOpacity={0.85}
+              style={styles.row}
+            >
+              <View style={styles.rowIconWrap}>
+                <Feather name="alert-triangle" size={18} color={ACCENT} />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>
+                  {t('settings:items.reportTitle')}
+                </Text>
+                <Text style={styles.rowSubtitle}>
+                  {t('settings:items.reportSubtitle')}
+                </Text>
+              </View>
+
+              <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.25)" />
+            </TouchableOpacity>
+          </BlurView>
+        </View>
+
         <View style={styles.versionWrap}>
           <Text style={styles.versionLabel}>
             {t('appSettings.version')}

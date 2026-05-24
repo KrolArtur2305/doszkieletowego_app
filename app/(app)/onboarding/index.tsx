@@ -39,7 +39,6 @@ import {
 import { GUIDED_SETUP_ENABLED } from '../../../src/services/guidedSetup/launchMode';
 
 const BG = '#000000';
-const ACCENT = '#19705C';
 const NEON = '#25F0C8';
 const APP_LOGO = require('../../assets/logo.png');
 
@@ -52,10 +51,10 @@ const BUILD_TYPES = [
 ] as const;
 
 const BUILD_STAGES = [
-  { value: 'planowanie', key: 'buildStages.planowanie', infoKey: 'buildStageInfo.planowanie' },
   { value: 'stan_zero', key: 'buildStages.stan_zero', infoKey: 'buildStageInfo.stan_zero' },
   { value: 'stan_surowy_otwarty', key: 'buildStages.stan_surowy_otwarty', infoKey: 'buildStageInfo.stan_surowy_otwarty' },
   { value: 'stan_surowy_zamkniety', key: 'buildStages.stan_surowy_zamkniety', infoKey: 'buildStageInfo.stan_surowy_zamkniety' },
+  { value: 'instalacje', key: 'buildStages.instalacje', infoKey: 'buildStageInfo.instalacje' },
   { value: 'wykonczenie', key: 'buildStages.wykonczenie', infoKey: 'buildStageInfo.wykonczenie' },
 ] as const;
 
@@ -65,22 +64,9 @@ function toNumber(value: string) {
   return Number.isFinite(n) ? n : null;
 }
 
-function formatBudgetValue(value: string, locale: string, currency: string) {
-  const n = toNumber(value);
-  if (n === null) return '';
-
-  const formatted = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(n);
-
-  const compact = new Intl.NumberFormat(locale, {
-    notation: 'compact',
-    maximumFractionDigits: n >= 1000000 ? 1 : 0,
-  }).format(n);
-
-  return `${formatted} (${compact})`;
+function formatBudgetInput(value: string) {
+  const digits = value.replace(/\D/g, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
 function todayYMD() {
@@ -111,22 +97,6 @@ export default function OnboardingScreen() {
   const [buddyName, setBuddyName] = useState('');
   const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
   const buddyFloat = useRef(new Animated.Value(0)).current;
-  const locale = useMemo(() => {
-    const lang = i18n.resolvedLanguage || i18n.language || 'pl';
-    if (lang.startsWith('en')) return 'en-US';
-    if (lang.startsWith('de')) return 'de-DE';
-    return 'pl-PL';
-  }, [i18n.language, i18n.resolvedLanguage]);
-
-  const plannedBudgetPreview = useMemo(
-    () => formatBudgetValue(plannedBudget, locale, budgetCurrency),
-    [budgetCurrency, locale, plannedBudget]
-  );
-  const spentBudgetPreview = useMemo(
-    () => formatBudgetValue(spentBudget, locale, budgetCurrency),
-    [budgetCurrency, locale, spentBudget]
-  );
-
   useEffect(() => {
     if (step !== 'buddy') return;
 
@@ -198,7 +168,7 @@ export default function OnboardingScreen() {
         );
 
         if (investmentRes.data?.budzet !== null && investmentRes.data?.budzet !== undefined) {
-          setPlannedBudget(String(investmentRes.data.budzet));
+          setPlannedBudget(formatBudgetInput(String(investmentRes.data.budzet)));
         }
       } catch (e: any) {
         Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.prepareError'));
@@ -466,28 +436,35 @@ export default function OnboardingScreen() {
 
             {currencyDropdownOpen ? (
               <View style={styles.currencyDropdown}>
-                {CURRENCY_OPTIONS.map((option) => {
-                  const active = budgetCurrency === option.code;
-                  return (
-                    <TouchableOpacity
-                      key={option.code}
-                      onPress={async () => {
-                        setBudgetCurrency(option.code);
-                        setCurrencyDropdownOpen(false);
-                        await setAppCurrency(option.code);
-                      }}
-                      activeOpacity={0.86}
-                      style={[styles.currencyOption, active && styles.currencyOptionActive]}
-                    >
-                      <Text style={[styles.currencyOptionCode, active && styles.currencyCodeActive]}>
-                        {option.code}
-                      </Text>
-                      <Text style={[styles.currencyOptionSymbol, active && styles.currencyCodeActive]}>
-                        {option.symbol}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                <ScrollView
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator
+                  style={styles.currencyDropdownScroll}
+                >
+                  {CURRENCY_OPTIONS.map((option) => {
+                    const active = budgetCurrency === option.code;
+                    return (
+                      <TouchableOpacity
+                        key={option.code}
+                        onPress={async () => {
+                          setBudgetCurrency(option.code);
+                          setCurrencyDropdownOpen(false);
+                          await setAppCurrency(option.code);
+                        }}
+                        activeOpacity={0.86}
+                        style={[styles.currencyOption, active && styles.currencyOptionActive]}
+                      >
+                        <Text style={[styles.currencyOptionCode, active && styles.currencyCodeActive]}>
+                          {option.code}
+                        </Text>
+                        <Text style={[styles.currencyOptionSymbol, active && styles.currencyCodeActive]}>
+                          {option.symbol}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               </View>
             ) : null}
           </View>
@@ -497,32 +474,22 @@ export default function OnboardingScreen() {
           <Text style={styles.fieldLabel}>{t('budget.plannedLabel')}</Text>
           <AppInput
             value={plannedBudget}
-            onChangeText={setPlannedBudget}
+            onChangeText={(value) => setPlannedBudget(formatBudgetInput(value))}
             placeholder={t('budget.plannedPlaceholder')}
             keyboardType="numeric"
             style={styles.input}
           />
-          {plannedBudgetPreview ? (
-            <Text style={styles.amountPreview}>{plannedBudgetPreview}</Text>
-          ) : (
-            <Text style={styles.amountHint}>{t('budget.previewHint')}</Text>
-          )}
         </View>
 
         <View style={styles.fieldWrapLast}>
           <Text style={styles.fieldLabel}>{t('budget.spentLabel')}</Text>
           <AppInput
             value={spentBudget}
-            onChangeText={setSpentBudget}
+            onChangeText={(value) => setSpentBudget(formatBudgetInput(value))}
             placeholder={t('budget.spentPlaceholder')}
             keyboardType="numeric"
             style={styles.input}
           />
-          {spentBudgetPreview ? (
-            <Text style={styles.amountPreview}>{spentBudgetPreview}</Text>
-          ) : (
-            <Text style={styles.amountHint}>{t('budget.previewHint')}</Text>
-          )}
         </View>
       </BlurView>
 
@@ -683,9 +650,6 @@ export default function OnboardingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View pointerEvents="none" style={styles.bg} />
-        <View pointerEvents="none" style={styles.glowTop} />
-        <View pointerEvents="none" style={styles.glowBottom} />
-
         {!loading && step === 'build_type' ? (
           <TouchableOpacity
             onPress={confirmLogout}
@@ -737,26 +701,6 @@ const styles = StyleSheet.create({
   bg: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: BG,
-  },
-  glowTop: {
-    position: 'absolute',
-    width: 380,
-    height: 380,
-    borderRadius: 999,
-    backgroundColor: ACCENT,
-    opacity: 0.12,
-    top: -180,
-    right: -120,
-  },
-  glowBottom: {
-    position: 'absolute',
-    width: 340,
-    height: 340,
-    borderRadius: 999,
-    backgroundColor: NEON,
-    opacity: 0.05,
-    bottom: -120,
-    left: -120,
   },
   content: {
     flexGrow: 1,
@@ -842,6 +786,7 @@ const styles = StyleSheet.create({
   },
   tileGrid: {
     gap: 12,
+    marginTop: 8,
   },
   stageList: {
     gap: 10,
@@ -872,9 +817,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.13)',
@@ -883,17 +828,17 @@ const styles = StyleSheet.create({
   },
   infoBadgeText: {
     color: NEON,
-    fontSize: 15,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 15,
     fontWeight: '900',
   },
   stageTileTitle: {
     flex: 1,
     color: '#FFFFFF',
-    fontSize: 15.5,
-    lineHeight: 19,
+    fontSize: 17,
+    lineHeight: 21,
     fontWeight: '900',
-    textAlign: 'left',
+    textAlign: 'center',
   },
   stageInfoBubble: {
     marginTop: 10,
@@ -956,18 +901,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  amountPreview: {
-    marginTop: 7,
-    color: 'rgba(37,240,200,0.88)',
-    fontSize: 12.5,
-    fontWeight: '800',
-  },
-  amountHint: {
-    marginTop: 7,
-    color: 'rgba(255,255,255,0.42)',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   currencyDropdownWrap: {
     position: 'relative',
   },
@@ -990,6 +923,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.92)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.26)',
+  },
+  currencyDropdownScroll: {
+    maxHeight: 188,
   },
   currencyOption: {
     minHeight: 48,

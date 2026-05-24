@@ -1160,7 +1160,7 @@ export default function DashboardScreen() {
               { icon: '💸', label: t('quickActions.addExpense'), route: '/(app)/(tabs)/budzet' },
               { icon: '📷', label: t('quickActions.addPhoto'), route: '/(app)/(tabs)/zdjecia' },
               { icon: '📄', label: t('quickActions.addDocument'), route: '/(app)/(tabs)/dokumenty' },
-              { icon: '🏗️', label: t('quickActions.stages'), route: '/(app)/(tabs)/postepy' },
+              { icon: '✍️', label: t('quickActions.addEntry'), route: '/(app)/(tabs)/wiecej/dziennik?openAdd=1' },
             ] as any[]).map((qa, i) => (
               <TouchableOpacity
                 key={i}
@@ -1508,7 +1508,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(25,112,92,0.18)',
     textShadowRadius: 18,
   },
-  heroSubtitleWrap: { marginTop: 5, width: '100%' },
+  heroSubtitleWrap: { marginTop: 2, width: '100%' },
   heroSubtitle: {
     color: 'rgba(255,255,255,0.84)',
     fontSize: 16.5,
@@ -1629,7 +1629,7 @@ const styles = StyleSheet.create({
   briefText: { flex: 1, color: 'rgba(255,255,255,0.80)', fontSize: 13.5, fontWeight: '700', lineHeight: 20 },
 
   progressCardOuter: {
-    marginTop: 14,
+    marginTop: 10,
     borderRadius: 28,
     shadowColor: NEON,
     shadowOpacity: 0.16,
@@ -1638,14 +1638,14 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     borderRadius: 28,
-    padding: 18,
+    padding: 14,
     backgroundColor: 'rgba(10,12,15,0.52)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.16)',
     overflow: 'hidden',
   },
-  progressColumn: { gap: 8, marginTop: 2 },
-  progressRow: { paddingVertical: 10 },
+  progressColumn: { gap: 6, marginTop: 0 },
+  progressRow: { paddingVertical: 6 },
   progressLabel: { color: 'rgba(255,255,255,0.44)', fontSize: 12.5, fontWeight: '800', letterSpacing: 0.9 },
   progressValue: { marginTop: 6, color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.2, textShadowColor: 'rgba(37,240,200,0.22)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10 },
 
@@ -1693,8 +1693,8 @@ const styles = StyleSheet.create({
 
   sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
 
-  centerBtnWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  centerBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: 'rgba(37,240,200,0.10)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.22)' },
+  centerBtnWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  centerBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: 'rgba(37,240,200,0.10)', borderWidth: 1, borderColor: 'rgba(37,240,200,0.22)' },
   centerBtnText: { color: NEON, fontSize: 12.5, fontWeight: '800', letterSpacing: 0.2 },
 
   carouselHintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
@@ -1702,7 +1702,7 @@ const styles = StyleSheet.create({
   carouselHintArrow: { color: 'rgba(37,240,200,0.40)', fontSize: 18, fontWeight: '900' },
 
   budgetCarouselOuter: {
-    marginTop: 16,
+    marginTop: 12,
     paddingVertical: 8,
     borderRadius: 30,
     backgroundColor: 'rgba(255,255,255,0.015)',

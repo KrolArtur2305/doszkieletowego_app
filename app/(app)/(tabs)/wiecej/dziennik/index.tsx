@@ -21,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Feather } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
@@ -155,6 +156,7 @@ async function getJournalImageDisplayUrl(value?: string | null) {
 export default function DziennikScreen() {
   const { session } = useSupabaseAuth();
   const { t, i18n } = useTranslation('journal');
+  const params = useLocalSearchParams<{ openAdd?: string }>();
   const topPad = 0;
   const dateLocale = useMemo(
     () => localeFromLng(i18n.resolvedLanguage || i18n.language),
@@ -187,6 +189,7 @@ export default function DziennikScreen() {
   // ── Animations ──
   const fabAnim = useRef(new Animated.Value(0)).current;
   const headerAnim = useRef(new Animated.Value(0)).current;
+  const openedFromParamRef = useRef(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -285,6 +288,12 @@ export default function DziennikScreen() {
     setShowDatePicker(false);
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    if (params.openAdd !== '1' || openedFromParamRef.current) return;
+    openedFromParamRef.current = true;
+    openAdd();
+  }, [params.openAdd]);
 
   const openEdit = (w: Wpis) => {
     setDetailOpen(false);

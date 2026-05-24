@@ -32,18 +32,18 @@
     "inny": "Inną"
   },
   "buildStages": {
-    "planowanie": "Planowanie",
     "stan_zero": "Stan zero",
-    "stan_surowy_otwarty": "Stan surowy otwarty",
-    "stan_surowy_zamkniety": "Stan surowy zamkniety",
+    "stan_surowy_otwarty": "Stan SSO",
+    "stan_surowy_zamkniety": "Stan SSZ",
+    "instalacje": "Instalacje",
     "wykonczenie": "Wykończenie"
   },
   "buildStageInfo": {
-    "planowanie": "Projekt, formalnosci, wybor ekipy i przygotowanie startu.",
-    "stan_zero": "Dzialka przygotowana, wykonane fundamenty i elementy pod ziemia.",
-    "stan_surowy_otwarty": "Stoja sciany, stropy i dach, ale bez okien i drzwi.",
-    "stan_surowy_zamkniety": "Budynek jest zamkniety: okna, drzwi i dach sa gotowe.",
-    "wykonczenie": "Instalacje i wnetrza: tynki, posadzki, montaze i detale."
+    "stan_zero": "Stan zero — wybierz jeśli rozpoczynasz prace ziemne i fundamenty.",
+    "stan_surowy_otwarty": "Stan SSO — wybierz jeśli wykonałeś już fundamenty i rozpoczynasz budowę konstrukcji domu oraz ścian nośnych.",
+    "stan_surowy_zamkniety": "Stan SSZ — wybierz jeśli konstrukcja domu jest już wykonana i rozpoczynasz montaż dachu, stolarki lub elewacji.",
+    "instalacje": "Instalacje — wybierz jeśli budynek jest już zamknięty i rozpoczynasz wykonywanie instalacji wewnętrznych.",
+    "wykonczenie": "Wykończenie — wybierz jeśli instalacje są już wykonane i rozpoczynasz prace przygotowujące dom do zamieszkania."
   },
   "budget": {
     "currencyLabel": "Waluta budzetu",

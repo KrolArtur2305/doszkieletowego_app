@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -212,21 +211,20 @@ export default function UstawieniaScreen() {
           ),
       },
       {
-        key: 'report',
-        title: t('settings:items.reportTitle'),
-        subtitle: t('settings:items.reportSubtitle'),
-        icon: 'alert-triangle',
-        onPress: () => router.push('/(app)/(tabs)/ustawienia/zglos_problem'),
-      },
-      {
         key: 'delete-account',
         title: t('settings:appSettings.deleteAccount.title'),
         subtitle: deletingAccount
-          ? t('settings:appSettings.deleteAccount.deleting', { defaultValue: 'Usuwanie...' })
-          : t('settings:appSettings.deleteAccount.subtitle'),
+            ? t('settings:appSettings.deleteAccount.deleting', { defaultValue: 'Usuwanie...' })
+            : t('settings:appSettings.deleteAccount.subtitle'),
         icon: 'trash-2',
-        danger: true,
         onPress: handleDeleteAccount,
+      },
+      {
+        key: 'logout',
+        title: t('settings:logout'),
+        icon: 'log-out',
+        danger: true,
+        onPress: handleLogout,
       },
     ],
     [deletingAccount, router, subscriptionUiReadOnly, t]
@@ -243,7 +241,7 @@ export default function UstawieniaScreen() {
     >
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 170 }}
+        contentContainerStyle={{ paddingBottom: 44 }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -276,15 +274,6 @@ export default function UstawieniaScreen() {
           ))}
         </View>
       </ScrollView>
-
-      <View style={styles.logoutDock}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.9}>
-          <View style={styles.logoutIcon}>
-            <Feather name="log-out" size={19} color={colors.danger} />
-          </View>
-          <Text style={styles.logoutText}>{t('settings:logout')}</Text>
-        </TouchableOpacity>
-      </View>
     </AppScreen>
   );
 }
@@ -387,31 +376,4 @@ const styles = StyleSheet.create({
     ...typography.meta,
   },
 
-  logoutDock: { position: 'absolute', left: spacing.xl, right: spacing.xl, bottom: spacing['2xl'] },
-
-  logoutButton: {
-    height: 58,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceOverlay,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm + 2,
-  },
-  logoutIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
-    backgroundColor: 'rgba(255,71,71,0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutText: {
-    color: colors.textSoft,
-    ...typography.button,
-  },
 });

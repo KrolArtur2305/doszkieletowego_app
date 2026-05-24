@@ -4,7 +4,6 @@ import {
   Dimensions,
   Platform,
   Pressable,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -21,7 +20,7 @@ const { width: W } = Dimensions.get('window');
 const H_PAD = 18;
 const TILE_GAP = 14;
 const TILE_W = (W - H_PAD * 2 - TILE_GAP) / 2;
-const TILE_BOX = TILE_W - 28;
+const TILE_BOX = Math.min(132, TILE_W - 30);
 const WIDE_TILE_W = W - H_PAD * 2;
 
 type Tile = {
@@ -111,10 +110,7 @@ export default function WiecejScreen() {
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: topPad }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={[styles.content, { paddingTop: topPad }]}>
         <AppHeader title={t('more.title')} style={styles.screenHeader} />
 
         <View style={styles.grid}>
@@ -167,7 +163,7 @@ export default function WiecejScreen() {
             );
           })}
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -183,7 +179,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: H_PAD,
-    paddingBottom: 104,
+    paddingBottom: 0,
   },
   screenHeader: {
     marginBottom: 10,
@@ -216,7 +212,7 @@ const styles = StyleSheet.create({
   },
   wideTile: {
     width: WIDE_TILE_W,
-    height: 102,
+    height: 82,
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
@@ -235,13 +231,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
     backgroundColor: '#000000',
   },
   tileIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -253,7 +249,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   wideTileLabel: {
-    fontSize: 15,
+    fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 12,
   },

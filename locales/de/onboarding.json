@@ -32,18 +32,18 @@
     "inny": "Andere"
   },
   "buildStages": {
-    "planowanie": "Planung",
     "stan_zero": "Fundament",
     "stan_surowy_otwarty": "Offener Rohbau",
     "stan_surowy_zamkniety": "Geschlossener Rohbau",
+    "instalacje": "Installationen",
     "wykonczenie": "Ausbau"
   },
   "buildStageInfo": {
-    "planowanie": "Planung, Genehmigungen, Teamwahl und Vorbereitung vor dem Start.",
-    "stan_zero": "Grundstuck vorbereitet, Fundamente und unterirdische Elemente fertig.",
-    "stan_surowy_otwarty": "Wande, Decken und Dach stehen, Fenster und Turen fehlen noch.",
-    "stan_surowy_zamkniety": "Das Gebaude ist mit Dach, Fenstern und Aussenturen geschlossen.",
-    "wykonczenie": "Installationen und Innenausbau: Putz, Boden, Montage und Details."
+    "stan_zero": "Wahlen Sie dies, wenn Erdarbeiten und Fundamente beginnen.",
+    "stan_surowy_otwarty": "Wahlen Sie dies, wenn die Fundamente fertig sind und die Hausstruktur sowie tragende Wande beginnen.",
+    "stan_surowy_zamkniety": "Wahlen Sie dies, wenn die Hausstruktur fertig ist und Dach, Fenster, Turen oder Fassade beginnen.",
+    "instalacje": "Wahlen Sie dies, wenn das Gebaude geschlossen ist und die Inneninstallationen beginnen.",
+    "wykonczenie": "Wahlen Sie dies, wenn Installationen fertig sind und Arbeiten fur den Einzug beginnen."
   },
   "budget": {
     "currencyLabel": "Budgetwahrung",
