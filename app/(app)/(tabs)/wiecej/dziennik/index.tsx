@@ -1434,7 +1434,8 @@ const styles = StyleSheet.create({
   saveBtn: {
     borderRadius: 18,
     paddingVertical: 16,
-    backgroundColor: NEON,
+    backgroundColor: 'rgba(37,240,200,0.14)',
+    borderColor: 'rgba(37,240,200,0.42)',
     alignItems: 'center',
     shadowColor: NEON,
     shadowOpacity: 0.3,

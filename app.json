@@ -5,7 +5,7 @@
     "scheme": "buildiq",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./app/assets/logo-square.png",
+    "icon": "./assets/logo-square.png",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./app/assets/splash-icon.png",
@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "usesAppleSignIn": true,
+      "icon": "./assets/logo-square.png",
       "buildNumber": "5",
       "bundleIdentifier": "pl.buildiq.mobile",
       "infoPlist": {
@@ -29,7 +30,7 @@
       "versionCode": 1,
       "package": "pl.buildiq.mobile",
       "adaptiveIcon": {
-        "foregroundImage": "./app/assets/logo-square.png",
+        "foregroundImage": "./assets/logo-square.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

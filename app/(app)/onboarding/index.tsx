@@ -106,6 +106,8 @@ export default function OnboardingScreen() {
   const [budgetCurrency, setBudgetCurrency] = useState<AppCurrency>(() =>
     defaultCurrencyForLanguage(i18n.resolvedLanguage || i18n.language)
   );
+  const [activeStageInfo, setActiveStageInfo] = useState<string | null>(null);
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [buddyName, setBuddyName] = useState('');
   const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
   const buddyFloat = useRef(new Animated.Value(0)).current;
@@ -393,7 +395,7 @@ export default function OnboardingScreen() {
       <Image source={APP_LOGO} style={styles.stageLogo} resizeMode="contain" />
       <Text style={styles.stageTitle}>{t('steps.buildStageTitle')}</Text>
 
-      <View style={styles.stageGrid}>
+      <View style={styles.stageList}>
         {BUILD_STAGES.map((item) => (
           <TouchableOpacity
             key={item.value}
@@ -403,11 +405,22 @@ export default function OnboardingScreen() {
             style={styles.stageTileOuter}
           >
             <BlurView intensity={18} tint="dark" style={styles.stageTile}>
-              <View style={styles.infoBadge}>
-                <Text style={styles.infoBadgeText}>I</Text>
+              <View style={styles.stageTileHeader}>
+                <Text style={styles.stageTileTitle}>{t(item.key)}</Text>
+                <TouchableOpacity
+                  onPress={() => setActiveStageInfo((current) => (current === item.value ? null : item.value))}
+                  activeOpacity={0.8}
+                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                  style={styles.infoBadge}
+                >
+                  <Text style={styles.infoBadgeText}>i</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.stageTileTitle}>{t(item.key)}</Text>
-              <Text style={styles.stageTileInfo} numberOfLines={3}>{t(item.infoKey)}</Text>
+              {activeStageInfo === item.value ? (
+                <View style={styles.stageInfoBubble}>
+                  <Text style={styles.stageTileInfo}>{t(item.infoKey)}</Text>
+                </View>
+              ) : null}
             </BlurView>
           </TouchableOpacity>
         ))}
@@ -432,28 +445,51 @@ export default function OnboardingScreen() {
       <BlurView intensity={18} tint="dark" style={styles.formCard}>
         <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>{t('budget.currencyLabel')}</Text>
-          <View style={styles.currencyGrid}>
-            {CURRENCY_OPTIONS.map((option) => {
-              const active = budgetCurrency === option.code;
-              return (
-                <TouchableOpacity
-                  key={option.code}
-                  onPress={async () => {
-                    setBudgetCurrency(option.code);
-                    await setAppCurrency(option.code);
-                  }}
-                  activeOpacity={0.86}
-                  style={[styles.currencyTile, active && styles.currencyTileActive]}
-                >
-                  <Text style={[styles.currencyCode, active && styles.currencyCodeActive]}>
-                    {option.code}
-                  </Text>
-                  <Text style={[styles.currencySymbol, active && styles.currencyCodeActive]}>
-                    {option.symbol}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View style={styles.currencyDropdownWrap}>
+            <TouchableOpacity
+              onPress={() => setCurrencyDropdownOpen((open) => !open)}
+              activeOpacity={0.86}
+              style={styles.currencySelect}
+            >
+              <View>
+                <Text style={styles.currencyCodeActive}>{budgetCurrency}</Text>
+                <Text style={styles.currencySymbol}>
+                  {CURRENCY_OPTIONS.find((option) => option.code === budgetCurrency)?.symbol ?? budgetCurrency}
+                </Text>
+              </View>
+              <Feather
+                name={currencyDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={NEON}
+              />
+            </TouchableOpacity>
+
+            {currencyDropdownOpen ? (
+              <View style={styles.currencyDropdown}>
+                {CURRENCY_OPTIONS.map((option) => {
+                  const active = budgetCurrency === option.code;
+                  return (
+                    <TouchableOpacity
+                      key={option.code}
+                      onPress={async () => {
+                        setBudgetCurrency(option.code);
+                        setCurrencyDropdownOpen(false);
+                        await setAppCurrency(option.code);
+                      }}
+                      activeOpacity={0.86}
+                      style={[styles.currencyOption, active && styles.currencyOptionActive]}
+                    >
+                      <Text style={[styles.currencyOptionCode, active && styles.currencyCodeActive]}>
+                        {option.code}
+                      </Text>
+                      <Text style={[styles.currencyOptionSymbol, active && styles.currencyCodeActive]}>
+                        {option.symbol}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -467,7 +503,7 @@ export default function OnboardingScreen() {
             style={styles.input}
           />
           {plannedBudgetPreview ? (
-            <Text style={styles.amountPreview}>{t('budget.previewLabel')}: {plannedBudgetPreview}</Text>
+            <Text style={styles.amountPreview}>{plannedBudgetPreview}</Text>
           ) : (
             <Text style={styles.amountHint}>{t('budget.previewHint')}</Text>
           )}
@@ -483,7 +519,7 @@ export default function OnboardingScreen() {
             style={styles.input}
           />
           {spentBudgetPreview ? (
-            <Text style={styles.amountPreview}>{t('budget.previewLabel')}: {spentBudgetPreview}</Text>
+            <Text style={styles.amountPreview}>{spentBudgetPreview}</Text>
           ) : (
             <Text style={styles.amountHint}>{t('budget.previewHint')}</Text>
           )}
@@ -807,38 +843,38 @@ const styles = StyleSheet.create({
   tileGrid: {
     gap: 12,
   },
-  stageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  stageList: {
+    gap: 10,
   },
   tileOuter: {
     borderRadius: 24,
     overflow: 'hidden',
   },
   stageTileOuter: {
-    width: '48%',
-    borderRadius: 18,
+    width: '100%',
+    borderRadius: 20,
     overflow: 'hidden',
   },
   stageTile: {
-    position: 'relative',
-    borderRadius: 18,
-    paddingHorizontal: 10,
-    paddingTop: 22,
-    paddingBottom: 10,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     backgroundColor: 'rgba(0,0,0,0.72)',
     borderWidth: 1.3,
     borderColor: 'rgba(37,240,200,0.34)',
-    minHeight: 112,
+    minHeight: 58,
+  },
+  stageTileHeader: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   infoBadge: {
-    position: 'absolute',
-    top: 7,
-    right: 7,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.13)',
@@ -847,24 +883,32 @@ const styles = StyleSheet.create({
   },
   infoBadgeText: {
     color: NEON,
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 15,
+    lineHeight: 17,
     fontWeight: '900',
   },
   stageTileTitle: {
+    flex: 1,
     color: '#FFFFFF',
-    fontSize: 14,
-    lineHeight: 17,
+    fontSize: 15.5,
+    lineHeight: 19,
     fontWeight: '900',
     textAlign: 'left',
-    paddingRight: 16,
+  },
+  stageInfoBubble: {
+    marginTop: 10,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.24)',
   },
   stageTileInfo: {
-    color: 'rgba(255,255,255,0.58)',
-    fontSize: 10.5,
-    lineHeight: 13,
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 12,
+    lineHeight: 17,
     fontWeight: '700',
-    marginTop: 5,
   },
   tile: {
     alignItems: 'center',
@@ -924,30 +968,44 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  currencyGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  currencyDropdownWrap: {
+    position: 'relative',
   },
-  currencyTile: {
-    minWidth: 58,
-    flexGrow: 1,
-    borderRadius: 14,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
+  currencySelect: {
+    minHeight: 56,
+    borderRadius: 18,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     backgroundColor: 'rgba(255,255,255,0.035)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(37,240,200,0.30)',
   },
-  currencyTileActive: {
-    backgroundColor: 'rgba(37,240,200,0.12)',
-    borderColor: 'rgba(37,240,200,0.44)',
+  currencyDropdown: {
+    marginTop: 8,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.26)',
   },
-  currencyCode: {
+  currencyOption: {
+    minHeight: 48,
+    paddingHorizontal: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  currencyOptionActive: {
+    backgroundColor: 'rgba(37,240,200,0.11)',
+  },
+  currencyOptionCode: {
     color: 'rgba(255,255,255,0.72)',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '900',
   },
   currencyCodeActive: {
@@ -956,7 +1014,12 @@ const styles = StyleSheet.create({
   currencySymbol: {
     marginTop: 2,
     color: 'rgba(255,255,255,0.42)',
-    fontSize: 10.5,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  currencyOptionSymbol: {
+    color: 'rgba(255,255,255,0.46)',
+    fontSize: 13,
     fontWeight: '800',
   },
   primaryBtn: {

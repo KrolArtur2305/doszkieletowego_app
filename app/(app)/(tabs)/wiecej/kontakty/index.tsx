@@ -750,7 +750,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 18,
     paddingVertical: 16,
-    backgroundColor: NEON,
+    backgroundColor: 'rgba(37,240,200,0.14)',
+    borderColor: 'rgba(37,240,200,0.42)',
     alignItems: 'center',
   },
   saveBtnText: {
