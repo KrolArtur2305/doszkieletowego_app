@@ -28,6 +28,11 @@ const APP_LOGO = require('../assets/logo.png')
 const BG = '#000000'
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
+const FINAL_FEATURES = [
+  { icon: 'trending-up', titleKey: 'onboarding:guided.control.progress' },
+  { icon: 'camera', titleKey: 'onboarding:guided.control.photos' },
+  { icon: 'folder', titleKey: 'onboarding:guided.control.documents' },
+]
 
 type ProfileData = {
   imie: string | null
@@ -110,13 +115,13 @@ export default function GuidedSetupScreen() {
     }
   }, [t])
 
-  const firstName = useMemo(() => String(profile.imie ?? '').trim() || 'Budowniczy', [profile.imie])
+  const buddyName = useMemo(() => String(profile.ai_buddy_name ?? '').trim() || t('onboarding:guided.defaultBuddyName'), [profile.ai_buddy_name, t])
   const avatarId: BuddyAvatarId =
     profile.ai_buddy_avatar === 'avatar2' || profile.ai_buddy_avatar === 'avatar3'
       ? profile.ai_buddy_avatar
       : DEFAULT_BUDDY_AVATAR_ID
 
-  const next = () => setStep((current) => Math.min(current + 1, 3))
+  const next = () => setStep((current) => Math.min(current + 1, 4))
   const back = () => setStep((current) => Math.max(current - 1, 0))
 
   const finish = async () => {
@@ -169,7 +174,7 @@ export default function GuidedSetupScreen() {
             ) : null}
 
             <View style={styles.progressRow}>
-              {[0, 1, 2, 3].map((idx) => (
+              {[0, 1, 2, 3, 4].map((idx) => (
                 <View key={idx} style={[styles.progressDot, idx <= step && styles.progressDotActive]} />
               ))}
             </View>
@@ -178,11 +183,9 @@ export default function GuidedSetupScreen() {
 
             {step === 0 ? (
               <>
-                <Text style={styles.title}>{t('onboarding:guided.welcome.title', { name: firstName })}</Text>
+                <Text style={styles.title}>{t('onboarding:guided.welcome.title', { buddy: buddyName })}</Text>
                 <Text style={styles.subtitle}>
-                  {t('onboarding:guided.welcome.subtitle', {
-                    buddy: String(profile.ai_buddy_name ?? '').trim() || t('onboarding:guided.defaultBuddyName'),
-                  })}
+                  {t('onboarding:guided.welcome.subtitle')}
                 </Text>
                 <Text style={styles.body}>
                   {t('onboarding:guided.welcome.body')}
@@ -202,7 +205,6 @@ export default function GuidedSetupScreen() {
                   onPress={() => router.push('/(app)/(tabs)/projekt?setup=1&guidedStep=2')}
                   style={styles.primaryBtn}
                 />
-                <AppButton title={t('onboarding:guided.actions.skip')} variant="secondary" onPress={next} style={styles.secondaryBtn} />
               </>
             ) : null}
 
@@ -218,13 +220,46 @@ export default function GuidedSetupScreen() {
 
             {step === 3 ? (
               <>
-                <Text style={styles.title}>{t('onboarding:guided.control.title')}</Text>
-                <View style={styles.infoList}>
-                  <Text style={styles.infoItem}>{t('onboarding:guided.control.progress')}</Text>
-                  <Text style={styles.infoItem}>{t('onboarding:guided.control.photos')}</Text>
-                  <Text style={styles.infoItem}>{t('onboarding:guided.control.documents')}</Text>
+                <Text style={styles.title}>{t('onboarding:guided.progress.title')}</Text>
+                <Text style={styles.body}>
+                  {t('onboarding:guided.progress.body')}
+                </Text>
+                <AppButton title={t('onboarding:actions.next')} onPress={next} style={styles.primaryBtn} />
+              </>
+            ) : null}
+
+            {step === 4 ? (
+              <>
+                <View style={styles.finalKicker}>
+                  <Feather name="check" size={14} color="#02110e" />
+                  <Text style={styles.finalKickerText}>{t('onboarding:guided.control.kicker', { defaultValue: 'Gotowe' })}</Text>
                 </View>
-                <AppButton title={t('onboarding:guided.actions.start')} onPress={finish} loading={saving} disabled={saving} style={styles.primaryBtn} />
+
+                <Text style={styles.title}>{t('onboarding:guided.control.title')}</Text>
+                <Text style={styles.body}>
+                  {t('onboarding:guided.control.body', {
+                    defaultValue: 'Kierownik AI będzie prowadził Cię przez budowę i przypominał o ważnych rzeczach.',
+                  })}
+                </Text>
+
+                <View style={styles.featureList}>
+                  {FINAL_FEATURES.map((item) => (
+                    <View key={item.titleKey} style={styles.featureRow}>
+                      <View style={styles.featureIcon}>
+                        <Feather name={item.icon as any} size={15} color={NEON} />
+                      </View>
+                      <Text style={styles.featureText}>{t(item.titleKey)}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <AppButton
+                  title={t('onboarding:guided.actions.start')}
+                  onPress={finish}
+                  loading={saving}
+                  disabled={saving}
+                  style={styles.primaryBtn}
+                />
               </>
             ) : null}
           </BlurView>
@@ -339,6 +374,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
+  finalKicker: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: NEON,
+    marginBottom: 14,
+  },
+  finalKickerText: {
+    color: '#02110e',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
   subtitle: {
     color: '#FFFFFF',
     fontSize: 18,
@@ -365,17 +418,38 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
   },
-  bulletList: {
+  featureList: {
     gap: 10,
     marginBottom: 18,
     alignSelf: 'stretch',
   },
-  bulletItem: {
-    color: 'rgba(255,255,255,0.76)',
-    fontSize: 15,
+  featureRow: {
+    minHeight: 52,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  featureIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+  },
+  featureText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 14,
     fontWeight: '700',
-    lineHeight: 22,
-    textAlign: 'left',
+    lineHeight: 20,
   },
   primaryBtn: {
     marginTop: 4,

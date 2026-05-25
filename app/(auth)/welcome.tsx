@@ -17,10 +17,11 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { setCurrencyForLanguage } from '../../lib/currency';
 import { setAppLanguage, type AppLanguage } from '../../lib/i18n';
-import { AppButton, AppCard, AppHeader, AppScreen } from '../../src/ui/components';
+import { AppButton, AppCard, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
 const { width: W } = Dimensions.get('window');
+const APP_LOGO = require('../../assets/logo.png');
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -113,7 +114,10 @@ export default function WelcomeScreen() {
     <AppScreen>
       <View style={styles.container}>
         <View style={styles.topBlock}>
-          <AppHeader title="BuildIQ" style={styles.header} height={92} />
+          <View style={styles.brandStack}>
+            <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
+            <Text style={styles.brandName}>BuildIQ</Text>
+          </View>
 
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>{t('welcome.heroTitle')}</Text>
@@ -190,8 +194,21 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  header: {
-    width: '100%',
+  brandStack: {
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  brandLogo: {
+    width: 116,
+    height: 116,
+  },
+  brandName: {
+    marginTop: spacing.xs,
+    color: colors.text,
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '900',
+    letterSpacing: 0,
   },
   heroCopy: {
     alignItems: 'center',

@@ -79,24 +79,30 @@
       "skip": "Vorerst überspringen"
     },
     "welcome": {
-      "title": "Willkommen, {{name}}",
-      "subtitle": "Ich bin {{buddy}}, dein KI-Bauleiter",
-      "body": "Ich zeige dir jetzt die wichtigsten Funktionen der App."
+      "title": "Willkommen, ich bin {{buddy}}",
+      "subtitle": "Dein Bauleiter",
+      "body": "Ich zeige dir jetzt, wie BuildIQ dich Schritt für Schritt durch den Bau führt."
     },
     "project": {
       "title": "Projekt",
-      "body": "Gib Daten ein und füge Pläne hinzu, damit alles an einem Ort bleibt.",
+      "body": "Gib Projektdaten ein und füge Pläne hinzu, damit alles an einem Ort bleibt.",
       "cta": "Projektdaten ergänzen"
     },
     "budget": {
-      "title": "Budget",
-      "body": "Füge Ausgaben hinzu, kontrolliere Kosten und verwalte dein Budget. Dein KI-Bauleiter hilft bei der Analyse."
+      "title": "Budget im Griff",
+      "body": "Du bekommst einen klaren Überblick über das Baubudget und die laufenden Kosten an einem Ort. Sieh, was geplant ist, was bereits ausgegeben wurde und wo du eine Reserve behalten solltest."
+    },
+    "progress": {
+      "title": "Baufortschritt",
+      "body": "Du siehst die aktuelle Phase und was bereits erledigt ist, damit du den Ablauf leichter im Blick behältst."
     },
     "control": {
-      "title": "Alles unter Kontrolle",
-      "progress": "Fortschritt - du weißt, in welcher Phase du bist und was als Nächstes ansteht",
-      "photos": "Fotos - dokumentiere den Bau und halte alles griffbereit",
-      "documents": "Dokumente - speichere Verträge, Rechnungen und wichtige Dateien"
+      "kicker": "Fertig",
+      "title": "Alles ist schon griffbereit",
+      "body": "Fotos, Dokumente und wichtige Informationen bleiben immer an einem Ort.",
+      "progress": "Fortschritt - du siehst, was bereits erledigt ist und was noch vor dir liegt",
+      "photos": "Fotos - dokumentiere den Bau und greife jederzeit darauf zurück",
+      "documents": "Dokumente - bewahre Verträge, Rechnungen und wichtige Dateien ordentlich auf"
     }
   }
 }

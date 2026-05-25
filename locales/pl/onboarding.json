@@ -79,24 +79,30 @@
       "skip": "Pomiń na razie"
     },
     "welcome": {
-      "title": "Witaj, {{name}}",
-      "subtitle": "Jestem {{buddy}}, Twój kierownik budowy AI",
-      "body": "Pokażę Ci teraz najważniejsze funkcje aplikacji."
+      "title": "Witaj, jestem {{buddy}}",
+      "subtitle": "Twój kierownik budowy",
+      "body": "Pokażę Ci teraz, jak BuildIQ pomoże Ci prowadzić budowę krok po kroku."
     },
     "project": {
       "title": "Projekt",
-      "body": "Wpisz dane i dodaj rzuty, żeby mieć wszystko w jednym miejscu.",
+      "body": "Dodaj dane projektu i rzuty, żeby wszystko było w jednym miejscu.",
       "cta": "Uzupełnij dane o projekcie"
     },
     "budget": {
-      "title": "Budżet",
-      "body": "Dodawaj wydatki, kontroluj koszty i zarządzaj budżetem. W analizie pomoże Twój kierownik AI."
+      "title": "Budżet pod kontrolą",
+      "body": "Masz jasny obraz planu finansowego budowy i bieżących kosztów w jednym miejscu. Zobacz, ile zaplanowano, ile wydano i gdzie warto zachować rezerwę."
+    },
+    "progress": {
+      "title": "Postęp budowy",
+      "body": "Widzisz, na jakim etapie jesteś i co jest już gotowe, dzięki czemu łatwiej trzymasz rytm prac."
     },
     "control": {
-      "title": "Wszystko pod kontrolą",
-      "progress": "Postępy - wiesz, na jakim etapie jesteś, co robić dalej i jakich błędów uniknąć",
-      "photos": "Zdjęcia - dokumentujesz budowę i masz wszystko pod ręką",
-      "documents": "Dokumenty - przechowujesz umowy z wykonawcami, faktury i ważne pliki"
+      "kicker": "Gotowe",
+      "title": "Masz już wszystko pod ręką",
+      "body": "Zdjęcia, dokumenty i kluczowe informacje będą zawsze w jednym miejscu.",
+      "progress": "Postępy - widzisz, co jest już zrobione i co jeszcze przed Tobą",
+      "photos": "Zdjęcia - dokumentujesz budowę i wracasz do niej w każdej chwili",
+      "documents": "Dokumenty - trzymasz umowy, faktury i ważne pliki bez chaosu"
     }
   }
 }

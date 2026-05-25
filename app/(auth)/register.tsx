@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  Image,
   View,
   Text,
   StyleSheet,
@@ -18,11 +19,12 @@ import { supabase } from '../../lib/supabase';
 import { getAuthCallbackRedirectUri } from '../../src/services/auth/deepLinkAuth';
 import { isAppleSignInAvailable, signInWithAppleMobile } from '../../src/services/auth/appleAuth';
 import { signInWithFacebookMobile, signInWithGoogleMobile } from '../../src/services/auth/googleOAuth';
-import { AppButton, AppHeader, AppInput, AppScreen } from '../../src/ui/components';
+import { AppButton, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, spacing, typography } from '../../src/ui/theme';
 
 const GOOGLE_AUTH_ENABLED = true;
 const FACEBOOK_AUTH_ENABLED = false;
+const APP_LOGO = require('../../assets/logo.png');
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -150,7 +152,10 @@ export default function RegisterScreen() {
       >
         <AppScreen>
           <View style={styles.content}>
-            <AppHeader title="BuildIQ" style={styles.header} height={92} />
+            <View style={styles.brandStack}>
+              <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
+              <Text style={styles.brandName}>BuildIQ</Text>
+            </View>
 
             <View style={styles.formBlock}>
               <View>
@@ -255,9 +260,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl + 2,
     backgroundColor: colors.bg,
   },
-  header: {
+  brandStack: {
+    alignItems: 'center',
     marginTop: spacing.lg,
     marginBottom: spacing.md,
+  },
+  brandLogo: {
+    width: 116,
+    height: 116,
+  },
+  brandName: {
+    marginTop: spacing.xs,
+    color: colors.text,
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '900',
+    letterSpacing: 0,
   },
   formBlock: {
     flex: 1,

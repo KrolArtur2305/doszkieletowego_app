@@ -79,24 +79,30 @@
       "skip": "Skip for now"
     },
     "welcome": {
-      "title": "Welcome, {{name}}",
-      "subtitle": "I'm {{buddy}}, your AI construction supervisor",
-      "body": "I'll show you the most important app features."
+      "title": "Welcome, I'm {{buddy}}",
+      "subtitle": "Your construction supervisor",
+      "body": "I'll show you how BuildIQ helps you manage the build step by step."
     },
     "project": {
       "title": "Project",
-      "body": "Enter the data and add drawings so everything stays in one place.",
+      "body": "Add project details and drawings so everything stays in one place.",
       "cta": "Complete project details"
     },
     "budget": {
-      "title": "Budget",
-      "body": "Add expenses, control costs and manage your budget. Your AI supervisor will help with analysis."
+      "title": "Budget under control",
+      "body": "You get a clear view of the build budget and current costs in one place. See what is planned, what has been spent, and where to keep a buffer."
+    },
+    "progress": {
+      "title": "Build progress",
+      "body": "You can see the current stage and what is already done, so it is easier to keep the work moving."
     },
     "control": {
-      "title": "Everything under control",
-      "progress": "Progress - know your current stage, what to do next and which mistakes to avoid",
-      "photos": "Photos - document the build and keep everything close at hand",
-      "documents": "Documents - store contractor agreements, invoices and key files"
+      "kicker": "Done",
+      "title": "Everything is already at hand",
+      "body": "Photos, documents and key information will always stay in one place.",
+      "progress": "Progress - see what is already done and what is still ahead",
+      "photos": "Photos - document the build and revisit it whenever you need",
+      "documents": "Documents - keep contracts, invoices and important files tidy"
     }
   }
 }
