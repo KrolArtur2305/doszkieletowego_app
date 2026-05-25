@@ -184,12 +184,8 @@ export default function GuidedSetupScreen() {
             {step === 0 ? (
               <>
                 <Text style={styles.title}>{t('onboarding:guided.welcome.title', { buddy: buddyName })}</Text>
-                <Text style={styles.subtitle}>
-                  {t('onboarding:guided.welcome.subtitle')}
-                </Text>
-                <Text style={styles.body}>
-                  {t('onboarding:guided.welcome.body')}
-                </Text>
+                <Text style={styles.subtitle}>{t('onboarding:guided.welcome.subtitle')}</Text>
+                <Text style={styles.body}>{t('onboarding:guided.welcome.body')}</Text>
                 <AppButton title={t('onboarding:guided.actions.start')} onPress={next} style={styles.primaryBtn} />
               </>
             ) : null}
@@ -204,6 +200,12 @@ export default function GuidedSetupScreen() {
                   title={t('onboarding:guided.project.cta')}
                   onPress={() => router.push('/(app)/(tabs)/projekt?setup=1&guidedStep=2')}
                   style={styles.primaryBtn}
+                />
+                <AppButton
+                  title={t('onboarding:guided.project.skip')}
+                  variant="secondary"
+                  onPress={next}
+                  style={styles.secondaryBtn}
                 />
               </>
             ) : null}
@@ -393,19 +395,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   subtitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
+    color: 'rgba(255,255,255,0.86)',
+    fontSize: 15,
+    fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   body: {
-    color: 'rgba(255,255,255,0.72)',
+    color: 'rgba(255,255,255,0.74)',
     fontSize: 15,
     fontWeight: '600',
     lineHeight: 22,
     textAlign: 'center',
-    marginBottom: 18,
+    marginBottom: 20,
   },
   infoList: {
     gap: 12,

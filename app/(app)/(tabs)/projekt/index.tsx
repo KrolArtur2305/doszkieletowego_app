@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  BackHandler,
   Image,
   Modal,
   Platform,
@@ -19,7 +18,6 @@ import {
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useNavigation } from '@react-navigation/native'
 import { supabase } from '../../../../lib/supabase'
 import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
@@ -226,7 +224,6 @@ function base64ToUint8Array(base64: string) {
 export default function ProjektScreen() {
   const { t, i18n } = useTranslation('project')
   const router = useRouter()
-  const navigation = useNavigation()
   const { setup, guidedStep } = useLocalSearchParams<{ setup?: string | string[]; guidedStep?: string | string[] }>()
   const isSetupMode = Array.isArray(setup) ? setup[0] === '1' : setup === '1'
   const guidedReturnStep = Array.isArray(guidedStep) ? guidedStep[0] : guidedStep
@@ -330,29 +327,6 @@ export default function ProjektScreen() {
     setupModalOpenedRef.current = true
     openEditParams()
   }, [isSetupMode, loading])
-
-  useEffect(() => {
-    if (!isSetupMode) return
-
-    const goBackToGuidedSetup = () => {
-      router.replace(`/(app)/guided-setup?step=${guidedReturnStep || '1'}`)
-    }
-
-    const beforeRemove = navigation.addListener('beforeRemove', (event) => {
-      event.preventDefault()
-      goBackToGuidedSetup()
-    })
-
-    const hardwareBack = BackHandler.addEventListener('hardwareBackPress', () => {
-      goBackToGuidedSetup()
-      return true
-    })
-
-    return () => {
-      beforeRemove()
-      hardwareBack.remove()
-    }
-  }, [guidedReturnStep, isSetupMode, navigation, router])
 
   const modelUrl = useMemo(() => projekt?.model_url || DEFAULT_MODEL_URL, [projekt?.model_url])
 
@@ -1150,6 +1124,20 @@ export default function ProjektScreen() {
                 </ScrollView>
 
                 <View style={styles.modalActions}>
+                  {isSetupMode ? (
+                    <AppButton
+                      title={t('skip', { defaultValue: 'Pomiń' })}
+                      variant="secondary"
+                      onPress={() => {
+                        if (saving) return
+                        setEditOpen(false)
+                        router.replace(`/(app)/guided-setup?step=${guidedReturnStep || '2'}`)
+                      }}
+                      disabled={saving}
+                      style={styles.modalBtnGhost}
+                    />
+                  ) : null}
+
                   <AppButton title={t('cancel', { defaultValue: 'Anuluj' })} variant="secondary" onPress={() => setEditOpen(false)} disabled={saving} style={styles.modalBtnGhost} />
 
                   <AppButton title={t('save', { defaultValue: 'Zapisz zmiany' })} loading={saving} onPress={saveParams} style={styles.modalBtnPrimary} />

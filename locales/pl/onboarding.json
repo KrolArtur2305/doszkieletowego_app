@@ -79,14 +79,15 @@
       "skip": "Pomiń na razie"
     },
     "welcome": {
-      "title": "Witaj, jestem {{buddy}}",
+      "title": "Witaj,\njestem {{buddy}}",
       "subtitle": "Twój kierownik budowy",
-      "body": "Pokażę Ci teraz, jak BuildIQ pomoże Ci prowadzić budowę krok po kroku."
+      "body": "Pomogę Ci ogarnąć budowę krok po kroku, a teraz pokażę Ci, jak BuildIQ będzie Cię wspierać."
     },
     "project": {
       "title": "Projekt",
-      "body": "Dodaj dane projektu i rzuty, żeby wszystko było w jednym miejscu.",
-      "cta": "Uzupełnij dane o projekcie"
+      "body": "Dodaj szczegóły projektu, rzuty oraz model 3D i miej zawsze najważniejsze informacje pod ręką.",
+      "cta": "Uzupełnij dane",
+      "skip": "Pomiń"
     },
     "budget": {
       "title": "Budżet pod kontrolą",

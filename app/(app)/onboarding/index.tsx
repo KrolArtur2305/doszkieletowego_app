@@ -367,32 +367,35 @@ export default function OnboardingScreen() {
 
       <View style={styles.stageList}>
         {BUILD_STAGES.map((item) => (
-          <TouchableOpacity
-            key={item.value}
-            onPress={() => saveBuildStage(item.value)}
-            disabled={saving}
-            activeOpacity={0.88}
-            style={styles.stageTileOuter}
-          >
-            <BlurView intensity={18} tint="dark" style={styles.stageTile}>
-              <View style={styles.stageTileHeader}>
-                <Text style={styles.stageTileTitle}>{t(item.key)}</Text>
-                <TouchableOpacity
-                  onPress={() => setActiveStageInfo((current) => (current === item.value ? null : item.value))}
-                  activeOpacity={0.8}
-                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                  style={styles.infoBadge}
-                >
-                  <Text style={styles.infoBadgeText}>i</Text>
-                </TouchableOpacity>
-              </View>
-              {activeStageInfo === item.value ? (
-                <View style={styles.stageInfoBubble}>
-                  <Text style={styles.stageTileInfo}>{t(item.infoKey)}</Text>
+          <View key={item.value} style={styles.stageTileOuter}>
+            <TouchableOpacity
+              onPress={() => saveBuildStage(item.value)}
+              disabled={saving}
+              activeOpacity={0.88}
+              style={styles.stageSelectButton}
+            >
+              <BlurView intensity={18} tint="dark" style={styles.stageTile}>
+                <View style={styles.stageTileHeader}>
+                  <Text style={styles.stageTileTitle}>{t(item.key)}</Text>
                 </View>
-              ) : null}
-            </BlurView>
-          </TouchableOpacity>
+              </BlurView>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setActiveStageInfo((current) => (current === item.value ? null : item.value))}
+              activeOpacity={0.82}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+              style={styles.infoBadge}
+            >
+              <Text style={styles.infoBadgeText}>i</Text>
+            </TouchableOpacity>
+
+            {activeStageInfo === item.value ? (
+              <View style={styles.stageInfoBubble}>
+                <Text style={styles.stageTileInfo}>{t(item.infoKey)}</Text>
+              </View>
+            ) : null}
+          </View>
         ))}
       </View>
     </>
@@ -799,6 +802,12 @@ const styles = StyleSheet.create({
   stageTileOuter: {
     width: '100%',
     borderRadius: 20,
+    overflow: 'visible',
+    position: 'relative',
+    paddingTop: 6,
+  },
+  stageSelectButton: {
+    borderRadius: 20,
     overflow: 'hidden',
   },
   stageTile: {
@@ -812,12 +821,13 @@ const styles = StyleSheet.create({
   },
   stageTileHeader: {
     minHeight: 30,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+    justifyContent: 'center',
   },
   infoBadge: {
+    position: 'absolute',
+    right: 10,
+    top: 12,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -840,18 +850,27 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     fontWeight: '900',
     textAlign: 'center',
+    paddingRight: 28,
   },
   stageInfoBubble: {
-    marginTop: 10,
+    position: 'absolute',
+    right: 10,
+    top: 42,
+    maxWidth: '84%',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: 'rgba(37,240,200,0.10)',
+    backgroundColor: 'rgba(9,20,18,0.96)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.24)',
+    shadowColor: '#000000',
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   stageTileInfo: {
-    color: 'rgba(255,255,255,0.72)',
+    color: 'rgba(255,255,255,0.84)',
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '700',

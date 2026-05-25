@@ -81,12 +81,13 @@
     "welcome": {
       "title": "Willkommen, ich bin {{buddy}}",
       "subtitle": "Dein Bauleiter",
-      "body": "Ich zeige dir jetzt, wie BuildIQ dich Schritt für Schritt durch den Bau führt."
+      "body": "Ich helfe dir, den Bau Schritt für Schritt im Griff zu behalten, und jetzt zeige ich dir, wie BuildIQ dich unterstützen wird."
     },
     "project": {
       "title": "Projekt",
-      "body": "Gib Projektdaten ein und füge Pläne hinzu, damit alles an einem Ort bleibt.",
-      "cta": "Projektdaten ergänzen"
+      "body": "Füge Projektdetails, Pläne und ein 3D-Modell hinzu und behalte die wichtigsten Informationen immer griffbereit.",
+      "cta": "Daten ergänzen",
+      "skip": "Überspringen"
     },
     "budget": {
       "title": "Budget im Griff",
