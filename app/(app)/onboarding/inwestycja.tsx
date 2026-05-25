@@ -22,6 +22,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { AppButton, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
+import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
 
 const BG = '#000000';
@@ -85,6 +86,7 @@ export default function OnboardingInvestmentScreen() {
   const [saving, setSaving] = useState(false);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [appleUser, setAppleUser] = useState(false);
   const [nazwa, setNazwa] = useState('');
   const [lokalizacja, setLokalizacja] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<PlaceSuggestion | null>(null);
@@ -118,6 +120,7 @@ export default function OnboardingInvestmentScreen() {
         }
 
         const user = userRes.user;
+        setAppleUser(isAppleAuthUser(user));
         let { data, error } = await supabase
           .from('inwestycje')
           .select('nazwa, lokalizacja, place_name, location_city, location_country, latitude, longitude, data_start, data_koniec')
@@ -263,7 +266,7 @@ export default function OnboardingInvestmentScreen() {
 
   const handleBack = async () => {
     if (!userId || saving) {
-      router.replace('/(app)/onboarding/profile');
+      router.replace(appleUser ? '/(app)/onboarding' : '/(app)/onboarding/profile');
       return;
     }
 
@@ -271,20 +274,36 @@ export default function OnboardingInvestmentScreen() {
       await supabase.from('profiles').upsert(
         {
           user_id: userId,
-          onboarding_step: 'profile',
+          onboarding_step: appleUser ? 'budget' : 'profile',
           onboarding_completed: false,
         },
         { onConflict: 'user_id' }
       );
     } catch {}
 
-    router.replace('/(app)/onboarding/profile');
+    router.replace(appleUser ? '/(app)/onboarding' : '/(app)/onboarding/profile');
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
         <View pointerEvents="none" style={styles.bg} />
+        {appleUser ? (
+          <TouchableOpacity
+            onPress={async () => {
+              await supabase.auth.signOut();
+              router.replace('/(auth)/welcome');
+            }}
+            activeOpacity={0.88}
+            style={styles.logoutBadge}
+          >
+            <Feather name="log-out" size={15} color="#FFFFFF" />
+          </TouchableOpacity>
+        ) : null}
         <ScrollView contentContainerStyle={[styles.content, { paddingTop: topPad }]} keyboardShouldPersistTaps="handled">
           <TouchableOpacity onPress={handleBack} activeOpacity={0.8} style={styles.backButton}>
             <Feather name="chevron-left" size={20} color="#FFFFFF" />
@@ -424,6 +443,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',
     marginBottom: 4,
+  },
+  logoutBadge: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    zIndex: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(220,38,38,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   logo: {
     width: 172,

@@ -202,7 +202,11 @@ export default function ProfilScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
         <View style={styles.screen}>
         {/* tło + glowy (zostają, ale wyciszone — czarne tło) */}
         <View pointerEvents="none" style={styles.bg}>
