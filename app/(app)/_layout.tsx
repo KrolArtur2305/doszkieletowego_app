@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, StyleSheet, View } from 'react-native';
-import { Stack, usePathname, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
@@ -45,6 +45,7 @@ export default function AppLayout() {
   const { session, loading: authLoading } = useSupabaseAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const { setup } = useLocalSearchParams<{ setup?: string | string[] }>();
 
   const [checking, setChecking] = useState(false);
 
@@ -212,9 +213,13 @@ export default function AppLayout() {
       const onAppRoot = pathname === '/' || pathname === '/(app)';
       const onOnboarding = pathname.startsWith('/onboarding') || pathname.startsWith('/(app)/onboarding');
       const onGuidedSetup = pathname === '/guided-setup' || pathname === '/(app)/guided-setup';
+      const onProjectSetup =
+        (pathname === '/(app)/(tabs)/projekt' || pathname === '/(tabs)/projekt') &&
+        (Array.isArray(setup) ? setup[0] : setup) === '1';
       const alreadyOnTargetFamily =
         (gateTarget.includes('/guided-setup') && onGuidedSetup) ||
-        (gateTarget.includes('/onboarding') && onOnboarding)
+        (gateTarget.includes('/onboarding') && onOnboarding) ||
+        (gateTarget.includes('/guided-setup') && onProjectSetup)
 
       if ((onAppRoot || !alreadyOnTargetFamily) && pathname !== gateTarget) {
         router.replace(gateTarget);
@@ -241,7 +246,7 @@ export default function AppLayout() {
     ) {
       router.replace('/(app)/(tabs)/dashboard');
     }
-  }, [gateTarget, pathname, router, session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete, guidedSetupCompleted]);
+  }, [gateTarget, pathname, router, session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete, guidedSetupCompleted, setup]);
 
   const showOverlay =
     authLoading ||

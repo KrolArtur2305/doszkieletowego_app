@@ -29,12 +29,10 @@ const TERMS_URL = 'https://www.mybuildiq.com/terms'
 const PRIVACY_URL = 'https://www.mybuildiq.com/privacy'
 
 type BillingCycle = 'monthly' | 'yearly'
-type PaywallPlanKey = 'free_trial' | 'pro' | 'expert'
-type RevenueCatPlanKey = Exclude<PaywallPlanKey, 'free_trial'>
+type PaywallPlanKey = 'pro' | 'expert'
+type RevenueCatPlanKey = PaywallPlanKey
 
-const PAYWALL_PLAN_KEYS: PaywallPlanKey[] = ['free_trial', 'pro', 'expert']
-const REVENUECAT_PLAN_KEYS: RevenueCatPlanKey[] = ['pro', 'expert']
-
+const PAYWALL_PLAN_KEYS: PaywallPlanKey[] = ['pro', 'expert']
 function expectedProductId(planKey: RevenueCatPlanKey, billing: BillingCycle): string {
   return `buildiq_${planKey}_${billing}`
 }
@@ -84,10 +82,6 @@ function getTrialDaysRemaining(trialEndsAt: string | null): number | null {
   return Math.max(0, Math.ceil((end - Date.now()) / (1000 * 60 * 60 * 24)))
 }
 
-function revenueCatPlanForPaywallPlan(planKey: PaywallPlanKey): RevenueCatPlanKey {
-  return planKey === 'free_trial' ? 'expert' : planKey
-}
-
 export default function CheckoutScreen() {
   const router = useRouter()
   const { t } = useTranslation('subscription')
@@ -96,7 +90,7 @@ export default function CheckoutScreen() {
   const { access, offerings, refresh, loading, error } = useSubscription()
 
   const initialPlan: PaywallPlanKey =
-    planKey === 'free_trial' || planKey === 'expert' ? planKey : 'pro'
+    planKey === 'expert' ? 'expert' : 'pro'
   const [selectedPlan, setSelectedPlan] = useState<PaywallPlanKey>(initialPlan)
   const [billing, setBilling] = useState<BillingCycle>('monthly')
   const [purchasing, setPurchasing] = useState(false)
@@ -122,10 +116,6 @@ export default function CheckoutScreen() {
   }, [introAnim])
 
   const getPlanPrice = (key: PaywallPlanKey) => {
-    if (!REVENUECAT_PLAN_KEYS.includes(key as RevenueCatPlanKey)) {
-      return t('paywall.plans.free_trial.price')
-    }
-
     const pkg = findPackage(availablePackages, key as RevenueCatPlanKey, billing)
     return pkg?.product.priceString ?? t('paywall.priceInStore')
   }
@@ -140,8 +130,7 @@ export default function CheckoutScreen() {
       return
     }
 
-    const purchasePlan = revenueCatPlanForPaywallPlan(selectedPlan)
-    const selectedPackage = findPackage(availablePackages, purchasePlan, billing)
+    const selectedPackage = findPackage(availablePackages, selectedPlan, billing)
 
     if (!selectedPackage) {
       Alert.alert(
@@ -283,17 +272,18 @@ export default function CheckoutScreen() {
         <View style={styles.cardsRow}>
           {PAYWALL_PLAN_KEYS.map((key) => {
             const isSelected = selectedPlan === key
-            const isTrial = key === 'free_trial'
             const isPro = key === 'pro'
             const isExpert = key === 'expert'
             const details = t(`paywall.plans.${key}.details`, { returnObjects: true }) as string[]
+            const isAvailable = !!findPackage(availablePackages, key, billing)
 
             return (
               <TouchableOpacity
                 key={key}
                 onPress={() => setSelectedPlan(key)}
+                disabled={!isAvailable}
                 activeOpacity={0.92}
-                style={[styles.cardWrap, isPro && styles.cardWrapPro]}
+                style={[styles.cardWrap, isPro && styles.cardWrapPro, !isAvailable && styles.cardWrapDisabled]}
               >
                 <BlurView
                   intensity={isSelected ? 24 : 16}
@@ -303,6 +293,7 @@ export default function CheckoutScreen() {
                     isSelected && styles.planCardActive,
                     isPro && styles.planCardPro,
                     isSelected && isPro && styles.planCardProActive,
+                    !isAvailable && styles.planCardDisabled,
                   ]}
                 >
                   <View style={styles.cardTop}>
@@ -342,17 +333,10 @@ export default function CheckoutScreen() {
                       <Text style={[styles.price, isPro && styles.pricePro]} numberOfLines={1} adjustsFontSizeToFit>
                         {getPlanPrice(key)}
                       </Text>
-                      {!isTrial && (
-                        <Text style={styles.periodText} numberOfLines={1}>
-                          / {getPlanPeriod()}
-                        </Text>
-                      )}
-                    </View>
-                    {isTrial && (
-                      <Text style={styles.priceSub} numberOfLines={1}>
-                        {t('paywall.plans.free_trial.priceSub')}
+                      <Text style={styles.periodText} numberOfLines={1}>
+                        / {getPlanPeriod()}
                       </Text>
-                    )}
+                    </View>
                   </View>
                 </BlurView>
               </TouchableOpacity>
@@ -553,19 +537,20 @@ const styles = StyleSheet.create({
   cardsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    height: 264,
+    gap: 10,
+    height: 282,
   },
-  cardWrap: { flex: 1, height: 226 },
-  cardWrapPro: { flex: 1.14, height: 260, marginTop: -8 },
+  cardWrap: { flex: 1, height: 242 },
+  cardWrapPro: { flex: 1.14, height: 274, marginTop: -8 },
+  cardWrapDisabled: { opacity: 0.52 },
   planCard: {
     flex: 1,
     borderRadius: 27,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.105)',
     backgroundColor: 'rgba(255,255,255,0.04)',
-    paddingHorizontal: 9,
-    paddingVertical: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 16,
     overflow: 'hidden',
   },
   planCardActive: {
@@ -587,14 +572,18 @@ const styles = StyleSheet.create({
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 0 },
   },
-  cardTop: { minHeight: 55, alignItems: 'center' },
+  planCardDisabled: {
+    borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.025)',
+  },
+  cardTop: { minHeight: 60, alignItems: 'center' },
   planName: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '900',
     textAlign: 'center',
   },
-  planNamePro: { color: NEON, fontSize: 20 },
+  planNamePro: { color: NEON, fontSize: 21 },
   planNameExpert: { color: '#FFFFFF' },
   badge: {
     marginTop: 7,
@@ -616,16 +605,16 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.2,
   },
-  details: { gap: 7, marginTop: 8, flex: 1 },
+  details: { gap: 8, marginTop: 9, flex: 1 },
   detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
   detailText: {
     color: 'rgba(255,255,255,0.72)',
-    fontSize: 10.2,
-    lineHeight: 13.5,
+    fontSize: 10.6,
+    lineHeight: 14,
     fontWeight: '800',
     flex: 1,
   },
-  priceBlock: { alignItems: 'center', minHeight: 42, justifyContent: 'flex-end' },
+  priceBlock: { alignItems: 'center', minHeight: 44, justifyContent: 'flex-end' },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',

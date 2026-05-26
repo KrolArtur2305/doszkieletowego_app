@@ -67,6 +67,12 @@ export default function ProfilScreen() {
   }, [imie, nazwisko, t]);
 
   const normalizePhone = (v: string) => v.replace(/[^\d+]/g, '');
+  const normalizePhoneInput = (v: string) => {
+    const trimmed = String(v ?? '').trimStart();
+    const hasLeadingPlus = trimmed.startsWith('+');
+    const digits = trimmed.replace(/\D/g, '').slice(0, 15);
+    return hasLeadingPlus ? `+${digits}` : digits;
+  };
 
   const applyProfileState = (next: ProfileCache) => {
     setUserId(next.userId);
@@ -258,9 +264,10 @@ export default function ProfilScreen() {
                   <Field
                     label={t('form.phoneLabel')}
                     value={telefon}
-                    onChangeText={setTelefon}
+                    onChangeText={(value) => setTelefon(normalizePhoneInput(value))}
                     placeholder={t('form.phonePlaceholder')}
                     keyboardType="phone-pad"
+                    maxLength={16}
                   />
 
                   <AppButton
@@ -288,6 +295,7 @@ function Field(props: {
   placeholder?: string;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  maxLength?: number;
 }) {
   const {
     label,
@@ -296,6 +304,7 @@ function Field(props: {
     placeholder,
     keyboardType = 'default',
     autoCapitalize = 'none',
+    maxLength,
   } = props;
 
   return (
@@ -306,6 +315,7 @@ function Field(props: {
       placeholder={placeholder}
       keyboardType={keyboardType}
       autoCapitalize={autoCapitalize}
+      maxLength={maxLength}
       containerStyle={styles.fieldWrap}
       style={styles.input}
     />

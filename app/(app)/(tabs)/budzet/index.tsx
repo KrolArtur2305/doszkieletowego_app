@@ -198,6 +198,10 @@ type PickedFile = {
   uri: string;
   size?: number;
 };
+type ReceiptDocKind = 'paragon' | 'faktura';
+const RECEIPT_BUCKET = 'paragony';
+const DOCUMENT_RECEIPT_BUCKET = 'dokumenty';
+const RECEIPT_BUCKETS = [RECEIPT_BUCKET, DOCUMENT_RECEIPT_BUCKET] as const;
 const MAX_RECEIPT_UPLOAD_BYTES = 20 * 1024 * 1024;
 const ALLOWED_RECEIPT_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic']);
 
@@ -285,6 +289,8 @@ export default function BudzetScreen() {
   const [fOpis, setFOpis] = useState('');
   const [fSklep, setFSklep] = useState('');
   const [picked, setPicked] = useState<PickedFile | null>(null);
+  const [fAttachmentKind, setFAttachmentKind] = useState<ReceiptDocKind>('paragon');
+  const [receiptKindByPath, setReceiptKindByPath] = useState<Record<string, ReceiptDocKind>>({});
 
   // date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -438,6 +444,21 @@ export default function BudzetScreen() {
 
       if (expRes.error) throw expRes.error;
       setWydatki((expRes.data ?? []) as any);
+
+      const docsRes = await supabase
+        .from('dokumenty')
+        .select('plik_url, kategoria')
+        .eq('user_id', userId);
+
+      if (docsRes.error) throw docsRes.error;
+      const nextReceiptKindByPath: Record<string, ReceiptDocKind> = {};
+      for (const doc of (docsRes.data ?? []) as Array<{ plik_url: string; kategoria: string | null }>) {
+        const path = String(doc.plik_url || '').trim();
+        if (!path) continue;
+        const kind = String(doc.kategoria || '').trim().toLowerCase() === 'faktura' ? 'faktura' : 'paragon';
+        nextReceiptKindByPath[path] = kind;
+      }
+      setReceiptKindByPath(nextReceiptKindByPath);
 
       const authUserRes = await supabase.auth.getUser();
       const authUser = authUserRes.data.user;
@@ -600,10 +621,95 @@ export default function BudzetScreen() {
     const key = `${userId}/wydatki/${Date.now()}_${safeName}`;
     const ab = await uriToArrayBuffer(picked.uri, t('errors.readFileFailed'));
     if (!ab || ab.byteLength <= 0) throw new Error(t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
-    const up = await supabase.storage.from('paragony').upload(key, ab, { contentType: picked.mimeType, upsert: false });
+    const up = await supabase.storage.from(RECEIPT_BUCKET).upload(key, ab, { contentType: picked.mimeType, upsert: false });
     if (up.error) throw up.error;
+    const docCopy = await supabase.storage.from(DOCUMENT_RECEIPT_BUCKET).upload(key, ab, { contentType: picked.mimeType, upsert: false });
+    if (docCopy.error) {
+      await removeReceiptFileEverywhere(key);
+      throw docCopy.error;
+    }
     return key;
   };
+
+  const removeReceiptFileEverywhere = useCallback(async (filePath: string) => {
+    await Promise.all(
+      RECEIPT_BUCKETS.map(async (bucket) => {
+        const { error } = await supabase.storage.from(bucket).remove([filePath]);
+        if (error && !String(error.message || '').includes('not found')) {
+          console.warn(`[Budżet] nie udało się usunąć pliku z bucketu ${bucket}:`, error.message);
+        }
+      })
+    );
+  }, []);
+
+  const syncLinkedReceiptDocument = useCallback(async ({
+    userIdValue,
+    filePath,
+    title,
+    note,
+    kind,
+    previousPath,
+  }: {
+    userIdValue: string;
+    filePath: string | null;
+    title: string;
+    note: string | null;
+    kind: ReceiptDocKind;
+    previousPath?: string | null;
+  }) => {
+    if (!filePath) {
+      if (previousPath && previousPath !== filePath) {
+        const { error: deleteError } = await supabase
+          .from('dokumenty')
+          .delete()
+          .eq('user_id', userIdValue)
+          .eq('plik_url', previousPath);
+        if (deleteError) {
+          console.warn('[Budżet] nie udało się usunąć powiązanego dokumentu:', deleteError.message);
+        }
+      }
+      return;
+    }
+
+    const payload = {
+      user_id: userIdValue,
+      tytul: title || t('expense.defaultName'),
+      notatki: note,
+      kategoria: kind,
+      plik_url: filePath,
+    };
+
+    if (previousPath && previousPath !== filePath) {
+      const { error: deleteError } = await supabase
+        .from('dokumenty')
+        .delete()
+        .eq('user_id', userIdValue)
+        .eq('plik_url', previousPath);
+      if (deleteError) {
+        console.warn('[Budżet] nie udało się usunąć starego dokumentu po zmianie pliku:', deleteError.message);
+      }
+    }
+
+    const { data: existing, error: selectError } = await supabase
+      .from('dokumenty')
+      .select('id')
+      .eq('user_id', userIdValue)
+      .eq('plik_url', filePath)
+      .maybeSingle();
+
+    if (selectError && !String(selectError.message || '').includes('No rows')) {
+      throw selectError;
+    }
+
+    if (existing?.id) {
+      const { error: updateError } = await supabase.from('dokumenty').update(payload).eq('id', existing.id).eq('user_id', userIdValue);
+      if (updateError) throw updateError;
+      return;
+    }
+
+    const { error: insertError } = await supabase.from('dokumenty').insert(payload);
+    if (insertError) throw insertError;
+  }, [t]);
 
   const saveExpense = async () => {
     if (!userId) return;
@@ -615,6 +721,7 @@ export default function BudzetScreen() {
     setSaving(true);
     try {
       const storageKey = await uploadOptionalFile();
+      const previousFilePath = editingExpense?.plik || null;
       const selectedStage = selectedStageOption;
       const legacyStage = fEtapId ? etapy.find((stage) => stage.id === fEtapId) ?? null : null;
       const stageCode = selectedStage?.stageCode ?? stageCodeFromLegacyStage(legacyStage, legacyStage ? etapy.findIndex((stage) => stage.id === legacyStage.id) : undefined);
@@ -646,17 +753,41 @@ export default function BudzetScreen() {
         : await supabase.from('wydatki').insert({ ...payload, user_id: userId }).select('id').maybeSingle();
       if (res.error) {
         if (storageKey) {
-          const rollback = await supabase.storage.from('paragony').remove([storageKey]);
-          if (rollback.error) {
-            console.warn('[Budżet] rollback paragonu nie powiódł się:', rollback.error.message);
-          }
+          await removeReceiptFileEverywhere(storageKey);
         }
         throw res.error;
+      }
+
+      const receiptFilePath = storageKey || previousFilePath;
+      if (receiptFilePath) {
+        try {
+          await syncLinkedReceiptDocument({
+            userIdValue: userId,
+            filePath: receiptFilePath,
+            previousPath: previousFilePath && previousFilePath !== receiptFilePath ? previousFilePath : null,
+            title: nazwa,
+            note: [fSklep.trim(), fOpis.trim()].filter(Boolean).join(' • ') || null,
+            kind: fAttachmentKind,
+          });
+        } catch (docError: any) {
+          console.warn('[Budżet] nie udało się zsynchronizować dokumentu wydatku:', docError?.message || docError);
+          Alert.alert(
+            t('errorTitle', { defaultValue: 'Błąd' }),
+            t('errors.documentSyncFailed', {
+              defaultValue: 'Wydatek zapisano, ale nie udało się dodać go do dokumentów.',
+            })
+          );
+        }
+      }
+
+      if (storageKey && previousFilePath && previousFilePath !== storageKey) {
+        await removeReceiptFileEverywhere(previousFilePath);
       }
 
       setFNazwa(''); setFKategoria('other'); setFKwota('');
       setFStatus(STATUS_PAID); setFTyp(TYPE_MATERIAL); setFData(''); setFPlanowanaData(''); setFEtapId(null); setFSuggestionKey(null); setFOpis('');
       setFSklep(''); setPicked(null); setEditingExpense(null);
+      setFAttachmentKind('paragon');
       setFStageKey(null);
       setAddOpen(false);
       await loadBudget();
@@ -688,6 +819,7 @@ export default function BudzetScreen() {
     setFOpis('');
     setFSklep('');
     setPicked(null);
+    setFAttachmentKind('paragon');
     setAddOpen(true);
   };
 
@@ -712,6 +844,7 @@ export default function BudzetScreen() {
     setFOpis(expense.opis || '');
     setFSklep(expense.sklep || '');
     setPicked(null);
+    setFAttachmentKind(expense.plik ? (receiptKindByPath[expense.plik] ?? 'paragon') : 'paragon');
     setAddOpen(true);
   };
 
@@ -895,8 +1028,8 @@ export default function BudzetScreen() {
         <AppCard style={styles.topSuggestionsCard} contentStyle={styles.topSuggestionsCardContent} glow>
           <View style={styles.listHeaderRow}>
             <View style={styles.listHeaderStack}>
-              <Text style={styles.sectionTitleSoft}>{t('sections.toPlan')}</Text>
-              <Text style={styles.sectionSubtitleSoft}>{t('sections.toPlanSubtitle')}</Text>
+              <Text style={styles.sectionTitleSoft}>{t('sections.upcomingExpenses')}</Text>
+              <Text style={styles.sectionSubtitleSoft}>{t('sections.upcomingExpensesSubtitle')}</Text>
             </View>
             <TouchableOpacity onPress={() => openAllExpenses('all', 'date', 'suggested')} activeOpacity={0.8} style={styles.topSuggestionLink}>
               <Text style={styles.topSuggestionLinkText}>{t('common.seeAll')}</Text>
@@ -1177,8 +1310,34 @@ export default function BudzetScreen() {
               <Text style={styles.lbl}>{t('modal.storeOptional')}</Text>
               <AppInput value={fSklep} onChangeText={setFSklep} style={styles.input} placeholder={t('modal.storePlaceholder')} />
 
+              <Text style={styles.lbl}>{t('modal.attachmentTypeLabel', { defaultValue: 'Typ załącznika' })}</Text>
+              <View style={styles.receiptKindRow}>
+                <TouchableOpacity
+                  style={[styles.receiptKindChip, fAttachmentKind === 'paragon' && styles.receiptKindChipOn]}
+                  onPress={() => setFAttachmentKind('paragon')}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.receiptKindChipText, fAttachmentKind === 'paragon' && styles.receiptKindChipTextOn]}>
+                    {t('modal.receiptKindReceipt', { defaultValue: 'Paragon' })}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.receiptKindChip, fAttachmentKind === 'faktura' && styles.receiptKindChipOn]}
+                  onPress={() => setFAttachmentKind('faktura')}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.receiptKindChipText, fAttachmentKind === 'faktura' && styles.receiptKindChipTextOn]}>
+                    {t('modal.receiptKindInvoice', { defaultValue: 'Faktura' })}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity style={styles.fileBtn} onPress={pickFile}>
-                <Text style={styles.fileBtnText}>{picked ? t('modal.fileSelected', { name: picked.name }) : t('modal.fileOptional')}</Text>
+                <Text style={styles.fileBtnText}>
+                  {picked
+                    ? t('modal.fileSelected', { name: picked.name })
+                    : t('modal.fileOptional', { defaultValue: 'Dodaj plik' })}
+                </Text>
               </TouchableOpacity>
 
               <View style={styles.modalActions}>
@@ -1660,6 +1819,34 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   fileBtnText: { color: '#E2E8F0', fontWeight: '800', fontSize: 12 },
+  receiptKindRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 2,
+  },
+  receiptKindChip: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  receiptKindChipOn: {
+    borderColor: 'rgba(37,240,200,0.42)',
+    backgroundColor: 'rgba(37,240,200,0.12)',
+  },
+  receiptKindChipText: {
+    color: 'rgba(255,255,255,0.70)',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  receiptKindChipTextOn: {
+    color: NEON,
+  },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   modalBtn: { flex: 1 },
   budgetFab: { bottom: 28 },

@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     left: -210,
   },
 
-  header: { paddingTop: 0, paddingBottom: spacing.md, alignItems: 'center' },
+  header: { paddingTop: 0, paddingBottom: spacing.lg, alignItems: 'center' },
   screenHeader: {
     alignSelf: 'stretch',
     marginHorizontal: -spacing.xl,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  menuWrap: { gap: spacing.md, marginTop: spacing.md },
+  menuWrap: { gap: spacing.md, marginTop: spacing.lg },
 
   tileOuter: {
     borderRadius: radius.lg,
@@ -334,9 +334,10 @@ const styles = StyleSheet.create({
   },
 
   tile: {
-    height: 72,
+    minHeight: 74,
     borderRadius: radius.lg - 1,
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',

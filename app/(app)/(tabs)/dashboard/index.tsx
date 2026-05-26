@@ -332,8 +332,30 @@ function pickHeroMessageKey(params: {
   if (progressValue >= 0.85 || timeUtil >= 0.85) return 'hero.messages.finalStretch';
   if (progressValue >= 0.45 || timeUtil >= 0.45) return 'hero.messages.midBuild';
   if (progressValue > 0.05 || timeUtil > 0.05) return 'hero.messages.earlyBuild';
-  if (todayTaskCount > 0) return 'hero.messages.focusDay';
-  return 'hero.messages.steadyDay';
+  const pool = todayTaskCount > 0
+    ? [
+        'hero.messages.focusDay',
+        'hero.messages.oneStep',
+        'hero.messages.smallWin',
+        'hero.messages.clearPlan',
+        'hero.messages.steadyDirection',
+        'hero.messages.calmControl',
+      ]
+    : [
+        'hero.messages.dreamCloser',
+        'hero.messages.goodHands',
+        'hero.messages.lessStress',
+        'hero.messages.enjoyIt',
+        'hero.messages.buildingHappens',
+        'hero.messages.smallStep',
+        'hero.messages.proudMoment',
+        'hero.messages.calmProgress',
+        'hero.messages.homeSoon',
+        'hero.messages.orderMatters',
+      ];
+
+  const seed = dayOfYear(new Date());
+  return pool[seed % pool.length];
 }
 
 export default function DashboardScreen() {

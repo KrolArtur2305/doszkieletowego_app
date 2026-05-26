@@ -301,10 +301,8 @@ export default function WszystkieWydatkiScreen() {
   }, [activeStageGroupCode]);
 
   const visibleSuggestionStages = useMemo(() => {
-    const groupIndex = STAGE_GROUP_ORDER.indexOf(activeStageGroupCode);
-    const maxIndex = groupIndex >= 0 ? groupIndex : SUGGESTION_STAGE_ORDER.length - 1;
-    return SUGGESTION_STAGE_ORDER.slice(0, maxIndex + 1);
-  }, [activeStageGroupCode]);
+    return SUGGESTION_STAGE_ORDER;
+  }, []);
 
   const loadExpenses = useCallback(async () => {
     if (authLoading) return;
@@ -571,6 +569,15 @@ export default function WszystkieWydatkiScreen() {
       }),
     }));
   }, [etapy, sortedExpenses, stageTemplates, t, visibleStageGroups]);
+
+  async function getReceiptSignedUrl(storageKey: string) {
+    for (const bucket of ['dokumenty', 'paragony'] as const) {
+      const signed = await supabase.storage.from(bucket).createSignedUrl(storageKey, 60 * 60);
+      if (signed.error || !signed.data?.signedUrl) continue;
+      return signed.data.signedUrl;
+    }
+    return null;
+  }
 
   const openReceipt = async (storageKey: string) => {
     const signed = await supabase.storage.from('paragony').createSignedUrl(storageKey, 60 * 60);
@@ -1611,9 +1618,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: 'rgba(25,112,92,0.07)',
   },
-  suggestionSectionTitle: { color: '#F8FAFC', fontSize: 14, fontWeight: '900' },
+  suggestionSectionTitle: { color: '#F8FAFC', fontSize: 14.8, fontWeight: '900' },
   suggestionSectionMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  suggestionSectionCount: { color: 'rgba(148,163,184,0.85)', fontSize: 11, fontWeight: '900' },
+  suggestionSectionCount: { color: 'rgba(148,163,184,0.85)', fontSize: 11.6, fontWeight: '900' },
   suggestionCardMuted: { opacity: 0.42, backgroundColor: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.06)' },
   suggestionTitle: { color: '#F8FAFC', fontSize: 14.5, fontWeight: '850' as any },
   suggestionTitleMuted: { textDecorationLine: 'line-through' },

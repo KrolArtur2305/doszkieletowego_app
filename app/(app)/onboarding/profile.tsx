@@ -30,6 +30,13 @@ function normalizePhone(v: string) {
   return v.replace(/[^\d+]/g, '');
 }
 
+function normalizePhoneInput(v: string) {
+  const trimmed = String(v ?? '').trimStart();
+  const hasLeadingPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '').slice(0, 15);
+  return hasLeadingPlus ? `+${digits}` : digits;
+}
+
 export default function OnboardingProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation('onboarding');
@@ -200,9 +207,10 @@ export default function OnboardingProfileScreen() {
                 <Field
                   label={t('profile.phone')}
                   value={telefon}
-                  onChangeText={setTelefon}
+                  onChangeText={(value) => setTelefon(normalizePhoneInput(value))}
                   placeholder={t('profile.phonePlaceholder')}
                   keyboardType="phone-pad"
+                  maxLength={16}
                 />
 
                 <AppButton
@@ -230,6 +238,7 @@ function Field(props: {
   autoComplete?: 'off' | 'name' | 'family-name' | 'tel';
   textContentType?: 'none' | 'name' | 'familyName' | 'telephoneNumber';
   autoCorrect?: boolean;
+  maxLength?: number;
 }) {
   const {
     label,
@@ -240,6 +249,7 @@ function Field(props: {
     autoComplete,
     textContentType,
     autoCorrect,
+    maxLength,
   } = props;
 
   return (
@@ -253,6 +263,7 @@ function Field(props: {
       autoComplete={autoComplete}
       textContentType={textContentType}
       autoCorrect={autoCorrect}
+      maxLength={maxLength}
       containerStyle={styles.fieldWrap}
       style={styles.input}
     />

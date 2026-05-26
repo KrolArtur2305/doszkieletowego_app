@@ -18,9 +18,9 @@ import { AppHeader } from '../../../../src/ui/components';
 const NEON = '#25F0C8';
 const { width: W } = Dimensions.get('window');
 const H_PAD = 18;
-const TILE_GAP = 14;
+const TILE_GAP = 12;
 const TILE_W = (W - H_PAD * 2 - TILE_GAP) / 2;
-const TILE_BOX = Math.min(132, TILE_W - 30);
+const TILE_BOX = Math.min(138, TILE_W - 24);
 const WIDE_TILE_W = W - H_PAD * 2;
 
 type Tile = {
@@ -231,12 +231,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 9,
     backgroundColor: '#000000',
   },
   tileIconWrap: {
-    width: 48,
-    height: 48,
+    width: 50,
+    height: 50,
     borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
@@ -244,12 +244,12 @@ const styles = StyleSheet.create({
   },
   tileLabel: {
     color: 'rgba(255,255,255,0.82)',
-    fontSize: 13.5,
+    fontSize: 13.8,
     fontWeight: '800',
     textAlign: 'center',
   },
   wideTileLabel: {
-    fontSize: 14,
+    fontSize: 14.2,
     textAlign: 'center',
     paddingHorizontal: 12,
   },

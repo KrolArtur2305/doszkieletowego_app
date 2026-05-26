@@ -59,6 +59,13 @@ const isValidEmail = (email: string) => {
 
 const normalizePhone = (phone: string) => phone.replace(/[^\d+]/g, '');
 
+const normalizePhoneInput = (phone: string) => {
+  const trimmed = String(phone ?? '').trimStart();
+  const hasLeadingPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '').slice(0, 15);
+  return hasLeadingPlus ? `+${digits}` : digits;
+};
+
 const isValidPhone = (phone: string) => {
   const value = phone.trim();
   if (!value) return true;
@@ -374,9 +381,10 @@ export default function KontaktyScreen() {
                     <FormField
                       label={t('fields.phone')}
                       value={form.telefon ?? ''}
-                      onChangeText={(v) => setForm({ ...form, telefon: v })}
+                      onChangeText={(v) => setForm({ ...form, telefon: normalizePhoneInput(v) })}
                       placeholder={t('placeholders.phone')}
                       keyboardType="phone-pad"
+                      maxLength={16}
                     />
 
                     <FormField
@@ -624,6 +632,7 @@ function FormField({
   placeholder,
   keyboardType,
   multiline,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -631,6 +640,7 @@ function FormField({
   placeholder?: string;
   keyboardType?: any;
   multiline?: boolean;
+  maxLength?: number;
 }) {
   return (
     <View>
@@ -644,6 +654,7 @@ function FormField({
         keyboardType={keyboardType}
         multiline={multiline}
         autoCapitalize="none"
+        maxLength={maxLength}
       />
     </View>
   );

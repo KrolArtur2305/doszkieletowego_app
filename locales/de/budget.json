@@ -38,6 +38,8 @@
     "topUpcoming": "Top 3 kommende Ausgaben laut KI-Bauleiter",
     "toPlan": "Top 3 kommende Ausgaben",
     "toPlanSubtitle": "Vorschläge deines KI-Bauleiters",
+    "upcomingExpenses": "Bevorstehende Ausgaben",
+    "upcomingExpensesSubtitle": "Ausgaben, die du frühzeitig einplanen solltest",
     "monthly": "Monatliche Ausgaben",
     "materialService": "Material / Dienstleistung",
     "topExpenses": "Größte Ausgaben"

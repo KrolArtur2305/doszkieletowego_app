@@ -35,7 +35,7 @@ const APP_LOGO = require('../../../../assets/logo.png');
 const MAX_JOURNAL_IMAGE_BYTES = 15 * 1024 * 1024;
 const ALLOWED_JOURNAL_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
 const JOURNAL_IMAGES_BUCKET = 'zdjecia';
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Etap = {
   id: string;
@@ -56,7 +56,7 @@ type Wpis = {
   created_at: string;
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -151,7 +151,7 @@ async function getJournalImageDisplayUrl(value?: string | null) {
   return data.signedUrl;
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function DziennikScreen() {
   const { session } = useSupabaseAuth();
@@ -163,13 +163,13 @@ export default function DziennikScreen() {
     [i18n.language, i18n.resolvedLanguage]
   );
 
-  // ── State ──
+  // â”€â”€ State â”€â”€
   const [wpisy, setWpisy] = useState<Wpis[]>([]);
   const [loading, setLoading] = useState(true);
   const [etapy, setEtapy] = useState<Etap[]>([]);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
-  // ── Add modal ──
+  // â”€â”€ Add modal â”€â”€
   const [modalOpen, setModalOpen] = useState(false);
   const [editingWpis, setEditingWpis] = useState<Wpis | null>(null);
   const [formData, setFormData] = useState(toYMD(new Date()));
@@ -180,13 +180,12 @@ export default function DziennikScreen() {
   const [formZdjecieStoredValue, setFormZdjecieStoredValue] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showAllEtapy, setShowAllEtapy] = useState(false);
 
-  // ── Detail modal ──
+  // â”€â”€ Detail modal â”€â”€
   const [detailWpis, setDetailWpis] = useState<Wpis | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  // ── Animations ──
+  // â”€â”€ Animations â”€â”€
   const fabAnim = useRef(new Animated.Value(0)).current;
   const headerAnim = useRef(new Animated.Value(0)).current;
   const openedFromParamRef = useRef(false);
@@ -208,7 +207,7 @@ export default function DziennikScreen() {
     ]).start();
   }, [fabAnim, headerAnim]);
 
-  // ── Load data ──
+  // â”€â”€ Load data â”€â”€
   const loadWpisy = async () => {
     const userId = session?.user?.id;
     if (!userId) return;
@@ -270,12 +269,7 @@ export default function DziennikScreen() {
 
   const currentEtapId = useMemo(() => getCurrentEtapId(etapy), [etapy]);
 
-  const selectedEtap = useMemo(
-    () => etapy.find((e) => e.id === formEtapId) ?? null,
-    [etapy, formEtapId]
-  );
-
-  // ── Open add ──
+  // â”€â”€ Open add â”€â”€
   const openAdd = () => {
     setEditingWpis(null);
     setFormData(toYMD(new Date()));
@@ -284,7 +278,6 @@ export default function DziennikScreen() {
     setFormZdjecieUri(null);
     setFormZdjecieUrl(null);
     setFormZdjecieStoredValue(null);
-    setShowAllEtapy(false);
     setShowDatePicker(false);
     setModalOpen(true);
   };
@@ -305,13 +298,12 @@ export default function DziennikScreen() {
       setFormZdjecieUri(null);
       setFormZdjecieUrl(w.zdjecie_display_url ?? w.zdjecie_url);
       setFormZdjecieStoredValue(w.zdjecie_url);
-      setShowAllEtapy(false);
       setShowDatePicker(false);
       setModalOpen(true);
     }, 300);
   };
 
-  // ── Pick image ──
+  // â”€â”€ Pick image â”€â”€
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -333,12 +325,12 @@ export default function DziennikScreen() {
       }
 
       if (fileSize > 0 && fileSize > MAX_JOURNAL_IMAGE_BYTES) {
-        Alert.alert(t('alerts.errorTitle'), t('alerts.fileTooLarge', { defaultValue: 'Zdjęcie jest zbyt duże. Maksymalny rozmiar to 15 MB.' }));
+        Alert.alert(t('alerts.errorTitle'), t('alerts.fileTooLarge', { defaultValue: 'ZdjÄ™cie jest zbyt duĹĽe. Maksymalny rozmiar to 15 MB.' }));
         return;
       }
 
       if (!isImageMime && !hasAllowedExt) {
-        Alert.alert(t('alerts.errorTitle'), t('alerts.invalidFileType', { defaultValue: 'Możesz dodać tylko plik obrazu.' }));
+        Alert.alert(t('alerts.errorTitle'), t('alerts.invalidFileType', { defaultValue: 'MoĹĽesz dodaÄ‡ tylko plik obrazu.' }));
         return;
       }
 
@@ -353,7 +345,7 @@ export default function DziennikScreen() {
     setFormZdjecieStoredValue(null);
   };
 
-  // ── Upload image ──
+  // â”€â”€ Upload image â”€â”€
   const uploadImage = async (uri: string, userId: string): Promise<string | null> => {
     try {
       if (!uri) {
@@ -362,7 +354,7 @@ export default function DziennikScreen() {
 
       const ext = getJournalImageExt(uri) || 'jpg';
       if (!ALLOWED_JOURNAL_IMAGE_EXTENSIONS.has(ext.toLowerCase())) {
-        throw new Error(t('alerts.invalidFileType', { defaultValue: 'Możesz dodać tylko plik obrazu.' }));
+        throw new Error(t('alerts.invalidFileType', { defaultValue: 'MoĹĽesz dodaÄ‡ tylko plik obrazu.' }));
       }
       const path = `${userId}/dziennik/${Date.now()}.${ext}`;
       const response = await fetch(uri);
@@ -371,7 +363,7 @@ export default function DziennikScreen() {
         throw new Error(t('alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
       }
       if (blob.size > MAX_JOURNAL_IMAGE_BYTES) {
-        throw new Error(t('alerts.fileTooLarge', { defaultValue: 'Zdjęcie jest zbyt duże. Maksymalny rozmiar to 15 MB.' }));
+        throw new Error(t('alerts.fileTooLarge', { defaultValue: 'ZdjÄ™cie jest zbyt duĹĽe. Maksymalny rozmiar to 15 MB.' }));
       }
 
       const { error } = await supabase.storage.from(JOURNAL_IMAGES_BUCKET).upload(path, blob, {
@@ -386,7 +378,7 @@ export default function DziennikScreen() {
     }
   };
 
-  // ── Save ──
+  // â”€â”€ Save â”€â”€
   const save = async () => {
     if (!formTresc.trim()) {
       Alert.alert(t('alerts.errorTitle'), t('alerts.noteRequired'));
@@ -406,7 +398,7 @@ export default function DziennikScreen() {
         if (!zdjecieUrl) {
           throw new Error(
             t('alerts.photoUploadError', {
-              defaultValue: 'Nie udało się przesłać zdjęcia. Spróbuj ponownie.',
+              defaultValue: 'Nie udaĹ‚o siÄ™ przesĹ‚aÄ‡ zdjÄ™cia. SprĂłbuj ponownie.',
             })
           );
         }
@@ -437,7 +429,7 @@ export default function DziennikScreen() {
     }
   };
 
-  // ── Delete ──
+  // â”€â”€ Delete â”€â”€
   const deleteWpis = (w: Wpis) => {
     Alert.alert(t('detail.deleteTitle'), t('detail.deleteConfirm'), [
       { text: t('common:cancel'), style: 'cancel' },
@@ -461,7 +453,7 @@ export default function DziennikScreen() {
                 Alert.alert(
                   t('alerts.errorTitle'),
                   t('detail.deleteStorageWarning', {
-                    defaultValue: 'Wpis usunięto, ale nie udało się usunąć zdjęcia z pamięci.',
+                    defaultValue: 'Wpis usuniÄ™to, ale nie udaĹ‚o siÄ™ usunÄ…Ä‡ zdjÄ™cia z pamiÄ™ci.',
                   })
                 );
               }
@@ -573,7 +565,7 @@ export default function DziennikScreen() {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* ── ADD/EDIT MODAL ── */}
+      {/* â”€â”€ ADD/EDIT MODAL â”€â”€ */}
       <Modal
         visible={modalOpen}
         animationType="slide"
@@ -666,92 +658,53 @@ export default function DziennikScreen() {
               {/* Etap */}
               {etapy.length > 0 && (
                 <View style={styles.formGroup}>
-                  <View style={styles.formGroupRow}>
-                    <Text style={styles.formLabel}>{t('modal.stage')}</Text>
-
+                  <Text style={styles.formLabel}>{t('modal.stage')}</Text>
+                  <View style={styles.compactStageGrid}>
                     <TouchableOpacity
-                      onPress={() => setShowAllEtapy((p) => !p)}
-                      style={styles.expandEtapyBtn}
+                      onPress={() => setFormEtapId(null)}
+                      style={[styles.compactStageChip, !formEtapId && styles.compactStageChipOn]}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.expandEtapyBtnText}>
-                        {showAllEtapy ? t('modal.collapse') : t('modal.expand')}
-                      </Text>
-                      <Feather
-                        name={showAllEtapy ? 'chevron-up' : 'chevron-down'}
-                        size={14}
-                        color={NEON}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.selectedEtapWrap}>
-                    <Text style={styles.selectedEtapLabel}>{t('modal.selectedStage')}</Text>
-                    <View style={styles.selectedEtapMain}>
-                      <Text style={styles.selectedEtapText}>
-                        {selectedEtap?.nazwa ?? t('modal.none')}
-                      </Text>
-
-                      {formEtapId === currentEtapId && selectedEtap && (
-                        <View style={styles.currentBadge}>
-                          <Text style={styles.currentBadgeText}>{t('modal.current')}</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  {showAllEtapy && (
-                    <View style={styles.etapyGrid}>
-                      <TouchableOpacity
-                        onPress={() => setFormEtapId(null)}
-                        style={[styles.etapTile, !formEtapId && styles.etapTileActive]}
-                        activeOpacity={0.82}
+                      <Text
+                        style={[
+                          styles.compactStageChipText,
+                          !formEtapId && styles.compactStageChipTextOn,
+                        ]}
                       >
-                        <Text
+                        {t('modal.none')}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {etapy.map((e) => {
+                      const isActive = formEtapId === e.id;
+
+                      return (
+                        <TouchableOpacity
+                          key={e.id}
+                          onPress={() => setFormEtapId(e.id)}
                           style={[
-                            styles.etapTileText,
-                            !formEtapId && styles.etapTileTextActive,
+                            styles.compactStageChip,
+                            isActive && styles.compactStageChipOn,
                           ]}
+                          activeOpacity={0.85}
                         >
-                          {t('modal.none')}
-                        </Text>
-                      </TouchableOpacity>
-
-                      {etapy.map((e) => {
-                        const isActive = formEtapId === e.id;
-                        const isCurrent = currentEtapId === e.id;
-
-                        return (
-                          <TouchableOpacity
-                            key={e.id}
-                            onPress={() => setFormEtapId(e.id)}
+                          <Text
                             style={[
-                              styles.etapTile,
-                              isActive && styles.etapTileActive,
-                              isCurrent && !isActive && styles.etapTileCurrent,
+                              styles.compactStageChipText,
+                              isActive && styles.compactStageChipTextOn,
                             ]}
-                            activeOpacity={0.82}
+                            numberOfLines={1}
                           >
-                            <Text
-                              style={[
-                                styles.etapTileText,
-                                isActive && styles.etapTileTextActive,
-                              ]}
-                              numberOfLines={2}
-                            >
-                              {e.nazwa}
-                            </Text>
-
-                            {isCurrent && <Text style={styles.etapTileHint}>{t('modal.current')}</Text>}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  )}
+                            {e.nazwa}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
               )}
 
-              {/* Treść */}
+              {/* TreĹ›Ä‡ */}
               <View style={styles.formGroup}>
                 <AppInput
                   value={formTresc}
@@ -767,7 +720,7 @@ export default function DziennikScreen() {
                 <Text style={styles.charCount}>{formTresc.length}/2000</Text>
               </View>
 
-              {/* Zdjęcie */}
+              {/* ZdjÄ™cie */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>{t('modal.photo')}</Text>
                 {formZdjecieUri || formZdjecieUrl ? (
@@ -811,7 +764,7 @@ export default function DziennikScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── DETAIL MODAL ── */}
+      {/* â”€â”€ DETAIL MODAL â”€â”€ */}
       <Modal
         visible={detailOpen}
         animationType="slide"
@@ -874,7 +827,7 @@ export default function DziennikScreen() {
   );
 }
 
-// ─── Wpis Card ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Wpis Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function WpisCard({
   wpis: w,
@@ -948,7 +901,7 @@ function WpisCard({
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
@@ -1342,6 +1295,38 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900',
   },
+  compactStageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 2,
+  },
+  compactStageChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.09,
+    shadowRadius: 11,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  compactStageChipOn: {
+    borderColor: 'rgba(37,240,200,0.44)',
+    backgroundColor: 'rgba(37,240,200,0.14)',
+  },
+  compactStageChipText: {
+    color: '#94A3B8',
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0,
+  },
+  compactStageChipTextOn: {
+    color: 'rgba(220,255,245,0.98)',
+  },
   etapyGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1380,7 +1365,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  // Treść
+  // TreĹ›Ä‡
   trescInput: {
     borderRadius: 16,
     padding: 14,

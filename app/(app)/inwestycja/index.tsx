@@ -419,6 +419,7 @@ export default function InwestycjaScreen() {
                   placeholder={t('form.locationPlaceholder')}
                   disabled={loading || saving}
                   error={locationError}
+                  showSelectedDetails={false}
                 />
               </View>
 

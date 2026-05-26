@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.bg,
     borderTopColor: 'rgba(37,240,200,0.16)',
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0.7,
     height: 64,
     paddingBottom: 10,
     paddingTop: 10,

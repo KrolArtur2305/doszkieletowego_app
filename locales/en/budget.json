@@ -38,6 +38,8 @@
     "topUpcoming": "Top 3 upcoming expenses by AI Manager",
     "toPlan": "Top 3 upcoming expenses",
     "toPlanSubtitle": "Suggestions from your AI Manager",
+    "upcomingExpenses": "Upcoming expenses",
+    "upcomingExpensesSubtitle": "Expenses worth planning ahead for",
     "monthly": "Monthly expenses",
     "materialService": "Material / Service",
     "topExpenses": "Top expenses"

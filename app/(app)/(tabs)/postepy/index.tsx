@@ -15,7 +15,6 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import {
   MAIN_STAGE_TIMELINE,
-  ORDER_NOW_BY_GROUP,
   getGroupDisplayKey,
   normalizeWorkflowCode,
   resolveCurrentStageGroupCode,
@@ -40,14 +39,6 @@ const USER_STAGE_SELECT =
 
 function safeNumber(n: number | null | undefined) {
   return typeof n === 'number' && Number.isFinite(n) ? n : 0;
-}
-
-function safeTranslated(t: (key: string, options?: any) => string, key: string, fallback: string) {
-  const resolved = String(t(key, { defaultValue: fallback }) ?? '').trim();
-  if (!resolved) return fallback;
-  if (resolved === key) return fallback;
-  if (/^(orderNow|orders|mainTimeline|fallback)\./.test(resolved)) return fallback;
-  return resolved;
 }
 
 function progressWithTemplateFallback(
@@ -170,24 +161,20 @@ export default function PostepyScreen() {
         progressPercent: progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0,
       };
     });
-    const overallProgress = {
-      done: timeline.filter((item) => item.done).length,
-      total: MAIN_STAGE_TIMELINE.length,
-    };
+    const overallProgress = MAIN_STAGE_TIMELINE.reduce(
+      (acc, item) => {
+        const progress = progressWithTemplateFallback(userStages, templates, item.stage_group_code);
+        acc.done += progress.done;
+        acc.total += progress.total;
+        return acc;
+      },
+      { done: 0, total: 0 }
+    );
     const overallPercent = overallProgress.total > 0 ? Math.round((overallProgress.done / overallProgress.total) * 100) : 0;
     const nextTimelineItem = timeline[currentTimelineIndex + 1] ?? null;
     const nextTimelineHint = t(getUpcomingHintKey(nextTimelineItem?.stage_group_code), {
       defaultValue: t('upcoming.hint'),
     });
-    const orderNowTemplates = ORDER_NOW_BY_GROUP[currentGroupCode] ?? ORDER_NOW_BY_GROUP.stan_zero;
-    const orderNowItems = orderNowTemplates.map((item) => ({
-      name: safeTranslated(t, item.name_key, item.name_key.split('.').pop() ?? item.name_key),
-      leadTime: safeTranslated(
-        t,
-        item.lead_time_key,
-        item.lead_time_key.endsWith('.short') ? '1-2 tyg.' : item.lead_time_key.endsWith('.medium') ? '2-4 tyg.' : '4-8 tyg.'
-      ),
-    }));
 
     return {
       workflowCode,
@@ -201,7 +188,6 @@ export default function PostepyScreen() {
       timeline,
       nextTimelineItem,
       nextTimelineHint,
-      orderNowItems,
     };
   }, [profile?.build_type, profile?.current_stage_code, templates, t, userStages]);
 
@@ -288,35 +274,6 @@ export default function PostepyScreen() {
           </View>
         </BlurView>
       </TouchableOpacity>
-
-      <BlurView intensity={16} tint="dark" style={styles.card}>
-        <View style={styles.sectionHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.orderCardLabel}>{t('orders.cardLabel')}</Text>
-            <Text style={styles.sectionSubtitle}>{t('orders.subtitle')}</Text>
-          </View>
-        </View>
-        <View style={styles.orderList}>
-          {viewModel.orderNowItems.map((item) => (
-            <View key={item.name} style={styles.orderRow}>
-              <View style={styles.orderIcon}>
-                <Feather name="clock" size={13} color={NEON} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.orderName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.orderLead} numberOfLines={1}>
-                  {viewModel.currentGroupLabel}
-                </Text>
-              </View>
-              <View style={styles.orderPill}>
-                <Text style={styles.orderPillText}>{item.leadTime}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </BlurView>
 
       <BlurView intensity={16} tint="dark" style={styles.card}>
         <Text style={styles.cardLabel}>{t('upcoming.cardLabel')}</Text>
