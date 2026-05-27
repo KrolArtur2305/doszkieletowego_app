@@ -28,6 +28,7 @@ import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/service
 const BG = '#000000';
 const NEON = '#25F0C8';
 const APP_LOGO = require('../../assets/logo.png');
+const INVESTMENT_NAME_MAX_LENGTH = 18;
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -169,19 +170,46 @@ export default function OnboardingInvestmentScreen() {
   }, [t]);
 
   const openPicker = (which: 'start' | 'koniec') => {
+    const startDate = parseISODate(dataStartISO);
+    const endDate = parseISODate(dataKoniecISO);
     const initial =
       which === 'start'
-        ? parseISODate(dataStartISO) ?? new Date()
-        : parseISODate(dataKoniecISO) ?? new Date();
-    setTempDate(initial);
+        ? startDate ?? new Date()
+        : endDate ?? new Date();
+    const constrainedInitial =
+      which === 'start' && endDate && initial > endDate
+        ? endDate
+        : which === 'koniec' && startDate && initial < startDate
+          ? startDate
+          : initial;
+    setTempDate(constrainedInitial);
     setPickerOpen(which);
   };
 
   const closePicker = () => setPickerOpen(null);
 
   const confirmPicker = () => {
-    if (pickerOpen === 'start') setDataStartISO(toISODate(tempDate));
-    if (pickerOpen === 'koniec') setDataKoniecISO(toISODate(tempDate));
+    const selectedISO = toISODate(tempDate);
+    if (pickerOpen === 'start') {
+      if (dataKoniecISO && selectedISO > dataKoniecISO) {
+        Alert.alert(
+          t('alerts.errorTitle'),
+          t('alerts.startAfterEnd', { defaultValue: 'Data startu nie może być późniejsza niż data końca.' })
+        );
+        return;
+      }
+      setDataStartISO(selectedISO);
+    }
+    if (pickerOpen === 'koniec') {
+      if (dataStartISO && selectedISO < dataStartISO) {
+        Alert.alert(
+          t('alerts.errorTitle'),
+          t('alerts.endBeforeStart', { defaultValue: 'Data końca nie może być wcześniejsza niż data startu.' })
+        );
+        return;
+      }
+      setDataKoniecISO(selectedISO);
+    }
     closePicker();
   };
 
@@ -192,6 +220,14 @@ export default function OnboardingInvestmentScreen() {
 
     if (!trimmedName) {
       Alert.alert(t('alerts.errorTitle'), t('alerts.nameRequired'));
+      return;
+    }
+
+    if (trimmedName.length > INVESTMENT_NAME_MAX_LENGTH) {
+      Alert.alert(
+        t('alerts.errorTitle'),
+        t('alerts.nameTooLong', { defaultValue: 'Nazwa inwestycji może mieć maksymalnie 18 znaków.' })
+      );
       return;
     }
 
@@ -209,6 +245,14 @@ export default function OnboardingInvestmentScreen() {
 
     if (!dataKoniecISO) {
       Alert.alert(t('alerts.errorTitle'), t('alerts.endDateRequired', { defaultValue: 'Wybierz datę zakończenia.' }));
+      return;
+    }
+
+    if (dataStartISO > dataKoniecISO) {
+      Alert.alert(
+        t('alerts.errorTitle'),
+        t('alerts.startAfterEnd', { defaultValue: 'Data startu nie może być późniejsza niż data końca.' })
+      );
       return;
     }
 
@@ -319,7 +363,13 @@ export default function OnboardingInvestmentScreen() {
               </View>
             ) : (
               <>
-                <Field label={`${t('form.nameLabel')} *`} value={nazwa} onChangeText={setNazwa} placeholder={t('form.namePlaceholder')} />
+                <Field
+                  label={`${t('form.nameLabel')} *`}
+                  value={nazwa}
+                  onChangeText={setNazwa}
+                  placeholder={t('form.namePlaceholder')}
+                  maxLength={INVESTMENT_NAME_MAX_LENGTH}
+                />
                 <PlaceAutocomplete
                   label={`${t('form.locationLabel')} *`}
                   value={lokalizacja}
@@ -387,6 +437,8 @@ export default function OnboardingInvestmentScreen() {
                   display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
                   locale={locale}
                   themeVariant="dark"
+                  maximumDate={pickerOpen === 'start' ? parseISODate(dataKoniecISO) ?? undefined : undefined}
+                  minimumDate={pickerOpen === 'koniec' ? parseISODate(dataStartISO) ?? undefined : undefined}
                   onChange={(_event, date) => {
                     if (date) setTempDate(date);
                   }}
@@ -410,8 +462,9 @@ function Field(props: {
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
+  maxLength?: number;
 }) {
-  const { label, value, onChangeText, placeholder } = props;
+  const { label, value, onChangeText, placeholder, maxLength } = props;
 
   return (
     <AppInput
@@ -419,6 +472,7 @@ function Field(props: {
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
+      maxLength={maxLength}
       containerStyle={styles.fieldBlock}
       style={styles.input}
     />

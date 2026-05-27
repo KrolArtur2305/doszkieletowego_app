@@ -28,6 +28,7 @@ import {
   normalizeWorkflowCode,
   resolveCurrentStageGroupCode,
   summarizeGroupProgress,
+  summarizeOverallProgressBySubstages,
   type StageTemplateRow,
   type UserStageRow,
 } from '../../../../lib/postepyModel';
@@ -431,7 +432,7 @@ export default function DashboardScreen() {
     () => [
       {
         key: 'budzet',
-        value: clamp01(budgetUtil),
+        value: budgetUtil,
         label: t('donuts.budgetLabel'),
         onPress: () => router.push('/(app)/(tabs)/budzet'),
       },
@@ -824,15 +825,12 @@ export default function DashboardScreen() {
         const currentGroupStats = summarizeGroupProgress(userStages, [], currentGroupCode, workflowTemplates);
         const total = currentGroupStats.total;
         const doneCount = currentGroupStats.done;
-        const timeline = MAIN_STAGE_TIMELINE.map((item, index) => {
-          const progress = summarizeGroupProgress(userStages, [], item.stage_group_code, workflowTemplates);
-          return {
-            ...item,
-            done: index < currentGroupIndex || (progress.total > 0 && progress.done >= progress.total),
-          };
-        });
-        const overallDone = timeline.filter((item) => item.done).length;
-        const overallTotal = MAIN_STAGE_TIMELINE.length;
+        const overallProgress = summarizeOverallProgressBySubstages(
+          userStages,
+          [],
+          currentGroupCode,
+          workflowTemplates
+        );
 
         if (!alive) return;
 
@@ -841,8 +839,8 @@ export default function DashboardScreen() {
         setMilestonesText(`${doneCount} / ${total}`);
         setProgressValue(total > 0 ? clamp01(doneCount / total) : 0);
         setProgressPercent(total > 0 ? Math.round((doneCount / total) * 100) : 0);
-        setOverallMilestonesText(`${overallDone} / ${overallTotal}`);
-        setOverallProgressValue(overallTotal > 0 ? clamp01(overallDone / overallTotal) : 0);
+        setOverallMilestonesText(`${overallProgress.done} / ${overallProgress.total}`);
+        setOverallProgressValue(overallProgress.value);
       } catch {
         setObecnyEtap(t('common:dash'));
         setKolejnyEtap(t('common:dash'));

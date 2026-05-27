@@ -4,6 +4,8 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
+const DANGER = '#EF4444';
+const DANGER_ACCENT = '#7F1D1D';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -29,6 +31,9 @@ export function FuturisticDonutSvg({
   isActive = false,
 }: Props) {
   const v = clamp01(value);
+  const displayValue = Math.max(0, Number.isFinite(value) ? value : 0);
+  const isOverLimit = displayValue > 1;
+  const ringGradientId = isOverLimit ? 'gradDanger' : 'grad';
 
   const r = useMemo(() => (size - stroke) / 2, [size, stroke]);
   const cx = size / 2;
@@ -134,7 +139,7 @@ export function FuturisticDonutSvg({
     outputRange: ['-90deg', '190deg'],
   });
 
-  const percent = Math.round(v * 100);
+  const percent = Math.round(displayValue * 100);
   const percentFontSize = Math.max(22, Math.round(size * 0.21));
   const showLabel = !!label || !!onPressLabel;
 
@@ -157,6 +162,11 @@ export function FuturisticDonutSvg({
                 <Stop offset="0" stopColor={NEON} stopOpacity="1" />
                 <Stop offset="0.55" stopColor={ACCENT} stopOpacity="1" />
                 <Stop offset="1" stopColor={NEON} stopOpacity="0.90" />
+              </LinearGradient>
+              <LinearGradient id="gradDanger" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor={DANGER} stopOpacity="1" />
+                <Stop offset="0.55" stopColor={DANGER_ACCENT} stopOpacity="1" />
+                <Stop offset="1" stopColor={DANGER} stopOpacity="0.92" />
               </LinearGradient>
             </Defs>
 
@@ -205,7 +215,7 @@ export function FuturisticDonutSvg({
               cx={cx}
               cy={cy}
               r={r}
-              stroke="url(#grad)"
+              stroke={`url(#${ringGradientId})`}
               strokeWidth={stroke + 10}
               strokeLinecap="round"
               fill="transparent"
@@ -221,7 +231,7 @@ export function FuturisticDonutSvg({
               cx={cx}
               cy={cy}
               r={r}
-              stroke="url(#grad)"
+              stroke={`url(#${ringGradientId})`}
               strokeWidth={stroke}
               strokeLinecap="round"
               fill="transparent"

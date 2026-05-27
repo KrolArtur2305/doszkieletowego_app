@@ -27,6 +27,11 @@ import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../../../src/ui/components';
 import { colors as uiColors, typography } from '../../../../../src/ui/theme';
+import {
+  getStageGroupDisplayName,
+  stageGroupCodeFromLegacyStage,
+  type StageGroupCode,
+} from '../../../../../lib/stageModel';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -40,9 +45,13 @@ const JOURNAL_IMAGES_BUCKET = 'zdjecia';
 type Etap = {
   id: string;
   nazwa: string;
+  nazwa_code?: string | null;
   status?: string | null;
   kolejnosc?: number | null;
+  stageGroupCode?: StageGroupCode;
 };
+
+const MAIN_STAGE_GROUP_ORDER: StageGroupCode[] = ['stan_zero', 'sso', 'ssz', 'instalacje', 'wykonczenie'];
 
 type Wpis = {
   id: string;
@@ -101,6 +110,11 @@ function getCurrentEtapId(etapy: Etap[]) {
   });
 
   return firstCurrent?.id ?? etapy[0]?.id ?? null;
+}
+
+function isDoneEtapStatus(status: unknown) {
+  const value = String(status ?? '').toLowerCase().trim();
+  return value === 'zrealizowany' || value === 'done' || value === 'completed';
 }
 
 function getJournalImageExt(uri?: string | null) {
@@ -167,6 +181,7 @@ export default function DziennikScreen() {
   const [wpisy, setWpisy] = useState<Wpis[]>([]);
   const [loading, setLoading] = useState(true);
   const [etapy, setEtapy] = useState<Etap[]>([]);
+  const [legacyEtapToMainEtapId, setLegacyEtapToMainEtapId] = useState<Record<string, string>>({});
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // â”€â”€ Add modal â”€â”€
@@ -216,15 +231,18 @@ export default function DziennikScreen() {
     try {
       const { data } = await supabase
         .from('dziennik')
-        .select('*, etapy(nazwa)')
+        .select('*, etapy(nazwa,nazwa_code,status,kolejnosc)')
         .eq('user_id', userId);
 
       const mapped = await Promise.all(
-        (data ?? []).map(async (w: any) => ({
-          ...w,
-          etap_nazwa: w.etapy?.nazwa ?? null,
-          zdjecie_display_url: await getJournalImageDisplayUrl(w.zdjecie_url),
-        }))
+        (data ?? []).map(async (w: any) => {
+          const groupCode = w.etapy ? stageGroupCodeFromLegacyStage(w.etapy) : null;
+          return {
+            ...w,
+            etap_nazwa: groupCode ? getStageGroupDisplayName(t, groupCode, w.etapy?.nazwa ?? '') : null,
+            zdjecie_display_url: await getJournalImageDisplayUrl(w.zdjecie_url),
+          };
+        })
       );
 
       setWpisy(mapped);
@@ -241,11 +259,42 @@ export default function DziennikScreen() {
 
     const { data } = await supabase
       .from('etapy')
-      .select('id, nazwa, status, kolejnosc')
+      .select('id, nazwa, nazwa_code, status, kolejnosc')
       .eq('user_id', userId)
       .order('kolejnosc', { ascending: true });
 
-    setEtapy((data ?? []) as Etap[]);
+    const rows = (data ?? []) as Etap[];
+    const grouped = new Map<StageGroupCode, Etap[]>();
+
+    rows.forEach((row) => {
+      const groupCode = stageGroupCodeFromLegacyStage(row);
+      const current = grouped.get(groupCode) ?? [];
+      current.push(row);
+      grouped.set(groupCode, current);
+    });
+
+    const nextLegacyEtapToMainEtapId: Record<string, string> = {};
+    const mainStages = MAIN_STAGE_GROUP_ORDER.flatMap((groupCode) => {
+      const groupRows = grouped.get(groupCode) ?? [];
+      if (!groupRows.length) return [];
+
+      const firstOpen = groupRows.find((row) => !isDoneEtapStatus(row.status));
+      const representative = firstOpen ?? groupRows[0];
+      groupRows.forEach((row) => {
+        nextLegacyEtapToMainEtapId[row.id] = representative.id;
+      });
+
+      return [{
+        ...representative,
+        nazwa: getStageGroupDisplayName(t, groupCode, representative.nazwa),
+        status: groupRows.every((row) => isDoneEtapStatus(row.status)) ? 'done' : representative.status,
+        kolejnosc: MAIN_STAGE_GROUP_ORDER.indexOf(groupCode),
+        stageGroupCode: groupCode,
+      }];
+    });
+
+    setLegacyEtapToMainEtapId(nextLegacyEtapToMainEtapId);
+    setEtapy(mainStages);
   };
 
   useEffect(() => {
@@ -294,7 +343,7 @@ export default function DziennikScreen() {
       setEditingWpis(w);
       setFormData(w.data);
       setFormTresc(w.tresc);
-      setFormEtapId(w.etap_id);
+      setFormEtapId(w.etap_id ? legacyEtapToMainEtapId[w.etap_id] ?? w.etap_id : null);
       setFormZdjecieUri(null);
       setFormZdjecieUrl(w.zdjecie_display_url ?? w.zdjecie_url);
       setFormZdjecieStoredValue(w.zdjecie_url);

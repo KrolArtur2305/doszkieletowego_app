@@ -1,0 +1,34 @@
+v20.19.4
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY
+Starting project at C:\doszkieletowego_app
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:8082
+Logs for your project will appear below.
+iOS node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS node_modules\expo-router\entry.js ▓▓░░░░░░░░░░░░░░ 16.0% ( 6/18)
+iOS node_modules\expo-router\entry.js ▓▓░░░░░░░░░░░░░░ 16.0% (28/94)
+iOS node_modules\expo-router\entry.js ▓▓░░░░░░░░░░░░░░ 16.0% ( 38/197)
+iOS node_modules\expo-router\entry.js ▓▓░░░░░░░░░░░░░░ 16.0% ( 72/277)
+iOS node_modules\expo-router\entry.js ▓▓░░░░░░░░░░░░░░ 16.0% (132/350)
+iOS node_modules\expo-router\entry.js ▓▓▓▓░░░░░░░░░░░░ 25.1% (214/430)
+iOS node_modules\expo-router\entry.js ▓▓▓▓░░░░░░░░░░░░ 27.4% (254/544)
+iOS node_modules\expo-router\entry.js ▓▓▓▓░░░░░░░░░░░░ 27.4% (321/631)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓░░░░░░░░░░ 39.7% (440/698)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓░░░░░░░░░░ 40.7% (461/738)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓░░░░░░░░░ 44.1% (517/810)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 51.4% (621/870)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 62.0% (721/951)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 62.0% ( 781/1043)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 62.0% ( 858/1118)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 62.3% ( 942/1193)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 66.9% (1044/1276)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 77.0% (1170/1333)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 78.7% (1246/1445)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 82.1% (1354/1521)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 85.3% (1471/1619)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 93.7% (1605/1661)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 95.0% (1692/1741)
+iOS node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1796/1796)
+iOS Bundled 88987ms node_modules\expo-router\entry.js (1796 modules)

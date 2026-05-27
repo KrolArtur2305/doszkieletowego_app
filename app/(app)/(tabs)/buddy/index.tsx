@@ -466,7 +466,7 @@ export default function BuddyChatScreen() {
             onPress={startNewConversation}
             disabled={sending}
           >
-            <Feather name="edit-3" size={17} color={NEON} />
+            <Feather name="plus" size={19} color={NEON} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -730,19 +730,19 @@ const styles = StyleSheet.create({
   },
   headerAvatarWrap: { position: 'relative' },
   headerAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     borderWidth: 2,
     borderColor: 'rgba(37,240,200,0.40)',
   },
   onlineDot: {
     position: 'absolute',
-    bottom: 1,
-    right: 1,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: NEON,
     borderWidth: 2,
     borderColor: '#000',
@@ -750,9 +750,9 @@ const styles = StyleSheet.create({
   headerName: {
     marginLeft: 12,
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '900',
-    lineHeight: 24,
+    lineHeight: 28,
     flexShrink: 1,
     textAlign: 'center',
   },

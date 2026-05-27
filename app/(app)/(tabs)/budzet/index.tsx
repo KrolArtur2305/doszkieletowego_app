@@ -980,7 +980,7 @@ export default function BudzetScreen() {
             <>
               <View style={styles.financeDonutCol}>
                 <FuturisticDonutSvg
-                  value={clamp01(budgetUtil)}
+                  value={budgetUtil}
                   label=""
                   isActive={true}
                   size={170}

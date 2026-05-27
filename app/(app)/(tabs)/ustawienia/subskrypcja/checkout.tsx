@@ -283,7 +283,7 @@ export default function CheckoutScreen() {
                 onPress={() => setSelectedPlan(key)}
                 disabled={!isAvailable}
                 activeOpacity={0.92}
-                style={[styles.cardWrap, isPro && styles.cardWrapPro, !isAvailable && styles.cardWrapDisabled]}
+                style={[styles.cardWrap, !isAvailable && styles.cardWrapDisabled]}
               >
                 <BlurView
                   intensity={isSelected ? 24 : 16}
@@ -343,16 +343,6 @@ export default function CheckoutScreen() {
             )
           })}
         </View>
-
-        <BlurView intensity={18} tint="dark" style={styles.selectedPanel}>
-          <View style={styles.panelIcon}>
-            <Feather name="layers" size={18} color={NEON} />
-          </View>
-          <View style={styles.panelCopy}>
-            <Text style={styles.panelTitle}>{t(`paywall.selected.${selectedPlan}.title`)}</Text>
-            <Text style={styles.panelDesc}>{t(`paywall.selected.${selectedPlan}.desc`)}</Text>
-          </View>
-        </BlurView>
 
         <View style={styles.footer}>
           <TouchableOpacity
@@ -490,11 +480,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignSelf: 'center',
     width: '86%',
-    padding: 4,
+    padding: 5,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.045)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1.6,
+    borderColor: 'rgba(37,240,200,0.28)',
     marginBottom: 12,
   },
   billingOption: {
@@ -507,12 +497,12 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   billingOptionActive: {
-    backgroundColor: 'rgba(37,240,200,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.18)',
+    backgroundColor: 'rgba(37,240,200,0.14)',
+    borderWidth: 1.4,
+    borderColor: 'rgba(37,240,200,0.48)',
     shadowColor: NEON,
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 0 },
   },
   billingText: { color: 'rgba(255,255,255,0.48)', fontSize: 12.5, fontWeight: '900' },
@@ -538,10 +528,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    height: 282,
+    height: 252,
   },
   cardWrap: { flex: 1, height: 242 },
-  cardWrapPro: { flex: 1.14, height: 274, marginTop: -8 },
+  cardWrapPro: { flex: 1, height: 242 },
   cardWrapDisabled: { opacity: 0.52 },
   planCard: {
     flex: 1,

@@ -265,6 +265,35 @@ export function summarizeGroupProgress(
   };
 }
 
+export function summarizeOverallProgressBySubstages(
+  userStages: UserStageRow[],
+  legacyStages: LegacyStageRow[],
+  currentGroupCode: StageGroupCode,
+  stageTemplates: StageTemplateRow[] = []
+): { done: number; total: number; value: number; percent: number } {
+  const currentGroupIndex = Math.max(
+    0,
+    MAIN_STAGE_TIMELINE.findIndex((item) => item.stage_group_code === currentGroupCode)
+  );
+
+  const overall = MAIN_STAGE_TIMELINE.reduce(
+    (acc, item, index) => {
+      const progress = summarizeGroupProgress(userStages, legacyStages, item.stage_group_code, stageTemplates);
+      acc.done += index < currentGroupIndex ? progress.total : progress.done;
+      acc.total += progress.total;
+      return acc;
+    },
+    { done: 0, total: 0 }
+  );
+  const value = overall.total > 0 ? Math.max(0, Math.min(1, overall.done / overall.total)) : 0;
+
+  return {
+    ...overall,
+    value,
+    percent: Math.round(value * 100),
+  };
+}
+
 export function getGroupDisplayKey(groupCode: StageGroupCode): string {
   switch (groupCode) {
     case 'stan_zero':

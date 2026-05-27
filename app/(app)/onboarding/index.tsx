@@ -41,6 +41,7 @@ import { GUIDED_SETUP_ENABLED } from '../../../src/services/guidedSetup/launchMo
 const BG = '#000000';
 const NEON = '#25F0C8';
 const APP_LOGO = require('../../assets/logo.png');
+const BUDDY_NAME_MAX_LENGTH = 10;
 
 type OnboardingStep = 'build_type' | 'build_stage' | 'budget' | 'buddy';
 
@@ -527,10 +528,10 @@ export default function OnboardingScreen() {
       return;
     }
 
-    if (trimmedName.length > 30) {
+    if (trimmedName.length > BUDDY_NAME_MAX_LENGTH) {
       Alert.alert(
         t('onboarding:alerts.errorTitle'),
-        t('buddy:settings.errors.nameTooLong')
+        t('buddy:onboarding.nameTooLong', { defaultValue: 'Imię może mieć maksymalnie 10 znaków' })
       );
       return;
     }
@@ -612,7 +613,7 @@ export default function OnboardingScreen() {
             value={buddyName}
             onChangeText={setBuddyName}
             placeholder={t('buddy:onboarding.namePlaceholder')}
-            maxLength={30}
+            maxLength={BUDDY_NAME_MAX_LENGTH}
             style={styles.input}
           />
         </View>
@@ -793,7 +794,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   stageList: {
-    gap: 10,
+    gap: 12,
   },
   tileOuter: {
     borderRadius: 24,
@@ -804,7 +805,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'visible',
     position: 'relative',
-    paddingTop: 6,
   },
   stageSelectButton: {
     borderRadius: 20,
@@ -826,53 +826,53 @@ const styles = StyleSheet.create({
   },
   infoBadge: {
     position: 'absolute',
-    right: 10,
-    top: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    right: 12,
+    top: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(37,240,200,0.13)',
+    backgroundColor: 'rgba(37,240,200,0.20)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.52)',
+    borderColor: 'rgba(37,240,200,0.72)',
+    zIndex: 2,
   },
   infoBadgeText: {
     color: NEON,
-    fontSize: 13,
-    lineHeight: 15,
+    fontSize: 14,
+    lineHeight: 16,
     fontWeight: '900',
   },
   stageTileTitle: {
-    flex: 1,
+    width: '100%',
     color: '#FFFFFF',
     fontSize: 17,
     lineHeight: 21,
     fontWeight: '900',
     textAlign: 'center',
-    paddingRight: 28,
+    paddingHorizontal: 34,
   },
   stageInfoBubble: {
-    position: 'absolute',
-    right: 10,
-    top: 42,
-    maxWidth: '84%',
+    alignSelf: 'stretch',
+    marginTop: 8,
+    marginHorizontal: 8,
     borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(9,20,18,0.96)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.24)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(4,18,16,0.98)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(37,240,200,0.50)',
     shadowColor: '#000000',
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.44,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
   stageTileInfo: {
-    color: 'rgba(255,255,255,0.84)',
-    fontSize: 12,
-    lineHeight: 17,
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '700',
   },
   tile: {

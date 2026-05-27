@@ -19,6 +19,7 @@ import {
   normalizeWorkflowCode,
   resolveCurrentStageGroupCode,
   summarizeGroupProgress,
+  summarizeOverallProgressBySubstages,
   type StageGroupCode,
   type StageTemplateRow,
   type UserStageRow,
@@ -141,36 +142,38 @@ export default function PostepyScreen() {
 
   const viewModel = useMemo(() => {
     const workflowCode = normalizeWorkflowCode(profile?.build_type);
+    const workflowTemplates = templates.filter((row) => row.workflow_code === workflowCode);
     const currentStageCode = String(profile?.current_stage_code ?? '').trim().toUpperCase();
-    const currentGroupCode = resolveCurrentStageGroupCode(templates, profile?.build_type, currentStageCode);
+    const currentGroupCode = resolveCurrentStageGroupCode(workflowTemplates, profile?.build_type, currentStageCode);
     const currentGroupLabelKey = getGroupDisplayKey(currentGroupCode);
     const currentGroupLabel = t(currentGroupLabelKey, { defaultValue: t('fallback.currentGroup') });
-    const currentProgress = progressWithTemplateFallback(userStages, templates, currentGroupCode);
+    const currentProgress = progressWithTemplateFallback(userStages, workflowTemplates, currentGroupCode);
     const currentPercent = currentProgress.total > 0 ? Math.round((currentProgress.done / currentProgress.total) * 100) : 0;
     const currentTimelineIndex = Math.max(
       0,
       MAIN_STAGE_TIMELINE.findIndex((item) => item.stage_group_code === currentGroupCode)
     );
     const timeline = MAIN_STAGE_TIMELINE.map((item, index) => {
-      const progress = progressWithTemplateFallback(userStages, templates, item.stage_group_code);
+      const progress = progressWithTemplateFallback(userStages, workflowTemplates, item.stage_group_code);
       return {
         ...item,
         title: t(item.label_key, { defaultValue: item.stage_group_code }),
         done: index < currentTimelineIndex || progress.total > 0 && progress.done >= progress.total,
         active: index === currentTimelineIndex,
-        progressPercent: progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0,
+        progressPercent: index < currentTimelineIndex
+          ? 100
+          : progress.total > 0
+            ? Math.round((progress.done / progress.total) * 100)
+            : 0,
       };
     });
-    const overallProgress = MAIN_STAGE_TIMELINE.reduce(
-      (acc, item) => {
-        const progress = progressWithTemplateFallback(userStages, templates, item.stage_group_code);
-        acc.done += progress.done;
-        acc.total += progress.total;
-        return acc;
-      },
-      { done: 0, total: 0 }
+    const overallProgress = summarizeOverallProgressBySubstages(
+      userStages,
+      [],
+      currentGroupCode,
+      workflowTemplates
     );
-    const overallPercent = overallProgress.total > 0 ? Math.round((overallProgress.done / overallProgress.total) * 100) : 0;
+    const overallPercent = overallProgress.percent;
     const nextTimelineItem = timeline[currentTimelineIndex + 1] ?? null;
     const nextTimelineHint = t(getUpcomingHintKey(nextTimelineItem?.stage_group_code), {
       defaultValue: t('upcoming.hint'),

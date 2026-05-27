@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Alert,
   Dimensions,
+  Keyboard,
   ScrollView,
   Platform,
   Pressable,
@@ -24,7 +25,6 @@ import { decode as decodeBase64 } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
-import { workflowBuildType } from '../../../../lib/buildWorkflow';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../src/ui/components';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
@@ -39,7 +39,6 @@ type EtapZdjecia = {
   id: string;
   nazwa: string;
   kolejnosc: number;
-  source?: 'workflow' | 'legacy';
 };
 
 type Zdjecie = {
@@ -134,6 +133,7 @@ export default function ZdjeciaScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
@@ -208,6 +208,16 @@ export default function ZdjeciaScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   // zmiana filtra lub sortowania -> reload listy
   useEffect(() => {
     if (!loading) loadZdjecia(false);
@@ -223,35 +233,20 @@ export default function ZdjeciaScreen() {
         return;
       }
 
-      const [{ data: profileData, error: profileError }, { data: legacyData, error: legacyError }] =
-        await Promise.all([
-          supabase
-            .from('profiles')
-            .select('build_type')
-            .eq('user_id', userId)
-            .maybeSingle(),
-          supabase
-            .from('etapy_zdjecia')
-            .select('id,nazwa,kolejnosc')
-            .order('kolejnosc', { ascending: true }),
-        ]);
+      const { data: legacyData, error: legacyError } = await supabase
+        .from('etapy_zdjecia')
+        .select('id,nazwa,kolejnosc')
+        .order('kolejnosc', { ascending: true });
 
-      if (profileError) throw profileError;
       if (legacyError) throw legacyError;
 
-      const currentWorkflow = workflowBuildType((profileData as { build_type?: string | null } | null)?.build_type);
-      const workflowCode = currentWorkflow === 'szkieletowy' ? 'timber_frame' : 'masonry';
+      const legacyStages = ((legacyData ?? []) as EtapZdjecia[]).map((row) => ({
+        id: String(row.id),
+        nazwa: String(row.nazwa ?? tt('photos:misc.stageFallback', { defaultValue: 'Etap' })),
+        kolejnosc: Number(row.kolejnosc ?? 0),
+      }));
 
-      const { data: templateData, error: templateError } = await supabase
-        .from('stage_templates')
-        .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
-        .eq('workflow_code', workflowCode)
-        .eq('is_active', true)
-        .order('order_index', { ascending: true });
-
-      if (templateError) throw templateError;
-
-      const nextLegacyMap = ((legacyData ?? []) as { id: string; nazwa: string }[]).reduce<Record<string, string>>(
+      const nextLegacyMap = legacyStages.reduce<Record<string, string>>(
         (acc, row) => {
           acc[row.id] = row.nazwa;
           return acc;
@@ -260,26 +255,6 @@ export default function ZdjeciaScreen() {
       );
 
       setLegacyEtapyMap(nextLegacyMap);
-
-      const workflowStages = (templateData ?? []).map((row: any) => ({
-        id: String(row.id),
-        nazwa: String(t(String(row.name_key ?? row.stage_code ?? 'photos:misc.stageFallback'), {
-          defaultValue: String(row.stage_code ?? row.id),
-        })),
-        kolejnosc: Number(row.order_index ?? 0),
-        source: 'workflow' as const,
-      }));
-
-      if (workflowStages.length > 0) {
-        setEtapy(workflowStages);
-        setSelectedEtapForUpload((current) => current || workflowStages[0]?.id || '');
-        return;
-      }
-
-      const legacyStages = ((legacyData ?? []) as EtapZdjecia[]).map((row) => ({
-        ...row,
-        source: 'legacy' as const,
-      }));
       setEtapy(legacyStages);
       setSelectedEtapForUpload((current) => current || legacyStages[0]?.id || '');
     } catch (e) {
@@ -467,7 +442,17 @@ export default function ZdjeciaScreen() {
     setUploadDropdownOpen(false);
   };
 
+  const openAddModal = () => {
+    setSelectedEtapForUpload((current) => current || etapy[0]?.id || '');
+    setAddModalVisible(true);
+  };
+
   const handleAddModalBackdropPress = () => {
+    if (keyboardVisible) {
+      Keyboard.dismiss();
+      return;
+    }
+
     if (showDatePicker) {
       setShowDatePicker(false);
       return;
@@ -491,6 +476,14 @@ export default function ZdjeciaScreen() {
   };
 
   const handleSavePendingPhotos = async () => {
+    if (!selectedEtapForUpload || !etapy.some((etap) => etap.id === selectedEtapForUpload)) {
+      Alert.alert(
+        tt('photos:alerts.pickStageTitle', { defaultValue: 'Wybierz etap' }),
+        tt('photos:alerts.pickStageMessage', { defaultValue: 'Najpierw wybierz etap zdjęcia.' }),
+      );
+      return;
+    }
+
     if (!pendingPhotos.length) {
       Alert.alert(
         tt('common:errorTitle', { defaultValue: 'Błąd' }),
@@ -640,7 +633,10 @@ export default function ZdjeciaScreen() {
       throw new Error(tt('photos:alerts.invalidFileType', { defaultValue: 'Możesz dodać tylko pliki JPG, PNG, WEBP lub HEIC.' }));
     }
 
-    const etap = selectedEtapForUpload ? etapy.find((e) => e.id === selectedEtapForUpload) ?? null : null;
+    const etap = etapy.find((e) => e.id === selectedEtapForUpload) ?? null;
+    if (!etap) {
+      throw new Error(tt('photos:alerts.stageNotFound', { defaultValue: 'Nie znaleziono etapu.' }));
+    }
     const etapFolder = etap ? sanitizeFolderName(etap.nazwa) : 'bez_etapu';
     const timestamp = Date.now() + Math.floor(Math.random() * 999);
 
@@ -679,7 +675,7 @@ export default function ZdjeciaScreen() {
 
     const { error: insertError } = await supabase.from('zdjecia').insert({
       user_id: userId,
-      etap_zdjecia_id: etap?.id ?? null,
+      etap_zdjecia_id: etap.id,
       file_path,
       taken_at: takenAt ? takenAt.toISOString() : null,
       komentarz: opis ? opis : null,
@@ -793,7 +789,7 @@ export default function ZdjeciaScreen() {
             ? tt('photos:empty.subtitleAll', { defaultValue: 'Dodaj pierwsze zdjęcia do projektu.' })
             : tt('photos:empty.subtitleStage', { defaultValue: 'W tym etapie nie ma jeszcze zdjęć.' })}
         </Text>
-        <TouchableOpacity style={styles.emptyButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.emptyButton} onPress={openAddModal} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color={COLORS.bg} />
           <Text style={styles.emptyButtonText}>{tt('photos:empty.addButton', { defaultValue: 'Dodaj zdjęcia' })}</Text>
         </TouchableOpacity>
@@ -1020,12 +1016,12 @@ export default function ZdjeciaScreen() {
         />
       )}
 
-      <FloatingAddButton onPress={() => setAddModalVisible(true)} />
+      <FloatingAddButton onPress={openAddModal} />
 
       {/* ADD MODAL */}
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={handleAddModalBackdropPress}>
         <Pressable style={styles.modalBlackOverlay} onPress={handleAddModalBackdropPress}>
-          <Pressable style={styles.modalContent} onPress={() => {}}>
+          <Pressable style={styles.modalContent} onPress={Keyboard.dismiss}>
             <Text style={styles.modalTitle}>{tt('photos:addModal.title', { defaultValue: 'Dodaj zdjęcia' })}</Text>
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.stageLabel', { defaultValue: 'Etap' })}</Text>
@@ -1053,19 +1049,6 @@ export default function ZdjeciaScreen() {
             {uploadDropdownOpen && (
               <View style={styles.dropdownPanel}>
                 <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
-                  <TouchableOpacity
-                    style={[styles.dropdownItem, !selectedEtapForUpload && styles.dropdownItemActive]}
-                    onPress={() => {
-                      setSelectedEtapForUpload('');
-                      setUploadDropdownOpen(false);
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[styles.dropdownItemText, !selectedEtapForUpload && styles.dropdownItemTextActive]}>
-                      {tt('photos:addModal.pickStage', { defaultValue: 'Bez etapu' })}
-                    </Text>
-                    {!selectedEtapForUpload && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
-                  </TouchableOpacity>
                   {uploadEtapy.map((etap) => {
                     const active = selectedEtapForUpload === etap.id;
                     return (
@@ -1200,19 +1183,9 @@ export default function ZdjeciaScreen() {
             <DateTimePicker
               value={datePickerValue}
               mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
               locale={dateLocale}
-              onChange={(event, selected) => {
-                if (selected) {
-                  setDatePickerValue(selected);
-                  if (Platform.OS === 'android') {
-                    setTakenAt(selected);
-                  }
-                }
-                if (Platform.OS === 'android' && event?.type !== 'set') {
-                  setShowDatePicker(false);
-                }
-              }}
+              onChange={onDatePicked}
             />
             <View style={styles.datePickerActions}>
               <TouchableOpacity
