@@ -198,6 +198,10 @@ type PickedFile = {
   uri: string;
   size?: number;
 };
+type UploadedReceiptFile = {
+  receiptPath: string;
+  documentPath: string;
+};
 type ReceiptDocKind = 'paragon' | 'faktura';
 const RECEIPT_BUCKET = 'paragony';
 const DOCUMENT_RECEIPT_BUCKET = 'dokumenty';
@@ -291,6 +295,7 @@ export default function BudzetScreen() {
   const [picked, setPicked] = useState<PickedFile | null>(null);
   const [fAttachmentKind, setFAttachmentKind] = useState<ReceiptDocKind>('paragon');
   const [receiptKindByPath, setReceiptKindByPath] = useState<Record<string, ReceiptDocKind>>({});
+  const [stageMenuOpen, setStageMenuOpen] = useState(false);
 
   // date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -342,6 +347,29 @@ export default function BudzetScreen() {
     () => stageGroupOptions.find((option) => option.key === fStageKey) ?? null,
     [fStageKey, stageGroupOptions]
   );
+
+  const modalStageOptions = useMemo<StagePickerOption[]>(
+    () => stageGroupOptions.length > 0
+      ? stageGroupOptions
+      : etapy.map((etap, index) => ({
+          key: `legacy:${etap.id}`,
+          label: getStageGroupDisplayName(t, stageGroupCodeFromLegacyStage(etap)),
+          legacyId: etap.id,
+          stageCode: stageCodeFromLegacyStage(etap, index),
+          stageGroupCode: stageGroupCodeFromLegacyStage(etap),
+          source: 'legacy',
+          orderIndex: index,
+        })),
+    [etapy, stageGroupOptions, t]
+  );
+
+  const selectedModalStageLabel = useMemo(() => {
+    if (!fStageKey && !fEtapId) return t('modal.noStage');
+    const selected = modalStageOptions.find((option) =>
+      stageGroupOptions.length > 0 ? option.key === fStageKey : option.legacyId === fEtapId
+    );
+    return selected?.label ?? t('modal.noStage');
+  }, [fEtapId, fStageKey, modalStageOptions, stageGroupOptions.length, t]);
 
   const plannedExpenses = useMemo(
     () => wydatki.filter((w) => normalizeExpenseStatus(w.status) === STATUS_PLANNED),
@@ -612,34 +640,38 @@ export default function BudzetScreen() {
     setPicked(nextPicked);
   };
 
-  const uploadOptionalFile = async (): Promise<string | null> => {
-    if (!picked || !userId) return null;
+  const uploadOptionalFile = async (ownerId: string): Promise<UploadedReceiptFile | null> => {
+    if (!picked) return null;
     if (typeof picked.size === 'number' && picked.size <= 0) throw new Error(t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
     if (typeof picked.size === 'number' && picked.size > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge', { defaultValue: 'Plik jest zbyt duży. Maksymalny rozmiar to 20 MB.' }));
     if (!isAllowedReceiptFile(picked)) throw new Error(t('errors.invalidFileType', { defaultValue: 'Dołącz tylko PDF lub obraz paragonu.' }));
     const safeName = (picked.name || 'plik').replace(/[^a-zA-Z0-9._-]/g, '_');
-    const key = `${userId}/wydatki/${Date.now()}_${safeName}`;
+    const stamp = Date.now();
+    const receiptPath = `${ownerId}/wydatki/${stamp}_${safeName}`;
+    const documentPath = `dokumenty/${ownerId}/wydatki/${stamp}_${safeName}`;
     const ab = await uriToArrayBuffer(picked.uri, t('errors.readFileFailed'));
     if (!ab || ab.byteLength <= 0) throw new Error(t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
-    const up = await supabase.storage.from(RECEIPT_BUCKET).upload(key, ab, { contentType: picked.mimeType, upsert: false });
+    const up = await supabase.storage.from(RECEIPT_BUCKET).upload(receiptPath, ab, { contentType: picked.mimeType, upsert: false });
     if (up.error) throw up.error;
-    const docCopy = await supabase.storage.from(DOCUMENT_RECEIPT_BUCKET).upload(key, ab, { contentType: picked.mimeType, upsert: false });
+    const docCopy = await supabase.storage.from(DOCUMENT_RECEIPT_BUCKET).upload(documentPath, ab, { contentType: picked.mimeType, upsert: false });
     if (docCopy.error) {
-      await removeReceiptFileEverywhere(key);
+      await removeReceiptFileEverywhere(receiptPath, documentPath);
       throw docCopy.error;
     }
-    return key;
+    return { receiptPath, documentPath };
   };
 
-  const removeReceiptFileEverywhere = useCallback(async (filePath: string) => {
-    await Promise.all(
-      RECEIPT_BUCKETS.map(async (bucket) => {
-        const { error } = await supabase.storage.from(bucket).remove([filePath]);
-        if (error && !String(error.message || '').includes('not found')) {
-          console.warn(`[Budżet] nie udało się usunąć pliku z bucketu ${bucket}:`, error.message);
-        }
-      })
-    );
+  const removeReceiptFileEverywhere = useCallback(async (receiptPath: string, documentPath = receiptPath) => {
+    const targets: Array<{ bucket: typeof RECEIPT_BUCKETS[number]; path: string }> = [
+      { bucket: RECEIPT_BUCKET, path: receiptPath },
+      { bucket: DOCUMENT_RECEIPT_BUCKET, path: documentPath },
+    ];
+    await Promise.all(targets.map(async ({ bucket, path }) => {
+      const { error } = await supabase.storage.from(bucket).remove([path]);
+      if (error && !String(error.message || '').includes('not found')) {
+        console.warn(`[Budżet] nie udało się usunąć pliku z bucketu ${bucket}:`, error.message);
+      }
+    }));
   }, []);
 
   const syncLinkedReceiptDocument = useCallback(async ({
@@ -719,8 +751,14 @@ export default function BudzetScreen() {
     if (kw <= 0) return alert(t('alerts.amountGreaterThanZero'));
 
     setSaving(true);
+    let uploadedReceipt: UploadedReceiptFile | null = null;
     try {
-      const storageKey = await uploadOptionalFile();
+      const authUserRes = await supabase.auth.getUser();
+      const ownerId = authUserRes.data.user?.id ?? null;
+      if (authUserRes.error || !ownerId) {
+        throw new Error(t('errors.authRequired', { defaultValue: 'Sesja wygasła. Zaloguj się ponownie i spróbuj jeszcze raz.' }));
+      }
+      uploadedReceipt = await uploadOptionalFile(ownerId);
       const previousFilePath = editingExpense?.plik || null;
       const selectedStage = selectedStageOption;
       const legacyStage = fEtapId ? etapy.find((stage) => stage.id === fEtapId) ?? null : null;
@@ -730,7 +768,7 @@ export default function BudzetScreen() {
       const expenseCategoryLegacy = expenseCategoryCodeToLegacyLabel(expenseCategoryCode);
       const expenseType = normalizeExpenseTypeCode(fTyp);
       const payload = {
-        user_id: userId,
+        user_id: ownerId,
         nazwa,
         kategoria: expenseCategoryLegacy,
         expense_category_code: expenseCategoryCode,
@@ -746,23 +784,23 @@ export default function BudzetScreen() {
         planowana_data: fStatus === STATUS_PLANNED && fData.trim() ? fData.trim() : null,
         opis: fOpis.trim() || null,
         sklep: fSklep.trim() || null,
-        ...(storageKey ? { plik: storageKey } : editingExpense ? {} : { plik: null }),
+        ...(uploadedReceipt ? { plik: uploadedReceipt.receiptPath } : editingExpense ? {} : { plik: null }),
       };
       const res = editingExpense
-        ? await supabase.from('wydatki').update(payload).eq('id', editingExpense.id).eq('user_id', userId).select('id').maybeSingle()
-        : await supabase.from('wydatki').insert({ ...payload, user_id: userId }).select('id').maybeSingle();
+        ? await supabase.from('wydatki').update(payload).eq('id', editingExpense.id).eq('user_id', ownerId).select('id').maybeSingle()
+        : await supabase.from('wydatki').insert({ ...payload, user_id: ownerId }).select('id').maybeSingle();
       if (res.error) {
-        if (storageKey) {
-          await removeReceiptFileEverywhere(storageKey);
+        if (uploadedReceipt) {
+          await removeReceiptFileEverywhere(uploadedReceipt.receiptPath, uploadedReceipt.documentPath);
         }
         throw res.error;
       }
 
-      const receiptFilePath = storageKey || previousFilePath;
+      const receiptFilePath = uploadedReceipt?.documentPath || previousFilePath;
       if (receiptFilePath) {
         try {
           await syncLinkedReceiptDocument({
-            userIdValue: userId,
+            userIdValue: ownerId,
             filePath: receiptFilePath,
             previousPath: previousFilePath && previousFilePath !== receiptFilePath ? previousFilePath : null,
             title: nazwa,
@@ -780,7 +818,7 @@ export default function BudzetScreen() {
         }
       }
 
-      if (storageKey && previousFilePath && previousFilePath !== storageKey) {
+      if (uploadedReceipt && previousFilePath && previousFilePath !== uploadedReceipt.receiptPath) {
         await removeReceiptFileEverywhere(previousFilePath);
       }
 
@@ -789,6 +827,7 @@ export default function BudzetScreen() {
       setFSklep(''); setPicked(null); setEditingExpense(null);
       setFAttachmentKind('paragon');
       setFStageKey(null);
+      setStageMenuOpen(false);
       setAddOpen(false);
       await loadBudget();
     } catch (e: any) {
@@ -806,6 +845,7 @@ export default function BudzetScreen() {
 
   const openAddExpense = () => {
     setEditingExpense(null);
+    setStageMenuOpen(false);
     setFNazwa('');
     setFKwota('');
     setFKategoria('other');
@@ -825,6 +865,7 @@ export default function BudzetScreen() {
 
   const openEditExpense = (expense: WydatkiRow) => {
     setEditingExpense(expense);
+    setStageMenuOpen(false);
     setFNazwa(expense.nazwa || '');
     setFKwota(expense.kwota !== null && expense.kwota !== undefined ? String(expense.kwota) : '');
     setFKategoria(expenseCategoryCodeFromLegacyLabel(expense.expense_category_code ?? expense.kategoria));
@@ -908,6 +949,7 @@ export default function BudzetScreen() {
 
   const openSuggestionExpense = useCallback((suggestion: SuggestionView) => {
     setEditingExpense(null);
+    setStageMenuOpen(false);
     setFNazwa(suggestionName(suggestion));
     setFKwota('');
     setFKategoria('other');
@@ -1191,30 +1233,51 @@ export default function BudzetScreen() {
         </TouchableOpacity>
 
         {/* MODAL */}
-        <Modal visible={addOpen} animationType="slide" transparent onRequestClose={() => setAddOpen(false)}>
-          <Pressable
-            style={styles.modalBackdrop}
+        <Modal
+          visible={addOpen}
+          animationType="slide"
+          transparent
+          onRequestClose={() => {
+            setStageMenuOpen(false);
+            setAddOpen(false);
+          }}
+        >
+          <View style={styles.modalBackdrop}>
+            <Pressable
+            style={styles.modalBackdropPressable}
             onPress={() => {
               if (datePickerOpen) {
                 setDatePickerOpen(false);
                 return;
               }
+              if (stageMenuOpen) {
+                setStageMenuOpen(false);
+                return;
+              }
               setAddOpen(false);
             }}
-          >
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.modalScrollContent}
-            >
+            />
             <AppCard contentStyle={styles.modalCard} style={styles.modalCardOuter} withShadow={false}>
               <Text style={styles.modalTitle}>{editingExpense ? t('modal.editTitle') : t('modal.title')}</Text>
 
               <Text style={styles.lbl}>{t('modal.nameLabel')}</Text>
-              <AppInput value={fNazwa} onChangeText={setFNazwa} style={styles.input} placeholder={t('modal.namePlaceholder')} />
+              <AppInput value={fNazwa} onChangeText={setFNazwa} style={[styles.input, styles.compactInput]} placeholder={t('modal.namePlaceholder')} />
 
-              <Text style={styles.lbl}>{t('modal.amountLabel')}</Text>
-              <AppInput value={fKwota} onChangeText={setFKwota} style={styles.input} keyboardType="numeric" placeholder={t('modal.amountPlaceholder')} />
+              <View style={styles.modalInlineRow}>
+                <View style={styles.modalInlineField}>
+                  <Text style={styles.lbl}>{t('modal.amountLabel')}</Text>
+                  <AppInput value={fKwota} onChangeText={setFKwota} style={[styles.input, styles.compactInput]} keyboardType="numeric" placeholder={t('modal.amountPlaceholder')} />
+                </View>
+                <View style={styles.modalInlineField}>
+                  <Text style={styles.lbl}>{t('modal.dateLabel')}</Text>
+                  <View style={styles.dateRow}>
+                    <AppInput value={fData} onChangeText={setFData} style={[styles.input, styles.compactInput, { flex: 1 }]} placeholder="YYYY-MM-DD" />
+                    <TouchableOpacity style={styles.calBtn} onPress={openDatePicker} activeOpacity={0.85}>
+                      <Text style={styles.calIcon}>📅</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
 
               <Text style={styles.lbl}>{t('modal.statusLabel')}</Text>
               <View style={styles.row2}>
@@ -1239,18 +1302,6 @@ export default function BudzetScreen() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.compactDateGroup}>
-                <View style={styles.compactDateField}>
-                  <Text style={styles.compactDateLabel}>{t('modal.dateLabel')}</Text>
-                  <View style={styles.dateRow}>
-                    <AppInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" />
-                    <TouchableOpacity style={styles.calBtn} onPress={openDatePicker} activeOpacity={0.85}>
-                      <Text style={styles.calIcon}>📅</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-
               {datePickerOpen && (
                 Platform.OS === 'ios' ? (
                   <View style={styles.iosDateWrap}>
@@ -1264,42 +1315,61 @@ export default function BudzetScreen() {
                 )
               )}
 
-              {(stageGroupOptions.length > 0 || etapy.length > 0) && (
+              {(modalStageOptions.length > 0) && (
                 <>
                   <Text style={styles.lbl}>{t('modal.stageLabel')}</Text>
-                  <View style={styles.compactStageGrid}>
-                    <TouchableOpacity onPress={() => { setFEtapId(null); setFStageKey(null); }} style={[styles.compactStageChip, !fStageKey && !fEtapId && styles.compactStageChipOn]} activeOpacity={0.85}>
-                      <Text style={[styles.compactStageChipText, !fStageKey && !fEtapId && styles.compactStageChipTextOn]}>{t('modal.noStage')}</Text>
+                  <View style={styles.stageSelectWrap}>
+                    <TouchableOpacity
+                      onPress={() => setStageMenuOpen((open) => !open)}
+                      style={[styles.stageSelect, stageMenuOpen && styles.stageSelectOpen]}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.stageSelectText} numberOfLines={1}>
+                        {selectedModalStageLabel}
+                      </Text>
+                      <Feather name={stageMenuOpen ? 'chevron-up' : 'chevron-down'} size={16} color="rgba(220,255,245,0.82)" />
                     </TouchableOpacity>
-                    {(stageGroupOptions.length > 0 ? stageGroupOptions : etapy.map((etap, index) => ({
-                      key: `legacy:${etap.id}`,
-                      label: getStageGroupDisplayName(t, stageGroupCodeFromLegacyStage(etap)),
-                      legacyId: etap.id,
-                      stageCode: stageCodeFromLegacyStage(etap, index),
-                      stageGroupCode: stageGroupCodeFromLegacyStage(etap),
-                    } as StagePickerOption))).map((etap) => {
-                      const on = (stageGroupOptions.length > 0 ? fStageKey === etap.key : fEtapId === etap.legacyId);
-                      return (
+                    {stageMenuOpen ? (
+                      <View style={styles.stageDropdown}>
                         <TouchableOpacity
-                          key={etap.key}
                           onPress={() => {
-                            if (stageGroupOptions.length > 0) {
-                              setFStageKey(etap.key);
-                              setFEtapId(etap.legacyId ?? null);
-                            } else {
-                              setFStageKey(null);
-                              setFEtapId(etap.legacyId ?? null);
-                            }
+                            setFEtapId(null);
+                            setFStageKey(null);
+                            setStageMenuOpen(false);
                           }}
-                          style={[styles.compactStageChip, on && styles.compactStageChipOn]}
+                          style={[styles.stageDropdownItem, !fStageKey && !fEtapId && styles.stageDropdownItemOn]}
                           activeOpacity={0.85}
                         >
-                          <Text style={[styles.compactStageChipText, on && styles.compactStageChipTextOn]} numberOfLines={1}>
-                            {etap.label}
+                          <Text style={[styles.stageDropdownText, !fStageKey && !fEtapId && styles.stageDropdownTextOn]} numberOfLines={1}>
+                            {t('modal.noStage')}
                           </Text>
                         </TouchableOpacity>
-                      );
-                    })}
+                        {modalStageOptions.map((etap) => {
+                          const on = (stageGroupOptions.length > 0 ? fStageKey === etap.key : fEtapId === etap.legacyId);
+                          return (
+                            <TouchableOpacity
+                              key={etap.key}
+                              onPress={() => {
+                                if (stageGroupOptions.length > 0) {
+                                  setFStageKey(etap.key);
+                                  setFEtapId(etap.legacyId ?? null);
+                                } else {
+                                  setFStageKey(null);
+                                  setFEtapId(etap.legacyId ?? null);
+                                }
+                                setStageMenuOpen(false);
+                              }}
+                              style={[styles.stageDropdownItem, on && styles.stageDropdownItemOn]}
+                              activeOpacity={0.85}
+                            >
+                              <Text style={[styles.stageDropdownText, on && styles.stageDropdownTextOn]} numberOfLines={1}>
+                                {etap.label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    ) : null}
                   </View>
                 </>
               )}
@@ -1341,12 +1411,11 @@ export default function BudzetScreen() {
               </TouchableOpacity>
 
               <View style={styles.modalActions}>
-                <AppButton title={t('common.cancel')} variant="secondary" onPress={() => { setAddOpen(false); setEditingExpense(null); }} disabled={saving} style={styles.modalBtn} />
+                <AppButton title={t('common.cancel')} variant="secondary" onPress={() => { setStageMenuOpen(false); setAddOpen(false); setEditingExpense(null); }} disabled={saving} style={styles.modalBtn} />
                 <AppButton title={saving ? t('common.saving') : t('common.save')} onPress={saveExpense} disabled={saving} style={styles.modalBtn} />
               </View>
             </AppCard>
-            </ScrollView>
-          </Pressable>
+          </View>
         </Modal>
 
         <View style={{ height: 26 }} />
@@ -1681,23 +1750,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     backgroundColor: '#000000',
-    paddingTop: 28,
-    paddingBottom: 28,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 12,
   },
-  modalScrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 18,
-  },
+  modalBackdropPressable: { ...StyleSheet.absoluteFillObject },
+  modalScrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: spacing.lg, paddingVertical: 18 },
   modalCardOuter: {
+    width: '100%',
     marginBottom: 0,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     overflow: 'hidden',
   },
   modalCard: {
-    padding: 16,
+    padding: 12,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     borderWidth: 1,
@@ -1709,9 +1776,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -6 },
     elevation: 10,
   },
-  modalTitle: { color: NEON, fontWeight: '900', fontSize: 18, marginBottom: 12, textAlign: 'center' },
-  lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
+  modalTitle: { color: NEON, fontWeight: '900', fontSize: 16, marginBottom: 8, textAlign: 'center' },
+  lbl: { color: '#94A3B8', fontSize: 11, marginTop: 6, marginBottom: 4, fontWeight: '800' },
   input: {},
+  compactInput: {
+    minHeight: 42,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    fontSize: 13,
+  },
+  modalInlineRow: { flexDirection: 'row', gap: 8 },
+  modalInlineField: { flex: 1 },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingVertical: 2 },
   catTile: {
     width: '30%',
@@ -1750,14 +1825,55 @@ const styles = StyleSheet.create({
   compactStageChipOn: { borderColor: 'rgba(37,240,200,0.44)', backgroundColor: 'rgba(37,240,200,0.14)' },
   compactStageChipText: { color: '#94A3B8', fontWeight: '800', fontSize: 12, letterSpacing: 0 },
   compactStageChipTextOn: { color: 'rgba(220,255,245,0.98)' },
+  stageSelectWrap: { position: 'relative', zIndex: 20, elevation: 8 },
+  stageSelect: {
+    minHeight: 40,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.20)',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  stageSelectOpen: {
+    borderColor: 'rgba(37,240,200,0.42)',
+    backgroundColor: 'rgba(37,240,200,0.10)',
+  },
+  stageSelectText: { flex: 1, color: 'rgba(220,255,245,0.96)', fontWeight: '900', fontSize: 12 },
+  stageDropdown: {
+    position: 'absolute',
+    top: 45,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+    elevation: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    backgroundColor: '#07120F',
+    overflow: 'hidden',
+  },
+  stageDropdownItem: {
+    minHeight: 30,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.055)',
+  },
+  stageDropdownItemOn: { backgroundColor: 'rgba(37,240,200,0.12)' },
+  stageDropdownText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
+  stageDropdownTextOn: { color: 'rgba(220,255,245,0.98)' },
   compactDateGroup: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   compactDateField: { flex: 1, gap: 6 },
   compactDateLabel: { color: '#94A3B8', fontSize: 11, fontWeight: '800' },
-  row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  row2: { flexDirection: 'row', gap: 8, marginTop: 6 },
   pill: {
     flex: 1,
     borderRadius: 999,
-    paddingVertical: 10,
+    paddingVertical: 7,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.16)',
@@ -1769,12 +1885,12 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   pillOn: { borderColor: 'rgba(37,240,200,0.40)', backgroundColor: 'rgba(37,240,200,0.12)' },
-  pillText: { color: '#94A3B8', fontWeight: '800' },
+  pillText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
   pillTextOn: { color: 'rgba(220,255,245,0.98)' },
-  dateRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  dateRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   calBtn: {
-    width: 48,
-    height: 44,
+    width: 40,
+    height: 42,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1805,10 +1921,10 @@ const styles = StyleSheet.create({
   },
   iosDateOkText: { color: 'rgba(220,255,245,0.98)', fontWeight: '900' },
   fileBtn: {
-    marginTop: 12,
+    marginTop: 8,
     borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',
     backgroundColor: 'rgba(37,240,200,0.08)',
@@ -1821,12 +1937,12 @@ const styles = StyleSheet.create({
   fileBtnText: { color: '#E2E8F0', fontWeight: '800', fontSize: 12 },
   receiptKindRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 2,
+    gap: 8,
+    marginBottom: 0,
   },
   receiptKindChip: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 36,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
@@ -1847,7 +1963,7 @@ const styles = StyleSheet.create({
   receiptKindChipTextOn: {
     color: NEON,
   },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  modalActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   modalBtn: { flex: 1 },
   budgetFab: { bottom: 28 },
 });

@@ -238,11 +238,6 @@ export default function GuidedSetupScreen() {
                 </View>
 
                 <Text style={styles.title}>{t('onboarding:guided.control.title')}</Text>
-                <Text style={styles.body}>
-                  {t('onboarding:guided.control.body', {
-                    defaultValue: 'Kierownik AI będzie prowadził Cię przez budowę i przypominał o ważnych rzeczach.',
-                  })}
-                </Text>
 
                 <View style={styles.featureList}>
                   {FINAL_FEATURES.map((item) => (

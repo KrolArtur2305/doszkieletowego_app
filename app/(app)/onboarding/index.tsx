@@ -23,6 +23,7 @@ import { supabase } from '../../../lib/supabase';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 import { AppButton, AppInput } from '../../../src/ui/components';
+import { FuturisticDonutSvg } from '../../../components/FuturisticDonutSvg';
 import { resolveOnboardingCurrentStageCode } from '../../../lib/buildWorkflow';
 import {
   CURRENCY_OPTIONS,
@@ -393,7 +394,7 @@ export default function OnboardingScreen() {
 
             {activeStageInfo === item.value ? (
               <View style={styles.stageInfoBubble}>
-                <Text style={styles.stageTileInfo}>{t(item.infoKey)}</Text>
+                <Text style={styles.stageTileInfo}>{t(item.key)}</Text>
               </View>
             ) : null}
           </View>
@@ -413,8 +414,25 @@ export default function OnboardingScreen() {
           );
         }
       })}
-      <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
       <Text style={styles.title}>{t('steps.budgetTitle')}</Text>
+
+      <BlurView intensity={20} tint="dark" style={styles.budgetHero}>
+        <View pointerEvents="none" style={styles.budgetHeroGlow} />
+        <View style={styles.budgetDonutWrap}>
+          <FuturisticDonutSvg value={0.5} size={142} stroke={13} label="" isActive={step === 'budget'} hideCenterValue />
+        </View>
+        <View style={styles.budgetHeroCopy}>
+          <Text style={styles.budgetHeroKicker}>
+            {t('budget.heroKicker', { defaultValue: 'Plan kontroli kosztów' })}
+          </Text>
+          <Text style={styles.budgetHeroTitle}>
+            {t('budget.heroTitle', { defaultValue: 'Zacznij od ram budżetu' })}
+          </Text>
+          <Text style={styles.budgetHeroText}>
+            {t('budget.heroText', { defaultValue: 'Podaj plan i dotychczasowe koszty. Resztę będziemy liczyć na bieżąco.' })}
+          </Text>
+        </View>
+      </BlurView>
 
       <BlurView intensity={18} tint="dark" style={styles.formCard}>
         <View style={styles.fieldWrap}>
@@ -899,6 +917,61 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
+  },
+  budgetHero: {
+    minHeight: 178,
+    borderRadius: 28,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  budgetHeroGlow: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: NEON,
+    opacity: 0.08,
+    left: -64,
+    top: -32,
+  },
+  budgetDonutWrap: {
+    width: 142,
+    height: 142,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  budgetHeroCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  budgetHeroKicker: {
+    color: NEON,
+    fontSize: 10.5,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0,
+    marginBottom: 6,
+  },
+  budgetHeroTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '900',
+    marginBottom: 7,
+  },
+  budgetHeroText: {
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: 12.5,
+    lineHeight: 17,
+    fontWeight: '700',
   },
   fieldWrap: {
     marginBottom: 14,

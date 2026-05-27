@@ -16,6 +16,7 @@ type Props = {
   label: string;
   onPressLabel?: () => void;
   isActive?: boolean;
+  hideCenterValue?: boolean;
 };
 
 function clamp01(n: number) {
@@ -29,6 +30,7 @@ export function FuturisticDonutSvg({
   label,
   onPressLabel,
   isActive = false,
+  hideCenterValue = false,
 }: Props) {
   const v = clamp01(value);
   const displayValue = Math.max(0, Number.isFinite(value) ? value : 0);
@@ -244,18 +246,20 @@ export function FuturisticDonutSvg({
           </Svg>
         </Animated.View>
 
-        <View pointerEvents="none" style={styles.center}>
-          <Text
-            style={[
-              styles.percent,
-              { fontSize: percentFontSize },
-              Platform.OS === 'android' ? styles.percentAndroid : null,
-            ]}
-            allowFontScaling={false}
-          >
-            {percent}%
-          </Text>
-        </View>
+        {!hideCenterValue ? (
+          <View pointerEvents="none" style={styles.center}>
+            <Text
+              style={[
+                styles.percent,
+                { fontSize: percentFontSize },
+                Platform.OS === 'android' ? styles.percentAndroid : null,
+              ]}
+              allowFontScaling={false}
+            >
+              {percent}%
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {showLabel && (

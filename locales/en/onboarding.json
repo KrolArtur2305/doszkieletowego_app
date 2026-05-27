@@ -99,8 +99,8 @@
     },
     "control": {
       "kicker": "Done",
-      "title": "Everything is already at hand",
-      "body": "Photos, documents and key information will always stay in one place.",
+      "title": "Check out the remaining features",
+      "body": "",
       "progress": "Progress - see what is already done and what is still ahead",
       "photos": "Photos - document the build and revisit it whenever you need",
       "documents": "Documents - keep contracts, invoices and important files tidy"

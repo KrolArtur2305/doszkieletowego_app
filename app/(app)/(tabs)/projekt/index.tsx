@@ -18,6 +18,7 @@ import {
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../../../../lib/supabase'
 import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
@@ -33,6 +34,8 @@ const NEON = colors.accentBright
 const DEFAULT_MODEL_URL = 'https://pkgeautweumkupfxfjoo.supabase.co/storage/v1/object/public/models/dom_small.glb'
 const BUCKET_MODELS = 'models'
 const BUCKET_RZUTY = 'rzuty_projektu'
+const PROJECT_DETAILS_NUDGE_KEY = 'buildiq:project-details-nudge-shown'
+const AI_BUDDY_AVATAR = require('../../../assets/buddy_avatar.png')
 const MAX_PLAN_UPLOAD_BYTES = 15 * 1024 * 1024
 const MAX_MODEL_UPLOAD_BYTES = 50 * 1024 * 1024
 const ALLOWED_PLAN_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic'])
@@ -255,7 +258,9 @@ export default function ProjektScreen() {
   const [planNameOpen, setPlanNameOpen] = useState(false)
   const [planUploading, setPlanUploading] = useState(false)
   const [modelUploading, setModelUploading] = useState(false)
+  const [projectNudgeOpen, setProjectNudgeOpen] = useState(false)
   const setupModalOpenedRef = useRef(false)
+  const projectNudgeCheckedRef = useRef(false)
 
   useEffect(() => {
     let alive = true
@@ -327,6 +332,40 @@ export default function ProjektScreen() {
     setupModalOpenedRef.current = true
     openEditParams()
   }, [isSetupMode, loading])
+
+  useEffect(() => {
+    if (isSetupMode || loading || !userId || projectNudgeCheckedRef.current) return
+    projectNudgeCheckedRef.current = true
+
+    const hasAnyProjectDetails = [
+      projekt?.nazwa,
+      projekt?.powierzchnia_uzytkowa,
+      projekt?.kondygnacje,
+      projekt?.pomieszczenia,
+      projekt?.powierzchnia_zabudowy,
+      projekt?.wysokosc_budynku,
+      projekt?.kat_dachu,
+      projekt?.powierzchnia_dachu,
+      projekt?.szerokosc_elewacji,
+      projekt?.dlugosc_elewacji,
+    ].some((value) => value !== null && value !== undefined && String(value).trim() !== '')
+
+    if (hasAnyProjectDetails) return
+
+    let alive = true
+    AsyncStorage.getItem(`${PROJECT_DETAILS_NUDGE_KEY}:${userId}`)
+      .then((shown) => {
+        if (!alive || shown === '1') return
+        setProjectNudgeOpen(true)
+      })
+      .catch(() => {
+        if (alive) setProjectNudgeOpen(true)
+      })
+
+    return () => {
+      alive = false
+    }
+  }, [isSetupMode, loading, projekt, userId])
 
   const modelUrl = useMemo(() => projekt?.model_url || DEFAULT_MODEL_URL, [projekt?.model_url])
 
@@ -750,6 +789,18 @@ export default function ProjektScreen() {
     setEditOpen(true)
   }
 
+  const closeProjectNudge = async () => {
+    setProjectNudgeOpen(false)
+    if (userId) {
+      await AsyncStorage.setItem(`${PROJECT_DETAILS_NUDGE_KEY}:${userId}`, '1').catch(() => undefined)
+    }
+  }
+
+  const handleProjectNudgeFill = async () => {
+    await closeProjectNudge()
+    openEditParams()
+  }
+
   const saveParams = async () => {
     try {
       setSaving(true)
@@ -907,6 +958,37 @@ export default function ProjektScreen() {
             )}
           </AppCard>
         </View>
+
+        <Modal visible={projectNudgeOpen} transparent animationType="fade" onRequestClose={closeProjectNudge}>
+          <View style={styles.nudgeBackdrop}>
+            <View style={styles.nudgeCard}>
+              <TouchableOpacity onPress={closeProjectNudge} style={styles.nudgeCloseBtn} activeOpacity={0.85}>
+                <Feather name="x" size={18} color="rgba(255,255,255,0.70)" />
+              </TouchableOpacity>
+
+              <View style={styles.nudgeAvatar}>
+                <Image source={AI_BUDDY_AVATAR} style={styles.nudgeAvatarImage} resizeMode="contain" />
+              </View>
+              <Text style={styles.nudgeEyebrow}>
+                {t('projectNudgeEyebrow', { defaultValue: 'Kierownik Budowy AI' })}
+              </Text>
+              <Text style={styles.nudgeTitle}>
+                {t('projectNudgeTitle', { defaultValue: 'Hej, uzupełnijmy najważniejsze informacje o projekcie.' })}
+              </Text>
+              <Text style={styles.nudgeText}>
+                {t('projectNudgeText', {
+                  defaultValue: 'Dzięki temu budżet, postępy i podpowiedzi będą lepiej dopasowane do Twojej budowy.',
+                })}
+              </Text>
+
+              <AppButton
+                title={t('projectNudgeCta', { defaultValue: 'Uzupełnij' })}
+                onPress={handleProjectNudgeFill}
+                style={styles.nudgePrimaryBtn}
+              />
+            </View>
+          </View>
+        </Modal>
 
         <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
           <View style={styles.previewBackdrop}>
@@ -1483,6 +1565,94 @@ const styles = StyleSheet.create({
   previewBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.92)',
+  },
+
+  nudgeBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+  },
+
+  nudgeCard: {
+    width: '100%',
+    maxWidth: 390,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.24)',
+    backgroundColor: '#07120F',
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
+    alignItems: 'center',
+    shadowColor: NEON,
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 14,
+  },
+
+  nudgeCloseBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+
+  nudgeAvatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    marginBottom: 12,
+  },
+
+  nudgeAvatarImage: {
+    width: 50,
+    height: 50,
+  },
+
+  nudgeEyebrow: {
+    color: NEON,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0,
+    marginBottom: 8,
+  },
+
+  nudgeTitle: {
+    color: '#F8FAFC',
+    fontSize: 21,
+    lineHeight: 27,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+
+  nudgeText: {
+    color: 'rgba(226,232,240,0.74)',
+    fontSize: 13.5,
+    lineHeight: 19,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+
+  nudgePrimaryBtn: {
+    width: '100%',
+    marginTop: 18,
   },
 
   previewTopBar: {
