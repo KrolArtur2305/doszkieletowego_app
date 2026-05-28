@@ -197,11 +197,6 @@ export default function GuidedSetupScreen() {
                   {t('onboarding:guided.project.body')}
                 </Text>
                 <AppButton
-                  title={t('onboarding:guided.project.cta')}
-                  onPress={() => router.push('/(app)/(tabs)/projekt?setup=1&guidedStep=2')}
-                  style={styles.primaryBtn}
-                />
-                <AppButton
                   title={t('onboarding:guided.project.skip')}
                   variant="secondary"
                   onPress={next}

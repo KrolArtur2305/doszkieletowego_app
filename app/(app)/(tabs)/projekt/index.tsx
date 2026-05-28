@@ -235,6 +235,8 @@ export default function ProjektScreen() {
   const [projekt, setProjekt] = useState<Projekt | null>(null)
   const [rzuty, setRzuty] = useState<Rzut[]>([])
   const [userId, setUserId] = useState<string | null>(null)
+  const [userFirstName, setUserFirstName] = useState('')
+  const [buddyDisplayName, setBuddyDisplayName] = useState('')
   const [lokalizacja, setLokalizacja] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -274,6 +276,8 @@ export default function ProjektScreen() {
         if (!user?.id) {
           if (!alive) return
           setUserId(null)
+          setUserFirstName('')
+          setBuddyDisplayName('')
           setProjekt(null)
           setRzuty([])
           setLokalizacja(null)
@@ -284,17 +288,25 @@ export default function ProjektScreen() {
         if (!alive) return
         setUserId(user.id)
 
-        const [{ data: projData, error: projErr }, { data: invData, error: invErr }] = await Promise.all([
+        const [{ data: projData, error: projErr }, { data: invData, error: invErr }, { data: profileData, error: profileErr }] = await Promise.all([
           supabase.from('projekty').select('*').eq('user_id', user.id).maybeSingle(),
           supabase.from('inwestycje').select('lokalizacja').eq('user_id', user.id).maybeSingle(),
+          supabase.from('profiles').select('imie, ai_buddy_name').eq('user_id', user.id).maybeSingle(),
         ])
 
         if (projErr) throw projErr
         if (invErr) throw invErr
+        if (profileErr) throw profileErr
         if (!alive) return
 
         setProjekt((projData as any) ?? null)
         setLokalizacja((invData as any)?.lokalizacja ?? null)
+        setUserFirstName(
+          String((profileData as any)?.imie ?? user.user_metadata?.given_name ?? user.user_metadata?.full_name ?? '')
+            .trim()
+            .split(/\s+/)[0] || ''
+        )
+        setBuddyDisplayName(String((profileData as any)?.ai_buddy_name ?? '').trim())
 
         if ((projData as any)?.id) {
           const { data: rzutyData, error: rzutyErr } = await supabase
@@ -969,15 +981,17 @@ export default function ProjektScreen() {
               <View style={styles.nudgeAvatar}>
                 <Image source={AI_BUDDY_AVATAR} style={styles.nudgeAvatarImage} resizeMode="contain" />
               </View>
-              <Text style={styles.nudgeEyebrow}>
-                {t('projectNudgeEyebrow', { defaultValue: 'Kierownik Budowy AI' })}
+              <Text style={styles.nudgeBuddyName}>
+                {buddyDisplayName || t('projectNudgeBuddyFallback', { defaultValue: 'Kierownik' })}
               </Text>
               <Text style={styles.nudgeTitle}>
-                {t('projectNudgeTitle', { defaultValue: 'Hej, uzupełnijmy najważniejsze informacje o projekcie.' })}
+                {userFirstName
+                  ? `${userFirstName} uzupełnij teraz najważniejsze informacje o projekcie.`
+                  : t('projectNudgeTitle', { defaultValue: 'Uzupełnij teraz najważniejsze informacje o projekcie.' })}
               </Text>
               <Text style={styles.nudgeText}>
                 {t('projectNudgeText', {
-                  defaultValue: 'Dzięki temu budżet, postępy i podpowiedzi będą lepiej dopasowane do Twojej budowy.',
+                  defaultValue: 'Dzięki temu będziesz miał wszystko pod ręką, a moje podpowiedzi będą lepiej dopasowane.',
                 })}
               </Text>
 
@@ -1608,43 +1622,41 @@ const styles = StyleSheet.create({
   },
 
   nudgeAvatar: {
-    width: 58,
-    height: 58,
+    width: 70,
+    height: 70,
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.10)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   nudgeAvatarImage: {
-    width: 50,
-    height: 50,
+    width: 62,
+    height: 62,
   },
 
-  nudgeEyebrow: {
+  nudgeBuddyName: {
     color: NEON,
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 0,
-    marginBottom: 8,
+    marginBottom: 10,
   },
 
   nudgeTitle: {
     color: '#F8FAFC',
-    fontSize: 21,
-    lineHeight: 27,
+    fontSize: 19.5,
+    lineHeight: 25,
     fontWeight: '900',
     textAlign: 'center',
   },
 
   nudgeText: {
     color: 'rgba(226,232,240,0.74)',
-    fontSize: 13.5,
-    lineHeight: 19,
+    fontSize: 12.5,
+    lineHeight: 17.5,
     fontWeight: '700',
     textAlign: 'center',
     marginTop: 10,
