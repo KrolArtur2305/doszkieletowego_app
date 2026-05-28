@@ -28,7 +28,7 @@
     },
     "android": {
       "versionCode": 1,
-      "package": "pl.buildiq.mobile",
+      "package": "com.buildiq.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo-square.png",
         "backgroundColor": "#ffffff"
