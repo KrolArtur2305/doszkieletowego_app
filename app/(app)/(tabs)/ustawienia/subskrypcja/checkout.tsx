@@ -10,8 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native'
+  View} from 'react-native'
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -25,8 +24,8 @@ import { purchasePackageSafe, restorePurchasesSafe } from '../../../../../src/se
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
 const INK = '#07120F'
-const TERMS_URL = 'https://www.mybuildiq.com/terms'
-const PRIVACY_URL = 'https://www.mybuildiq.com/privacy'
+const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'
+const PRIVACY_URL = 'https://mybuildiq.com/privacy'
 
 type BillingCycle = 'monthly' | 'yearly'
 type PaywallPlanKey = 'pro' | 'expert'
@@ -111,8 +110,7 @@ export default function CheckoutScreen() {
     Animated.timing(introAnim, {
       toValue: 1,
       duration: 420,
-      useNativeDriver: true,
-    }).start()
+      useNativeDriver: true}).start()
   }, [introAnim])
 
   const getPlanPrice = (key: PaywallPlanKey) => {
@@ -121,6 +119,8 @@ export default function CheckoutScreen() {
   }
 
   const getPlanPeriod = () => (billing === 'monthly' ? t('month') : t('billingYearly'))
+  const getPlanLength = () => (billing === 'monthly' ? t('checkout.monthlyLength') : t('checkout.yearlyLength'))
+  const selectedPlanName = t(`paywall.plans.${selectedPlan}.name`)
 
   const handleContinue = async () => {
     if (purchasing) return
@@ -134,8 +134,8 @@ export default function CheckoutScreen() {
 
     if (!selectedPackage) {
       Alert.alert(
-        t('paywall.purchaseUnavailableTitle', { defaultValue: 'Plan niedostepny' }),
-        t('paywall.purchaseUnavailableMessage', { defaultValue: 'Nie udalo sie pobrac produktu z App Store. Sprobuj ponownie za chwile.' })
+        t('paywall.purchaseUnavailableTitle'),
+        t('paywall.purchaseUnavailableMessage')
       )
       return
     }
@@ -155,8 +155,8 @@ export default function CheckoutScreen() {
         )
       } else {
         Alert.alert(
-          t('paywall.purchaseErrorTitle', { defaultValue: 'Platnosc nieudana' }),
-          t('paywall.purchaseErrorMessage', { defaultValue: 'Nie udalo sie dokonczyc zakupu. Sprobuj ponownie.' })
+          t('paywall.purchaseErrorTitle'),
+          t('paywall.purchaseErrorMessage')
         )
       }
     } finally {
@@ -206,12 +206,7 @@ export default function CheckoutScreen() {
                 {
                   translateY: introAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [8, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
+                    outputRange: [8, 0]})}]}]}
         >
           <View style={styles.logoMark}>
             <Image
@@ -260,14 +255,24 @@ export default function CheckoutScreen() {
           <Text style={styles.storeErrorText}>
             {error
               ? t('paywall.productsErrorWithReason', {
-                  defaultValue: 'Nie udało się pobrać cen z App Store: {{reason}}',
                   reason: error,
                 })
-              : t('paywall.productsError', {
-                  defaultValue: 'Nie udało się pobrać cen z App Store. Plany nadal są widoczne, spróbuj ponownie za chwilę.',
-                })}
+              : t('paywall.productsError')}
           </Text>
         ) : null}
+
+        <BlurView intensity={14} tint="dark" style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>{t('checkout.summaryTitle')}</Text>
+          <Text style={styles.summaryLine}>
+            {t('checkout.summaryPlan', { plan: selectedPlanName })}
+          </Text>
+          <Text style={styles.summaryLine}>
+            {t('checkout.summaryLength', { length: getPlanLength() })}
+          </Text>
+          <Text style={styles.summaryLine}>
+            {t('checkout.summaryPrice', { price: getPlanPrice(selectedPlan) })}
+          </Text>
+        </BlurView>
 
         <View style={styles.cardsRow}>
           {PAYWALL_PLAN_KEYS.map((key) => {
@@ -293,16 +298,14 @@ export default function CheckoutScreen() {
                     isSelected && styles.planCardActive,
                     isPro && styles.planCardPro,
                     isSelected && isPro && styles.planCardProActive,
-                    !isAvailable && styles.planCardDisabled,
-                  ]}
+                    !isAvailable && styles.planCardDisabled]}
                 >
                   <View style={styles.cardTop}>
                     <Text
                       style={[
                         styles.planName,
                         isPro && styles.planNamePro,
-                        isExpert && styles.planNameExpert,
-                      ]}
+                        isExpert && styles.planNameExpert]}
                       numberOfLines={1}
                       adjustsFontSizeToFit
                     >
@@ -392,16 +395,14 @@ const styles = StyleSheet.create({
     top: 116,
     height: 1,
     backgroundColor: 'rgba(37,240,200,0.055)',
-    transform: [{ rotate: '-6deg' }],
-  },
+    transform: [{ rotate: '-6deg' }]},
   lineMid: {
     position: 'absolute',
     left: 26,
     right: 26,
     top: 338,
     height: 1,
-    backgroundColor: 'rgba(25,112,92,0.13)',
-  },
+    backgroundColor: 'rgba(25,112,92,0.13)'},
   glowTop: {
     position: 'absolute',
     width: 380,
@@ -410,8 +411,7 @@ const styles = StyleSheet.create({
     backgroundColor: NEON,
     opacity: 0.04,
     top: -230,
-    alignSelf: 'center',
-  },
+    alignSelf: 'center'},
   glowSide: {
     position: 'absolute',
     width: 300,
@@ -420,8 +420,7 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     opacity: 0.055,
     top: 270,
-    right: -200,
-  },
+    right: -200},
   content: { flex: 1, paddingHorizontal: 14 },
   backBtn: {
     position: 'absolute',
@@ -435,23 +434,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   hero: { alignItems: 'center', paddingTop: 2, paddingBottom: 14 },
   logoMark: {
     width: 118,
     height: 86,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   logoImage: { width: 112, height: 82 },
   brand: {
     color: '#FFFFFF',
     fontSize: 28,
     fontWeight: '900',
-    letterSpacing: 0.8,
-  },
+    letterSpacing: 0.8},
   subtitle: {
     color: 'rgba(255,255,255,0.62)',
     fontSize: 14.5,
@@ -459,8 +455,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     marginTop: 6,
-    maxWidth: 350,
-  },
+    maxWidth: 350},
   trialStatus: {
     marginTop: 8,
     paddingHorizontal: 10,
@@ -472,8 +467,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: NEON },
   trialStatusText: { color: 'rgba(255,255,255,0.74)', fontSize: 11, fontWeight: '900' },
   billingSwitch: {
@@ -485,8 +479,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.055)',
     borderWidth: 1.6,
     borderColor: 'rgba(37,240,200,0.28)',
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   billingOption: {
     flex: 1,
     minHeight: 38,
@@ -494,8 +487,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 5,
-  },
+    gap: 5},
   billingOptionActive: {
     backgroundColor: 'rgba(37,240,200,0.14)',
     borderWidth: 1.4,
@@ -503,16 +495,14 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.18,
     shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   billingText: { color: 'rgba(255,255,255,0.48)', fontSize: 12.5, fontWeight: '900' },
   billingTextActive: { color: '#FFFFFF' },
   saveBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: 'rgba(37,240,200,0.12)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.12)'},
   saveBadgeText: { color: NEON, fontSize: 8.5, fontWeight: '900' },
   storeErrorText: {
     color: 'rgba(255,255,255,0.58)',
@@ -522,8 +512,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: -6,
     marginBottom: 7,
-    paddingHorizontal: 12,
-  },
+    paddingHorizontal: 12},
+  summaryCard: {
+    marginBottom: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 5},
+  summaryTitle: {
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase'},
+  summaryLine: {
+    color: 'rgba(255,255,255,0.76)',
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '600'},
   cardsRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -531,8 +539,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 292,
     maxHeight: 340,
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   cardWrap: { flex: 1, alignSelf: 'stretch' },
   cardWrapPro: { flex: 1, alignSelf: 'stretch' },
   cardWrapDisabled: { opacity: 0.52 },
@@ -544,8 +551,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     paddingHorizontal: 12,
     paddingVertical: 18,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   planCardActive: {
     borderWidth: 1.4,
     borderColor: 'rgba(37,240,200,0.48)',
@@ -553,29 +559,24 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.12,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   planCardPro: {
-    backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.045)'},
   planCardProActive: {
     borderColor: 'rgba(37,240,200,0.56)',
     shadowColor: NEON,
     shadowOpacity: 0.16,
     shadowRadius: 22,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   planCardDisabled: {
     borderColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: 'rgba(255,255,255,0.025)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.025)'},
   cardTop: { minHeight: 70, alignItems: 'center' },
   planName: {
     color: '#FFFFFF',
     fontSize: 19,
     fontWeight: '900',
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   planNamePro: { color: NEON, fontSize: 22 },
   planNameExpert: { color: '#FFFFFF' },
   badge: {
@@ -586,18 +587,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     backgroundColor: 'rgba(255,255,255,0.045)',
-    maxWidth: '100%',
-  },
+    maxWidth: '100%'},
   badgePro: {
     borderColor: 'rgba(37,240,200,0.24)',
-    backgroundColor: 'rgba(37,240,200,0.08)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.08)'},
   badgeText: {
     color: 'rgba(255,255,255,0.74)',
     fontSize: 8,
     fontWeight: '900',
-    letterSpacing: 0.2,
-  },
+    letterSpacing: 0.2},
   details: { gap: 10, marginTop: 12, flex: 1 },
   detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
   detailText: {
@@ -605,22 +603,19 @@ const styles = StyleSheet.create({
     fontSize: 11.2,
     lineHeight: 15.4,
     fontWeight: '800',
-    flex: 1,
-  },
+    flex: 1},
   priceBlock: { alignItems: 'center', minHeight: 56, justifyContent: 'flex-end' },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    maxWidth: '100%',
-  },
+    maxWidth: '100%'},
   price: {
     color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '900',
     textAlign: 'center',
-    flexShrink: 1,
-  },
+    flexShrink: 1},
   pricePro: { color: NEON },
   periodText: {
     color: 'rgba(255,255,255,0.42)',
@@ -628,14 +623,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginLeft: 2,
     marginBottom: 2,
-    flexShrink: 1,
-  },
+    flexShrink: 1},
   priceSub: {
     color: 'rgba(255,255,255,0.45)',
     fontSize: 9.5,
     fontWeight: '800',
-    marginTop: 1,
-  },
+    marginTop: 1},
   selectedPanel: {
     minHeight: 96,
     borderRadius: 28,
@@ -646,8 +639,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 15,
     marginTop: 12,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   panelIcon: {
     width: 42,
     height: 42,
@@ -656,8 +648,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.16)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   panelCopy: { flex: 1 },
   panelTitle: { color: '#FFFFFF', fontSize: 15.5, fontWeight: '900' },
   panelDesc: {
@@ -665,8 +656,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
-    marginTop: 3,
-  },
+    marginTop: 3},
   footer: { marginTop: 10, paddingBottom: 0 },
   continueBtn: {
     alignSelf: 'center',
@@ -681,32 +671,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.24,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
+    elevation: 6},
   continueGlowLeft: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
     width: '58%',
-    backgroundColor: 'rgba(255,255,255,0.16)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.16)'},
   continueGlowRight: {
     position: 'absolute',
     right: 0,
     top: 0,
     bottom: 0,
     width: '42%',
-    backgroundColor: 'rgba(25,112,92,0.20)',
-  },
+    backgroundColor: 'rgba(25,112,92,0.20)'},
   continueSheen: {
     position: 'absolute',
     left: 26,
     right: 26,
     top: 0,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.65)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.65)'},
   continueText: { color: INK, fontSize: 16, fontWeight: '900' },
   continueIcon: { position: 'absolute', right: 22 },
   renewText: {
@@ -714,15 +700,12 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '700',
     textAlign: 'center',
-    marginTop: 7,
-  },
+    marginTop: 7},
   links: {
     minHeight: 26,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-  },
+    gap: 6},
   linkText: { color: 'rgba(255,255,255,0.50)', fontSize: 10.5, fontWeight: '800' },
-  linkSep: { color: 'rgba(255,255,255,0.24)', fontSize: 10, fontWeight: '800' },
-})
+  linkSep: { color: 'rgba(255,255,255,0.24)', fontSize: 10, fontWeight: '800' }})

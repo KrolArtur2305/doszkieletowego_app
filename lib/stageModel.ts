@@ -74,8 +74,7 @@ export function buildStageGroupPickerOptions(
     grouped.set(key, {
       ...option,
       key: `group:${key}`,
-      label: getStageGroupDisplayName(t, key),
-    });
+      label: getStageGroupDisplayName(t, key)});
   }
   return [...grouped.values()].sort((a, b) => {
     const ai = MAIN_STAGE_GROUP_ORDER.indexOf(a.stageGroupCode);
@@ -250,7 +249,7 @@ export function getStageDisplayName(
   const fallback = options.fallback || 'Etap budowy';
   const nameKey = String(options.nameKey ?? '').trim();
   if (nameKey) {
-    const translated = String(t(nameKey, { ns: 'stages', defaultValue: '' }) ?? '').trim();
+    const translated = String(t(nameKey, { ns: 'stages'}) ?? '').trim();
     if (translated && translated !== nameKey) return translated;
   }
 
@@ -264,26 +263,26 @@ export function getStageDisplayName(
     return stageCode;
   }
 
-  return t('fallback.stage', { defaultValue: fallback });
+  return t('fallback.stage');
 }
 
 export function getStageGroupDisplayName(t: Translate, groupCode: unknown, fallback = 'Etap budowy') {
   const normalized = normalizeStageGroupCode(groupCode);
-  if (!normalized) return t('fallback.stage', { defaultValue: fallback });
+  if (!normalized) return t('fallback.stage');
 
   switch (normalized) {
     case 'stan_zero':
-      return t('mainTimeline.stanZero', { ns: 'stages', defaultValue: 'Stan zero' });
+      return t('mainTimeline.stanZero', { ns: 'stages'});
     case 'sso':
-      return t('mainTimeline.sso', { ns: 'stages', defaultValue: 'Stan surowy otwarty' });
+      return t('mainTimeline.sso', { ns: 'stages'});
     case 'ssz':
-      return t('mainTimeline.ssz', { ns: 'stages', defaultValue: 'Stan surowy zamkniety' });
+      return t('mainTimeline.ssz', { ns: 'stages'});
     case 'instalacje':
-      return t('mainTimeline.installations', { ns: 'stages', defaultValue: 'Instalacje' });
+      return t('mainTimeline.installations', { ns: 'stages'});
     case 'wykonczenie':
-      return t('mainTimeline.finishing', { ns: 'stages', defaultValue: 'Wykonczenie' });
+      return t('mainTimeline.finishing', { ns: 'stages'});
     default:
-      return t('fallback.stage', { defaultValue: fallback });
+      return t('fallback.stage');
   }
 }
 
@@ -353,8 +352,7 @@ export function buildStagePickerOptions(
     const label = getStageDisplayName(t, {
       stageCode,
       nameKey: row.name_key,
-      fallback: 'Etap budowy',
-    });
+      fallback: 'Etap budowy'});
     const legacy = stageCode ? legacyByCode.get(stageCode) ?? null : null;
     return {
       key: `template:${row.id}`,
@@ -363,8 +361,7 @@ export function buildStagePickerOptions(
       stageGroupCode: groupCode,
       legacyId: legacy?.id ?? null,
       source: 'template',
-      orderIndex: typeof row.order_index === 'number' && Number.isFinite(row.order_index) ? row.order_index : 0,
-    };
+      orderIndex: typeof row.order_index === 'number' && Number.isFinite(row.order_index) ? row.order_index : 0};
   };
 
   const mapUserStage = (row: UserStageLike): StagePickerOption => {
@@ -377,8 +374,7 @@ export function buildStagePickerOptions(
       stageCode,
       nameKey: row.custom_name_key || matchedTemplate?.name_key,
       legacyName: row.custom_name,
-      fallback: 'Etap budowy',
-    });
+      fallback: 'Etap budowy'});
     const legacy = stageCode ? legacyByCode.get(stageCode) ?? null : row.custom_name ? legacyByName.get(normalize(row.custom_name)) ?? null : null;
     return {
       key: `user:${row.id}`,
@@ -387,8 +383,7 @@ export function buildStagePickerOptions(
       stageGroupCode: groupCode,
       legacyId: legacy?.id ?? null,
       source: row.source === 'custom' ? 'user' : 'template',
-      orderIndex: typeof row.order_index === 'number' && Number.isFinite(row.order_index) ? row.order_index : 0,
-    };
+      orderIndex: typeof row.order_index === 'number' && Number.isFinite(row.order_index) ? row.order_index : 0};
   };
 
   const templateOptions = templateRows.map(mapTemplate);
@@ -402,8 +397,7 @@ export function buildStagePickerOptions(
     const label = getStageDisplayName(t, {
       stageCode,
       legacyName: row.nazwa,
-      fallback: 'Etap budowy',
-    });
+      fallback: 'Etap budowy'});
     return {
       key: `legacy:${row.id}`,
       label,
@@ -411,8 +405,7 @@ export function buildStagePickerOptions(
       stageGroupCode: groupCode,
       legacyId: row.id ?? null,
       source: 'legacy' as const,
-      orderIndex: typeof row.kolejnosc === 'number' && Number.isFinite(row.kolejnosc) ? row.kolejnosc : index,
-    };
+      orderIndex: typeof row.kolejnosc === 'number' && Number.isFinite(row.kolejnosc) ? row.kolejnosc : index};
   });
 
   const options = preferred.length > 0 ? preferred : fallback;

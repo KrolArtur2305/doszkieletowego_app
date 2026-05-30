@@ -16,8 +16,7 @@ import {
   StatusBar,
   Keyboard,
   KeyboardAvoidingView,
-  Linking,
-} from 'react-native';
+  Linking} from 'react-native';
 import { Image } from 'expo-image';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,8 +67,7 @@ const COLORS = {
   accent: '#5EEAD4',
   accent2: '#38BDF8',
   danger: '#FF3B30',
-  brand: '#19705C',
-};
+  brand: '#19705C'};
 
 const bucketName = 'dokumenty';
 const APP_LOGO = require('../../../assets/logo.png');
@@ -80,12 +78,10 @@ const DOCUMENT_COVERS = {
   oferta: require('../../../../assets/document-covers/oferta.png'),
   projekt: require('../../../../assets/document-covers/projekt.png'),
   pozwolenia: require('../../../../assets/document-covers/pozwolenie.png'),
-  inne: require('../../../../assets/document-covers/inne.png'),
-} as const;
+  inne: require('../../../../assets/document-covers/inne.png')} as const;
 const MAX_DOCUMENT_UPLOAD_BYTES = 20 * 1024 * 1024;
 const ALLOWED_DOCUMENT_EXTENSIONS = new Set([
-  'pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt',
-]);
+  'pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt']);
 
 function isAllowedDocument(file?: { name?: string; mimeType?: string } | null) {
   const mime = String(file?.mimeType || '').toLowerCase();
@@ -178,8 +174,7 @@ const DOC_TYPES: { key: DocTypeKey; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'oferta', icon: 'clipboard-outline' },
   { key: 'projekt', icon: 'layers-outline' },
   { key: 'pozwolenia', icon: 'shield-checkmark-outline' },
-  { key: 'inne', icon: 'archive-outline' },
-];
+  { key: 'inne', icon: 'archive-outline' }];
 
 export default function DokumentyScreen() {
   const { t, i18n } = useTranslation(['documents', 'common']);
@@ -221,8 +216,7 @@ export default function DokumentyScreen() {
 
   const getUserId = useCallback(async (): Promise<string | null> => {
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { session }} = await supabase.auth.getSession();
     return session?.user?.id ?? null;
   }, []);
 
@@ -262,7 +256,7 @@ export default function DokumentyScreen() {
       } catch (e: any) {
         console.error('Błąd ładowania dokumentów:', e);
         Alert.alert(
-          tt('common:errorTitle', { defaultValue: 'Error' }),
+          tt('common:errorTitle'),
           tt('documents:alerts.loadDocsError'),
         );
       } finally {
@@ -310,32 +304,30 @@ export default function DokumentyScreen() {
         'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'text/csv',
-        'text/plain',
-      ],
-    });
+        'text/plain']});
     if (!res.canceled) {
       const a = res.assets?.[0];
       if (a?.uri) {
         if (typeof a.size === 'number' && a.size <= 0) {
           Alert.alert(
-            tt('common:errorTitle', { defaultValue: 'Error' }),
-            tt('documents:alerts.emptyFile', { defaultValue: 'Selected file is empty.' }),
+            tt('common:errorTitle'),
+            tt('documents:alerts.emptyFile'),
           );
           return;
         }
 
         if (typeof a.size === 'number' && a.size > MAX_DOCUMENT_UPLOAD_BYTES) {
           Alert.alert(
-            tt('common:errorTitle', { defaultValue: 'Error' }),
-            tt('documents:alerts.fileTooLarge', { defaultValue: 'File is too large. Maximum size is 20 MB.' }),
+            tt('common:errorTitle'),
+            tt('documents:alerts.fileTooLarge'),
           );
           return;
         }
 
         if (!isAllowedDocument({ name: a.name, mimeType: a.mimeType })) {
           Alert.alert(
-            tt('common:errorTitle', { defaultValue: 'Error' }),
-            tt('documents:alerts.invalidFileType', { defaultValue: 'Unsupported file type.' }),
+            tt('common:errorTitle'),
+            tt('documents:alerts.invalidFileType'),
           );
           return;
         }
@@ -362,7 +354,7 @@ export default function DokumentyScreen() {
       } catch (e: any) {
         console.error('Błąd otwierania dokumentu:', e);
         Alert.alert(
-          tt('common:errorTitle', { defaultValue: 'Error' }),
+          tt('common:errorTitle'),
           tt('documents:alerts.openError'),
         );
       }
@@ -386,7 +378,7 @@ export default function DokumentyScreen() {
     } catch (e: any) {
       console.error('Błąd preview dokumentu:', e);
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('common:errorTitle'),
         tt('documents:alerts.openError'),
       );
       setPreviewVisible(false);
@@ -410,9 +402,9 @@ export default function DokumentyScreen() {
       tt('documents:alerts.deleteTitle'),
       tt('documents:alerts.deleteDesc'),
       [
-        { text: tt('common:cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
+        { text: tt('common:cancel'), style: 'cancel' },
         {
-          text: tt('common:delete', { defaultValue: 'Delete' }),
+          text: tt('common:delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -422,10 +414,8 @@ export default function DokumentyScreen() {
               const { error: removeError } = await supabase.storage.from(bucketName).remove([doc.plik_url]);
               if (removeError) {
                 Alert.alert(
-                  tt('common:errorTitle', { defaultValue: 'Error' }),
-                  tt('documents:alerts.deleteStorageError', {
-                    defaultValue: 'Document was removed, but the file could not be deleted from storage.',
-                  }),
+                  tt('common:errorTitle'),
+                  tt('documents:alerts.deleteStorageError'),
                 );
               }
               if (previewDoc?.id === doc.id) closePreview();
@@ -433,13 +423,11 @@ export default function DokumentyScreen() {
             } catch (e: any) {
               console.error('Błąd usuwania dokumentu:', e);
               Alert.alert(
-                tt('common:errorTitle', { defaultValue: 'Error' }),
+                tt('common:errorTitle'),
                 tt('documents:alerts.deleteError'),
               );
             }
-          },
-        },
-      ],
+          }}],
     );
   };
 
@@ -456,7 +444,7 @@ export default function DokumentyScreen() {
 
     if (!file?.uri) {
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('common:errorTitle'),
         tt('documents:alerts.fileRequired'),
       );
       return;
@@ -464,24 +452,24 @@ export default function DokumentyScreen() {
 
     if (typeof file.size === 'number' && file.size <= 0) {
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Error' }),
-        tt('documents:alerts.emptyFile', { defaultValue: 'Selected file is empty.' }),
+        tt('common:errorTitle'),
+        tt('documents:alerts.emptyFile'),
       );
       return;
     }
 
     if (typeof file.size === 'number' && file.size > MAX_DOCUMENT_UPLOAD_BYTES) {
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Error' }),
-        tt('documents:alerts.fileTooLarge', { defaultValue: 'File is too large. Maximum size is 20 MB.' }),
+        tt('common:errorTitle'),
+        tt('documents:alerts.fileTooLarge'),
       );
       return;
     }
 
     if (!isAllowedDocument(file)) {
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Error' }),
-        tt('documents:alerts.invalidFileType', { defaultValue: 'Unsupported file type.' }),
+        tt('common:errorTitle'),
+        tt('documents:alerts.invalidFileType'),
       );
       return;
     }
@@ -489,7 +477,7 @@ export default function DokumentyScreen() {
     setSaving(true);
     try {
       const userId = await getUserId();
-      if (!userId) throw new Error('No user');
+      if (!userId) throw new Error('NO_USER');
 
       const ext = (() => {
         const parts = (file.name || '').split('.');
@@ -500,13 +488,12 @@ export default function DokumentyScreen() {
 
       const blob = await (await fetch(file.uri)).blob();
       if (!blob || blob.size <= 0) {
-        throw new Error(tt('documents:alerts.emptyFile', { defaultValue: 'Selected file is empty.' }));
+        throw new Error(tt('documents:alerts.emptyFile'));
       }
 
       const { error: upErr } = await supabase.storage.from(bucketName).upload(filePath, blob, {
         contentType: file.mimeType || (ext === 'pdf' ? 'application/pdf' : undefined),
-        upsert: false,
-      });
+        upsert: false});
       if (upErr) throw upErr;
 
       const finalTitle =
@@ -520,8 +507,7 @@ export default function DokumentyScreen() {
         tytul: finalTitle,
         notatki: desc.trim() ? desc.trim() : null,
         kategoria: selectedTypeForUpload,
-        plik_url: filePath,
-      });
+        plik_url: filePath});
 
       if (error) {
         const { error: rollbackError } = await supabase.storage.from(bucketName).remove([filePath]);
@@ -538,7 +524,7 @@ export default function DokumentyScreen() {
     } catch (e: any) {
       console.error('Błąd dodawania dokumentu:', e);
       Alert.alert(
-        tt('common:errorTitle', { defaultValue: 'Error' }),
+        tt('common:errorTitle'),
         tt('documents:alerts.addError'),
       );
     } finally {
@@ -1003,7 +989,7 @@ export default function DokumentyScreen() {
 
               <View style={styles.modalButtons}>
                 <AppButton
-                  title={tt('common:cancel', { defaultValue: 'Cancel' })}
+                  title={tt('common:cancel')}
                   variant="secondary"
                   style={[styles.modalButton, styles.modalButtonSecondary]}
                   onPress={() => {
@@ -1016,7 +1002,7 @@ export default function DokumentyScreen() {
                 />
 
                 <AppButton
-                  title={tt('common:save', { defaultValue: 'Save' })}
+                  title={tt('common:save')}
                   style={[styles.modalButton, styles.modalButtonPrimary, !file?.uri && { opacity: 0.55 }]}
                   onPress={addDoc}
                   disabled={!file?.uri}
@@ -1042,8 +1028,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brand,
     opacity: 0.04,
     top: -40,
-    right: -120,
-  },
+    right: -120},
   glowTwo: {
     position: 'absolute',
     width: 360,
@@ -1052,77 +1037,65 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brand,
     opacity: 0.025,
     bottom: 120,
-    left: -170,
-  },
+    left: -170},
 
   loadingContainer: {
     flex: 1,
     backgroundColor: '#000000',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   loadingText: { marginTop: 14, fontSize: 15, color: COLORS.muted, fontWeight: '600' },
 
   topBar: {
     paddingHorizontal: 0,
     paddingBottom: 0,
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   headerSide: {
     width: 116,
     height: 120,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   headerTitleWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
+    paddingHorizontal: 6},
   headerTitleLarge: {
     ...typography.screenTitle,
     fontSize: 42,
     lineHeight: 48,
     color: uiColors.accent,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   headerLogoLarge: {
     width: 108,
-    height: 108,
-  },
+    height: 108},
 
   controlsBar: {
     paddingHorizontal: 18,
     paddingBottom: 10,
     paddingTop: 8,
-    zIndex: 40,
-  },
+    zIndex: 40},
 
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-  },
+    width: '100%'},
 
   controlsLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
+    gap: 8},
 
   controlsRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginLeft: 'auto',
-  },
+    marginLeft: 'auto'},
 
   dropdownWrap: {
     position: 'relative',
-    zIndex: 50,
-  },
+    zIndex: 50},
 
   controlButtonCompact: {
     flexDirection: 'row',
@@ -1134,14 +1107,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.96)',
     borderWidth: 1,
     borderColor: 'rgba(25,112,92,0.35)',
-    minWidth: 102,
-  },
+    minWidth: 102},
 
   controlButtonTextCompact: {
     color: COLORS.text,
     fontWeight: '800',
-    fontSize: 13,
-  },
+    fontSize: 13},
 
   controlIconButtonSmall: {
     width: 42,
@@ -1152,8 +1123,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(25,112,92,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
-    flexShrink: 0,
-  },
+    flexShrink: 0},
 
   controlIconButton: {
     width: 46,
@@ -1164,8 +1134,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(25,112,92,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
-    flexShrink: 0,
-  },
+    flexShrink: 0},
 
   controlIconButtonActive: {
     backgroundColor: 'rgba(25,112,92,0.14)',
@@ -1174,8 +1143,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 10,
-    elevation: 5,
-  },
+    elevation: 5},
 
   controlButton: {
     flexDirection: 'row',
@@ -1186,14 +1154,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.35)',
-  },
+    borderColor: 'rgba(25,112,92,0.35)'},
 
   controlButtonText: {
     flex: 1,
     color: COLORS.text,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
 
   dropdownPanelFloating: {
     position: 'absolute',
@@ -1206,8 +1172,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(25,112,92,0.30)',
     backgroundColor: '#000000',
     zIndex: 999,
-    elevation: 20,
-  },
+    elevation: 20},
 
   dropdownPanel: {
     marginTop: 10,
@@ -1215,8 +1180,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(25,112,92,0.30)',
-    backgroundColor: 'rgba(10,15,30,0.96)',
-  },
+    backgroundColor: 'rgba(10,15,30,0.96)'},
   dropdownItem: {
     paddingHorizontal: 14,
     paddingVertical: 13,
@@ -1224,8 +1188,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-  },
+    borderTopColor: 'rgba(255,255,255,0.06)'},
   dropdownItemActive: { backgroundColor: 'rgba(25,112,92,0.18)' },
   dropdownItemText: { color: 'rgba(255,255,255,0.75)', fontWeight: '800' },
   dropdownItemTextActive: { color: COLORS.brand },
@@ -1239,16 +1202,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     height: '58%',
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.04)'},
   docCoverImage: {
     width: '100%',
-    height: '100%',
-  },
+    height: '100%'},
   docCoverOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.06)',
-  },
+    backgroundColor: 'rgba(0,0,0,0.06)'},
   docIconWrap: {
     position: 'absolute',
     right: 10,
@@ -1260,35 +1220,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.24)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   docTextBlock: {
     paddingHorizontal: 14,
-    paddingTop: 12,
-  },
+    paddingTop: 12},
   docTitle: { color: COLORS.text, fontWeight: '900', fontSize: 14, lineHeight: 18 },
   docDesc: {
     marginTop: 6,
     color: 'rgba(255,255,255,0.62)',
     fontWeight: '700',
     fontSize: 12,
-    lineHeight: 16,
-  },
+    lineHeight: 16},
   docMetaRow: {
     marginTop: 'auto',
     marginHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
+    borderTopColor: 'rgba(255,255,255,0.08)'},
   docType: {
     fontSize: 10,
     fontWeight: '900',
     color: COLORS.brand,
     letterSpacing: 1.2,
-    marginBottom: 6,
-  },
+    marginBottom: 6},
   docDate: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700' },
 
   listContainer: { paddingHorizontal: 18, paddingBottom: 110 },
@@ -1300,8 +1255,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.03)'},
   listCoverWrap: {
     width: 54,
     height: 66,
@@ -1311,17 +1265,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   listCoverImage: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
-    height: '100%',
-  },
+    height: '100%'},
   listCoverOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.16)',
-  },
+    backgroundColor: 'rgba(0,0,0,0.16)'},
   listTitle: { color: COLORS.text, fontWeight: '900', fontSize: 14 },
   listMeta: { marginTop: 4, color: 'rgba(255,255,255,0.60)', fontWeight: '800', fontSize: 12 },
   listDesc: {
@@ -1329,8 +1280,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.58)',
     fontWeight: '700',
     fontSize: 12,
-    lineHeight: 16,
-  },
+    lineHeight: 16},
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 },
   emptyCard: {
@@ -1340,16 +1290,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.02)'},
   emptyTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginTop: 18, marginBottom: 8 },
   emptySubtitle: {
     fontSize: 15,
     color: 'rgba(255,255,255,0.55)',
     textAlign: 'center',
     marginBottom: 22,
-    lineHeight: 20,
-  },
+    lineHeight: 20},
   emptyButton: {
     flexDirection: 'row',
     gap: 8,
@@ -1359,8 +1307,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.button,
     backgroundColor: 'rgba(37,240,200,0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.38)',
-  },
+    borderColor: 'rgba(37,240,200,0.38)'},
   emptyButtonText: { fontSize: 14, fontWeight: '900', color: THEME_COLORS.neon, letterSpacing: 0.5 },
 
   previewOverlay: { flex: 1, backgroundColor: '#000000' },
@@ -1372,8 +1319,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.08)'},
   previewIconButton: {
     width: 42,
     height: 42,
@@ -1382,8 +1328,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   previewTitleTop: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '900' },
   previewBody: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18 },
   previewLoadingWrap: { alignItems: 'center', justifyContent: 'center' },
@@ -1395,18 +1340,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#111827',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-  },
+    borderColor: 'rgba(255,255,255,0.10)'},
   previewPdf: {
     flex: 1,
-    backgroundColor: '#111827',
-  },
+    backgroundColor: '#111827'},
   previewWebLoading: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#111827',
-  },
+    backgroundColor: '#111827'},
   previewFallbackCard: {
     width: '100%',
     maxWidth: 460,
@@ -1415,8 +1357,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(25,112,92,0.28)',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   previewFallbackIconWrap: {
     width: 86,
     height: 86,
@@ -1426,36 +1367,31 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(25,112,92,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
-  },
+    marginBottom: 18},
   previewFallbackTitle: {
     color: COLORS.text,
     fontSize: 20,
     lineHeight: 26,
     fontWeight: '900',
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   previewFallbackMeta: {
     marginTop: 8,
     color: 'rgba(255,255,255,0.60)',
     fontSize: 13,
     fontWeight: '800',
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   previewFallbackDesc: {
     marginTop: 14,
     color: 'rgba(255,255,255,0.74)',
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   previewFallbackInfo: {
     marginTop: 18,
     color: 'rgba(255,255,255,0.55)',
     fontSize: 13,
     lineHeight: 19,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   previewOpenButton: {
     marginTop: 22,
     flexDirection: 'row',
@@ -1466,8 +1402,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(37,240,200,0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.38)',
-  },
+    borderColor: 'rgba(37,240,200,0.38)'},
   previewOpenButtonText: { color: THEME_COLORS.neon, fontWeight: '900', fontSize: 14 },
 
   modalBlackOverlay: {
@@ -1475,8 +1410,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 22,
-  },
+    padding: 22},
 
   modalContent: {
     width: '100%',
@@ -1485,8 +1419,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.35)',
-  },
+    borderColor: 'rgba(25,112,92,0.35)'},
   modalTitle: {
     fontSize: 22,
     fontWeight: '900',
@@ -1495,16 +1428,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textShadowColor: 'rgba(25,112,92,0.16)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 14,
-  },
+    textShadowRadius: 14},
   modalLabel: {
     fontSize: 11,
     fontWeight: '900',
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: 1.6,
     marginTop: 12,
-    marginBottom: 10,
-  },
+    marginBottom: 10},
 
   input: {
     borderRadius: RADIUS.input,
@@ -1514,8 +1445,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     color: '#FFFFFF',
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
   textArea: {
     minHeight: 78,
     borderRadius: RADIUS.input,
@@ -1525,8 +1455,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     color: '#FFFFFF',
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
 
   filePickButton: {
     flexDirection: 'row',
@@ -1537,8 +1466,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(25,112,92,0.35)',
-  },
+    borderColor: 'rgba(25,112,92,0.35)'},
   filePickText: { flex: 1, color: COLORS.text, fontWeight: '800' },
 
   uploadProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
@@ -1550,20 +1478,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   modalButtonSecondary: {
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-  },
+    borderColor: 'rgba(255,255,255,0.10)'},
   modalButtonPrimary: {
     backgroundColor: 'rgba(37,240,200,0.14)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.38)',
     borderRadius: RADIUS.button,
-    paddingVertical: 13,
-  },
+    paddingVertical: 13},
   modalButtonTextSecondary: { fontSize: 15, fontWeight: '900', color: 'rgba(255,255,255,0.72)' },
-  modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: THEME_COLORS.neon },
-});
+  modalButtonTextPrimary: { fontSize: 15, fontWeight: '900', color: THEME_COLORS.neon }});

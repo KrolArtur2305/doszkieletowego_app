@@ -10,8 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image as ExpoImage } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
@@ -23,8 +22,7 @@ import { supabase } from '../../../../lib/supabase';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import {
   resolveRuntimeCurrentStageCode,
-  workflowBuildType,
-} from '../../../../lib/buildWorkflow';
+  workflowBuildType} from '../../../../lib/buildWorkflow';
 import {
   EXPENSE_SUGGESTION_STAGES,
   createCustomExpenseSuggestion,
@@ -36,12 +34,10 @@ import {
   suggestionStageToGroupCode,
   type ExpenseSuggestionItem,
   type ExpenseSuggestionStage,
-  type StoredExpenseSuggestionPrefs,
-} from '../../../../lib/budgetExpenseSuggestions';
+  type StoredExpenseSuggestionPrefs} from '../../../../lib/budgetExpenseSuggestions';
 import { getSuggestionDisplayName } from '../../../../lib/suggestionLabels';
 import {
-  getBudgetCategoryLabel,
-} from '../../../../lib/localizedLabels';
+  getBudgetCategoryLabel} from '../../../../lib/localizedLabels';
 import {
   expenseCategoryCodeFromLegacyLabel,
   expenseCategoryCodeToLegacyLabel,
@@ -59,8 +55,7 @@ import {
   type StageGroupCode,
   type StagePickerOption,
   type StageTemplateLike,
-  type UserStageLike,
-} from '../../../../lib/stageModel';
+  type UserStageLike} from '../../../../lib/stageModel';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppCard, AppInput, AppScreen } from '../../../../src/ui/components';
@@ -84,8 +79,7 @@ const CATEGORY_OPTIONS = [
   { value: 'ssz' },
   { value: 'instalacje' },
   { value: 'wykonczenie' },
-  { value: 'other' },
-] as const;
+  { value: 'other' }] as const;
 
 type FilterType = 'all' | 'spent' | 'planned';
 type SortType = 'date' | 'amount' | 'stage';
@@ -220,8 +214,7 @@ export default function WszystkieWydatkiScreen() {
   const [suggestionPrefs, setSuggestionPrefs] = useState<StoredExpenseSuggestionPrefs>({
     hidden: [],
     notApplicable: [],
-    custom: [],
-  });
+    custom: []});
   const [expandedSuggestionStages, setExpandedSuggestionStages] = useState<Set<ExpenseSuggestionStage>>(
     () => new Set(['stan_zero'])
   );
@@ -373,8 +366,7 @@ export default function WszystkieWydatkiScreen() {
           .from('user_stages')
           .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
           .eq('user_id', authUser.id)
-          .order('order_index', { ascending: true }),
-      ]);
+          .order('order_index', { ascending: true })]);
 
       if (templateRes.error) throw templateRes.error;
       if (userStageRes.error) throw userStageRes.error;
@@ -416,8 +408,7 @@ export default function WszystkieWydatkiScreen() {
       stage,
       groupCode: suggestionStageToGroupCode(stage),
       title: getStageGroupDisplayName(t, suggestionStageToGroupCode(stage)),
-      items: stageSuggestions.filter((suggestion) => suggestion.stage_key === stage),
-    }));
+      items: stageSuggestions.filter((suggestion) => suggestion.stage_key === stage)}));
   }, [stageSuggestions, t, visibleSuggestionStages]);
 
   const toggleSuggestionStage = useCallback((stage: ExpenseSuggestionStage) => {
@@ -449,8 +440,7 @@ export default function WszystkieWydatkiScreen() {
         .map((item) => ({
           ...item,
           hidden: hidden.has(item.id),
-          notApplicable: notApplicable.has(item.id),
-        }))
+          notApplicable: notApplicable.has(item.id)}))
     );
   }, [currentWorkflowType, userId]);
 
@@ -459,8 +449,7 @@ export default function WszystkieWydatkiScreen() {
     if (!id) return;
     persistSuggestionPrefs({
       ...suggestionPrefs,
-      hidden: Array.from(new Set([...(suggestionPrefs.hidden ?? []), id])),
-    });
+      hidden: Array.from(new Set([...(suggestionPrefs.hidden ?? []), id]))});
   }, [persistSuggestionPrefs, suggestionPrefs]);
 
   const markSuggestionNotApplicable = useCallback((suggestion: SuggestionView) => {
@@ -468,8 +457,7 @@ export default function WszystkieWydatkiScreen() {
     if (!id) return;
     persistSuggestionPrefs({
       ...suggestionPrefs,
-      notApplicable: Array.from(new Set([...(suggestionPrefs.notApplicable ?? []), id])),
-    });
+      notApplicable: Array.from(new Set([...(suggestionPrefs.notApplicable ?? []), id]))});
   }, [persistSuggestionPrefs, suggestionPrefs]);
 
   const restoreSuggestion = useCallback((suggestion: SuggestionView) => {
@@ -478,23 +466,20 @@ export default function WszystkieWydatkiScreen() {
     persistSuggestionPrefs({
       ...suggestionPrefs,
       hidden: (suggestionPrefs.hidden ?? []).filter((item) => item !== id),
-      notApplicable: (suggestionPrefs.notApplicable ?? []).filter((item) => item !== id),
-    });
+      notApplicable: (suggestionPrefs.notApplicable ?? []).filter((item) => item !== id)});
   }, [persistSuggestionPrefs, suggestionPrefs]);
 
   const saveCustomSuggestion = useCallback(async () => {
     const name = customSuggestionName.trim();
     if (!name) {
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('suggestions.customNameRequired', { defaultValue: 'Podaj nazwę wydatku.' }));
+      Alert.alert(t('errorTitle'), t('suggestions.customNameRequired'));
       return;
     }
     const nextPrefs = {
       ...suggestionPrefs,
       custom: [
         ...(suggestionPrefs.custom ?? []),
-        createCustomExpenseSuggestion(currentWorkflowType as any, customSuggestionStage, name),
-      ],
-    };
+        createCustomExpenseSuggestion(currentWorkflowType as any, customSuggestionStage, name)]};
     await persistSuggestionPrefs(nextPrefs);
     setExpandedSuggestionStages((prev) => new Set([...prev, customSuggestionStage]));
     setCustomSuggestionName('');
@@ -540,12 +525,12 @@ export default function WszystkieWydatkiScreen() {
         const aStage = getStageGroupDisplayName(
           t,
           stageGroupCodeFromStageCode(a.stage_code, stageTemplates),
-          t('fallback.stage', { defaultValue: 'Etap budowy' })
+          t('fallback.stage')
         );
         const bStage = getStageGroupDisplayName(
           t,
           stageGroupCodeFromStageCode(b.stage_code, stageTemplates),
-          t('fallback.stage', { defaultValue: 'Etap budowy' })
+          t('fallback.stage')
         );
         const byStage = (aStage || '').localeCompare(bStage || '', datePickerLocale);
         if (byStage !== 0) return byStage;
@@ -566,8 +551,7 @@ export default function WszystkieWydatkiScreen() {
           : 'other';
         const byStoredGroup = normalizeStageGroupCode(expense.stage_group_code);
         return byStageCode === groupCode || byLegacy === groupCode || byStoredGroup === groupCode;
-      }),
-    }));
+      })}));
   }, [etapy, sortedExpenses, stageTemplates, t, visibleStageGroups]);
 
   async function getReceiptSignedUrl(storageKey: string) {
@@ -582,7 +566,7 @@ export default function WszystkieWydatkiScreen() {
   const openReceipt = async (storageKey: string) => {
     const signed = await supabase.storage.from('paragony').createSignedUrl(storageKey, 60 * 60);
     if (signed.error) {
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), signed.error.message);
+      Alert.alert(t('errorTitle'), signed.error.message);
       return;
     }
     if (signed.data?.signedUrl) Linking.openURL(signed.data.signedUrl);
@@ -597,24 +581,21 @@ export default function WszystkieWydatkiScreen() {
         const removeResult = await supabase.storage.from('paragony').remove([row.plik]);
         if (removeResult.error) {
           Alert.alert(
-            t('errorTitle', { defaultValue: 'Błąd' }),
-            t('errors.deleteFileWarning', {
-              defaultValue: 'Wydatek został usunięty, ale nie udało się usunąć załącznika z pamięci.',
-            })
+            t('errorTitle'),
+            t('errors.deleteFileWarning')
           );
         }
       }
       setWydatki((prev) => prev.filter((w) => w.id !== row.id));
     } catch (e: any) {
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), e?.message ?? t('errors.deleteFailed'));
+      Alert.alert(t('errorTitle'), e?.message ?? t('errors.deleteFailed'));
     }
   };
 
   const confirmDeleteExpense = (row: WydatkiRow) => {
     Alert.alert(t('delete.confirmTitle'), `${row.nazwa ?? t('expense.defaultName')}\n${formatAppCurrency(safeNumber(row.kwota), datePickerLocale, currency)}`, [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpense(row) },
-    ]);
+      { text: t('common.delete'), style: 'destructive', onPress: () => deleteExpense(row) }]);
   };
 
   const openAddExpense = () => {
@@ -682,11 +663,11 @@ export default function WszystkieWydatkiScreen() {
     const nazwa = fNazwa.trim();
     const kw = safeNumber(fKwota);
     if (!nazwa) {
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('alerts.enterName'));
+      Alert.alert(t('errorTitle'), t('alerts.enterName'));
       return;
     }
     if (kw <= 0) {
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('alerts.amountGreaterThanZero'));
+      Alert.alert(t('errorTitle'), t('alerts.amountGreaterThanZero'));
       return;
     }
 
@@ -716,8 +697,7 @@ export default function WszystkieWydatkiScreen() {
         suggestion_key: fSuggestionKey || null,
         opis: fOpis.trim() || null,
         sklep: fSklep.trim() || null,
-        ...(editingExpense ? {} : { plik: null }),
-      };
+        ...(editingExpense ? {} : { plik: null })};
       const result = editingExpense
         ? await supabase.from('wydatki').update(payload).eq('id', editingExpense.id).eq('user_id', userId)
         : await supabase.from('wydatki').insert(payload);
@@ -729,7 +709,7 @@ export default function WszystkieWydatkiScreen() {
       setFStageKey(null);
       await loadExpenses();
     } catch (e: any) {
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), e?.message ?? t('errors.addFailed'));
+      Alert.alert(t('errorTitle'), e?.message ?? t('errors.addFailed'));
     } finally {
       setSaving(false);
     }
@@ -793,7 +773,7 @@ export default function WszystkieWydatkiScreen() {
     const stageLabel = getStageGroupDisplayName(
       t,
       stageGroupCodeFromStageCode(item.stage_code, stageTemplates),
-      t('fallback.stage', { defaultValue: 'Etap budowy' })
+      t('fallback.stage')
     );
     return (
       <Swipeable renderRightActions={() => renderRightActions(item)} overshootRight={false} rightThreshold={40}>
@@ -1019,7 +999,7 @@ export default function WszystkieWydatkiScreen() {
             >
               <Feather name="plus" size={15} color={NEON} />
               <Text style={styles.addCustomSuggestionText}>
-                {t('suggestions.addCustom', { defaultValue: 'Dodaj własną sugestię' })}
+                {t('suggestions.addCustom')}
               </Text>
             </TouchableOpacity>
 
@@ -1056,11 +1036,11 @@ export default function WszystkieWydatkiScreen() {
                           </Text>
                           <Text style={styles.suggestionHint}>
                             {item.source === 'custom'
-                              ? t('suggestions.custom', { defaultValue: 'Własna sugestia' })
+                              ? t('suggestions.custom')
                               : item.notApplicable
-                              ? t('suggestions.notApplicable', { defaultValue: 'Nie dotyczy' })
+                              ? t('suggestions.notApplicable')
                               : item.hidden
-                              ? t('suggestions.hidden', { defaultValue: 'Ukryte na dashboardzie' })
+                              ? t('suggestions.hidden')
                               : section.title}
                           </Text>
                         </View>
@@ -1075,7 +1055,7 @@ export default function WszystkieWydatkiScreen() {
                             activeOpacity={muted ? 1 : 0.82}
                           >
                             <Text style={styles.suggestionActionText}>
-                              {muted ? t('suggestions.hidden', { defaultValue: 'Ukryte' }) : t('suggestions.hide', { defaultValue: 'Ukryj' })}
+                              {muted ? t('suggestions.hidden') : t('suggestions.hide')}
                             </Text>
                           </TouchableOpacity>
                           <View style={styles.suggestionMiniCta}>
@@ -1097,7 +1077,7 @@ export default function WszystkieWydatkiScreen() {
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setCustomSuggestionOpen(false)} />
           <AppCard contentStyle={styles.filterModalCard} withShadow={false}>
             <View style={styles.filterModalHeader}>
-              <Text style={styles.filterModalTitle}>{t('suggestions.addCustom', { defaultValue: 'Dodaj własną sugestię' })}</Text>
+              <Text style={styles.filterModalTitle}>{t('suggestions.addCustom')}</Text>
               <TouchableOpacity onPress={() => setCustomSuggestionOpen(false)} style={styles.filterCloseBtn} activeOpacity={0.85}>
                 <Feather name="x" size={16} color="#EAFBF6" />
               </TouchableOpacity>
@@ -1126,7 +1106,7 @@ export default function WszystkieWydatkiScreen() {
             <AppInput
               value={customSuggestionName}
               onChangeText={setCustomSuggestionName}
-              placeholder={t('suggestions.customPlaceholder', { defaultValue: 'np. okna dachowe' })}
+              placeholder={t('suggestions.customPlaceholder')}
               style={styles.input}
             />
 
@@ -1282,7 +1262,7 @@ export default function WszystkieWydatkiScreen() {
                 <View style={styles.compactDateField}>
                   <Text style={styles.compactDateLabel}>{t('modal.dateLabel')}</Text>
                   <View style={styles.dateRow}>
-                    <AppInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder="YYYY-MM-DD" />
+                    <AppInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder={t('modal.datePlaceholder')} />
                     <TouchableOpacity style={styles.calBtn} onPress={() => openDatePicker('data')} activeOpacity={0.85}>
                       <Text style={styles.calIcon}>📅</Text>
                     </TouchableOpacity>
@@ -1329,8 +1309,7 @@ export default function WszystkieWydatkiScreen() {
                       stageCode: stageCodeFromLegacyStage(etap, index),
                       stageGroupCode: stageGroupCodeFromLegacyStage(etap),
                       source: 'legacy',
-                      orderIndex: index,
-                    } as StagePickerOption))).map((etap) => {
+                      orderIndex: index} as StagePickerOption))).map((etap) => {
                       const on = stageGroupOptions.length > 0 ? fStageKey === etap.key : fEtapId === etap.legacyId;
                       return (
                         <TouchableOpacity
@@ -1379,20 +1358,17 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: 6,
-  },
+    paddingTop: 6},
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   headerSide: {
     width: 96,
     height: 120,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   headerLogoLarge: { width: 92, height: 92 },
   headerTitleWrap: {
     flex: 1,
@@ -1400,8 +1376,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
-    minHeight: 96,
-  },
+    minHeight: 96},
   headerTitleLarge: {
     ...typography.screenTitle,
     color: colors.accent,
@@ -1411,8 +1386,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textAlignVertical: 'center',
     flexShrink: 1,
-    includeFontPadding: false,
-  },
+    includeFontPadding: false},
   errorText: { color: '#FCA5A5', marginBottom: 10, textAlign: 'center', fontWeight: '800' },
   segmentRow: {
     flexDirection: 'row',
@@ -1422,15 +1396,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: 'rgba(255,255,255,0.035)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.065)',
-  },
+    borderColor: 'rgba(255,255,255,0.065)'},
   segmentBtn: {
     flex: 1,
     borderRadius: 999,
     paddingVertical: 9,
     minHeight: 38,
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   segmentBtnActive: { backgroundColor: 'rgba(37,240,200,0.11)' },
   segmentText: { color: 'rgba(255,255,255,0.50)', fontSize: 12, fontWeight: '900' },
   segmentTextActive: { color: NEON },
@@ -1439,8 +1411,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 8,
-  },
+    marginBottom: 8},
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1450,8 +1421,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.14)',
-  },
+    borderColor: 'rgba(37,240,200,0.14)'},
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1461,8 +1431,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.14)',
-  },
+    borderColor: 'rgba(37,240,200,0.14)'},
   filterButtonText: { color: NEON, fontSize: 12, fontWeight: '900' },
   sortButtonText: { color: NEON, fontSize: 12, fontWeight: '900' },
   filterSummary: { flex: 1, color: 'rgba(255,255,255,0.46)', fontSize: 11, fontWeight: '800' },
@@ -1470,21 +1439,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.55)',
-    padding: spacing.lg,
-  },
+    padding: spacing.lg},
   filterModalCard: {
     borderRadius: 22,
     padding: 16,
     backgroundColor: '#050807',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.14)',
-  },
+    borderColor: 'rgba(37,240,200,0.14)'},
   filterModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   filterModalTitle: { color: '#F8FAFC', fontSize: 17, fontWeight: '900' },
   filterCloseBtn: {
     width: 32,
@@ -1492,8 +1458,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.05)'},
   filterGroupLabel: { color: '#94A3B8', fontSize: 11, fontWeight: '900', marginTop: 10, marginBottom: 7 },
   modalChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, paddingRight: 12 },
   filterModalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
@@ -1502,16 +1467,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 11,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.05)'},
   resetFiltersText: { color: 'rgba(255,255,255,0.72)', fontSize: 12, fontWeight: '900' },
   applyFiltersBtn: {
     flex: 1,
     borderRadius: 999,
     paddingVertical: 11,
     alignItems: 'center',
-    backgroundColor: NEON,
-  },
+    backgroundColor: NEON},
   applyFiltersText: { color: '#05110E', fontSize: 12, fontWeight: '900' },
   controlsWrap: { marginBottom: 8, gap: 6 },
   chipLine: { gap: 6, paddingRight: 12 },
@@ -1519,8 +1482,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.045)'},
   filterPillActive: { backgroundColor: 'rgba(37,240,200,0.12)' },
   filterPillText: { color: 'rgba(255,255,255,0.50)', fontSize: 10.5, fontWeight: '800' },
   filterPillTextActive: { color: NEON },
@@ -1530,8 +1492,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 999,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.035)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.035)'},
   stageDotActive: { backgroundColor: 'rgba(37,240,200,0.12)' },
   stageDotText: { color: 'rgba(255,255,255,0.46)', fontSize: 10.5, fontWeight: '900' },
   stageDotTextActive: { color: NEON },
@@ -1540,8 +1501,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.03)'},
   sortPillActive: { backgroundColor: 'rgba(37,240,200,0.10)' },
   sortPillText: { color: 'rgba(255,255,255,0.46)', fontSize: 10.5, fontWeight: '800' },
   sortPillTextActive: { color: 'rgba(220,255,245,0.98)' },
@@ -1558,8 +1518,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.16)',
-  },
+    borderColor: 'rgba(37,240,200,0.16)'},
   addCustomSuggestionText: { color: NEON, fontSize: 12, fontWeight: '900' },
   itemRow: {
     flexDirection: 'row',
@@ -1568,8 +1527,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 6,
     borderRadius: 14,
-    backgroundColor: 'rgba(25,112,92,0.065)',
-  },
+    backgroundColor: 'rgba(25,112,92,0.065)'},
   itemRowPlanned: { opacity: 0.72 },
   itemName: { color: '#F8FAFC', fontWeight: '900', fontSize: 13.5 },
   itemNamePlanned: { color: 'rgba(255,255,255,0.72)' },
@@ -1581,8 +1539,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 6,
     paddingVertical: 2.5,
-    backgroundColor: 'rgba(255,255,255,0.055)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.055)'},
   miniBadgePlanned: { backgroundColor: 'rgba(37,240,200,0.10)' },
   miniBadgeText: { color: 'rgba(226,232,240,0.78)', fontSize: 9.5, fontWeight: '900' },
   amountWrap: { alignItems: 'flex-end', maxWidth: 118, paddingTop: 1 },
@@ -1600,24 +1557,21 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.10)',
-    backgroundColor: 'rgba(25,112,92,0.06)',
-  },
+    backgroundColor: 'rgba(25,112,92,0.06)'},
   suggestionSection: {
     marginBottom: 9,
     borderRadius: 15,
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.025)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
+    borderColor: 'rgba(255,255,255,0.06)'},
   suggestionSectionHeader: {
     minHeight: 40,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(25,112,92,0.07)',
-  },
+    backgroundColor: 'rgba(25,112,92,0.07)'},
   suggestionSectionTitle: { color: '#F8FAFC', fontSize: 14.8, fontWeight: '900' },
   suggestionSectionMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   suggestionSectionCount: { color: 'rgba(148,163,184,0.85)', fontSize: 11.6, fontWeight: '900' },
@@ -1631,8 +1585,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
+    borderColor: 'rgba(255,255,255,0.08)'},
   suggestionPillText: { color: '#C8F7EE', fontSize: 10.5, fontWeight: '800' },
   suggestionHint: { color: 'rgba(148,163,184,0.78)', fontSize: 10.5, fontWeight: '700', marginTop: 5 },
   suggestionMiniCta: {
@@ -1641,14 +1594,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     backgroundColor: 'rgba(37,240,200,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.18)',
-  },
+    borderColor: 'rgba(37,240,200,0.18)'},
   suggestionMiniCtaText: { color: NEON, fontSize: 10.5, fontWeight: '900' },
   suggestionActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
+    gap: 6},
   suggestionIconBtn: {
     minWidth: 50,
     height: 28,
@@ -1656,8 +1607,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.045)'},
   suggestionActionText: { color: 'rgba(255,255,255,0.62)', fontSize: 10.5, fontWeight: '900' },
   stageEmptyText: { color: 'rgba(148,163,184,0.62)', fontSize: 12, fontWeight: '700', paddingHorizontal: 12, paddingVertical: 12 },
   trashAction: {
@@ -1668,8 +1618,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(239,68,68,0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.35)',
-  },
+    borderColor: 'rgba(239,68,68,0.35)'},
   trashText: { color: '#FCA5A5', fontWeight: '900', fontSize: 12, marginTop: 4 },
   fab: {
     bottom: 66,
@@ -1678,27 +1627,23 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23,
     shadowOpacity: 0.22,
-    shadowRadius: 12,
-  },
+    shadowRadius: 12},
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
     backgroundColor: '#000000',
     paddingTop: 28,
-    paddingBottom: 28,
-  },
+    paddingBottom: 28},
   modalScrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: 18,
-  },
+    paddingVertical: 18},
   modalCardOuter: {
     marginBottom: 0,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   modalCard: {
     padding: 16,
     borderTopLeftRadius: 22,
@@ -1710,8 +1655,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: -6 },
-    elevation: 12,
-  },
+    elevation: 12},
   modalTitle: { color: NEON, fontWeight: '900', fontSize: 18, marginBottom: 12, textAlign: 'center' },
   lbl: { color: '#94A3B8', fontSize: 12, marginTop: 10, marginBottom: 6 },
   input: {},
@@ -1729,8 +1673,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.10,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
+    elevation: 2},
   calIcon: { fontSize: 18 },
   iosDateWrap: {
     marginTop: 8,
@@ -1738,8 +1681,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.03)'},
   iosDateOk: {
     margin: 12,
     alignSelf: 'flex-end',
@@ -1748,8 +1690,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(37,240,200,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.28)',
-  },
+    borderColor: 'rgba(37,240,200,0.28)'},
   iosDateOkText: { color: NEON, fontWeight: '900', fontSize: 12 },
   row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
   pill: {
@@ -1764,8 +1705,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
+    elevation: 1},
   pillOn: { borderColor: 'rgba(37,240,200,0.42)', backgroundColor: 'rgba(37,240,200,0.14)' },
   pillText: { color: '#94A3B8', fontWeight: '800' },
   pillTextOn: { color: 'rgba(220,255,245,0.98)' },
@@ -1785,8 +1725,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
+    elevation: 2},
   catTileOn: { borderColor: 'rgba(37,240,200,0.42)', backgroundColor: 'rgba(37,240,200,0.12)' },
   catTileText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
   catTileTextOn: { color: 'rgba(220,255,245,0.98)' },
@@ -1802,8 +1741,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.10,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
+    elevation: 2},
   compactStageChipOn: { borderColor: 'rgba(37,240,200,0.50)', backgroundColor: 'rgba(37,240,200,0.14)' },
   compactStageChipText: { color: '#94A3B8', fontWeight: '800', fontSize: 12, letterSpacing: 0 },
   compactStageChipTextOn: { color: 'rgba(220,255,245,0.98)' },
@@ -1811,5 +1749,4 @@ const styles = StyleSheet.create({
   compactDateField: { flex: 1, gap: 6 },
   compactDateLabel: { color: '#94A3B8', fontSize: 11, fontWeight: '800' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  modalBtn: { flex: 1 },
-});
+  modalBtn: { flex: 1 }});

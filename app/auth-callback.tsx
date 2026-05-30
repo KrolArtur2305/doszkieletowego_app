@@ -29,7 +29,7 @@ export default function AuthCallbackScreen() {
         const callbackType = url ? getAuthCallbackType(url) : 'unknown';
         const fallbackMessage =
           callbackType === 'recovery'
-            ? t('callback.errors.recoveryFailed', { defaultValue: 'Could not open the password reset link.' })
+            ? t('callback.errors.recoveryFailed')
             : t('callback.errors.completeFailed');
 
         setError(nextError?.message ?? fallbackMessage);

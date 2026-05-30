@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +22,7 @@ import {
 export default function RootLayout() {
   const { session, loading } = useSupabaseAuth();
   const [i18nReady, setI18nReady] = useState(false);
+  const { t } = useTranslation('common');
 
   usePushNotifications();
 
@@ -73,10 +75,10 @@ export default function RootLayout() {
       }}
     >
       <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '700', marginBottom: 10, textAlign: 'center' }}>
-        Blad konfiguracji aplikacji
+        {t('configErrorTitle')}
       </Text>
       <Text style={{ color: '#b8c0cc', fontSize: 14, lineHeight: 20, textAlign: 'center' }}>
-        {supabaseConfigError ?? 'Brakuje konfiguracji Supabase w tym buildzie.'}
+        {supabaseConfigError ?? t('supabaseConfigMissing')}
       </Text>
     </View>
   ) : null;

@@ -21,10 +21,27 @@
   "yes": "Yes",
   "no": "No",
   "plans": {
-    "free": { "name": "Free", "desc": "No active subscription", "forever": "no active plan" },
-    "free_trial": { "name": "Free Trial", "desc": "14 days of full access", "badge": "TRIAL", "forever": "full access for 14 days" },
-    "pro": { "name": "BuildIQ Pro", "desc": "Focused limits for an active build", "badge": "PRO" },
-    "expert": { "name": "BuildIQ Expert", "desc": "Everything unlimited", "badge": "EXPERT" }
+    "free": {
+      "name": "Free",
+      "desc": "No active subscription",
+      "forever": "no active plan"
+    },
+    "free_trial": {
+      "name": "Free Trial",
+      "desc": "14 days of full access",
+      "badge": "TRIAL",
+      "forever": "full access for 14 days"
+    },
+    "pro": {
+      "name": "BuildIQ Pro",
+      "desc": "Focused limits for an active build",
+      "badge": "PRO"
+    },
+    "expert": {
+      "name": "BuildIQ Expert",
+      "desc": "Everything unlimited",
+      "badge": "EXPERT"
+    }
   },
   "features": {
     "photos": "photos",
@@ -64,7 +81,13 @@
     "priceNotice": "Price shown in App Store",
     "unavailableTitle": "Developer build",
     "unavailableMessage": "The transaction handler is not connected in this build.",
-    "notice": "Subscriptions renew automatically unless cancelled."
+    "notice": "Subscriptions renew automatically unless cancelled.",
+    "summaryTitle": "Subscription summary",
+    "summaryPlan": "Plan: {{plan}}",
+    "summaryLength": "Length: {{length}}",
+    "summaryPrice": "Price: {{price}}",
+    "monthlyLength": "1 month",
+    "yearlyLength": "1 year"
   },
   "paywall": {
     "logo": "BuildIQ",
@@ -82,7 +105,7 @@
     "continue": "Start",
     "restore": "Restore Purchases",
     "autoRenew": "Subscriptions renew automatically unless cancelled.",
-    "terms": "Terms",
+    "terms": "Terms of Use / EULA",
     "refund": "Refunds",
     "privacy": "Privacy Policy",
     "devAlertTitle": "Developer build",
@@ -96,7 +119,11 @@
         "name": "Free",
         "badge": "",
         "description": "Start and explore the essentials",
-        "details": ["Core project setup", "Basic tracking", "Limited storage"]
+        "details": [
+          "Core project setup",
+          "Basic tracking",
+          "Limited storage"
+        ]
       },
       "free_trial": {
         "name": "Free Trial",
@@ -104,47 +131,90 @@
         "description": "Unlimited access during trial",
         "price": "Free",
         "priceSub": "for 14 days",
-        "details": ["Full AI access", "Unlimited photos", "No commitment"]
+        "details": [
+          "Full AI access",
+          "Unlimited photos",
+          "No commitment"
+        ]
       },
       "pro": {
         "name": "Pro",
         "badge": "MOST POPULAR",
         "description": "Perfect for most builders",
         "samplePrice": "$14.99",
-        "details": ["20 AI messages/day", "100 photos", "25 documents"]
+        "details": [
+          "20 AI messages/day",
+          "100 photos",
+          "25 documents"
+        ]
       },
       "expert": {
         "name": "Expert",
         "badge": "",
         "description": "Unlimited everything",
         "samplePrice": "$19.99",
-        "details": ["Unlimited AI", "Unlimited photos", "Unlimited documents", "Priority AI"]
+        "details": [
+          "Unlimited AI",
+          "Unlimited photos",
+          "Unlimited documents",
+          "Priority AI"
+        ]
       }
     },
     "selected": {
       "free_trial": {
         "title": "Explore BuildIQ with full access",
         "desc": "Try the premium workspace before choosing the plan for your project.",
-        "benefits": ["Full AI", "All documents", "All photos", "No commitment"]
+        "benefits": [
+          "Full AI",
+          "All documents",
+          "All photos",
+          "No commitment"
+        ]
       },
       "pro": {
         "title": "Best for most homebuilders",
         "desc": "A focused plan for managing one active build with AI, budget context, and site documentation.",
-        "benefits": ["20 AI/day", "100 photos", "25 documents", "Core reports"]
+        "benefits": [
+          "20 AI/day",
+          "100 photos",
+          "25 documents",
+          "Core reports"
+        ]
       },
       "expert": {
         "title": "Unlimited control for demanding builds",
         "desc": "Designed for heavier documentation, frequent AI workflows, and long-running construction records.",
-        "benefits": ["Unlimited AI", "Unlimited photos", "Unlimited docs", "Priority AI"]
+        "benefits": [
+          "Unlimited AI",
+          "Unlimited photos",
+          "Unlimited docs",
+          "Priority AI"
+        ]
       }
     },
     "benefits": {
       "items": [
-        { "title": "AI Construction Manager", "desc": "Plan next steps, answer build questions, and keep decisions moving." },
-        { "title": "Budget & expense tracking", "desc": "Track costs with a clear view of budget pressure and spending history." },
-        { "title": "Construction photos & documents", "desc": "Keep site evidence, files, and project context organized in one place." },
-        { "title": "Progress tracking", "desc": "Follow work stages with a structured timeline built for home construction." },
-        { "title": "Reports & exports", "desc": "Prepare clean summaries for owners, teams, and project records." }
+        {
+          "title": "AI Construction Manager",
+          "desc": "Plan next steps, answer build questions, and keep decisions moving."
+        },
+        {
+          "title": "Budget & expense tracking",
+          "desc": "Track costs with a clear view of budget pressure and spending history."
+        },
+        {
+          "title": "Construction photos & documents",
+          "desc": "Keep site evidence, files, and project context organized in one place."
+        },
+        {
+          "title": "Progress tracking",
+          "desc": "Follow work stages with a structured timeline built for home construction."
+        },
+        {
+          "title": "Reports & exports",
+          "desc": "Prepare clean summaries for owners, teams, and project records."
+        }
       ]
     },
     "pro": {
@@ -166,5 +236,8 @@
         "priorityAi": "Priority AI"
       }
     }
+  },
+  "errors": {
+    "loadFailed": "Could not load the subscription status."
   }
 }

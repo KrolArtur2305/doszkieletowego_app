@@ -28,5 +28,11 @@
   },
   "actions": {
     "choose": "Choose"
+  },
+  "alerts": {
+    "errorTitle": "Error",
+    "noSession": "No session. Please sign in again.",
+    "saveFailed": "Couldn’t save the plan. Please try again.",
+    "paidPlanRequiresActivation": "Purchases or trial activation are handled on the subscription screen. For now, the account remains on the free plan."
   }
 }

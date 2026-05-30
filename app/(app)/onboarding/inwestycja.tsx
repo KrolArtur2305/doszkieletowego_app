@@ -194,7 +194,7 @@ export default function OnboardingInvestmentScreen() {
       if (dataKoniecISO && selectedISO > dataKoniecISO) {
         Alert.alert(
           t('alerts.errorTitle'),
-          t('alerts.startAfterEnd', { defaultValue: 'Data startu nie może być późniejsza niż data końca.' })
+          t('alerts.startAfterEnd')
         );
         return;
       }
@@ -204,7 +204,7 @@ export default function OnboardingInvestmentScreen() {
       if (dataStartISO && selectedISO < dataStartISO) {
         Alert.alert(
           t('alerts.errorTitle'),
-          t('alerts.endBeforeStart', { defaultValue: 'Data końca nie może być wcześniejsza niż data startu.' })
+          t('alerts.endBeforeStart')
         );
         return;
       }
@@ -226,32 +226,32 @@ export default function OnboardingInvestmentScreen() {
     if (trimmedName.length > INVESTMENT_NAME_MAX_LENGTH) {
       Alert.alert(
         t('alerts.errorTitle'),
-        t('alerts.nameTooLong', { defaultValue: 'Nazwa inwestycji może mieć maksymalnie 18 znaków.' })
+        t('alerts.nameTooLong')
       );
       return;
     }
 
     if (!selectedPlace) {
-      const message = t('alerts.selectLocationFromList', { defaultValue: 'Please select a location from the list.' });
+      const message = t('alerts.selectLocationFromList');
       setLocationError(message);
       Alert.alert(t('alerts.errorTitle'), message);
       return;
     }
 
     if (!dataStartISO) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.startDateRequired', { defaultValue: 'Wybierz datę startu.' }));
+      Alert.alert(t('alerts.errorTitle'), t('alerts.startDateRequired'));
       return;
     }
 
     if (!dataKoniecISO) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.endDateRequired', { defaultValue: 'Wybierz datę zakończenia.' }));
+      Alert.alert(t('alerts.errorTitle'), t('alerts.endDateRequired'));
       return;
     }
 
     if (dataStartISO > dataKoniecISO) {
       Alert.alert(
         t('alerts.errorTitle'),
-        t('alerts.startAfterEnd', { defaultValue: 'Data startu nie może być późniejsza niż data końca.' })
+        t('alerts.startAfterEnd')
       );
       return;
     }
@@ -384,7 +384,7 @@ export default function OnboardingInvestmentScreen() {
                     setLokalizacja(getPlaceLocalityName(place));
                     setLocationError(null);
                   }}
-                  countryLabel={t('form.countryLabel', { defaultValue: 'Country' })}
+                  countryLabel={t('form.countryLabel')}
                   defaultCountryCode={defaultCountryCode}
                   placeholder={t('form.locationPlaceholder')}
                   disabled={saving}
@@ -412,7 +412,7 @@ export default function OnboardingInvestmentScreen() {
                   </View>
                 </View>
                 <AppButton
-                  title={saving ? t('actions.saving') : 'Zapisz i przejdź dalej'}
+                  title={saving ? t('actions.saving') : t('actions.saveAndContinue')}
                   onPress={handleSave}
                   disabled={saving}
                   loading={saving}

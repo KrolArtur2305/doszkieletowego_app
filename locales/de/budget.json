@@ -11,6 +11,7 @@
   },
   "errors": {
     "fetchFailed": "Daten konnten nicht geladen werden.",
+    "authRequired": "Bitte melde dich erneut an.",
     "addFailed": "Ausgabe konnte nicht hinzugefügt werden.",
     "saveFailed": "Ausgabe konnte nicht gespeichert werden.",
     "deleteFailed": "Ausgabe konnte nicht gelöscht werden.",
@@ -239,6 +240,7 @@
     "typeLabel": "Ausgabentyp",
     "dateLabel": "Datum",
     "dateOptional": "Datum - optional",
+    "datePlaceholder": "JJJJ-MM-TT",
     "plannedDateLabel": "Geplantes Datum",
     "stageLabel": "Bauphase",
     "noStage": "Keine Phase",

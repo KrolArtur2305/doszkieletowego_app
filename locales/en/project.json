@@ -76,5 +76,10 @@
   "noAccessPhotosDesc": "Grant gallery access to add a floor plan.",
   "uploadFailedTitle": "Upload failed",
   "urlError": "Failed to retrieve file URL.",
-  "edit": "Edit"
+  "edit": "Edit",
+  "skip": "Skip",
+  "projectNudgeBuddyFallback": "Manager",
+  "projectNudgeTitle": "Fill in the most important project details now.",
+  "projectNudgeText": "This way everything stays at hand and my suggestions will be better tailored.",
+  "projectNudgeCta": "Fill in"
 }

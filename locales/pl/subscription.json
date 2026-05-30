@@ -21,10 +21,27 @@
   "yes": "Tak",
   "no": "Nie",
   "plans": {
-    "free": { "name": "Free", "desc": "Brak aktywnej subskrypcji", "forever": "brak aktywnego planu" },
-    "free_trial": { "name": "Free Trial", "desc": "14 dni pełnego dostępu", "badge": "TRIAL", "forever": "pełny dostęp na 14 dni" },
-    "pro": { "name": "BuildIQ Pro", "desc": "Limity dla aktywnej budowy", "badge": "PRO" },
-    "expert": { "name": "BuildIQ Expert", "desc": "Wszystko bez limitów", "badge": "EXPERT" }
+    "free": {
+      "name": "Free",
+      "desc": "Brak aktywnej subskrypcji",
+      "forever": "brak aktywnego planu"
+    },
+    "free_trial": {
+      "name": "Free Trial",
+      "desc": "14 dni pełnego dostępu",
+      "badge": "TRIAL",
+      "forever": "pełny dostęp na 14 dni"
+    },
+    "pro": {
+      "name": "BuildIQ Pro",
+      "desc": "Limity dla aktywnej budowy",
+      "badge": "PRO"
+    },
+    "expert": {
+      "name": "BuildIQ Expert",
+      "desc": "Wszystko bez limitów",
+      "badge": "EXPERT"
+    }
   },
   "features": {
     "photos": "zdjęć",
@@ -64,7 +81,13 @@
     "priceNotice": "Cena widoczna w App Store",
     "unavailableTitle": "Build developerski",
     "unavailableMessage": "Obsługa transakcji nie jest podłączona w tym buildzie.",
-    "notice": "Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane."
+    "notice": "Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane.",
+    "summaryTitle": "Podsumowanie subskrypcji",
+    "summaryPlan": "Plan: {{plan}}",
+    "summaryLength": "D?ugo??: {{length}}",
+    "summaryPrice": "Cena: {{price}}",
+    "monthlyLength": "1 miesi?c",
+    "yearlyLength": "1 rok"
   },
   "paywall": {
     "logo": "BuildIQ",
@@ -82,7 +105,7 @@
     "continue": "Rozpocznij",
     "restore": "Przywróć zakupy",
     "autoRenew": "Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane.",
-    "terms": "Regulamin",
+    "terms": "Regulamin / EULA",
     "refund": "Zwroty",
     "privacy": "Polityka prywatności",
     "devAlertTitle": "Build developerski",
@@ -96,7 +119,11 @@
         "name": "Free",
         "badge": "",
         "description": "Start i podstawy projektu",
-        "details": ["Podstawowa konfiguracja", "Bazowe śledzenie", "Limitowana przestrzeń"]
+        "details": [
+          "Podstawowa konfiguracja",
+          "Bazowe śledzenie",
+          "Limitowana przestrzeń"
+        ]
       },
       "free_trial": {
         "name": "Free Trial",
@@ -104,47 +131,90 @@
         "description": "Pełny dostęp w czasie triala",
         "price": "Free",
         "priceSub": "przez 14 dni",
-        "details": ["Pełny dostęp AI", "Zdjęcia bez limitu", "Bez zobowiązań"]
+        "details": [
+          "Pełny dostęp AI",
+          "Zdjęcia bez limitu",
+          "Bez zobowiązań"
+        ]
       },
       "pro": {
         "name": "Pro",
         "badge": "NAJPOPULARNIEJSZY",
         "description": "Idealny dla większości budujących",
         "samplePrice": "14,99 $",
-        "details": ["20 wiadomości AI dziennie", "100 zdjęć", "25 dokumentów"]
+        "details": [
+          "20 wiadomości AI dziennie",
+          "100 zdjęć",
+          "25 dokumentów"
+        ]
       },
       "expert": {
         "name": "Expert",
         "badge": "",
         "description": "Wszystko bez limitów",
         "samplePrice": "19,99 $",
-        "details": ["AI bez limitu", "Zdjęcia bez limitu", "Dokumenty bez limitu", "Priorytetowe AI"]
+        "details": [
+          "AI bez limitu",
+          "Zdjęcia bez limitu",
+          "Dokumenty bez limitu",
+          "Priorytetowe AI"
+        ]
       }
     },
     "selected": {
       "free_trial": {
         "title": "Sprawdź BuildIQ z pełnym dostępem",
         "desc": "Przetestuj przestrzeń premium przed wyborem planu dla swojej budowy.",
-        "benefits": ["Pełne AI", "Wszystkie dokumenty", "Wszystkie zdjęcia", "Bez zobowiązań"]
+        "benefits": [
+          "Pełne AI",
+          "Wszystkie dokumenty",
+          "Wszystkie zdjęcia",
+          "Bez zobowiązań"
+        ]
       },
       "pro": {
         "title": "Najlepszy wybór dla większości budujących",
         "desc": "Plan do zarządzania aktywną budową z AI, budżetem i dokumentacją z placu budowy.",
-        "benefits": ["20 AI/dzień", "100 zdjęć", "25 dokumentów", "Raporty"]
+        "benefits": [
+          "20 AI/dzień",
+          "100 zdjęć",
+          "25 dokumentów",
+          "Raporty"
+        ]
       },
       "expert": {
         "title": "Pełna kontrola dla wymagających budów",
         "desc": "Dla intensywnej dokumentacji, częstej pracy z AI i długiego archiwum budowy.",
-        "benefits": ["AI bez limitu", "Zdjęcia bez limitu", "Dokumenty bez limitu", "Priorytet AI"]
+        "benefits": [
+          "AI bez limitu",
+          "Zdjęcia bez limitu",
+          "Dokumenty bez limitu",
+          "Priorytet AI"
+        ]
       }
     },
     "benefits": {
       "items": [
-        { "title": "AI Construction Manager", "desc": "Planuj kolejne kroki, odpowiadaj na pytania i szybciej podejmuj decyzje." },
-        { "title": "Budżet i wydatki", "desc": "Kontroluj koszty, historię wydatków i presję na budżet." },
-        { "title": "Zdjęcia i dokumenty budowy", "desc": "Trzymaj zdjęcia, pliki i kontekst projektu w jednym miejscu." },
-        { "title": "Śledzenie postępu", "desc": "Monitoruj etapy prac w uporządkowanej osi czasu budowy." },
-        { "title": "Raporty i eksporty", "desc": "Przygotowuj czytelne podsumowania dla właścicieli, ekip i archiwum." }
+        {
+          "title": "AI Construction Manager",
+          "desc": "Planuj kolejne kroki, odpowiadaj na pytania i szybciej podejmuj decyzje."
+        },
+        {
+          "title": "Budżet i wydatki",
+          "desc": "Kontroluj koszty, historię wydatków i presję na budżet."
+        },
+        {
+          "title": "Zdjęcia i dokumenty budowy",
+          "desc": "Trzymaj zdjęcia, pliki i kontekst projektu w jednym miejscu."
+        },
+        {
+          "title": "Śledzenie postępu",
+          "desc": "Monitoruj etapy prac w uporządkowanej osi czasu budowy."
+        },
+        {
+          "title": "Raporty i eksporty",
+          "desc": "Przygotowuj czytelne podsumowania dla właścicieli, ekip i archiwum."
+        }
       ]
     },
     "pro": {
@@ -166,5 +236,8 @@
         "priorityAi": "Priorytetowe AI"
       }
     }
+  },
+  "errors": {
+    "loadFailed": "Nie udało się wczytać statusu subskrypcji."
   }
 }

@@ -49,8 +49,7 @@ const POLISH_SUGGESTION_NAMES: Record<string, string> = {
   'welna mineralna': 'wełna mineralna',
   'wkrety konstrukcyjne': 'wkręty konstrukcyjne',
   'wylewki': 'wylewki',
-  'zaprawa murarska': 'zaprawa murarska',
-};
+  'zaprawa murarska': 'zaprawa murarska'};
 
 const restorePolishSuggestionName = (value: string) => {
   const key = value.trim().toLowerCase();
@@ -60,7 +59,7 @@ const restorePolishSuggestionName = (value: string) => {
 export const getSuggestionDisplayName = (t: TFunction, suggestion: SuggestionLike) => {
   const nameKey = String(suggestion.expense_name_key ?? '').trim();
   if (nameKey) {
-    const translated = String(t(nameKey, { defaultValue: '' }) ?? '').trim();
+    const translated = String(t(nameKey) ?? '').trim();
     if (translated && translated !== nameKey && !translated.startsWith('budgetSuggestions.')) {
       return translated;
     }

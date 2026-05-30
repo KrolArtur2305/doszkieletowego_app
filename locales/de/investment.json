@@ -47,5 +47,25 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "changeTypeConfirm": "Bauart ändern"
+  },
+  "alerts": {
+    "completeDataTitle": "Daten vervollständigen",
+    "nameRequired": "Der Investitionsname ist erforderlich, um fortzufahren.",
+    "nameTooLong": "Der Investitionsname darf höchstens 18 Zeichen haben.",
+    "locationRequired": "Der Standort der Investition ist erforderlich, um fortzufahren.",
+    "selectLocationFromList": "Bitte wähle einen Ort aus der Liste aus.",
+    "startAfterEnd": "Das Startdatum darf nicht nach dem Enddatum liegen.",
+    "endBeforeStart": "Das Enddatum darf nicht vor dem Startdatum liegen.",
+    "startDateRequired": "Wähle das Startdatum aus.",
+    "endDateRequired": "Wähle das Enddatum aus.",
+    "changeBuildTypeTitle": "Bauart ändern?",
+    "changeBuildTypeMsg": "Das Ändern der Bauart berechnet die aktuelle Phase neu und passt den Fortschritt an den neuen Workflow an.",
+    "invalidBudgetTitle": "Ungültiges Budget",
+    "invalidBudgetMsg": "Das Budget darf nicht negativ sein.",
+    "errorTitle": "Fehler",
+    "loadFailed": "Die Investition konnte nicht geladen werden.",
+    "noSession": "Kein Benutzer. Bitte erneut anmelden.",
+    "saveFailed": "Die Daten konnten nicht gespeichert werden. Bitte versuche es erneut.",
+    "saveErrorTitle": "Fehler beim Speichern"
   }
 }

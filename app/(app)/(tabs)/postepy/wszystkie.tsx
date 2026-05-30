@@ -7,8 +7,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -24,8 +23,7 @@ import {
   resolveCurrentStageGroupCode,
   type StageGroupCode,
   type StageTemplateRow,
-  type UserStageRow,
-} from '../../../../lib/postepyModel';
+  type UserStageRow} from '../../../../lib/postepyModel';
 import { getStageDisplayName, getStageGroupDisplayName } from '../../../../lib/stageModel';
 import { getBuddyAvatarSource } from '../../../../src/services/buddy/avatar';
 
@@ -105,29 +103,26 @@ export default function WszystkieEtapyScreen() {
         title: getStageDisplayName(t, {
           stageCode: template.stage_code,
           nameKey: template.name_key,
-          legacyName: String(template.stage_group_code ?? ''),
-        }),
+          legacyName: String(template.stage_group_code ?? '')}),
         stageCode: String(template.stage_code ?? '').trim().toUpperCase(),
         groupCode: normalizeStageGroupCode(template.stage_group_code) ?? 'stan_zero',
         orderIndex: safeOrder(template.order_index),
         status: draftStatuses[`template-${template.id}`] ?? match?.status ?? 'pending',
         userStage: match,
-        templateId: template.id,
-      };
+        templateId: template.id};
     });
 
     const customItems: StageItem[] = userStages
       .filter((row) => String(row.source ?? '').trim().toLowerCase() === 'custom')
       .map((row) => ({
         key: `custom-${row.id}`,
-        title: row.custom_name?.trim() || t('all.customStage', { defaultValue: 'Etap własny' }),
+        title: row.custom_name?.trim() || t('all.customStage'),
         stageCode: String(row.stage_code ?? '').trim().toUpperCase(),
         groupCode: resolveCurrentStageGroupCode(templates, profile?.build_type, row.stage_code),
         orderIndex: safeOrder(row.order_index),
         status: draftStatuses[`custom-${row.id}`] ?? row.status ?? 'pending',
         userStage: row,
-        templateId: row.template_id ?? null,
-      }));
+        templateId: row.template_id ?? null}));
 
     return [...templateItems, ...customItems].sort((a, b) => a.orderIndex - b.orderIndex || a.title.localeCompare(b.title));
   }, [draftStatuses, profile?.build_type, t, templates, userStages]);
@@ -182,8 +177,7 @@ export default function WszystkieEtapyScreen() {
             .select(USER_STAGE_SELECT)
             .eq('user_id', user.id)
             .eq('workflow_code', workflowCode)
-            .order('order_index', { ascending: true }),
-        ]);
+            .order('order_index', { ascending: true })]);
 
         if (templateRes.error) throw templateRes.error;
         if (userStageRes.error) throw userStageRes.error;
@@ -261,8 +255,7 @@ export default function WszystkieEtapyScreen() {
             stage_code: item.stageCode || null,
             source: 'template',
             status: nextStatus,
-            order_index: item.orderIndex,
-          });
+            order_index: item.orderIndex});
 
     const { data, error } = await query.select(USER_STAGE_SELECT).single();
     if (error) throw error;
@@ -336,8 +329,7 @@ export default function WszystkieEtapyScreen() {
         setProfile((prev) => (prev ? { ...prev, current_stage_code: nextStageCode } : prev));
         setCompletionModal({
           visible: true,
-          nextStageName: getStageGroupDisplayName(t, normalizeStageGroupCode(nextTemplate.stage_group_code)),
-        });
+          nextStageName: getStageGroupDisplayName(t, normalizeStageGroupCode(nextTemplate.stage_group_code))});
       } else {
         router.replace('/(app)/(tabs)/postepy');
       }
@@ -365,8 +357,7 @@ export default function WszystkieEtapyScreen() {
 
   const currentProgress = {
     done: currentGroupItems.filter((item) => isDoneStageStatus(item.status)).length,
-    total: currentGroupItems.filter((item) => !isHiddenStageStatus(item.status)).length,
-  };
+    total: currentGroupItems.filter((item) => !isHiddenStageStatus(item.status)).length};
 
   return (
     <View style={styles.screen}>
@@ -390,17 +381,16 @@ export default function WszystkieEtapyScreen() {
                 {t('all.completed', {
                   done: currentProgress.done,
                   total: currentProgress.total,
-                  defaultValue: `${currentProgress.done} / ${currentProgress.total}`,
                 })}
               </Text>
               <Text style={styles.muted}>
-                {t('all.hint', { defaultValue: 'Widok oparty o stage_templates i user_stages.' })}
+                {t('all.hint')}
               </Text>
             </View>
             <View style={styles.miniPill}>
               <Feather name="layers" size={14} color={NEON} />
               <Text style={styles.miniPillText}>
-                {t('all.visible', { count: currentGroupItems.length, defaultValue: `${currentGroupItems.length}` })}
+                {t('all.visible', { count: currentGroupItems.length })}
               </Text>
             </View>
           </View>
@@ -486,8 +476,7 @@ export default function WszystkieEtapyScreen() {
           style={[
             styles.footerButton,
             styles.saveButton,
-            (!hasDraftChanges || savingAll) && styles.footerButtonDisabled,
-          ]}
+            (!hasDraftChanges || savingAll) && styles.footerButtonDisabled]}
         >
           {savingAll ? (
             <ActivityIndicator size="small" color="#022C22" />
@@ -544,8 +533,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -555,16 +543,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
+    borderColor: 'rgba(255,255,255,0.06)'},
   backText: { color: '#EAFBF6', fontWeight: '900', fontSize: 13.5 },
 
   title: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '900',
-    letterSpacing: -0.2,
-  },
+    letterSpacing: -0.2},
 
   card: {
     borderRadius: 28,
@@ -573,28 +559,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.026)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
 
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
+    gap: 12},
   cardLabel: {
     color: 'rgba(255,255,255,0.55)',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     fontSize: 11.5,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
   sectionTitle: {
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '900',
     marginTop: 8,
-    letterSpacing: -0.2,
-  },
+    letterSpacing: -0.2},
   miniPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -604,13 +586,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.14)',
-    backgroundColor: 'rgba(37,240,200,0.06)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.06)'},
   miniPillText: {
     color: NEON,
     fontWeight: '900',
-    fontSize: 12,
-  },
+    fontSize: 12},
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
   loadingText: { color: 'rgba(255,255,255,0.55)', fontWeight: '800' },
 
@@ -630,48 +610,39 @@ const styles = StyleSheet.create({
     paddingBottom: 26,
     backgroundColor: 'rgba(5,5,5,0.92)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
+    borderTopColor: 'rgba(255,255,255,0.08)'},
   footerButton: {
     flex: 1,
     height: 48,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-  },
+    borderWidth: 1},
   cancelButton: {
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
+    borderColor: 'rgba(255,255,255,0.12)'},
   saveButton: {
     backgroundColor: NEON,
-    borderColor: NEON,
-  },
+    borderColor: NEON},
   footerButtonDisabled: {
-    opacity: 0.48,
-  },
+    opacity: 0.48},
   cancelButtonText: {
     color: '#EAFBF6',
     fontWeight: '900',
-    fontSize: 14,
-  },
+    fontSize: 14},
   saveButtonText: {
     color: '#022C22',
     fontWeight: '900',
-    fontSize: 14,
-  },
+    fontSize: 14},
 
   row: {
     flexDirection: 'row',
     gap: 12,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.05)'},
   rowMuted: {
-    opacity: 0.58,
-  },
+    opacity: 0.58},
 
   checkbox: {
     width: 28,
@@ -682,36 +653,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
-  },
+    marginTop: 2},
   checkboxDone: {
     backgroundColor: NEON,
     borderColor: NEON,
     shadowColor: NEON,
     shadowOpacity: 0.25,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   checkboxMuted: {
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.10)',
-  },
+    borderColor: 'rgba(255,255,255,0.10)'},
 
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   rowTitle: { color: '#FFFFFF', fontWeight: '900', fontSize: 15.5, flex: 1 },
   rowTitleMuted: {
     color: 'rgba(255,255,255,0.42)',
-    textDecorationLine: 'line-through',
-  },
+    textDecorationLine: 'line-through'},
   rowMeta: {
     marginTop: 6,
     color: 'rgba(255,255,255,0.55)',
     fontWeight: '700',
-    fontSize: 11.5,
-  },
+    fontSize: 11.5},
   rowMetaMuted: {
-    color: 'rgba(255,255,255,0.32)',
-  },
+    color: 'rgba(255,255,255,0.32)'},
   notApplicablePill: {
     marginTop: 10,
     alignSelf: 'flex-start',
@@ -723,28 +688,23 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: 'rgba(37,240,200,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.16)',
-  },
+    borderColor: 'rgba(37,240,200,0.16)'},
   notApplicablePillActive: {
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.10)',
-  },
+    borderColor: 'rgba(255,255,255,0.10)'},
   notApplicableText: {
     color: NEON,
     fontSize: 11.5,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   notApplicableTextActive: {
-    color: 'rgba(255,255,255,0.42)',
-  },
+    color: 'rgba(255,255,255,0.42)'},
 
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 22,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-  },
+    backgroundColor: 'rgba(0,0,0,0.72)'},
   completionCard: {
     width: '100%',
     maxWidth: 380,
@@ -754,13 +714,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'rgba(5,5,5,0.94)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.22)',
-  },
+    borderColor: 'rgba(37,240,200,0.22)'},
   buddyAvatar: {
     width: 88,
     height: 88,
-    borderRadius: 44,
-  },
+    borderRadius: 44},
   buddyAvatarFrame: {
     width: 104,
     height: 104,
@@ -770,32 +728,28 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.32)',
-  },
+    borderColor: 'rgba(37,240,200,0.32)'},
   completionEyebrow: {
     color: NEON,
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   completionTitle: {
     marginTop: 8,
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: -0.2,
-  },
+    letterSpacing: -0.2},
   completionBody: {
     marginTop: 10,
     color: 'rgba(255,255,255,0.68)',
     fontSize: 14,
     fontWeight: '700',
     lineHeight: 21,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   completionButton: {
     marginTop: 18,
     minWidth: 132,
@@ -805,11 +759,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.42)',
-  },
+    borderColor: 'rgba(37,240,200,0.42)'},
   completionButtonText: {
     color: NEON,
     fontWeight: '900',
-    fontSize: 14,
-  },
-});
+    fontSize: 14}});

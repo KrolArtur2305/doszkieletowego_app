@@ -204,7 +204,7 @@ export default function LoginScreen() {
 
                 {GOOGLE_AUTH_ENABLED ? (
                   <AppButton
-                    title={googleLoading ? t('common:loading', { defaultValue: 'Loading...' }) : t('login.form.googleCta')}
+                    title={googleLoading ? t('common:loading') : t('login.form.googleCta')}
                     disabled={googleLoading || appleLoading || facebookLoading || loading}
                     onPress={handleGoogleLogin}
                     variant="secondary"
@@ -214,7 +214,7 @@ export default function LoginScreen() {
 
                 {FACEBOOK_AUTH_ENABLED ? (
                   <AppButton
-                    title={facebookLoading ? t('common:loading', { defaultValue: 'Loading...' }) : t('login.form.facebookCta')}
+                    title={facebookLoading ? t('common:loading') : t('login.form.facebookCta')}
                     disabled={facebookLoading || appleLoading || googleLoading || loading}
                     onPress={handleFacebookLogin}
                     variant="secondary"

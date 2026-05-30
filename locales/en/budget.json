@@ -11,7 +11,8 @@
   },
   "errors": {
     "fetchFailed": "Could not load data.",
-    "addFailed": "Could not add the expense.",
+        "authRequired": "Please sign in again.",
+"addFailed": "Could not add the expense.",
     "saveFailed": "Could not save the expense.",
     "deleteFailed": "Could not delete the expense.",
     "readFileFailed": "Could not read file"
@@ -239,7 +240,8 @@
     "typeLabel": "Expense type",
     "dateLabel": "Date",
     "dateOptional": "Date — optional",
-    "plannedDateLabel": "Planned date",
+        "datePlaceholder": "YYYY-MM-DD",
+"plannedDateLabel": "Planned date",
     "stageLabel": "Construction stage",
     "noStage": "No stage",
     "stageFallback": "Stage",

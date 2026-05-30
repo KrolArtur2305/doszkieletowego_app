@@ -209,7 +209,7 @@ export default function RegisterScreen() {
 
                 {GOOGLE_AUTH_ENABLED ? (
                   <AppButton
-                    title={googleLoading ? t('common:loading', { defaultValue: 'Loading...' }) : t('register.form.googleCta')}
+                    title={googleLoading ? t('common:loading') : t('register.form.googleCta')}
                     disabled={googleLoading || appleLoading || facebookLoading || loading}
                     onPress={handleGoogleLogin}
                     variant="secondary"
@@ -219,7 +219,7 @@ export default function RegisterScreen() {
 
                 {FACEBOOK_AUTH_ENABLED ? (
                   <AppButton
-                    title={facebookLoading ? t('common:loading', { defaultValue: 'Loading...' }) : t('register.form.facebookCta')}
+                    title={facebookLoading ? t('common:loading') : t('register.form.facebookCta')}
                     disabled={facebookLoading || appleLoading || googleLoading || loading}
                     onPress={handleFacebookLogin}
                     variant="secondary"

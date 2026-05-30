@@ -28,5 +28,11 @@
   },
   "actions": {
     "choose": "Auswählen"
+  },
+  "alerts": {
+    "errorTitle": "Fehler",
+    "noSession": "Keine Sitzung. Bitte erneut anmelden.",
+    "saveFailed": "Plan konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    "paidPlanRequiresActivation": "Kauf oder Testphase wird auf dem Abo-Bildschirm verwaltet. Dieses Konto bleibt vorerst im kostenlosen Plan."
   }
 }

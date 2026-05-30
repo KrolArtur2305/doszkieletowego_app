@@ -34,7 +34,7 @@ export default function ResetPasswordScreen() {
     (async () => {
       if (params.status === 'invalid') {
         if (!mounted) return;
-        setError(t('reset.errors.invalidLink', { defaultValue: 'This password reset link is invalid or has expired.' }));
+        setError(t('reset.errors.invalidLink'));
         setReady(true);
         return;
       }
@@ -44,7 +44,7 @@ export default function ResetPasswordScreen() {
       if (!mounted) return;
 
       if (sessionError || !data.session) {
-        setError(t('reset.errors.invalidLink', { defaultValue: 'This password reset link is invalid or has expired.' }));
+        setError(t('reset.errors.invalidLink'));
       }
 
       setReady(true);
@@ -59,12 +59,12 @@ export default function ResetPasswordScreen() {
     setError(null);
 
     if (!password || password.length < 8) {
-      setError(t('reset.errors.passwordTooShort', { defaultValue: 'Password must be at least 8 characters.' }));
+      setError(t('reset.errors.passwordTooShort'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError(t('reset.errors.passwordsMismatch', { defaultValue: 'Passwords do not match.' }));
+      setError(t('reset.errors.passwordsMismatch'));
       return;
     }
 
@@ -81,17 +81,17 @@ export default function ResetPasswordScreen() {
 
       setSuccess(true);
       Alert.alert(
-        t('reset.success.title', { defaultValue: 'Password updated' }),
-        t('reset.success.message', { defaultValue: 'Your new password has been saved.' }),
+        t('reset.success.title'),
+        t('reset.success.message'),
         [
           {
-            text: t('reset.success.cta', { defaultValue: 'Continue' }),
+            text: t('reset.success.cta'),
             onPress: () => router.replace('/(app)'),
           },
         ]
       );
     } catch (nextError: any) {
-      setError(nextError?.message ?? t('reset.errors.updateFailed', { defaultValue: 'Could not update the password. Please try again.' }));
+      setError(nextError?.message ?? t('reset.errors.updateFailed'));
     } finally {
       setLoading(false);
     }
@@ -114,29 +114,29 @@ export default function ResetPasswordScreen() {
             <AppHeader title="BuildIQ" style={styles.header} height={92} />
 
             <View style={styles.formBlock}>
-              <Text style={styles.title}>{t('reset.title', { defaultValue: 'Set a new password' })}</Text>
-              <Text style={styles.subtitle}>{t('reset.subtitle', { defaultValue: 'Enter a new password for your account.' })}</Text>
+              <Text style={styles.title}>{t('reset.title')}</Text>
+              <Text style={styles.subtitle}>{t('reset.subtitle')}</Text>
 
               {!ready ? (
-                <Text style={styles.info}>{t('reset.loading', { defaultValue: 'Verifying your reset link...' })}</Text>
+                <Text style={styles.info}>{t('reset.loading')}</Text>
               ) : error && !success ? (
                 <View style={styles.errorBlock}>
                   <Text style={styles.error}>{error}</Text>
                   <TouchableOpacity onPress={goToLogin} style={styles.secondaryLink} activeOpacity={0.85}>
-                    <Text style={styles.secondaryLinkText}>{t('reset.backToLogin', { defaultValue: 'Back to login' })}</Text>
+                    <Text style={styles.secondaryLinkText}>{t('reset.backToLogin')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View>
                   <AppInput
-                    placeholder={t('reset.form.passwordPlaceholder', { defaultValue: 'New password' })}
+                    placeholder={t('reset.form.passwordPlaceholder')}
                     secureTextEntry
                     value={password}
                     onChangeText={setPassword}
                     containerStyle={styles.inputWrap}
                   />
                   <AppInput
-                    placeholder={t('reset.form.repeatPasswordPlaceholder', { defaultValue: 'Repeat new password' })}
+                    placeholder={t('reset.form.repeatPasswordPlaceholder')}
                     secureTextEntry
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
@@ -146,7 +146,7 @@ export default function ResetPasswordScreen() {
                   {error ? <Text style={styles.error}>{error}</Text> : null}
 
                   <AppButton
-                    title={t('reset.form.submit', { defaultValue: 'Save new password' })}
+                    title={t('reset.form.submit')}
                     loading={loading}
                     disabled={loading || success}
                     onPress={onSubmit}
@@ -154,7 +154,7 @@ export default function ResetPasswordScreen() {
                   />
 
                   <TouchableOpacity onPress={goToLogin} style={styles.secondaryLink} activeOpacity={0.85}>
-                    <Text style={styles.secondaryLinkText}>{t('reset.backToLogin', { defaultValue: 'Back to login' })}</Text>
+                    <Text style={styles.secondaryLinkText}>{t('reset.backToLogin')}</Text>
                   </TouchableOpacity>
                 </View>
               )}

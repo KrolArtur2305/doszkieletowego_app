@@ -11,5 +11,7 @@
   "errors": {
     "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
   },
-  "delete": "Löschen"
+  "delete": "Löschen",
+  "configErrorTitle": "App-Konfigurationsfehler",
+  "supabaseConfigMissing": "In diesem Build fehlt die Supabase-Konfiguration."
 }

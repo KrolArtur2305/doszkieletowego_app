@@ -5,8 +5,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -22,8 +21,7 @@ import {
   summarizeOverallProgressBySubstages,
   type StageGroupCode,
   type StageTemplateRow,
-  type UserStageRow,
-} from '../../../../lib/postepyModel';
+  type UserStageRow} from '../../../../lib/postepyModel';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { AppHeader } from '../../../../src/ui/components';
@@ -108,8 +106,7 @@ export default function PostepyScreen() {
             .select(USER_STAGE_SELECT)
             .eq('user_id', userId)
             .eq('workflow_code', workflowCode)
-            .order('order_index', { ascending: true }),
-        ]);
+            .order('order_index', { ascending: true })]);
 
         const nextProfile = (profileRes as ProfileRow | null) ?? null;
         const nextTemplates = (templateRes.data ?? []) as StageTemplateRow[];
@@ -146,7 +143,7 @@ export default function PostepyScreen() {
     const currentStageCode = String(profile?.current_stage_code ?? '').trim().toUpperCase();
     const currentGroupCode = resolveCurrentStageGroupCode(workflowTemplates, profile?.build_type, currentStageCode);
     const currentGroupLabelKey = getGroupDisplayKey(currentGroupCode);
-    const currentGroupLabel = t(currentGroupLabelKey, { defaultValue: t('fallback.currentGroup') });
+    const currentGroupLabel = t(currentGroupLabelKey);
     const currentProgress = progressWithTemplateFallback(userStages, workflowTemplates, currentGroupCode);
     const currentPercent = currentProgress.total > 0 ? Math.round((currentProgress.done / currentProgress.total) * 100) : 0;
     const currentTimelineIndex = Math.max(
@@ -157,15 +154,14 @@ export default function PostepyScreen() {
       const progress = progressWithTemplateFallback(userStages, workflowTemplates, item.stage_group_code);
       return {
         ...item,
-        title: t(item.label_key, { defaultValue: item.stage_group_code }),
+        title: t(item.label_key),
         done: index < currentTimelineIndex || progress.total > 0 && progress.done >= progress.total,
         active: index === currentTimelineIndex,
         progressPercent: index < currentTimelineIndex
           ? 100
           : progress.total > 0
             ? Math.round((progress.done / progress.total) * 100)
-            : 0,
-      };
+            : 0};
     });
     const overallProgress = summarizeOverallProgressBySubstages(
       userStages,
@@ -175,9 +171,7 @@ export default function PostepyScreen() {
     );
     const overallPercent = overallProgress.percent;
     const nextTimelineItem = timeline[currentTimelineIndex + 1] ?? null;
-    const nextTimelineHint = t(getUpcomingHintKey(nextTimelineItem?.stage_group_code), {
-      defaultValue: t('upcoming.hint'),
-    });
+    const nextTimelineHint = t(getUpcomingHintKey(nextTimelineItem?.stage_group_code));
 
     return {
       workflowCode,
@@ -216,8 +210,7 @@ export default function PostepyScreen() {
             <Text style={styles.heroMeta}>
               {t('hero.completedSteps', {
                 done: safeNumber(viewModel.overallProgress.done),
-                total: safeNumber(viewModel.overallProgress.total),
-              })}
+                total: safeNumber(viewModel.overallProgress.total)})}
             </Text>
           </View>
           <View style={styles.heroDonutWrap}>
@@ -259,8 +252,7 @@ export default function PostepyScreen() {
               <Text style={styles.sectionTitle}>
                 {t('substeps.completed', {
                   done: safeNumber(viewModel.currentProgress.done),
-                  total: safeNumber(viewModel.currentProgress.total),
-                })}
+                  total: safeNumber(viewModel.currentProgress.total)})}
               </Text>
             </View>
             <FuturisticDonutSvg
@@ -283,7 +275,6 @@ export default function PostepyScreen() {
         <Text style={styles.stageName}>
           {t('upcoming.stageLine', {
             stage: viewModel.nextTimelineItem?.title ?? t('common.none'),
-            defaultValue: `Etap ${viewModel.nextTimelineItem?.title ?? t('common.none')}`,
           })}
         </Text>
         <Text style={styles.muted}>{viewModel.nextTimelineHint}</Text>
@@ -301,20 +292,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 16,
-    backgroundColor: 'transparent',
-  },
+    backgroundColor: 'transparent'},
   content: {
-    paddingBottom: 140,
-  },
+    paddingBottom: 140},
   header: {
     minHeight: 120,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   error: {
     color: '#FCA5A5',
     marginBottom: 8,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
   heroCard: {
     borderRadius: 28,
     padding: 16,
@@ -322,8 +309,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.026)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.14)',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   card: {
     borderRadius: 28,
     padding: 16,
@@ -331,67 +317,56 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.026)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   cardLabel: {
     color: 'rgba(255,255,255,0.55)',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     fontSize: 11.5,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
   orderCardLabel: {
     color: '#FFFFFF',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     fontSize: 12,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-  },
+    gap: 14},
   heroDonutWrap: {
     width: 112,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   heroTitle: {
     color: '#FFFFFF',
     fontSize: 25,
     fontWeight: '900',
     marginTop: 8,
-    letterSpacing: -0.3,
-  },
+    letterSpacing: -0.3},
   heroMeta: {
     color: 'rgba(255,255,255,0.68)',
     marginTop: 6,
     fontWeight: '700',
-    fontSize: 13.5,
-  },
+    fontSize: 13.5},
   timelineWrap: {
     marginTop: 14,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.06)',
-    paddingTop: 12,
-  },
+    paddingTop: 12},
   timelineLabel: {
     color: 'rgba(255,255,255,0.46)',
     fontSize: 11,
     fontWeight: '800',
     marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
+    letterSpacing: 1},
   timelineRow: {
     gap: 14,
-    paddingBottom: 2,
-  },
+    paddingBottom: 2},
   timelineItem: {
     width: 74,
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   timelineDot: {
     width: 12,
     height: 12,
@@ -399,49 +374,41 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.2)',
     backgroundColor: 'transparent',
-    marginBottom: 6,
-  },
+    marginBottom: 6},
   timelineDotDone: {
     backgroundColor: NEON,
     borderColor: NEON,
     shadowColor: NEON,
     shadowOpacity: 0.28,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   timelineDotActive: {
     borderColor: NEON,
-    backgroundColor: 'rgba(37,240,200,0.18)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.18)'},
   timelineText: {
     color: 'rgba(255,255,255,0.48)',
     fontSize: 11,
     fontWeight: '800',
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   timelineTextDone: { color: '#FFFFFF' },
   timelineTextActive: { color: NEON },
   timelinePct: {
     marginTop: 3,
     color: 'rgba(255,255,255,0.34)',
     fontSize: 10,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-  },
+    gap: 12},
   sectionSubtitle: {
     marginTop: 3,
     color: 'rgba(255,255,255,0.58)',
     fontSize: 12.2,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
   orderList: {
     marginTop: 9,
-    gap: 8,
-  },
+    gap: 8},
   orderRow: {
     flexDirection: 'row',
     gap: 10,
@@ -451,8 +418,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.028)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
+    borderColor: 'rgba(255,255,255,0.06)'},
   orderIcon: {
     width: 28,
     height: 28,
@@ -461,19 +427,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.16)',
-  },
+    borderColor: 'rgba(37,240,200,0.16)'},
   orderName: {
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 14,
-  },
+    fontSize: 14},
   orderLead: {
     color: 'rgba(255,255,255,0.58)',
     marginTop: 1,
     fontSize: 11.1,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
   orderPill: {
     paddingHorizontal: 9,
     height: 22,
@@ -482,50 +445,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.07)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.18)',
-  },
+    borderColor: 'rgba(37,240,200,0.18)'},
   orderPillText: {
     color: NEON,
     fontSize: 10.5,
     fontWeight: '900',
-    letterSpacing: 0.2,
-  },
+    letterSpacing: 0.2},
   stageName: {
     color: '#FFFFFF',
     fontSize: 21,
     fontWeight: '900',
-    marginTop: 8,
-  },
+    marginTop: 8},
   muted: {
     color: 'rgba(255,255,255,0.50)',
     marginTop: 8,
-    lineHeight: 20,
-  },
+    lineHeight: 20},
   substageTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
+    gap: 12},
   sectionTitle: {
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '900',
     marginTop: 8,
     marginBottom: 10,
-    letterSpacing: -0.2,
-  },
+    letterSpacing: -0.2},
   substageCta: {
     marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 8,
-  },
+    gap: 8},
   substageCtaText: {
     color: NEON,
     fontWeight: '900',
     fontSize: 12.5,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-});
+    letterSpacing: 0.4}});

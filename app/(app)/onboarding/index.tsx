@@ -13,8 +13,7 @@ import {
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
-} from 'react-native';
+  View} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -30,13 +29,11 @@ import {
   defaultCurrencyForLanguage,
   getStoredCurrency,
   setAppCurrency,
-  type AppCurrency,
-} from '../../../lib/currency';
+  type AppCurrency} from '../../../lib/currency';
 import {
   BUDDY_AVATAR_OPTIONS,
   DEFAULT_BUDDY_AVATAR_ID,
-  type BuddyAvatarId,
-} from '../../../src/services/buddy/avatar';
+  type BuddyAvatarId} from '../../../src/services/buddy/avatar';
 import { GUIDED_SETUP_ENABLED } from '../../../src/services/guidedSetup/launchMode';
 
 const BG = '#000000';
@@ -49,16 +46,14 @@ type OnboardingStep = 'build_type' | 'build_stage' | 'budget' | 'buddy';
 const BUILD_TYPES = [
   { value: 'szkieletowy', key: 'buildTypes.szkieletowy' },
   { value: 'murowany', key: 'buildTypes.murowany' },
-  { value: 'inny', key: 'buildTypes.inny' },
-] as const;
+  { value: 'inny', key: 'buildTypes.inny' }] as const;
 
 const BUILD_STAGES = [
   { value: 'stan_zero', key: 'buildStages.stan_zero', infoKey: 'buildStageInfo.stan_zero' },
   { value: 'stan_surowy_otwarty', key: 'buildStages.stan_surowy_otwarty', infoKey: 'buildStageInfo.stan_surowy_otwarty' },
   { value: 'stan_surowy_zamkniety', key: 'buildStages.stan_surowy_zamkniety', infoKey: 'buildStageInfo.stan_surowy_zamkniety' },
   { value: 'instalacje', key: 'buildStages.instalacje', infoKey: 'buildStageInfo.instalacje' },
-  { value: 'wykonczenie', key: 'buildStages.wykonczenie', infoKey: 'buildStageInfo.wykonczenie' },
-] as const;
+  { value: 'wykonczenie', key: 'buildStages.wykonczenie', infoKey: 'buildStageInfo.wykonczenie' }] as const;
 
 function toNumber(value: string) {
   const normalized = value.replace(/\s/g, '').replace(',', '.');
@@ -107,14 +102,11 @@ export default function OnboardingScreen() {
         Animated.timing(buddyFloat, {
           toValue: 1,
           duration: 1400,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(buddyFloat, {
           toValue: 0,
           duration: 1400,
-          useNativeDriver: true,
-        }),
-      ])
+          useNativeDriver: true})])
     );
 
     loop.start();
@@ -146,8 +138,7 @@ export default function OnboardingScreen() {
             .from('inwestycje')
             .select('budzet')
             .eq('user_id', userId)
-            .maybeSingle(),
-        ]);
+            .maybeSingle()]);
         const storedCurrency = await getStoredCurrency();
 
         if (!alive) return;
@@ -196,8 +187,7 @@ export default function OnboardingScreen() {
           build_type: value,
           current_stage_code: buildStage ? resolveOnboardingCurrentStageCode(value, buildStage) : null,
           onboarding_step: 'build_stage',
-          onboarding_completed: false,
-        },
+          onboarding_completed: false},
         { onConflict: 'user_id' }
       );
 
@@ -228,9 +218,7 @@ export default function OnboardingScreen() {
             } catch (e: any) {
               Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.logoutError'));
             }
-          },
-        },
-      ]
+          }}]
     );
   };
 
@@ -245,8 +233,7 @@ export default function OnboardingScreen() {
           build_stage: value,
           current_stage_code: resolveOnboardingCurrentStageCode(buildType, value),
           onboarding_step: 'budget',
-          onboarding_completed: false,
-        },
+          onboarding_completed: false},
         { onConflict: 'user_id' }
       );
 
@@ -283,8 +270,7 @@ export default function OnboardingScreen() {
         supabase.from('inwestycje').upsert(
           {
             user_id: userId,
-            budzet: budget,
-          },
+            budzet: budget},
           { onConflict: 'user_id' }
         ),
         spent > 0
@@ -295,8 +281,7 @@ export default function OnboardingScreen() {
               .eq('source', 'onboarding')
               .limit(1)
               .maybeSingle()
-          : Promise.resolve({ data: null, error: null } as any),
-      ]);
+          : Promise.resolve({ data: null, error: null } as any)]);
 
       if (investmentRes.error) throw investmentRes.error;
       if (existingExpenseRes?.error) throw existingExpenseRes.error;
@@ -310,8 +295,7 @@ export default function OnboardingScreen() {
           status: 'poniesiony',
           kategoria: 'Inne',
           data: todayYMD(),
-          source: 'onboarding',
-        });
+          source: 'onboarding'});
 
         if (expenseError) throw expenseError;
       }
@@ -323,8 +307,7 @@ export default function OnboardingScreen() {
           user_id: userId,
           onboarding_step: nextStep,
           onboarding_completed: false,
-          ...(appleUser ? { profil_wypelniony: true } : {}),
-        },
+          ...(appleUser ? { profil_wypelniony: true } : {})},
         { onConflict: 'user_id' }
       );
 
@@ -423,13 +406,13 @@ export default function OnboardingScreen() {
         </View>
         <View style={styles.budgetHeroCopy}>
           <Text style={styles.budgetHeroKicker}>
-            {t('budget.heroKicker', { defaultValue: 'Plan kontroli kosztów' })}
+            {t('budget.heroKicker')}
           </Text>
           <Text style={styles.budgetHeroTitle}>
-            {t('budget.heroTitle', { defaultValue: 'Zacznij od ram budżetu' })}
+            {t('budget.heroTitle')}
           </Text>
           <Text style={styles.budgetHeroText}>
-            {t('budget.heroText', { defaultValue: 'Podaj plan i dotychczasowe koszty. Resztę będziemy liczyć na bieżąco.' })}
+            {t('budget.heroText')}
           </Text>
         </View>
       </BlurView>
@@ -533,7 +516,7 @@ export default function OnboardingScreen() {
     if (!trimmedName) {
       Alert.alert(
         t('onboarding:alerts.errorTitle'),
-        t('buddy:onboarding.nameRequired', { defaultValue: 'Podaj imię dla Kierownika AI.' })
+        t('buddy:onboarding.nameRequired')
       );
       return;
     }
@@ -541,7 +524,7 @@ export default function OnboardingScreen() {
     if (!avatarId) {
       Alert.alert(
         t('onboarding:alerts.errorTitle'),
-        t('buddy:onboarding.avatarRequired', { defaultValue: 'Wybierz avatar Kierownika AI.' })
+        t('buddy:onboarding.avatarRequired')
       );
       return;
     }
@@ -549,7 +532,7 @@ export default function OnboardingScreen() {
     if (trimmedName.length > BUDDY_NAME_MAX_LENGTH) {
       Alert.alert(
         t('onboarding:alerts.errorTitle'),
-        t('buddy:onboarding.nameTooLong', { defaultValue: 'Imię może mieć maksymalnie 10 znaków' })
+        t('buddy:onboarding.nameTooLong')
       );
       return;
     }
@@ -562,8 +545,7 @@ export default function OnboardingScreen() {
           ai_buddy_name: trimmedName,
           ai_buddy_avatar: avatarId,
           onboarding_step: 'done',
-          onboarding_completed: true,
-        },
+          onboarding_completed: true},
         { onConflict: 'user_id' }
       );
 
@@ -604,18 +586,11 @@ export default function OnboardingScreen() {
                 {
                   translateY: buddyFloat.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0, -8],
-                  }),
-                },
+                    outputRange: [0, -8]})},
                 {
                   scale: buddyFloat.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [1, 1.03],
-                  }),
-                },
-              ],
-            },
-          ]}
+                    outputRange: [1, 1.03]})}]}]}
         >
           <Image
             source={BUDDY_AVATAR_OPTIONS.find((option) => option.id === avatarId)?.source ?? BUDDY_AVATAR_OPTIONS[0].source}
@@ -719,18 +694,15 @@ function renderBackButton(onPress: () => void | Promise<void>) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: BG,
-  },
+    backgroundColor: BG},
   bg: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: BG,
-  },
+    backgroundColor: BG},
   content: {
     flexGrow: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: 20,
-    paddingBottom: 44,
-  },
+    paddingBottom: 44},
   backButton: {
     alignSelf: 'flex-start',
     width: 38,
@@ -741,8 +713,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   logoutBadge: {
     position: 'absolute',
     left: 16,
@@ -758,76 +729,63 @@ const styles = StyleSheet.create({
     shadowColor: '#DC2626',
     shadowOpacity: 0.26,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
+    shadowOffset: { width: 0, height: 4 }},
   logo: {
     width: 172,
     height: 172,
     alignSelf: 'center',
-    marginBottom: 0,
-  },
+    marginBottom: 0},
   stageLogo: {
     width: 112,
     height: 112,
     alignSelf: 'center',
     marginTop: -6,
-    marginBottom: -4,
-  },
+    marginBottom: -4},
   loadingWrap: {
     paddingVertical: 60,
     alignItems: 'center',
-    gap: 12,
-  },
+    gap: 12},
   loadingText: {
     color: 'rgba(255,255,255,0.56)',
     fontSize: 13,
-    fontWeight: '600',
-  },
+    fontWeight: '600'},
   title: {
     color: NEON,
     fontSize: 33,
     fontWeight: '900',
     letterSpacing: -0.4,
     marginBottom: 14,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   stageTitle: {
     color: NEON,
     fontSize: 27,
     fontWeight: '900',
     letterSpacing: -0.25,
     marginBottom: 10,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   subtitle: {
     color: 'rgba(255,255,255,0.52)',
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 18,
-  },
+    marginBottom: 18},
   tileGrid: {
     gap: 12,
-    marginTop: 8,
-  },
+    marginTop: 8},
   stageList: {
-    gap: 12,
-  },
+    gap: 12},
   tileOuter: {
     borderRadius: 24,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   stageTileOuter: {
     width: '100%',
     borderRadius: 20,
     overflow: 'visible',
-    position: 'relative',
-  },
+    position: 'relative'},
   stageSelectButton: {
     borderRadius: 20,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   stageTile: {
     borderRadius: 20,
     paddingHorizontal: 14,
@@ -835,13 +793,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.72)',
     borderWidth: 1.3,
     borderColor: 'rgba(37,240,200,0.34)',
-    minHeight: 58,
-  },
+    minHeight: 58},
   stageTileHeader: {
     minHeight: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   infoBadge: {
     position: 'absolute',
     right: 12,
@@ -854,14 +810,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(37,240,200,0.20)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.72)',
-    zIndex: 2,
-  },
+    zIndex: 2},
   infoBadgeText: {
     color: NEON,
     fontSize: 14,
     lineHeight: 16,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   stageTileTitle: {
     width: '100%',
     color: '#FFFFFF',
@@ -869,8 +823,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     fontWeight: '900',
     textAlign: 'center',
-    paddingHorizontal: 34,
-  },
+    paddingHorizontal: 34},
   stageInfoBubble: {
     alignSelf: 'stretch',
     marginTop: 8,
@@ -885,14 +838,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.44,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
-  },
+    elevation: 8},
   stageTileInfo: {
     color: 'rgba(255,255,255,0.92)',
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
   tile: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -902,22 +853,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.72)',
     borderWidth: 1.6,
     borderColor: 'rgba(37,240,200,0.34)',
-    minHeight: 88,
-  },
+    minHeight: 88},
   tileTitle: {
     color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '800',
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   formCard: {
     borderRadius: 24,
     padding: 18,
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   budgetHero: {
     minHeight: 178,
     borderRadius: 28,
@@ -930,8 +878,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-  },
+    gap: 14},
   budgetHeroGlow: {
     position: 'absolute',
     width: 180,
@@ -940,63 +887,52 @@ const styles = StyleSheet.create({
     backgroundColor: NEON,
     opacity: 0.08,
     left: -64,
-    top: -32,
-  },
+    top: -32},
   budgetDonutWrap: {
     width: 142,
     height: 142,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   budgetHeroCopy: {
     flex: 1,
-    minWidth: 0,
-  },
+    minWidth: 0},
   budgetHeroKicker: {
     color: NEON,
     fontSize: 10.5,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 0,
-    marginBottom: 6,
-  },
+    marginBottom: 6},
   budgetHeroTitle: {
     color: '#FFFFFF',
     fontSize: 20,
     lineHeight: 24,
     fontWeight: '900',
-    marginBottom: 7,
-  },
+    marginBottom: 7},
   budgetHeroText: {
     color: 'rgba(255,255,255,0.62)',
     fontSize: 12.5,
     lineHeight: 17,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
   fieldWrap: {
-    marginBottom: 14,
-  },
+    marginBottom: 14},
   fieldWrapLast: {
-    marginBottom: 0,
-  },
+    marginBottom: 0},
   fieldLabel: {
     color: 'rgba(255,255,255,0.42)',
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    marginBottom: 8,
-  },
+    marginBottom: 8},
   input: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
+    borderColor: 'rgba(255,255,255,0.08)'},
   currencyDropdownWrap: {
-    position: 'relative',
-  },
+    position: 'relative'},
   currencySelect: {
     minHeight: 56,
     borderRadius: 18,
@@ -1007,19 +943,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: 'rgba(255,255,255,0.035)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.30)',
-  },
+    borderColor: 'rgba(37,240,200,0.30)'},
   currencyDropdown: {
     marginTop: 8,
     borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: 'rgba(0,0,0,0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.26)',
-  },
+    borderColor: 'rgba(37,240,200,0.26)'},
   currencyDropdownScroll: {
-    maxHeight: 188,
-  },
+    maxHeight: 188},
   currencyOption: {
     minHeight: 48,
     paddingHorizontal: 15,
@@ -1027,60 +960,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.06)'},
   currencyOptionActive: {
-    backgroundColor: 'rgba(37,240,200,0.11)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.11)'},
   currencyOptionCode: {
     color: 'rgba(255,255,255,0.72)',
     fontSize: 14,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   currencyCodeActive: {
-    color: NEON,
-  },
+    color: NEON},
   currencySymbol: {
     marginTop: 2,
     color: 'rgba(255,255,255,0.42)',
     fontSize: 11,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
   currencyOptionSymbol: {
     color: 'rgba(255,255,255,0.46)',
     fontSize: 13,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
   primaryBtn: {
-    marginTop: 18,
-  },
+    marginTop: 18},
   avatarGrid: {
     flexDirection: 'row',
     gap: 12,
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between'},
   buddyHeroWrap: {
     alignSelf: 'center',
     width: 124,
     height: 124,
     marginBottom: 18,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   buddyHeroAvatar: {
     width: 112,
     height: 112,
     borderRadius: 56,
     borderWidth: 2,
-    borderColor: 'rgba(37,240,200,0.35)',
-  },
+    borderColor: 'rgba(37,240,200,0.35)'},
   buddyHeroGlow: {
     position: 'absolute',
     width: 124,
     height: 124,
     borderRadius: 62,
-    backgroundColor: 'rgba(37,240,200,0.08)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.08)'},
   avatarTile: {
     position: 'relative',
     width: '31%',
@@ -1089,19 +1011,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.03)'},
   avatarTileActive: {
     borderColor: 'rgba(37,240,200,0.55)',
     shadowColor: NEON,
     shadowOpacity: 0.24,
     shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   avatarTileImage: {
     width: '100%',
-    height: '100%',
-  },
+    height: '100%'},
   avatarTileBadge: {
     position: 'absolute',
     right: 10,
@@ -1111,6 +1030,4 @@ const styles = StyleSheet.create({
     borderRadius: 99,
     backgroundColor: NEON,
     borderWidth: 2,
-    borderColor: '#000000',
-  },
-});
+    borderColor: '#000000'}});

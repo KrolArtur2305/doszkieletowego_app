@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Alert,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -115,10 +116,8 @@ export default function PlanScreen() {
       if (plan !== FREE_PLAN_KEY) {
         Alert.alert(
           t('alerts.errorTitle'),
-          t('alerts.paidPlanRequiresActivation', {
-            defaultValue: 'Zakup lub trial będzie obsługiwany przez ekran subskrypcji. Na tym etapie konto pozostaje w planie darmowym.',
-          }),
-          [{ text: 'OK', onPress: () => router.replace('/(app)/(tabs)/dashboard') }]
+          t('alerts.paidPlanRequiresActivation'),
+          [{ text: t('common:ok'), onPress: () => router.replace('/(app)/(tabs)/dashboard') }]
         );
         return;
       }
@@ -146,6 +145,7 @@ export default function PlanScreen() {
   const yesNo = (v: boolean) => (v ? t('labels.yes') : t('labels.no'));
 
   const unlimitedLabel = t('labels.unlimited');
+  const openLegalUrl = (url: string) => Linking.openURL(url).catch(() => undefined);
 
   const renderCard = (planDef: SubscriptionPlanDefinition) => {
     const l = limits[planDef.key];
@@ -156,11 +156,11 @@ export default function PlanScreen() {
     const canEdit3d = l?.can_edit_3d ?? planDef.features.model3d;
     const canTasks = l?.can_tasks ?? (planDef.features.tasks !== 0);
 
-    const title = ts(planDef.nameKey, { defaultValue: planDef.key.toUpperCase() });
+    const title = ts(planDef.nameKey) || planDef.key.toUpperCase();
     const tagline = ts(planDef.descKey);
     const price = planDef.key === FREE_PLAN_KEY
-      ? t('labels.priceFree', { defaultValue: ts('free') })
-      : t('labels.priceTbd');
+      ? ts('free')
+      : ts('priceFromStore');
 
     return (
       <View style={styles.card} key={planDef.key}>
@@ -214,6 +214,16 @@ export default function PlanScreen() {
       <View style={styles.header}>
         <Text style={styles.hTitle}>{t('header.title')}</Text>
         <Text style={styles.hSub}>{t('header.subtitle')}</Text>
+        <Text style={styles.hNote}>{t('launchInfo')}</Text>
+        <View style={styles.legalRow}>
+          <TouchableOpacity onPress={() => openLegalUrl('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')} activeOpacity={0.75}>
+            <Text style={styles.legalLink}>{t('subscription:paywall.terms')}</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalSep}>|</Text>
+          <TouchableOpacity onPress={() => openLegalUrl('https://mybuildiq.com/privacy')} activeOpacity={0.75}>
+            <Text style={styles.legalLink}>{t('subscription:paywall.privacy')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -236,6 +246,10 @@ const styles = StyleSheet.create({
   header: { marginTop: 12, marginBottom: 14, alignItems: 'center' },
   hTitle: { color: '#25F0C8', fontSize: 22, fontWeight: '900' },
   hSub: { color: 'rgba(255,255,255,0.65)', textAlign: 'center', marginTop: 6, lineHeight: 18 },
+  hNote: { color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 8, lineHeight: 16, fontSize: 12 },
+  legalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, gap: 8, flexWrap: 'wrap' },
+  legalLink: { color: '#25F0C8', fontSize: 12, fontWeight: '800' },
+  legalSep: { color: 'rgba(255,255,255,0.35)', fontSize: 12 },
 
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 

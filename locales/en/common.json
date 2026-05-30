@@ -11,5 +11,7 @@
   "errors": {
     "generic": "Something went wrong. Please try again."
   },
-  "delete": "Delete"
+  "delete": "Delete",
+  "configErrorTitle": "App configuration error",
+  "supabaseConfigMissing": "Supabase configuration is missing in this build."
 }

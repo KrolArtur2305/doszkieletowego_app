@@ -328,13 +328,13 @@ export default function UstawieniaAplikacjiScreen() {
           <Text style={styles.versionNumber}>{appVersionLabel}</Text>
 
           <View style={styles.linksRow}>
-            <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/terms')} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')} activeOpacity={0.7}>
               <Text style={styles.linkText}>{t('appSettings.terms')}</Text>
             </TouchableOpacity>
 
             <Text style={styles.linkSep}>•</Text>
 
-            <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/privacy')} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://mybuildiq.com/privacy')} activeOpacity={0.7}>
               <Text style={styles.linkText}>{t('appSettings.privacy')}</Text>
             </TouchableOpacity>
 
@@ -456,7 +456,7 @@ export default function UstawieniaAplikacjiScreen() {
               <AppInput
                 value={newPwd}
                 onChangeText={setNewPwd}
-                placeholder="••••••••"
+                placeholder={t('common:dash')}
                 secureTextEntry={!showNew}
                 style={styles.input}
                 autoCapitalize="none"
@@ -474,7 +474,7 @@ export default function UstawieniaAplikacjiScreen() {
               <AppInput
                 value={confirmPwd}
                 onChangeText={setConfirmPwd}
-                placeholder="••••••••"
+                placeholder={t('common:dash')}
                 secureTextEntry={!showConfirm}
                 style={styles.input}
                 autoCapitalize="none"

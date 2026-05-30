@@ -11,5 +11,7 @@
   "errors": {
     "generic": "Coś poszło nie tak. Spróbuj ponownie."
   },
-  "delete": "Usuń"
+  "delete": "Usuń",
+  "configErrorTitle": "Błąd konfiguracji aplikacji",
+  "supabaseConfigMissing": "Brakuje konfiguracji Supabase w tym buildzie."
 }

@@ -54,7 +54,7 @@
   "appSettings": {
     "title": "App-Einstellungen",
     "version": "App-Version",
-    "terms": "Nutzungsbedingungen",
+    "terms": "Nutzungsbedingungen / EULA",
     "privacy": "Datenschutz",
     "support": "Hilfe",
     "deleteAccountLink": "Konto löschen",
@@ -128,10 +128,18 @@
     "unlimited": "Unbegrenzt",
     "featureWithValue": "{{value}} {{label}}",
     "plans": {
-      "free": { "name": "Free" },
-      "free_trial": { "name": "Free Trial" },
-      "pro": { "name": "Pro" },
-      "expert": { "name": "Expert" }
+      "free": {
+        "name": "Free"
+      },
+      "free_trial": {
+        "name": "Free Trial"
+      },
+      "pro": {
+        "name": "Pro"
+      },
+      "expert": {
+        "name": "Expert"
+      }
     },
     "features": {
       "photos": "Fotos",

@@ -198,7 +198,7 @@ export default function OnboardingProfileScreen() {
                   label={t('profile.firstName')}
                   value={imie}
                   onChangeText={setImie}
-                  placeholder=""
+                  placeholder={t('profile.firstNamePlaceholder')}
                   autoComplete="off"
                   textContentType="none"
                   autoCorrect={false}

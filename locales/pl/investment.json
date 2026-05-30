@@ -47,5 +47,25 @@
     "save": "Zapisz",
     "cancel": "Anuluj",
     "changeTypeConfirm": "Zmień typ budowy"
+  },
+  "alerts": {
+    "completeDataTitle": "Uzupełnij dane",
+    "nameRequired": "Nazwa inwestycji jest wymagana, aby kontynuować.",
+    "nameTooLong": "Nazwa inwestycji może mieć maksymalnie 18 znaków.",
+    "locationRequired": "Lokalizacja inwestycji jest wymagana, aby kontynuować.",
+    "selectLocationFromList": "Wybierz lokalizację z listy.",
+    "startAfterEnd": "Data startu nie może być późniejsza niż data końca.",
+    "endBeforeStart": "Data końca nie może być wcześniejsza niż data startu.",
+    "startDateRequired": "Wybierz datę startu.",
+    "endDateRequired": "Wybierz datę zakończenia.",
+    "changeBuildTypeTitle": "Zmienić typ budowy?",
+    "changeBuildTypeMsg": "Zmiana typu budowy przeliczy aktualny etap i dopasuje postęp do nowego workflow.",
+    "invalidBudgetTitle": "Nieprawidłowy budżet",
+    "invalidBudgetMsg": "Budżet nie może być ujemny.",
+    "errorTitle": "Błąd",
+    "loadFailed": "Nie udało się pobrać inwestycji.",
+    "noSession": "Brak użytkownika. Zaloguj się ponownie.",
+    "saveFailed": "Nie udało się zapisać danych. Spróbuj ponownie.",
+    "saveErrorTitle": "Błąd zapisu"
   }
 }

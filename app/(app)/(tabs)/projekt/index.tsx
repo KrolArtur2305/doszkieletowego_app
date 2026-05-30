@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -13,8 +13,7 @@ import {
   TouchableOpacity,
   View,
   KeyboardAvoidingView,
-  StatusBar,
-} from 'react-native'
+  StatusBar} from 'react-native'
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -76,18 +75,17 @@ type PendingPlan = {
 }
 
 const PLAN_NAME_PRESETS = [
-  { key: 'section', labelKey: 'planNamePresets.section', defaultValue: 'Przekrój' },
-  { key: 'outline', labelKey: 'planNamePresets.outline', defaultValue: 'Obrys' },
-  { key: 'front', labelKey: 'planNamePresets.front', defaultValue: 'Przód' },
-  { key: 'back', labelKey: 'planNamePresets.back', defaultValue: 'Tył' },
-  { key: 'left', labelKey: 'planNamePresets.left', defaultValue: 'Lewa strona' },
-  { key: 'right', labelKey: 'planNamePresets.right', defaultValue: 'Prawa strona' },
-]
+  { key: 'section', labelKey: 'planNamePresets.section'},
+  { key: 'outline', labelKey: 'planNamePresets.outline'},
+  { key: 'front', labelKey: 'planNamePresets.front'},
+  { key: 'back', labelKey: 'planNamePresets.back'},
+  { key: 'left', labelKey: 'planNamePresets.left'},
+  { key: 'right', labelKey: 'planNamePresets.right'}]
 
 function fmtNum(v: any, suffix: string) {
-  if (v === null || v === undefined || v === '') return '—'
+  if (v === null || v === undefined || v === '') return '�'
   const n = typeof v === 'string' ? Number(v) : v
-  if (Number.isNaN(n)) return '—'
+  if (Number.isNaN(n)) return '�'
   const out = Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10)
   return `${out}${suffix}`
 }
@@ -187,8 +185,7 @@ async function withSignedUrls(rows: Rzut[]): Promise<Rzut[]> {
       return {
         ...row,
         storage_path: storagePath,
-        display_url: data.signedUrl,
-      }
+        display_url: data.signedUrl}
     })
   )
 }
@@ -250,8 +247,7 @@ export default function ProjektScreen() {
     kat_dachu: '',
     powierzchnia_dachu: '',
     szerokosc_elewacji: '',
-    dlugosc_elewacji: '',
-  })
+    dlugosc_elewacji: ''})
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewRzut, setPreviewRzut] = useState<Rzut | null>(null)
   const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null)
@@ -291,8 +287,7 @@ export default function ProjektScreen() {
         const [{ data: projData, error: projErr }, { data: invData, error: invErr }, { data: profileData, error: profileErr }] = await Promise.all([
           supabase.from('projekty').select('*').eq('user_id', user.id).maybeSingle(),
           supabase.from('inwestycje').select('lokalizacja').eq('user_id', user.id).maybeSingle(),
-          supabase.from('profiles').select('imie, ai_buddy_name').eq('user_id', user.id).maybeSingle(),
-        ])
+          supabase.from('profiles').select('imie, ai_buddy_name').eq('user_id', user.id).maybeSingle()])
 
         if (projErr) throw projErr
         if (invErr) throw invErr
@@ -329,7 +324,7 @@ export default function ProjektScreen() {
         console.error('[Projekt] load error:', e?.message || e)
         if (!alive) return
         setLoading(false)
-        Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('loadError'))
+        Alert.alert(t('errorTitle'), t('loadError'))
       }
     }
 
@@ -359,8 +354,7 @@ export default function ProjektScreen() {
       projekt?.kat_dachu,
       projekt?.powierzchnia_dachu,
       projekt?.szerokosc_elewacji,
-      projekt?.dlugosc_elewacji,
-    ].some((value) => value !== null && value !== undefined && String(value).trim() !== '')
+      projekt?.dlugosc_elewacji].some((value) => value !== null && value !== undefined && String(value).trim() !== '')
 
     if (hasAnyProjectDetails) return
 
@@ -383,16 +377,15 @@ export default function ProjektScreen() {
 
   const tiles = useMemo(
     () => [
-      { id: 'pow_u', label: t('tilePowU', { defaultValue: 'Pow. użytkowa' }), value: fmtNum(projekt?.powierzchnia_uzytkowa, ' m²') },
-      { id: 'kond', label: t('tileFloors', { defaultValue: 'Kondygnacje' }), value: String(projekt?.kondygnacje ?? '—') },
-      { id: 'pom', label: t('tileRooms', { defaultValue: 'Pomieszczenia' }), value: String(projekt?.pomieszczenia ?? '—') },
-      { id: 'pow_z', label: t('tilePowZ', { defaultValue: 'Pow. zabudowy' }), value: fmtNum(projekt?.powierzchnia_zabudowy, ' m²') },
-      { id: 'wys', label: t('tileHeight', { defaultValue: 'Wysokość' }), value: fmtNum(projekt?.wysokosc_budynku, ' m') },
-      { id: 'kat', label: t('tileRoofAngle', { defaultValue: 'Kąt dachu' }), value: fmtNum(projekt?.kat_dachu, '°') },
-      { id: 'pow_d', label: t('tileRoofArea', { defaultValue: 'Pow. dachu' }), value: fmtNum(projekt?.powierzchnia_dachu, ' m²') },
-      { id: 'szer', label: t('tileFacadeWidth', { defaultValue: 'Szer. elewacji' }), value: fmtNum(projekt?.szerokosc_elewacji, ' m') },
-      { id: 'dl', label: t('tileFacadeLength', { defaultValue: 'Dł. elewacji' }), value: fmtNum(projekt?.dlugosc_elewacji, ' m') },
-    ],
+      { id: 'pow_u', label: t('tilePowU'), value: fmtNum(projekt?.powierzchnia_uzytkowa, ' m2') },
+      { id: 'kond', label: t('tileFloors'), value: String(projekt?.kondygnacje ?? '�') },
+      { id: 'pom', label: t('tileRooms'), value: String(projekt?.pomieszczenia ?? '�') },
+      { id: 'pow_z', label: t('tilePowZ'), value: fmtNum(projekt?.powierzchnia_zabudowy, ' m2') },
+      { id: 'wys', label: t('tileHeight'), value: fmtNum(projekt?.wysokosc_budynku, ' m') },
+      { id: 'kat', label: t('tileRoofAngle'), value: fmtNum(projekt?.kat_dachu, '�') },
+      { id: 'pow_d', label: t('tileRoofArea'), value: fmtNum(projekt?.powierzchnia_dachu, ' m2') },
+      { id: 'szer', label: t('tileFacadeWidth'), value: fmtNum(projekt?.szerokosc_elewacji, ' m') },
+      { id: 'dl', label: t('tileFacadeLength'), value: fmtNum(projekt?.dlugosc_elewacji, ' m') }],
     [projekt, t]
   )
 
@@ -407,7 +400,7 @@ export default function ProjektScreen() {
       .single()
 
     if (error) {
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('createProjectError'))
+      Alert.alert(t('errorTitle'), t('createProjectError'))
       return null
     }
 
@@ -421,8 +414,8 @@ export default function ProjektScreen() {
 
       if (!userId) {
         Alert.alert(
-          t('notLoggedTitle', { defaultValue: 'Brak logowania' }),
-          t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' })
+          t('notLoggedTitle'),
+          t('notLoggedDesc')
         )
         return
       }
@@ -433,8 +426,7 @@ export default function ProjektScreen() {
       const picked = await DocumentPicker.getDocumentAsync({
         multiple: false,
         copyToCacheDirectory: true,
-        type: ['model/*', 'application/octet-stream', 'application/json', 'application/gltf-binary', 'application/gltf+json'],
-      })
+        type: ['model/*', 'application/octet-stream', 'application/json', 'application/gltf-binary', 'application/gltf+json']})
 
       if (picked.canceled) return
 
@@ -446,24 +438,24 @@ export default function ProjektScreen() {
 
       if (fileSize !== null && fileSize <= 0) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('model3dEmptyFile', { defaultValue: 'Wybrany plik jest pusty.' })
+          t('errorTitle'),
+          t('model3dEmptyFile')
         )
         return
       }
 
       if (fileSize !== null && fileSize > MAX_MODEL_UPLOAD_BYTES) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('model3dTooLarge', { defaultValue: 'Model jest zbyt duży. Maksymalny rozmiar to 50 MB.' })
+          t('errorTitle'),
+          t('model3dTooLarge')
         )
         return
       }
 
       if (!isAllowedModelFile(fileName, asset.mimeType)) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('model3dInvalidFile', { defaultValue: 'Możesz dodać tylko plik .glb lub .gltf.' })
+          t('errorTitle'),
+          t('model3dInvalidFile')
         )
         return
       }
@@ -479,8 +471,8 @@ export default function ProjektScreen() {
       const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' as any })
       if (!base64) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('model3dEmptyFile', { defaultValue: 'Wybrany plik jest pusty.' })
+          t('errorTitle'),
+          t('model3dEmptyFile')
         )
         return
       }
@@ -488,8 +480,8 @@ export default function ProjektScreen() {
       const bytes = base64ToUint8Array(base64)
       if (!bytes.byteLength) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('model3dEmptyFile', { defaultValue: 'Wybrany plik jest pusty.' })
+          t('errorTitle'),
+          t('model3dEmptyFile')
         )
         return
       }
@@ -498,12 +490,11 @@ export default function ProjektScreen() {
 
       const { error: uploadError } = await supabase.storage.from(BUCKET_MODELS).upload(path, bytes, {
         contentType,
-        upsert: false,
-      })
+        upsert: false})
 
       if (uploadError) {
         Alert.alert(
-          t('uploadFailedTitle', { defaultValue: 'Upload nieudany' }),
+          t('uploadFailedTitle'),
           uploadError.message
         )
         return
@@ -514,11 +505,11 @@ export default function ProjektScreen() {
       if (!publicUrl) {
         const { error: rollbackError } = await supabase.storage.from(BUCKET_MODELS).remove([path])
         if (rollbackError) {
-          console.warn('[Projekt] nie udało się wycofać modelu po braku publicUrl:', rollbackError.message)
+          console.warn('[Projekt] nie uda�o si� wycofa� modelu po braku publicUrl:', rollbackError.message)
         }
         Alert.alert(
-          t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }),
-          t('model3dUrlError', { defaultValue: 'Nie udało się uzyskać publicznego adresu modelu.' })
+          t('saveErrorTitle'),
+          t('model3dUrlError')
         )
         return
       }
@@ -534,10 +525,10 @@ export default function ProjektScreen() {
       if (updateError) {
         const { error: rollbackError } = await supabase.storage.from(BUCKET_MODELS).remove([path])
         if (rollbackError) {
-          console.warn('[Projekt] rollback modelu nie powiódł się:', rollbackError.message)
+          console.warn('[Projekt] rollback modelu nie powi�d� si�:', rollbackError.message)
         }
         Alert.alert(
-          t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }),
+          t('saveErrorTitle'),
           updateError.message
         )
         return
@@ -550,14 +541,14 @@ export default function ProjektScreen() {
       if (previousModelPath && previousModelPath !== path) {
         const { error: removeError } = await supabase.storage.from(BUCKET_MODELS).remove([previousModelPath])
         if (removeError) {
-          console.warn('[Projekt] nie udało się usunąć poprzedniego modelu:', removeError.message)
+          console.warn('[Projekt] nie uda�o si� usun�� poprzedniego modelu:', removeError.message)
         }
       }
     } catch (e: any) {
       console.error('[Projekt] change model error:', e?.message || e)
       Alert.alert(
-        t('errorTitle', { defaultValue: 'Błąd' }),
-        e?.message || t('model3dSaveFailed', { defaultValue: 'Nie udało się zapisać modelu 3D.' })
+        t('errorTitle'),
+        e?.message || t('model3dSaveFailed')
       )
     } finally {
       setModelUploading(false)
@@ -568,8 +559,8 @@ export default function ProjektScreen() {
     try {
       if (!userId) {
         Alert.alert(
-          t('notLoggedTitle', { defaultValue: 'Brak logowania' }),
-          t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' })
+          t('notLoggedTitle'),
+          t('notLoggedDesc')
         )
         return
       }
@@ -577,8 +568,8 @@ export default function ProjektScreen() {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
       if (!perm.granted) {
         Alert.alert(
-          t('noAccessTitle', { defaultValue: 'Brak dostępu' }),
-          t('noAccessPhotosDesc', { defaultValue: 'Nadaj dostęp do galerii.' })
+          t('noAccessTitle'),
+          t('noAccessPhotosDesc')
         )
         return
       }
@@ -591,8 +582,7 @@ export default function ProjektScreen() {
       const picked = await ImagePicker.launchImageLibraryAsync({
         mediaTypes,
         allowsEditing: false,
-        quality: 1,
-      })
+        quality: 1})
 
       if (picked.canceled) return
 
@@ -602,8 +592,8 @@ export default function ProjektScreen() {
       const assetSize = Number((asset as any)?.fileSize ?? 0)
       if (assetSize > 0 && assetSize > MAX_PLAN_UPLOAD_BYTES) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('planTooLarge', { defaultValue: 'Rzut jest zbyt duży. Maksymalny rozmiar to 15 MB.' })
+          t('errorTitle'),
+          t('planTooLarge')
         )
         return
       }
@@ -612,29 +602,27 @@ export default function ProjektScreen() {
       const hasAllowedExt = !!getPlanExt((asset as any)?.fileName ?? asset.uri)
       if (!isImageMime && !hasAllowedExt) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('invalidPlanType', { defaultValue: 'Możesz dodać tylko plik obrazu rzutu.' })
+          t('errorTitle'),
+          t('invalidPlanType')
         )
         return
       }
 
       const manipulated = await ImageManipulator.manipulateAsync(asset.uri, [], {
         compress: 0.9,
-        format: ImageManipulator.SaveFormat.JPEG,
-      })
+        format: ImageManipulator.SaveFormat.JPEG})
 
       setPendingPlan({
         uri: manipulated.uri,
         fileName: (asset as any)?.fileName ?? null,
         mimeType: 'image/jpeg',
-        fileSize: assetSize || null,
-      })
+        fileSize: assetSize || null})
       setPendingPlanName('')
       setPendingPlanPreset(null)
       setPlanNameOpen(true)
     } catch (e: any) {
       console.error('[Projekt] pick rzut error:', e?.message || e)
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('addPlanError'))
+      Alert.alert(t('errorTitle'), t('addPlanError'))
     }
   }
 
@@ -642,8 +630,8 @@ export default function ProjektScreen() {
     try {
       if (!userId || !pendingPlan?.uri) {
         Alert.alert(
-          t('notLoggedTitle', { defaultValue: 'Brak logowania' }),
-          t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' })
+          t('notLoggedTitle'),
+          t('notLoggedDesc')
         )
         return
       }
@@ -659,16 +647,16 @@ export default function ProjektScreen() {
       const base64 = await FileSystem.readAsStringAsync(pendingPlan.uri, { encoding: 'base64' as any })
       if (!base64) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('emptyPlanFile', { defaultValue: 'Wybrany plik jest pusty.' })
+          t('errorTitle'),
+          t('emptyPlanFile')
         )
         return
       }
       const bytes = base64ToUint8Array(base64)
       if (!bytes.byteLength) {
         Alert.alert(
-          t('errorTitle', { defaultValue: 'Błąd' }),
-          t('emptyPlanFile', { defaultValue: 'Wybrany plik jest pusty.' })
+          t('errorTitle'),
+          t('emptyPlanFile')
         )
         return
       }
@@ -678,11 +666,11 @@ export default function ProjektScreen() {
         .upload(path, bytes, { contentType: 'image/jpeg', upsert: false })
 
       if (upErr) {
-        Alert.alert(t('uploadFailedTitle', { defaultValue: 'Upload nieudany' }), upErr.message)
+        Alert.alert(t('uploadFailedTitle'), upErr.message)
         return
       }
 
-      const planName = pendingPlanName.trim() || t('planDefaultName', { defaultValue: 'Rzut' })
+      const planName = pendingPlanName.trim() || t('planDefaultName')
 
       const { data: row, error: insErr } = await supabase
         .from('rzuty_projektu')
@@ -690,17 +678,16 @@ export default function ProjektScreen() {
           user_id: userId,
           projekt_id: proj.id,
           url: path,
-          nazwa: planName,
-        })
+          nazwa: planName})
         .select('id,user_id,projekt_id,url,nazwa,created_at')
         .single()
 
       if (insErr) {
         const { error: rollbackError } = await supabase.storage.from(BUCKET_RZUTY).remove([path])
         if (rollbackError) {
-          console.warn('[Projekt] rollback rzutu nie powiódł się:', rollbackError.message)
+          console.warn('[Projekt] rollback rzutu nie powi�d� si�:', rollbackError.message)
         }
-        Alert.alert(t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }), insErr.message)
+        Alert.alert(t('saveErrorTitle'), insErr.message)
         return
       }
 
@@ -709,17 +696,15 @@ export default function ProjektScreen() {
         {
           ...(row as any),
           storage_path: path,
-          display_url: signedData?.signedUrl ?? null,
-        },
-        ...prev,
-      ])
+          display_url: signedData?.signedUrl ?? null},
+        ...prev])
       setPlanNameOpen(false)
       setPendingPlan(null)
       setPendingPlanName('')
       setPendingPlanPreset(null)
     } catch (e: any) {
       console.error('[Projekt] savePendingRzut error:', e?.message || e)
-      Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('addPlanError'))
+      Alert.alert(t('errorTitle'), t('addPlanError'))
     } finally {
       setPlanUploading(false)
     }
@@ -732,9 +717,9 @@ export default function ProjektScreen() {
 
   const deleteRzut = async (r: Rzut) => {
     Alert.alert(t('deletePlanTitle'), t('deletePlanDesc'), [
-      { text: t('cancel', { defaultValue: 'Anuluj' }), style: 'cancel' },
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: t('delete', { defaultValue: 'Usuń' }),
+        text: t('delete'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -747,7 +732,7 @@ export default function ProjektScreen() {
               .eq('user_id', userId)
 
             if (delDbErr) {
-              Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), delDbErr.message)
+              Alert.alert(t('errorTitle'), delDbErr.message)
               return
             }
 
@@ -758,7 +743,7 @@ export default function ProjektScreen() {
               const { error: removeError } = await supabase.storage.from(BUCKET_RZUTY).remove([path])
               if (removeError) {
                 storageRemoveError = removeError.message
-                console.warn('[Projekt] nie udało się usunąć pliku rzutu ze storage:', removeError.message)
+                console.warn('[Projekt] nie uda�o si� usun�� pliku rzutu ze storage:', removeError.message)
               }
             }
 
@@ -771,18 +756,14 @@ export default function ProjektScreen() {
 
             if (storageRemoveError) {
               Alert.alert(
-                t('errorTitle', { defaultValue: 'Błąd' }),
-                t('deletePlanStorageWarning', {
-                  defaultValue: 'Rzut usunięto z listy, ale plik może nadal istnieć w pamięci.',
-                })
+                t('errorTitle'),
+                t('deletePlanStorageWarning')
               )
             }
           } catch {
-            Alert.alert(t('errorTitle', { defaultValue: 'Błąd' }), t('deletePlanError', { defaultValue: 'Nie udało się usunąć rzutu.' }))
+            Alert.alert(t('errorTitle'), t('deletePlanError'))
           }
-        },
-      },
-    ])
+        }}])
   }
 
   const openEditParams = () => {
@@ -796,8 +777,7 @@ export default function ProjektScreen() {
       kat_dachu: projekt?.kat_dachu?.toString() ?? '',
       powierzchnia_dachu: projekt?.powierzchnia_dachu?.toString() ?? '',
       szerokosc_elewacji: projekt?.szerokosc_elewacji?.toString() ?? '',
-      dlugosc_elewacji: projekt?.dlugosc_elewacji?.toString() ?? '',
-    })
+      dlugosc_elewacji: projekt?.dlugosc_elewacji?.toString() ?? ''})
     setEditOpen(true)
   }
 
@@ -819,8 +799,8 @@ export default function ProjektScreen() {
 
       if (!userId) {
         Alert.alert(
-          t('notLoggedTitle', { defaultValue: 'Brak logowania' }),
-          t('notLoggedDesc', { defaultValue: 'Zaloguj się ponownie.' })
+          t('notLoggedTitle'),
+          t('notLoggedDesc')
         )
         return
       }
@@ -838,8 +818,7 @@ export default function ProjektScreen() {
         kat_dachu: safeNumberOrNull(form.kat_dachu),
         powierzchnia_dachu: safeNumberOrNull(form.powierzchnia_dachu),
         szerokosc_elewacji: safeNumberOrNull(form.szerokosc_elewacji),
-        dlugosc_elewacji: safeNumberOrNull(form.dlugosc_elewacji),
-      }
+        dlugosc_elewacji: safeNumberOrNull(form.dlugosc_elewacji)}
 
       const { data: updated, error } = await supabase
         .from('projekty')
@@ -849,7 +828,7 @@ export default function ProjektScreen() {
         .single()
 
       if (error) {
-        Alert.alert(t('saveErrorTitle', { defaultValue: 'Błąd zapisu' }), error.message)
+        Alert.alert(t('saveErrorTitle'), error.message)
         return
       }
 
@@ -875,7 +854,7 @@ export default function ProjektScreen() {
 
           <View style={styles.headerTitleWrap}>
             <Text style={styles.projectTitle} numberOfLines={2}>
-              {projekt?.nazwa || '—'}
+              {projekt?.nazwa || '�'}
             </Text>
 
             {!!lokalizacja && (
@@ -932,7 +911,7 @@ export default function ProjektScreen() {
               right={
                 <TouchableOpacity onPress={uploadRzutAndSave} style={styles.editBtn} activeOpacity={0.9}>
                   <Feather name="plus" size={14} color={NEON} />
-                  <Text style={styles.editBtnText}>{t('addPlan', { defaultValue: 'Dodaj' })}</Text>
+                  <Text style={styles.editBtnText}>{t('addPlan')}</Text>
                 </TouchableOpacity>
               }
               style={styles.sectionHeaderRow}
@@ -954,10 +933,10 @@ export default function ProjektScreen() {
                     <View style={styles.rzutFooter}>
                       <View style={{ flex: 1, paddingRight: 10 }}>
                         <Text style={styles.rzutName} numberOfLines={1}>
-                          {r.nazwa || t('planDefaultName', { defaultValue: 'Rzut' })}
+                          {r.nazwa || t('planDefaultName')}
                         </Text>
                         <Text style={styles.rzutHint}>
-                          {t('planHint', { defaultValue: 'Kliknij: podgląd  •  Przytrzymaj: usuń' })}
+                          {t('planHint')}
                         </Text>
                       </View>
                       <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10} activeOpacity={0.85}>
@@ -982,21 +961,19 @@ export default function ProjektScreen() {
                 <Image source={AI_BUDDY_AVATAR} style={styles.nudgeAvatarImage} resizeMode="contain" />
               </View>
               <Text style={styles.nudgeBuddyName}>
-                {buddyDisplayName || t('projectNudgeBuddyFallback', { defaultValue: 'Kierownik' })}
+                {buddyDisplayName || t('projectNudgeBuddyFallback')}
               </Text>
               <Text style={styles.nudgeTitle}>
                 {userFirstName
-                  ? `${userFirstName} uzupełnij teraz najważniejsze informacje o projekcie.`
-                  : t('projectNudgeTitle', { defaultValue: 'Uzupełnij teraz najważniejsze informacje o projekcie.' })}
+                  ? `${userFirstName} uzupe�nij teraz najwa�niejsze informacje o projekcie.`
+                  : t('projectNudgeTitle')}
               </Text>
               <Text style={styles.nudgeText}>
-                {t('projectNudgeText', {
-                  defaultValue: 'Dzięki temu będziesz miał wszystko pod ręką, a moje podpowiedzi będą lepiej dopasowane.',
-                })}
+                {t('projectNudgeText')}
               </Text>
 
               <AppButton
-                title={t('projectNudgeCta', { defaultValue: 'Uzupełnij' })}
+                title={t('projectNudgeCta')}
                 onPress={handleProjectNudgeFill}
                 style={styles.nudgePrimaryBtn}
               />
@@ -1012,7 +989,7 @@ export default function ProjektScreen() {
               </TouchableOpacity>
 
               <Text style={styles.previewTitle} numberOfLines={1}>
-                {previewRzut?.nazwa || t('planDefaultName', { defaultValue: 'Rzut' })}
+                {previewRzut?.nazwa || t('planDefaultName')}
               </Text>
 
               <TouchableOpacity
@@ -1050,7 +1027,7 @@ export default function ProjektScreen() {
                 <View style={styles.modalHandle} />
 
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{t('planNameModalTitle', { defaultValue: 'Nazwij rzut' })}</Text>
+                  <Text style={styles.modalTitle}>{t('planNameModalTitle')}</Text>
 
                   <TouchableOpacity
                     onPress={() => {
@@ -1072,22 +1049,22 @@ export default function ProjektScreen() {
                     <Image source={{ uri: pendingPlan.uri }} style={styles.planNamePreview} resizeMode="cover" />
                   ) : null}
 
-                  <Text style={styles.fieldGroupLabel}>{t('planNameInputLabel', { defaultValue: 'Nazwa rzutu' })}</Text>
+                  <Text style={styles.fieldGroupLabel}>{t('planNameInputLabel')}</Text>
                   <AppInput
                     value={pendingPlanName}
                     onChangeText={(text) => {
                       setPendingPlanName(text)
                       setPendingPlanPreset(null)
                     }}
-                    placeholder={t('planNamePlaceholder', { defaultValue: 'Wpisz własną nazwę' })}
+                    placeholder={t('planNamePlaceholder')}
                     style={styles.input}
                     containerStyle={styles.planNameInput}
                   />
 
-                  <Text style={styles.fieldGroupLabel}>{t('planNamePresetLabel', { defaultValue: 'Gotowe opcje' })}</Text>
+                  <Text style={styles.fieldGroupLabel}>{t('planNamePresetLabel')}</Text>
                   <View style={styles.planPresetGrid}>
                     {PLAN_NAME_PRESETS.map((preset) => {
-                      const label = t(preset.labelKey, { defaultValue: preset.defaultValue })
+                      const label = t(preset.labelKey)
                       const active = pendingPlanPreset === preset.key
 
                       return (
@@ -1111,7 +1088,7 @@ export default function ProjektScreen() {
 
                 <View style={styles.modalActions}>
                   <AppButton
-                    title={t('cancel', { defaultValue: 'Anuluj' })}
+                    title={t('cancel')}
                     variant="secondary"
                     onPress={() => {
                       setPlanNameOpen(false)
@@ -1124,7 +1101,7 @@ export default function ProjektScreen() {
                   />
 
                   <AppButton
-                    title={planUploading ? t('planSaving', { defaultValue: 'Zapisywanie...' }) : t('save', { defaultValue: 'Zapisz' })}
+                    title={planUploading ? t('planSaving') : t('save')}
                     disabled={planUploading}
                     onPress={savePendingRzut}
                     style={styles.modalBtnPrimary}
@@ -1142,7 +1119,7 @@ export default function ProjektScreen() {
                 <View style={styles.modalHandle} />
 
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{t('editParamsTitle', { defaultValue: 'Edytuj parametry' })}</Text>
+                  <Text style={styles.modalTitle}>{t('editParamsTitle')}</Text>
 
                   <TouchableOpacity onPress={() => setEditOpen(false)} style={styles.modalCloseBtn} activeOpacity={0.85}>
                     <Feather name="x" size={18} color="rgba(255,255,255,0.6)" />
@@ -1152,7 +1129,7 @@ export default function ProjektScreen() {
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
                   <Text style={styles.fieldGroupLabel}>{t('fieldGroupGeneral')}</Text>
                   <FieldText
-                    label={t('fieldProjectName', { defaultValue: 'Nazwa projektu' })}
+                    label={t('fieldProjectName')}
                     value={form.nazwa}
                     onChange={(txt) => setForm((p) => ({ ...p, nazwa: txt }))}
                   />
@@ -1160,19 +1137,19 @@ export default function ProjektScreen() {
                   <Text style={styles.fieldGroupLabel}>{t('fieldGroupSurfaces')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
-                      label={t('fieldPowU', { defaultValue: 'Użytkowa (m²)' })}
+                      label={t('fieldPowU')}
                       value={form.powierzchnia_uzytkowa}
                       onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: txt }))}
                     />
                     <FieldNum
-                      label={t('fieldPowZ', { defaultValue: 'Zabudowy (m²)' })}
+                      label={t('fieldPowZ')}
                       value={form.powierzchnia_zabudowy}
                       onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_zabudowy: txt }))}
                     />
                   </View>
 
                   <FieldNum
-                    label={t('fieldRoofArea', { defaultValue: 'Pow. dachu (m²)' })}
+                    label={t('fieldRoofArea')}
                     value={form.powierzchnia_dachu}
                     onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_dachu: txt }))}
                   />
@@ -1180,12 +1157,12 @@ export default function ProjektScreen() {
                   <Text style={styles.fieldGroupLabel}>{t('fieldGroupStructure')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
-                      label={t('fieldFloors', { defaultValue: 'Kondygnacje' })}
+                      label={t('fieldFloors')}
                       value={form.kondygnacje}
                       onChange={(txt) => setForm((p) => ({ ...p, kondygnacje: txt }))}
                     />
                     <FieldNum
-                      label={t('fieldRooms', { defaultValue: 'Pomieszczenia' })}
+                      label={t('fieldRooms')}
                       value={form.pomieszczenia}
                       onChange={(txt) => setForm((p) => ({ ...p, pomieszczenia: txt }))}
                     />
@@ -1193,12 +1170,12 @@ export default function ProjektScreen() {
 
                   <View style={styles.row2}>
                     <FieldNum
-                      label={t('fieldHeight', { defaultValue: 'Wysokość (m)' })}
+                      label={t('fieldHeight')}
                       value={form.wysokosc_budynku}
                       onChange={(txt) => setForm((p) => ({ ...p, wysokosc_budynku: txt }))}
                     />
                     <FieldNum
-                      label={t('fieldRoofAngle', { defaultValue: 'Kąt dachu (°)' })}
+                      label={t('fieldRoofAngle')}
                       value={form.kat_dachu}
                       onChange={(txt) => setForm((p) => ({ ...p, kat_dachu: txt }))}
                     />
@@ -1207,12 +1184,12 @@ export default function ProjektScreen() {
                   <Text style={styles.fieldGroupLabel}>{t('fieldGroupFacade')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
-                      label={t('fieldFacadeWidth', { defaultValue: 'Szerokość (m)' })}
+                      label={t('fieldFacadeWidth')}
                       value={form.szerokosc_elewacji}
                       onChange={(txt) => setForm((p) => ({ ...p, szerokosc_elewacji: txt }))}
                     />
                     <FieldNum
-                      label={t('fieldFacadeLength', { defaultValue: 'Długość (m)' })}
+                      label={t('fieldFacadeLength')}
                       value={form.dlugosc_elewacji}
                       onChange={(txt) => setForm((p) => ({ ...p, dlugosc_elewacji: txt }))}
                     />
@@ -1222,7 +1199,7 @@ export default function ProjektScreen() {
                 <View style={styles.modalActions}>
                   {isSetupMode ? (
                     <AppButton
-                      title={t('skip', { defaultValue: 'Pomiń' })}
+                      title={t('skip')}
                       variant="secondary"
                       onPress={() => {
                         if (saving) return
@@ -1234,9 +1211,9 @@ export default function ProjektScreen() {
                     />
                   ) : null}
 
-                  <AppButton title={t('cancel', { defaultValue: 'Anuluj' })} variant="secondary" onPress={() => setEditOpen(false)} disabled={saving} style={styles.modalBtnGhost} />
+                  <AppButton title={t('cancel')} variant="secondary" onPress={() => setEditOpen(false)} disabled={saving} style={styles.modalBtnGhost} />
 
-                  <AppButton title={t('save', { defaultValue: 'Zapisz zmiany' })} loading={saving} onPress={saveParams} style={styles.modalBtnPrimary} />
+                  <AppButton title={t('save')} loading={saving} onPress={saveParams} style={styles.modalBtnPrimary} />
                 </View>
               </View>
             </View>
@@ -1262,14 +1239,12 @@ function AnimatedDataCell({ tile, index }: { tile: { id: string; label: string; 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 380, delay: index * 60, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: 0, duration: 380, delay: index * 60, useNativeDriver: true }),
-    ]).start()
+      Animated.timing(translateY, { toValue: 0, duration: 380, delay: index * 60, useNativeDriver: true })]).start()
 
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 1800 + index * 200, useNativeDriver: true }),
-        Animated.timing(glowAnim, { toValue: 0.3, duration: 1800 + index * 200, useNativeDriver: true }),
-      ])
+        Animated.timing(glowAnim, { toValue: 0.3, duration: 1800 + index * 200, useNativeDriver: true })])
     )
 
     const timeout = setTimeout(() => loop.start(), index * 120)
@@ -1284,16 +1259,14 @@ function AnimatedDataCell({ tile, index }: { tile: { id: string; label: string; 
 
   const glowOpacity = glowAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.35, 0.9],
-  })
+    outputRange: [0.35, 0.9]})
 
   return (
     <Pressable onPressIn={onPressIn} onPressOut={onPressOut} style={{ width: '48%' }}>
       <Animated.View
         style={[
           styles.dataCell,
-          { opacity, transform: [{ translateY }, { scale: pressScale }] },
-        ]}
+          { opacity, transform: [{ translateY }, { scale: pressScale }] }]}
       >
         <Animated.View style={[styles.dataCellTopBar, { opacity: glowOpacity }]} />
         <Text style={styles.dataCellValue}>{tile.value}</Text>
@@ -1304,19 +1277,21 @@ function AnimatedDataCell({ tile, index }: { tile: { id: string; label: string; 
 }
 
 function FieldText({ label, value, onChange }: { label: string; value: string; onChange: (t: string) => void }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <AppInput value={value} onChangeText={onChange} placeholder="—" style={styles.input} />
+      <AppInput value={value} onChangeText={onChange} placeholder={t('common:dash')} style={styles.input} />
     </View>
   )
 }
 
 function FieldNum({ label, value, onChange }: { label: string; value: string; onChange: (t: string) => void }) {
+  const { t } = useTranslation();
   return (
     <View style={[styles.field, { flex: 1 }]}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <AppInput value={value} onChangeText={onChange} placeholder="—" keyboardType="decimal-pad" style={styles.input} />
+      <AppInput value={value} onChangeText={onChange} placeholder={t('common:dash')} keyboardType="decimal-pad" style={styles.input} />
     </View>
   )
 }
@@ -1324,38 +1299,32 @@ function FieldNum({ label, value, onChange }: { label: string; value: string; on
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: 'transparent',
-  },
+    backgroundColor: 'transparent'},
 
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingHorizontal: spacing.lg,
-  },
+    paddingHorizontal: spacing.lg},
 
   safeTop: {
-    width: '100%',
-  },
+    width: '100%'},
 
   headerBlock: {
     minHeight: 120,
     justifyContent: 'center',
-    paddingVertical: 0,
-  },
+    paddingVertical: 0},
 
   headerTitleWrap: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -4,
-  },
+    marginTop: -4},
 
   projectTitle: {
     color: colors.text,
     fontSize: 26,
     fontWeight: '800',
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
 
   locationRow: {
     marginTop: 7,
@@ -1363,25 +1332,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    maxWidth: '100%',
-  },
+    maxWidth: '100%'},
 
   projectLocation: {
     color: colors.textMuted,
     fontSize: 14,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
 
   modelHeroWrap: {
     marginTop: 10,
-    marginBottom: 18,
-  },
+    marginBottom: 18},
 
   modelHero: {
     borderRadius: 28,
     backgroundColor: 'transparent',
-    padding: 0,
-  },
+    padding: 0},
 
   modelStage: {
     height: 260,
@@ -1391,22 +1356,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: '#000000',
-  },
+    backgroundColor: '#000000'},
 
   modelCta: {
     marginTop: 10,
     alignSelf: 'center',
-    minWidth: 180,
-  },
+    minWidth: 180},
 
   modelHint: {
     marginTop: 8,
     color: 'rgba(148,163,184,0.90)',
     fontSize: 12.5,
     fontWeight: '700',
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
 
   sectionOuter: {
     marginBottom: 16,
@@ -1415,21 +1377,18 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.4,
     shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-  },
+    shadowOffset: { width: 0, height: 12 }},
 
   sectionGlass: {
     borderRadius: 28,
     padding: 18,
-    backgroundColor: 'transparent',
-  },
+    backgroundColor: 'transparent'},
 
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
-  },
+    marginBottom: 16},
 
   sectionTitleNeon: {
     color: NEON,
@@ -1437,8 +1396,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.2,
     textShadowColor: 'rgba(37,240,200,0.18)',
-    textShadowRadius: 14,
-  },
+    textShadowRadius: 14},
 
   editBtn: {
     flexDirection: 'row',
@@ -1449,20 +1407,17 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(37,240,200,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.28)',
-  },
+    borderColor: 'rgba(37,240,200,0.28)'},
 
   editBtnText: {
     color: NEON,
     fontSize: 12,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
 
   dataGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-  },
+    gap: 10},
 
   dataCell: {
     width: '100%',
@@ -1471,8 +1426,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
     padding: 14,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
 
   dataCellTopBar: {
     position: 'absolute',
@@ -1485,16 +1439,14 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.8,
     shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
 
   dataCellValue: {
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.3,
-    marginTop: 4,
-  },
+    marginTop: 4},
 
   dataCellLabel: {
     marginTop: 5,
@@ -1502,8 +1454,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
+    textTransform: 'uppercase'},
 
   emptyBox: {
     borderRadius: 20,
@@ -1512,22 +1463,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.02)',
     padding: 24,
     marginTop: 4,
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
 
   emptyTitle: {
     color: '#F8FAFC',
     fontSize: 15,
     fontWeight: '900',
-    marginTop: 10,
-  },
+    marginTop: 10},
 
   emptySubtitle: {
     color: 'rgba(255,255,255,0.45)',
     marginTop: 6,
     textAlign: 'center',
-    fontSize: 13,
-  },
+    fontSize: 13},
 
   rzutCard: {
     borderRadius: 22,
@@ -1538,32 +1486,27 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 4,
-  },
+    elevation: 4},
 
   rzutImg: {
     width: '100%',
     height: 200,
-    backgroundColor: '#0b1220',
-  },
+    backgroundColor: '#0b1220'},
 
   rzutFooter: {
     padding: 12,
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
 
   rzutName: {
     color: '#F8FAFC',
     fontWeight: '900',
-    fontSize: 15,
-  },
+    fontSize: 15},
 
   rzutHint: {
     color: 'rgba(255,255,255,0.40)',
     marginTop: 3,
-    fontSize: 11.5,
-  },
+    fontSize: 11.5},
 
   trashBtn: {
     width: 36,
@@ -1573,21 +1516,18 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(239,68,68,0.40)',
     backgroundColor: 'rgba(239,68,68,0.14)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
 
   previewBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
-  },
+    backgroundColor: 'rgba(0,0,0,0.92)'},
 
   nudgeBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.72)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 22,
-  },
+    paddingHorizontal: 22},
 
   nudgeCard: {
     width: '100%',
@@ -1604,8 +1544,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 14,
-  },
+    elevation: 14},
 
   nudgeCloseBtn: {
     position: 'absolute',
@@ -1618,8 +1557,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
+    borderColor: 'rgba(255,255,255,0.08)'},
 
   nudgeAvatar: {
     width: 70,
@@ -1630,28 +1568,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(37,240,200,0.10)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',
-    marginBottom: 10,
-  },
+    marginBottom: 10},
 
   nudgeAvatarImage: {
     width: 62,
-    height: 62,
-  },
+    height: 62},
 
   nudgeBuddyName: {
     color: NEON,
     fontSize: 12.5,
     fontWeight: '900',
-    marginBottom: 10,
-  },
+    marginBottom: 10},
 
   nudgeTitle: {
     color: '#F8FAFC',
     fontSize: 19.5,
     lineHeight: 25,
     fontWeight: '900',
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
 
   nudgeText: {
     color: 'rgba(226,232,240,0.74)',
@@ -1659,13 +1593,11 @@ const styles = StyleSheet.create({
     lineHeight: 17.5,
     fontWeight: '700',
     textAlign: 'center',
-    marginTop: 10,
-  },
+    marginTop: 10},
 
   nudgePrimaryBtn: {
     width: '100%',
-    marginTop: 18,
-  },
+    marginTop: 18},
 
   previewTopBar: {
     paddingTop: 54,
@@ -1673,8 +1605,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
+    gap: 10},
 
   previewIconBtn: {
     width: 44,
@@ -1684,28 +1615,24 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.12)',
     backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
 
   previewTitle: {
     color: '#F8FAFC',
     fontWeight: '900',
     fontSize: 16,
     flex: 1,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
 
   previewImgWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-  },
+    padding: 12},
 
   previewImg: {
     width: '100%',
-    height: '100%',
-  },
+    height: '100%'},
 
   planNamePreview: {
     width: '100%',
@@ -1714,18 +1641,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
     backgroundColor: 'rgba(255,255,255,0.04)',
-    marginBottom: 4,
-  },
+    marginBottom: 4},
 
   planNameInput: {
-    marginBottom: 2,
-  },
+    marginBottom: 2},
 
   planPresetGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-  },
+    gap: 8},
 
   planPresetChip: {
     minHeight: 42,
@@ -1737,31 +1661,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     paddingHorizontal: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
 
   planPresetChipActive: {
     borderColor: 'rgba(37,240,200,0.48)',
-    backgroundColor: 'rgba(37,240,200,0.14)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.14)'},
 
   planPresetText: {
     color: 'rgba(255,255,255,0.72)',
     fontSize: 13,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
 
   planPresetTextActive: {
-    color: NEON,
-  },
+    color: NEON},
 
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.60)',
     paddingTop: 28,
-    paddingBottom: 28,
-  },
+    paddingBottom: 28},
 
   modalSheet: {
     backgroundColor: '#000000',
@@ -1778,8 +1697,7 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.12,
     shadowRadius: 30,
-    shadowOffset: { width: 0, height: -8 },
-  },
+    shadowOffset: { width: 0, height: -8 }},
 
   modalHandle: {
     alignSelf: 'center',
@@ -1787,24 +1705,21 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 99,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    marginBottom: 16,
-  },
+    marginBottom: 16},
 
   modalHeader: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-    minHeight: 34,
-  },
+    minHeight: 34},
 
   modalTitle: {
     color: NEON,
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.2,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
 
   modalCloseBtn: {
     position: 'absolute',
@@ -1817,8 +1732,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
 
   fieldGroupLabel: {
     color: NEON,
@@ -1828,12 +1742,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: 18,
     marginBottom: 10,
-    opacity: 0.8,
-  },
+    opacity: 0.8},
 
   field: {
-    marginBottom: 10,
-  },
+    marginBottom: 10},
 
   fieldLabel: {
     color: 'rgba(255,255,255,0.38)',
@@ -1841,31 +1753,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
+    textTransform: 'uppercase'},
 
   input: {
     fontWeight: '700',
-    fontSize: 15,
-  },
+    fontSize: 15},
 
   row2: {
     flexDirection: 'row',
-    gap: 10,
-  },
+    gap: 10},
 
   modalActions: {
     flexDirection: 'row',
     gap: 10,
     marginTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-  },
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8},
 
   modalBtnGhost: {
-    flex: 1,
-  },
+    flex: 1},
 
   modalBtnPrimary: {
-    flex: 1,
-  },
-})
+    flex: 1}})

@@ -12,8 +12,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -24,8 +23,7 @@ import {
   DEFAULT_BUDDY_AVATAR_ID,
   type BuddyAvatarId,
   getBuddyAvatarSource,
-  loadBuddyAvatarId,
-} from '../../../../src/services/buddy/avatar';
+  loadBuddyAvatarId} from '../../../../src/services/buddy/avatar';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -59,8 +57,7 @@ function formatConversationDate(value: string | null | undefined, locale: string
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString(locale, {
     day: '2-digit',
-    month: '2-digit',
-  });
+    month: '2-digit'});
 }
 
 function displayAssistantText(value: string) {
@@ -104,8 +101,7 @@ export default function BuddyChatScreen() {
     { key: 'q1', label: t('chat.quickQuestions.q1') },
     { key: 'q2', label: t('chat.quickQuestions.q2') },
     { key: 'q3', label: t('chat.quickQuestions.q3') },
-    { key: 'q4', label: t('chat.quickQuestions.q4') },
-  ];
+    { key: 'q4', label: t('chat.quickQuestions.q4') }];
 
   const scrollRef = useRef<ScrollView>(null);
   const activeRequestAbortRef = useRef<AbortController | null>(null);
@@ -125,8 +121,7 @@ export default function BuddyChatScreen() {
           Animated.delay(delay),
           Animated.timing(dot, { toValue: 1, duration: 300, useNativeDriver: true }),
           Animated.timing(dot, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.delay(600),
-        ])
+          Animated.delay(600)])
       );
 
     const a1 = anim(dot1, 0);
@@ -174,9 +169,7 @@ export default function BuddyChatScreen() {
           {
             id: uid(),
             role: 'assistant',
-            content: t('chat.messages.loadDataError'),
-          },
-        ]);
+            content: t('chat.messages.loadDataError')}]);
       } finally {
         setLoadingInitial(false);
       }
@@ -225,8 +218,7 @@ export default function BuddyChatScreen() {
 
       const { data, error } = await supabase.rpc('get_my_ai_conversations', {
         p_limit: 20,
-        p_offset: 0,
-      });
+        p_offset: 0});
 
       if (error) throw error;
 
@@ -244,9 +236,7 @@ export default function BuddyChatScreen() {
           {
             id: uid(),
             role: 'assistant',
-            content: t('chat.messages.emptyHistoryIntro'),
-          },
-        ]);
+            content: t('chat.messages.emptyHistoryIntro')}]);
       }
     } catch {
       setError(t('chat.errors.fetchHistory'));
@@ -262,8 +252,7 @@ export default function BuddyChatScreen() {
       const { data, error } = await supabase.rpc('get_ai_messages', {
         p_conversation_id: conversationId,
         p_limit: 100,
-        p_offset: 0,
-      });
+        p_offset: 0});
 
       if (error) throw error;
 
@@ -284,9 +273,7 @@ export default function BuddyChatScreen() {
       {
         id: uid(),
         role: 'assistant',
-        content: t('chat.messages.newConversationStarted'),
-      },
-    ]);
+        content: t('chat.messages.newConversationStarted')}]);
     setHistoryVisible(false);
     setError(null);
   };
@@ -302,8 +289,7 @@ export default function BuddyChatScreen() {
       setError(null);
 
       const {
-        data: { session: activeSession },
-      } = await supabase.auth.getSession();
+        data: { session: activeSession }} = await supabase.auth.getSession();
 
       const accessToken = activeSession?.access_token;
       if (!accessToken) throw new Error(t('chat.errors.noSession'));
@@ -317,8 +303,7 @@ export default function BuddyChatScreen() {
         content: trimmed,
         created_at: new Date().toISOString(),
         pending: true,
-        status: 'completed',
-      };
+        status: 'completed'};
 
       setMessages((prev) => [...prev, optimisticUser]);
       setInput('');
@@ -341,16 +326,13 @@ export default function BuddyChatScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
+          Authorization: `Bearer ${accessToken}`},
         signal: abortController.signal,
         body: JSON.stringify({
           conversation_id: currentConversationId,
           message: trimmed,
           assistant_name: buddyName,
-          app_language: i18n.resolvedLanguage || i18n.language || 'en',
-        }),
-      });
+          app_language: i18n.resolvedLanguage || i18n.language || 'en'})});
 
       if (!response.ok) {
         let errorText = '';
@@ -376,9 +358,7 @@ export default function BuddyChatScreen() {
         };
       } catch {
         throw new Error(
-          t('chat.messages.invalidResponse', {
-            defaultValue: 'Nie udało się odczytać odpowiedzi AI. Spróbuj ponownie.',
-          })
+          t('chat.messages.invalidResponse')
         );
       }
 
@@ -387,9 +367,7 @@ export default function BuddyChatScreen() {
 
       if (!finalAssistantText) {
         throw new Error(
-          t('chat.messages.generateFallback', {
-            defaultValue: 'Nie udało mi się teraz przygotować odpowiedzi. Spróbuj ponownie za chwilę.',
-          })
+          t('chat.messages.generateFallback')
         );
       }
 
@@ -401,9 +379,7 @@ export default function BuddyChatScreen() {
           content: finalAssistantText || t('chat.messages.generateFallback'),
           created_at: new Date().toISOString(),
           pending: false,
-          status: 'completed',
-        },
-      ]);
+          status: 'completed'}]);
 
       if (resolvedConversationId) {
         setCurrentConversationId(resolvedConversationId);
@@ -413,13 +389,9 @@ export default function BuddyChatScreen() {
     } catch (e: any) {
       const isAbortError = e?.name === 'AbortError';
       const msg = requestTimedOut
-        ? t('chat.messages.timeoutError', {
-            defaultValue: 'Połączenie z AI trwało zbyt długo. Spróbuj ponownie.',
-          })
+        ? t('chat.messages.timeoutError')
         : isAbortError
-        ? t('chat.messages.requestCancelled', {
-            defaultValue: 'Żądanie zostało przerwane. Spróbuj ponownie.',
-          })
+        ? t('chat.messages.requestCancelled')
         : e?.message ?? t('chat.messages.connectionError');
 
       setMessages((prev) =>
@@ -503,8 +475,7 @@ export default function BuddyChatScreen() {
                 key={msg.id}
                 style={[
                   styles.msgRow,
-                  msg.role === 'user' ? styles.msgRowUser : styles.msgRowBuddy,
-                ]}
+                  msg.role === 'user' ? styles.msgRowUser : styles.msgRowBuddy]}
               >
                 {msg.role !== 'user' && (
                   <Image source={avatarSource} style={styles.msgAvatar} resizeMode="cover" />
@@ -516,14 +487,12 @@ export default function BuddyChatScreen() {
                   style={[
                     styles.msgBubble,
                     msg.role === 'user' ? styles.msgBubbleUser : styles.msgBubbleBuddy,
-                    msg.status === 'error' && styles.msgBubbleError,
-                  ]}
+                    msg.status === 'error' && styles.msgBubbleError]}
                 >
                   <Text
                     style={[
                       styles.msgText,
-                      msg.role === 'user' ? styles.msgTextUser : styles.msgTextBuddy,
-                    ]}
+                      msg.role === 'user' ? styles.msgTextUser : styles.msgTextBuddy]}
                   >
                     {msg.role === 'assistant' ? displayAssistantText(msg.content) : msg.content}
                   </Text>
@@ -551,12 +520,7 @@ export default function BuddyChatScreen() {
                           {
                             translateY: dot.interpolate({
                               inputRange: [0, 1],
-                              outputRange: [0, -4],
-                            }),
-                          },
-                        ],
-                      },
-                    ]}
+                              outputRange: [0, -4]})}]}]}
                   />
                 ))}
               </BlurView>
@@ -699,8 +663,7 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     opacity: 0.07,
     top: -180,
-    right: -120,
-  },
+    right: -120},
 
   header: {
     position: 'relative',
@@ -708,34 +671,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.07)'},
   headerTopRow: {
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   headerIdentity: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    maxWidth: '72%',
-  },
+    maxWidth: '72%'},
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 4,
-  },
+    marginTop: 4},
   headerAvatarWrap: { position: 'relative' },
   headerAvatar: {
     width: 54,
     height: 54,
     borderRadius: 27,
     borderWidth: 2,
-    borderColor: 'rgba(37,240,200,0.40)',
-  },
+    borderColor: 'rgba(37,240,200,0.40)'},
   onlineDot: {
     position: 'absolute',
     bottom: 2,
@@ -745,8 +703,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: NEON,
     borderWidth: 2,
-    borderColor: '#000',
-  },
+    borderColor: '#000'},
   headerName: {
     marginLeft: 12,
     color: '#FFFFFF',
@@ -754,8 +711,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     lineHeight: 28,
     flexShrink: 1,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   headerIconBtn: {
     width: 30,
     height: 30,
@@ -764,27 +720,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.18)',
-  },
+    borderColor: 'rgba(37,240,200,0.18)'},
 
   messageList: {
     flexGrow: 1,
     paddingHorizontal: 14,
     paddingTop: 16,
     paddingBottom: 8,
-    gap: 12,
-  },
+    gap: 12},
   loadingWrap: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 48,
-    gap: 12,
-  },
+    gap: 12},
   loadingText: {
     color: 'rgba(255,255,255,0.45)',
     fontSize: 13,
-    fontWeight: '600',
-  },
+    fontWeight: '600'},
 
   msgRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
   msgRowBuddy: { justifyContent: 'flex-start' },
@@ -796,29 +748,24 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     flexShrink: 0,
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.30)',
-  },
+    borderColor: 'rgba(37,240,200,0.30)'},
   msgBubble: {
     maxWidth: '78%',
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   msgBubbleBuddy: {
     borderBottomLeftRadius: 4,
     backgroundColor: 'rgba(37,240,200,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.16)',
-  },
+    borderColor: 'rgba(37,240,200,0.16)'},
   msgBubbleUser: {
     borderBottomRightRadius: 4,
-    backgroundColor: ACCENT,
-  },
+    backgroundColor: ACCENT},
   msgBubbleError: {
     borderColor: 'rgba(252,165,165,0.35)',
-    backgroundColor: 'rgba(127,29,29,0.25)',
-  },
+    backgroundColor: 'rgba(127,29,29,0.25)'},
 
   msgText: { fontSize: 14, lineHeight: 21, fontWeight: '600' },
   msgTextBuddy: { color: 'rgba(255,255,255,0.88)' },
@@ -828,22 +775,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingVertical: 14,
-  },
+    paddingVertical: 14},
   typingDot: {
     width: 7,
     height: 7,
     borderRadius: 99,
-    backgroundColor: NEON,
-  },
+    backgroundColor: NEON},
 
   inlineError: {
     color: '#FCA5A5',
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '700',
-    marginTop: 8,
-  },
+    marginTop: 8},
 
   quickScroll: { maxHeight: 52 },
   quickWrap: { paddingHorizontal: 14, paddingVertical: 8, gap: 8 },
@@ -853,15 +797,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.25)',
-  },
+    borderColor: 'rgba(37,240,200,0.25)'},
   quickChipText: { color: NEON, fontSize: 13, fontWeight: '700' },
 
   inputBar: {
     paddingHorizontal: 14,
     paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-    paddingTop: 8,
-  },
+    paddingTop: 8},
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -872,16 +814,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     overflow: 'hidden',
-    backgroundColor: '#0B0F14',
-  },
+    backgroundColor: '#0B0F14'},
   input: {
     flex: 1,
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
     maxHeight: 100,
-    paddingTop: 2,
-  },
+    paddingTop: 2},
   sendBtn: {
     width: 36,
     height: 36,
@@ -889,15 +829,13 @@ const styles = StyleSheet.create({
     backgroundColor: NEON,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
-  },
+    flexShrink: 0},
   sendBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.08)' },
 
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.65)',
-    justifyContent: 'flex-end',
-  },
+    justifyContent: 'flex-end'},
   modalSheet: {
     backgroundColor: '#050915',
     borderTopLeftRadius: 24,
@@ -908,27 +846,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: 'rgba(37,240,200,0.14)',
     minHeight: '55%',
-    maxHeight: '82%',
-  },
+    maxHeight: '82%'},
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-  },
+    marginBottom: 16},
   modalTitle: {
     flex: 1,
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   modalCloseBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.06)'},
 
   newChatBtn: {
     flexDirection: 'row',
@@ -938,21 +872,18 @@ const styles = StyleSheet.create({
     backgroundColor: NEON,
     paddingVertical: 13,
     borderRadius: 16,
-    marginBottom: 14,
-  },
+    marginBottom: 14},
   newChatBtnText: {
     color: '#0B1120',
     fontSize: 14,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
 
   emptyHistoryText: {
     color: 'rgba(255,255,255,0.42)',
     fontSize: 13,
     fontWeight: '600',
     paddingTop: 14,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
 
   historyItem: {
     flexDirection: 'row',
@@ -964,21 +895,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   historyItemActive: {
     borderColor: 'rgba(37,240,200,0.25)',
-    backgroundColor: 'rgba(37,240,200,0.06)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.06)'},
   historyTitle: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
-    marginBottom: 3,
-  },
+    marginBottom: 3},
   historyMeta: {
     color: 'rgba(255,255,255,0.38)',
     fontSize: 12,
-    fontWeight: '600',
-  },
-});
+    fontWeight: '600'}});

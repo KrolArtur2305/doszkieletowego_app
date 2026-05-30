@@ -15,8 +15,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Feather } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -30,8 +29,7 @@ import { colors as uiColors, typography } from '../../../../../src/ui/theme';
 import {
   getStageGroupDisplayName,
   stageGroupCodeFromLegacyStage,
-  type StageGroupCode,
-} from '../../../../../lib/stageModel';
+  type StageGroupCode} from '../../../../../lib/stageModel';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -92,8 +90,7 @@ function formatDate(ymd: string, locale: string) {
   return d.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
-    year: 'numeric',
-  });
+    year: 'numeric'});
 }
 
 function getDayName(ymd: string, locale: string) {
@@ -212,14 +209,11 @@ export default function DziennikScreen() {
         useNativeDriver: true,
         tension: 60,
         friction: 8,
-        delay: 300,
-      }),
+        delay: 300}),
       Animated.timing(headerAnim, {
         toValue: 1,
         duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
+        useNativeDriver: true})]).start();
   }, [fabAnim, headerAnim]);
 
   // â”€â”€ Load data â”€â”€
@@ -240,8 +234,7 @@ export default function DziennikScreen() {
           return {
             ...w,
             etap_nazwa: groupCode ? getStageGroupDisplayName(t, groupCode, w.etapy?.nazwa ?? '') : null,
-            zdjecie_display_url: await getJournalImageDisplayUrl(w.zdjecie_url),
-          };
+            zdjecie_display_url: await getJournalImageDisplayUrl(w.zdjecie_url)};
         })
       );
 
@@ -289,8 +282,7 @@ export default function DziennikScreen() {
         nazwa: getStageGroupDisplayName(t, groupCode, representative.nazwa),
         status: groupRows.every((row) => isDoneEtapStatus(row.status)) ? 'done' : representative.status,
         kolejnosc: MAIN_STAGE_GROUP_ORDER.indexOf(groupCode),
-        stageGroupCode: groupCode,
-      }];
+        stageGroupCode: groupCode}];
     });
 
     setLegacyEtapToMainEtapId(nextLegacyEtapToMainEtapId);
@@ -358,8 +350,7 @@ export default function DziennikScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.75,
       allowsEditing: true,
-      aspect: [16, 9],
-    });
+      aspect: [16, 9]});
 
     const pickedAsset = result.assets?.[0];
     if (!result.canceled && pickedAsset?.uri) {
@@ -369,17 +360,17 @@ export default function DziennikScreen() {
       const hasAllowedExt = !!getJournalImageExt((pickedAsset as any).fileName ?? pickedAsset.uri);
 
       if (fileSize === 0) {
-        Alert.alert(t('alerts.errorTitle'), t('alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+        Alert.alert(t('alerts.errorTitle'), t('alerts.emptyFile'));
         return;
       }
 
       if (fileSize > 0 && fileSize > MAX_JOURNAL_IMAGE_BYTES) {
-        Alert.alert(t('alerts.errorTitle'), t('alerts.fileTooLarge', { defaultValue: 'ZdjÄ™cie jest zbyt duĹĽe. Maksymalny rozmiar to 15 MB.' }));
+        Alert.alert(t('alerts.errorTitle'), t('alerts.fileTooLarge'));
         return;
       }
 
       if (!isImageMime && !hasAllowedExt) {
-        Alert.alert(t('alerts.errorTitle'), t('alerts.invalidFileType', { defaultValue: 'MoĹĽesz dodaÄ‡ tylko plik obrazu.' }));
+        Alert.alert(t('alerts.errorTitle'), t('alerts.invalidFileType'));
         return;
       }
 
@@ -398,26 +389,25 @@ export default function DziennikScreen() {
   const uploadImage = async (uri: string, userId: string): Promise<string | null> => {
     try {
       if (!uri) {
-        throw new Error(t('alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+        throw new Error(t('alerts.emptyFile'));
       }
 
       const ext = getJournalImageExt(uri) || 'jpg';
       if (!ALLOWED_JOURNAL_IMAGE_EXTENSIONS.has(ext.toLowerCase())) {
-        throw new Error(t('alerts.invalidFileType', { defaultValue: 'MoĹĽesz dodaÄ‡ tylko plik obrazu.' }));
+        throw new Error(t('alerts.invalidFileType'));
       }
       const path = `${userId}/dziennik/${Date.now()}.${ext}`;
       const response = await fetch(uri);
       const blob = await response.blob();
       if (!blob || blob.size <= 0) {
-        throw new Error(t('alerts.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+        throw new Error(t('alerts.emptyFile'));
       }
       if (blob.size > MAX_JOURNAL_IMAGE_BYTES) {
-        throw new Error(t('alerts.fileTooLarge', { defaultValue: 'ZdjÄ™cie jest zbyt duĹĽe. Maksymalny rozmiar to 15 MB.' }));
+        throw new Error(t('alerts.fileTooLarge'));
       }
 
       const { error } = await supabase.storage.from(JOURNAL_IMAGES_BUCKET).upload(path, blob, {
-        contentType: `image/${ext}`,
-      });
+        contentType: `image/${ext}`});
 
       if (error) throw error;
 
@@ -446,9 +436,7 @@ export default function DziennikScreen() {
         zdjecieUrl = await uploadImage(formZdjecieUri, userId);
         if (!zdjecieUrl) {
           throw new Error(
-            t('alerts.photoUploadError', {
-              defaultValue: 'Nie udaĹ‚o siÄ™ przesĹ‚aÄ‡ zdjÄ™cia. SprĂłbuj ponownie.',
-            })
+            t('alerts.photoUploadError')
           );
         }
       }
@@ -458,8 +446,7 @@ export default function DziennikScreen() {
         data: formData,
         tresc: formTresc.trim(),
         etap_id: formEtapId || null,
-        zdjecie_url: zdjecieUrl || null,
-      };
+        zdjecie_url: zdjecieUrl || null};
 
       if (editingWpis) {
         const { error } = await supabase.from('dziennik').update(payload).eq('id', editingWpis.id);
@@ -501,9 +488,7 @@ export default function DziennikScreen() {
                 console.warn('[Dziennik] remove storage image failed:', storageError.message);
                 Alert.alert(
                   t('alerts.errorTitle'),
-                  t('detail.deleteStorageWarning', {
-                    defaultValue: 'Wpis usuniÄ™to, ale nie udaĹ‚o siÄ™ usunÄ…Ä‡ zdjÄ™cia z pamiÄ™ci.',
-                  })
+                  t('detail.deleteStorageWarning')
                 );
               }
             }
@@ -513,15 +498,12 @@ export default function DziennikScreen() {
           } catch (e: any) {
             Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
           }
-        },
-      },
-    ]);
+        }}]);
   };
 
   const fabScale = fabAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
+    outputRange: [0, 1]});
 
   return (
     <View style={styles.screen}>
@@ -717,8 +699,7 @@ export default function DziennikScreen() {
                       <Text
                         style={[
                           styles.compactStageChipText,
-                          !formEtapId && styles.compactStageChipTextOn,
-                        ]}
+                          !formEtapId && styles.compactStageChipTextOn]}
                       >
                         {t('modal.none')}
                       </Text>
@@ -733,15 +714,13 @@ export default function DziennikScreen() {
                           onPress={() => setFormEtapId(e.id)}
                           style={[
                             styles.compactStageChip,
-                            isActive && styles.compactStageChipOn,
-                          ]}
+                            isActive && styles.compactStageChipOn]}
                           activeOpacity={0.85}
                         >
                           <Text
                             style={[
                               styles.compactStageChipText,
-                              isActive && styles.compactStageChipTextOn,
-                            ]}
+                              isActive && styles.compactStageChipTextOn]}
                             numberOfLines={1}
                           >
                             {e.nazwa}
@@ -882,8 +861,7 @@ function WpisCard({
   wpis: w,
   index,
   dateLocale,
-  onPress,
-}: {
+  onPress}: {
   wpis: Wpis;
   index: number;
   dateLocale: string;
@@ -897,15 +875,13 @@ function WpisCard({
       useNativeDriver: true,
       tension: 65,
       friction: 10,
-      delay: Math.min(index * 50, 300),
-    }).start();
+      delay: Math.min(index * 50, 300)}).start();
   }, [anim, index]);
 
   const opacity = anim;
   const translateY = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: [20, 0],
-  });
+    outputRange: [20, 0]});
   const isToday = w.data === toYMD(new Date());
 
   return (
@@ -964,8 +940,7 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     opacity: 0.07,
     top: -180,
-    right: -130,
-  },
+    right: -130},
   glowBottom: {
     position: 'absolute',
     width: 250,
@@ -974,55 +949,46 @@ const styles = StyleSheet.create({
     backgroundColor: NEON,
     opacity: 0.03,
     bottom: 100,
-    left: -80,
-  },
+    left: -80},
 
   // Header
   header: {
     paddingHorizontal: 0,
     paddingBottom: 10,
-    gap: 8,
-  },
+    gap: 8},
   topBar: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   headerSideCompact: {
     width: 96,
     height: 120,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   headerTitleWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
+    paddingHorizontal: 6},
   headerTitleLarge: {
     ...typography.screenTitle,
     fontSize: 38,
     lineHeight: 42,
     color: uiColors.accent,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   headerLogoCompact: {
     width: 88,
-    height: 88,
-  },
+    height: 88},
   headerMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    paddingHorizontal: 18,
-  },
+    paddingHorizontal: 18},
   headerCount: {
     color: 'rgba(255,255,255,0.34)',
     fontSize: 12.5,
     fontWeight: '800',
-    textAlign: 'right',
-  },
+    textAlign: 'right'},
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1032,19 +998,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.035)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.18)',
-  },
+    borderColor: 'rgba(37,240,200,0.18)'},
   sortBtnText: {
     color: NEON,
     fontSize: 12,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
 
   loadingWrap: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
 
   // Empty
   emptyWrap: {
@@ -1052,8 +1015,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    gap: 12,
-  },
+    gap: 12},
   emptyIcon: {
     width: 80,
     height: 80,
@@ -1063,20 +1025,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   emptyTitle: {
     color: '#FFFFFF',
     fontSize: 20,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   emptySubtitle: {
     color: 'rgba(255,255,255,0.40)',
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
-    lineHeight: 20,
-  },
+    lineHeight: 20},
   emptyBtn: {
     paddingHorizontal: 22,
     paddingVertical: 12,
@@ -1084,13 +1043,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(37,240,200,0.10)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.28)',
-    marginTop: 8,
-  },
+    marginTop: 8},
   emptyBtnText: {
     color: NEON,
     fontSize: 14,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
 
   // List
   list: { paddingHorizontal: 18 },
@@ -1105,21 +1062,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
+    borderColor: 'rgba(255,255,255,0.08)'},
   cardDateCol: { alignItems: 'center', width: 36 },
   cardDay: {
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '900',
-    lineHeight: 26,
-  },
+    lineHeight: 26},
   cardMonth: {
     color: 'rgba(255,255,255,0.40)',
     fontSize: 11,
     fontWeight: '800',
-    textTransform: 'uppercase',
-  },
+    textTransform: 'uppercase'},
   todayDot: {
     width: 6,
     height: 6,
@@ -1129,17 +1083,14 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.8,
     shadowRadius: 4,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   cardSep: {
     width: 1,
     height: 48,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.08)'},
   cardContentCol: {
     flex: 1,
-    minWidth: 0,
-  },
+    minWidth: 0},
   cardEtapBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
@@ -1148,32 +1099,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.18)',
-    marginBottom: 6,
-  },
+    marginBottom: 6},
   cardEtapText: {
     color: NEON,
     fontSize: 10,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   cardTresc: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: 13.5,
     fontWeight: '500',
-    lineHeight: 19,
-  },
+    lineHeight: 19},
   cardThumb: {
     width: 52,
     height: 52,
     borderRadius: 12,
-    flexShrink: 0,
-  },
+    flexShrink: 0},
 
   // FAB
   fabWrap: {
     position: 'absolute',
     bottom: 100,
-    right: 22,
-  },
+    right: 22},
   fab: {
     width: 56,
     height: 56,
@@ -1184,14 +1130,12 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.45,
     shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
 
   // Modal shared
   modalScreen: {
     flex: 1,
-    backgroundColor: '#000000',
-  },
+    backgroundColor: '#000000'},
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1199,15 +1143,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.07)'},
   modalHeaderSide: {
-    width: 28,
-  },
+    width: 28},
   modalCloseBtn: {
     width: 28,
-    alignItems: 'flex-end',
-  },
+    alignItems: 'flex-end'},
   modalHeaderDetail: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1216,45 +1157,38 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.07)'},
   modalTitle: {
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '900',
     textAlign: 'center',
-    flex: 1,
-  },
+    flex: 1},
   modalTitleNeon: {
     color: NEON,
     textShadowColor: 'rgba(37,240,200,0.28)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
+    textShadowRadius: 10},
   modalSubtitle: {
     color: 'rgba(255,255,255,0.45)',
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 2,
-  },
+    marginTop: 2},
   modalContent: {
     padding: 20,
-    gap: 20,
-  },
+    gap: 20},
 
   // Form
   formGroup: { gap: 10 },
   formGroupRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between'},
   formLabel: {
     color: 'rgba(255,255,255,0.38)',
     fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 1.2,
-  },
+    letterSpacing: 1.2},
 
   // Date
   datePickerBtn: {
@@ -1267,18 +1201,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: 'rgba(255,255,255,0.035)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
-  },
+    borderColor: 'rgba(255,255,255,0.09)'},
   datePickerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
+    gap: 10},
   datePickerText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
   dateDoneBtn: {
     alignSelf: 'flex-end',
     marginTop: 4,
@@ -1287,69 +1218,58 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(37,240,200,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.24)',
-  },
+    borderColor: 'rgba(37,240,200,0.24)'},
   dateDoneBtnText: {
     color: NEON,
     fontSize: 13,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
 
   // Etapy
   expandEtapyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
+    gap: 6},
   expandEtapyBtnText: {
     color: NEON,
     fontSize: 12,
-    fontWeight: '800',
-  },
+    fontWeight: '800'},
   selectedEtapWrap: {
     padding: 14,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
+    borderColor: 'rgba(255,255,255,0.08)'},
   selectedEtapLabel: {
     color: 'rgba(255,255,255,0.34)',
     fontSize: 11,
     fontWeight: '800',
-    marginBottom: 6,
-  },
+    marginBottom: 6},
   selectedEtapMain: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
-  },
+    gap: 10},
   selectedEtapText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
-    flex: 1,
-  },
+    flex: 1},
   currentBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
     backgroundColor: 'rgba(37,240,200,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.25)',
-  },
+    borderColor: 'rgba(37,240,200,0.25)'},
   currentBadgeText: {
     color: NEON,
     fontSize: 11,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   compactStageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    paddingTop: 2,
-  },
+    paddingTop: 2},
   compactStageChip: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -1361,26 +1281,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.09,
     shadowRadius: 11,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
+    elevation: 2},
   compactStageChipOn: {
     borderColor: 'rgba(37,240,200,0.44)',
-    backgroundColor: 'rgba(37,240,200,0.14)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.14)'},
   compactStageChipText: {
     color: '#94A3B8',
     fontWeight: '800',
     fontSize: 12,
-    letterSpacing: 0,
-  },
+    letterSpacing: 0},
   compactStageChipTextOn: {
-    color: 'rgba(220,255,245,0.98)',
-  },
+    color: 'rgba(220,255,245,0.98)'},
   etapyGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-  },
+    gap: 8},
   etapTile: {
     minWidth: (W - 60) / 2 - 8,
     maxWidth: (W - 60) / 2 - 8,
@@ -1389,30 +1304,24 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.035)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
-  },
+    borderColor: 'rgba(255,255,255,0.09)'},
   etapTileActive: {
     backgroundColor: 'rgba(37,240,200,0.12)',
-    borderColor: 'rgba(37,240,200,0.34)',
-  },
+    borderColor: 'rgba(37,240,200,0.34)'},
   etapTileCurrent: {
-    borderColor: 'rgba(37,240,200,0.18)',
-  },
+    borderColor: 'rgba(37,240,200,0.18)'},
   etapTileText: {
     color: 'rgba(255,255,255,0.68)',
     fontSize: 13,
     fontWeight: '700',
-    lineHeight: 18,
-  },
+    lineHeight: 18},
   etapTileTextActive: {
-    color: NEON,
-  },
+    color: NEON},
   etapTileHint: {
     color: 'rgba(37,240,200,0.64)',
     fontSize: 10,
     fontWeight: '800',
-    marginTop: 6,
-  },
+    marginTop: 6},
 
   // TreĹ›Ä‡
   trescInput: {
@@ -1425,14 +1334,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     lineHeight: 22,
-    minHeight: 140,
-  },
+    minHeight: 140},
   charCount: {
     color: 'rgba(255,255,255,0.22)',
     fontSize: 11,
     fontWeight: '700',
-    textAlign: 'right',
-  },
+    textAlign: 'right'},
 
   // Image
   imagePickBtn: {
@@ -1444,23 +1351,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: 'rgba(37,240,200,0.25)',
-  },
+    borderColor: 'rgba(37,240,200,0.25)'},
   imagePickText: {
     color: 'rgba(37,240,200,0.60)',
     fontSize: 14,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
   imagePreviewWrap: {
     position: 'relative',
     borderRadius: 16,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   imagePreview: {
     width: '100%',
     height: 180,
-    borderRadius: 16,
-  },
+    borderRadius: 16},
   imageRemoveBtn: {
     position: 'absolute',
     top: 10,
@@ -1470,8 +1373,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: 'rgba(0,0,0,0.60)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
 
   // Save
   saveBtn: {
@@ -1483,28 +1385,23 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.3,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   saveBtnText: {
     color: '#0B1120',
     fontSize: 16,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
 
   // Detail
   detailHeaderTitle: {
     color: '#FFFFFF',
     fontSize: 20,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   detailActionsRow: {
     flexDirection: 'row',
-    gap: 10,
-  },
+    gap: 10},
   detailContent: {
     padding: 20,
-    gap: 16,
-  },
+    gap: 16},
   detailActionBtn: {
     width: 34,
     height: 34,
@@ -1513,8 +1410,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.25)',
     backgroundColor: 'rgba(37,240,200,0.08)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   detailEtapBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1525,23 +1421,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(37,240,200,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.20)',
-  },
+    borderColor: 'rgba(37,240,200,0.20)'},
   detailEtapText: {
     color: NEON,
     fontSize: 12,
-    fontWeight: '900',
-  },
+    fontWeight: '900'},
   detailTresc: {
     color: 'rgba(255,255,255,0.85)',
     fontSize: 16,
     fontWeight: '500',
-    lineHeight: 24,
-  },
+    lineHeight: 24},
   detailImage: {
     width: '100%',
     height: 220,
     borderRadius: 18,
-    marginTop: 4,
-  },
-});
+    marginTop: 4}});

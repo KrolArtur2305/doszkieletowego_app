@@ -1,4 +1,4 @@
-Ôªøimport React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,8 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View} from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -22,8 +21,7 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../../../lib/supabase';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import {
-  getBudgetCategoryLabel,
-} from '../../../../lib/localizedLabels';
+  getBudgetCategoryLabel} from '../../../../lib/localizedLabels';
 import {
   expenseCategoryCodeFromLegacyLabel,
   expenseCategoryCodeToLegacyLabel,
@@ -39,12 +37,10 @@ import {
   type ExpenseType,
   type StagePickerOption,
   type StageTemplateLike,
-  type UserStageLike,
-} from '../../../../lib/stageModel';
+  type UserStageLike} from '../../../../lib/stageModel';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import {
-  workflowBuildType,
-} from '../../../../lib/buildWorkflow';
+  workflowBuildType} from '../../../../lib/buildWorkflow';
 import {
   currentSuggestionStage,
   getStageSuggestionItems,
@@ -52,8 +48,7 @@ import {
   mergeSuggestionPrefs,
   saveExpenseSuggestionPrefs,
   type ExpenseSuggestionItem,
-  type StoredExpenseSuggestionPrefs,
-} from '../../../../lib/budgetExpenseSuggestions';
+  type StoredExpenseSuggestionPrefs} from '../../../../lib/budgetExpenseSuggestions';
 import { getSuggestionDisplayName } from '../../../../lib/suggestionLabels';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
@@ -77,8 +72,7 @@ const CATEGORY_OPTIONS = [
   { value: 'ssz' },
   { value: 'instalacje' },
   { value: 'wykonczenie' },
-  { value: 'other' },
-] as const;
+  { value: 'other' }] as const;
 
 type CategoryValue = ExpenseCategoryCode;
 
@@ -97,7 +91,7 @@ const normalizeExpenseStatus = (status: any): typeof STATUS_PAID | typeof STATUS
 
 const normalizeExpenseType = (type: any): typeof TYPE_MATERIAL | typeof TYPE_SERVICE | typeof TYPE_MIXED | typeof TYPE_OTHER => {
   const value = normalize(type);
-  if (value === TYPE_SERVICE || value === 'usluga' || value === 'us≈Çuga' || value === 'service') return TYPE_SERVICE;
+  if (value === TYPE_SERVICE || value === 'usluga' || value === 'us≥uga' || value === 'service') return TYPE_SERVICE;
   if (value === TYPE_MIXED || value === 'mixed' || value === 'material + usluga' || value === 'material+usluga') return TYPE_MIXED;
   if (value === TYPE_OTHER || value === 'other' || value === 'inne') return TYPE_OTHER;
   return TYPE_MATERIAL;
@@ -124,9 +118,9 @@ const formatMonthLabel = (monthKey: string, locale: string) => {
 };
 
 const formatDateByLocale = (dateRaw: any, locale: string) => {
-  if (!dateRaw) return '‚Äî';
+  if (!dateRaw) return 'ó';
   const d = new Date(dateRaw);
-  if (Number.isNaN(d.getTime())) return '‚Äî';
+  if (Number.isNaN(d.getTime())) return 'ó';
   return d.toLocaleDateString(locale);
 };
 
@@ -267,8 +261,7 @@ export default function BudzetScreen() {
   const [suggestionPrefs, setSuggestionPrefs] = useState<StoredExpenseSuggestionPrefs>({
     hidden: [],
     notApplicable: [],
-    custom: [],
-  });
+    custom: []});
   const [activeStageId, setActiveStageId] = useState<string | null>(null);
   const [currentWorkflowType, setCurrentWorkflowType] = useState<string>('murowany');
   const [currentStageCode, setCurrentStageCode] = useState<string>('');
@@ -301,7 +294,7 @@ export default function BudzetScreen() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState<Date>(() => new Date());
 
-  // ‚îÄ‚îÄ Computed totals ‚îÄ‚îÄ
+  // ¶¶ Computed totals ¶¶
   const spentTotal = useMemo(
     () => wydatki.filter((w) => normalizeExpenseStatus(w.status) === STATUS_PAID).reduce((a, w) => a + safeNumber(w.kwota), 0),
     [wydatki]
@@ -358,8 +351,7 @@ export default function BudzetScreen() {
           stageCode: stageCodeFromLegacyStage(etap, index),
           stageGroupCode: stageGroupCodeFromLegacyStage(etap),
           source: 'legacy',
-          orderIndex: index,
-        })),
+          orderIndex: index})),
     [etapy, stageGroupOptions, t]
   );
 
@@ -436,13 +428,11 @@ export default function BudzetScreen() {
     if (topMonth) {
       return t('insights.highestPlannedMonthText', {
         month: formatMonthLabel(topMonth[0], datePickerLocale),
-        amount: formatAppCurrency(topMonth[1], datePickerLocale, currency),
-      });
+        amount: formatAppCurrency(topMonth[1], datePickerLocale, currency)});
     }
     return t('insights.biggestUpcomingText', {
       name: biggest?.nazwa || t('expense.defaultName'),
-      amount: formatAppCurrency(safeNumber(biggest?.kwota), datePickerLocale, currency),
-    });
+      amount: formatAppCurrency(safeNumber(biggest?.kwota), datePickerLocale, currency)});
   }, [plannedExpenses, datePickerLocale, currency, t]);
 
   const loadBudget = useCallback(async () => {
@@ -490,7 +480,7 @@ export default function BudzetScreen() {
 
       const authUserRes = await supabase.auth.getUser();
       const authUser = authUserRes.data.user;
-      if (!authUser) throw new Error('User not authenticated');
+      if (!authUser) throw new Error(t('errors.authRequired'));
 
       const profileRes = await supabase
         .from('profiles')
@@ -517,8 +507,7 @@ export default function BudzetScreen() {
           .from('user_stages')
           .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
           .eq('user_id', userId)
-          .order('order_index', { ascending: true }),
-      ]);
+          .order('order_index', { ascending: true })]);
 
       if (templateRes.error) throw templateRes.error;
       if (userStageRes.error) throw userStageRes.error;
@@ -535,7 +524,7 @@ export default function BudzetScreen() {
       const stageRows = (stageRes.data ?? []) as EtapRow[];
       setEtapy(stageRows);
 
-      const completedStatuses = new Set(['zrealizowany', 'wykonany', 'done', 'completed', 'uko≈Ñczony']);
+      const completedStatuses = new Set(['zrealizowany', 'wykonany', 'done', 'completed', 'ukoÒczony']);
       const activeStage = stageRows.find((row: any) => !completedStatuses.has(normalize(row?.status)));
       const fallbackStage = stageRows[0] ?? null;
       const currentStage = activeStage ?? fallbackStage ?? null;
@@ -574,8 +563,7 @@ export default function BudzetScreen() {
     setStageSuggestions((prev) => prev.map((item) => ({
       ...item,
       hidden: hidden.has(item.id),
-      notApplicable: notApplicable.has(item.id),
-    })));
+      notApplicable: notApplicable.has(item.id)})));
   }, [suggestionPrefs, userId]);
 
   const hideSuggestion = useCallback((suggestion: SuggestionView) => {
@@ -583,8 +571,7 @@ export default function BudzetScreen() {
     if (!id) return;
     updateSuggestionPrefs((prefs) => ({
       ...prefs,
-      hidden: Array.from(new Set([...(prefs.hidden ?? []), id])),
-    }));
+      hidden: Array.from(new Set([...(prefs.hidden ?? []), id]))}));
   }, [updateSuggestionPrefs]);
 
   const markSuggestionNotApplicable = useCallback((suggestion: SuggestionView) => {
@@ -592,8 +579,7 @@ export default function BudzetScreen() {
     if (!id) return;
     updateSuggestionPrefs((prefs) => ({
       ...prefs,
-      notApplicable: Array.from(new Set([...(prefs.notApplicable ?? []), id])),
-    }));
+      notApplicable: Array.from(new Set([...(prefs.notApplicable ?? []), id]))}));
   }, [updateSuggestionPrefs]);
 
   useEffect(() => {
@@ -610,8 +596,7 @@ export default function BudzetScreen() {
     const res = await DocumentPicker.getDocumentAsync({
       multiple: false,
       copyToCacheDirectory: true,
-      type: ['application/pdf', 'image/*'],
-    });
+      type: ['application/pdf', 'image/*']});
     if (res.canceled) return;
     const f = res.assets?.[0];
     if (!f?.uri) return;
@@ -619,21 +604,20 @@ export default function BudzetScreen() {
       name: f.name ?? 'plik',
       uri: f.uri,
       mimeType: guessMime(f.name ?? '', f.mimeType ?? undefined),
-      size: f.size,
-    };
+      size: f.size};
 
     if (typeof nextPicked.size === 'number' && nextPicked.size <= 0) {
-      Alert.alert(t('errorTitle', { defaultValue: 'B≈ÇƒÖd' }), t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+      Alert.alert(t('errorTitle'), t('errors.emptyFile'));
       return;
     }
 
     if (typeof nextPicked.size === 'number' && nextPicked.size > MAX_RECEIPT_UPLOAD_BYTES) {
-      Alert.alert(t('errorTitle', { defaultValue: 'B≈ÇƒÖd' }), t('errors.fileTooLarge', { defaultValue: 'Plik jest zbyt du≈ºy. Maksymalny rozmiar to 20 MB.' }));
+      Alert.alert(t('errorTitle'), t('errors.fileTooLarge'));
       return;
     }
 
     if (!isAllowedReceiptFile(nextPicked)) {
-      Alert.alert(t('errorTitle', { defaultValue: 'B≈ÇƒÖd' }), t('errors.invalidFileType', { defaultValue: 'Do≈ÇƒÖcz tylko PDF lub obraz paragonu.' }));
+      Alert.alert(t('errorTitle'), t('errors.invalidFileType'));
       return;
     }
 
@@ -642,15 +626,15 @@ export default function BudzetScreen() {
 
   const uploadOptionalFile = async (ownerId: string): Promise<UploadedReceiptFile | null> => {
     if (!picked) return null;
-    if (typeof picked.size === 'number' && picked.size <= 0) throw new Error(t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
-    if (typeof picked.size === 'number' && picked.size > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge', { defaultValue: 'Plik jest zbyt du≈ºy. Maksymalny rozmiar to 20 MB.' }));
-    if (!isAllowedReceiptFile(picked)) throw new Error(t('errors.invalidFileType', { defaultValue: 'Do≈ÇƒÖcz tylko PDF lub obraz paragonu.' }));
+    if (typeof picked.size === 'number' && picked.size <= 0) throw new Error(t('errors.emptyFile'));
+    if (typeof picked.size === 'number' && picked.size > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge'));
+    if (!isAllowedReceiptFile(picked)) throw new Error(t('errors.invalidFileType'));
     const safeName = (picked.name || 'plik').replace(/[^a-zA-Z0-9._-]/g, '_');
     const stamp = Date.now();
     const receiptPath = `${ownerId}/wydatki/${stamp}_${safeName}`;
     const documentPath = `dokumenty/${ownerId}/wydatki/${stamp}_${safeName}`;
     const ab = await uriToArrayBuffer(picked.uri, t('errors.readFileFailed'));
-    if (!ab || ab.byteLength <= 0) throw new Error(t('errors.emptyFile', { defaultValue: 'Wybrany plik jest pusty.' }));
+    if (!ab || ab.byteLength <= 0) throw new Error(t('errors.emptyFile'));
     const up = await supabase.storage.from(RECEIPT_BUCKET).upload(receiptPath, ab, { contentType: picked.mimeType, upsert: false });
     if (up.error) throw up.error;
     const docCopy = await supabase.storage.from(DOCUMENT_RECEIPT_BUCKET).upload(documentPath, ab, { contentType: picked.mimeType, upsert: false });
@@ -664,12 +648,11 @@ export default function BudzetScreen() {
   const removeReceiptFileEverywhere = useCallback(async (receiptPath: string, documentPath = receiptPath) => {
     const targets: Array<{ bucket: typeof RECEIPT_BUCKETS[number]; path: string }> = [
       { bucket: RECEIPT_BUCKET, path: receiptPath },
-      { bucket: DOCUMENT_RECEIPT_BUCKET, path: documentPath },
-    ];
+      { bucket: DOCUMENT_RECEIPT_BUCKET, path: documentPath }];
     await Promise.all(targets.map(async ({ bucket, path }) => {
       const { error } = await supabase.storage.from(bucket).remove([path]);
       if (error && !String(error.message || '').includes('not found')) {
-        console.warn(`[Bud≈ºet] nie uda≈Ço siƒô usunƒÖƒá pliku z bucketu ${bucket}:`, error.message);
+        console.warn(`[Budøet] nie uda≥o siÍ usunπÊ pliku z bucketu ${bucket}:`, error.message);
       }
     }));
   }, []);
@@ -680,8 +663,7 @@ export default function BudzetScreen() {
     title,
     note,
     kind,
-    previousPath,
-  }: {
+    previousPath}: {
     userIdValue: string;
     filePath: string | null;
     title: string;
@@ -697,7 +679,7 @@ export default function BudzetScreen() {
           .eq('user_id', userIdValue)
           .eq('plik_url', previousPath);
         if (deleteError) {
-          console.warn('[Bud≈ºet] nie uda≈Ço siƒô usunƒÖƒá powiƒÖzanego dokumentu:', deleteError.message);
+          console.warn('[Budøet] nie uda≥o siÍ usunπÊ powiπzanego dokumentu:', deleteError.message);
         }
       }
       return;
@@ -708,8 +690,7 @@ export default function BudzetScreen() {
       tytul: title || t('expense.defaultName'),
       notatki: note,
       kategoria: kind,
-      plik_url: filePath,
-    };
+      plik_url: filePath};
 
     if (previousPath && previousPath !== filePath) {
       const { error: deleteError } = await supabase
@@ -718,7 +699,7 @@ export default function BudzetScreen() {
         .eq('user_id', userIdValue)
         .eq('plik_url', previousPath);
       if (deleteError) {
-        console.warn('[Bud≈ºet] nie uda≈Ço siƒô usunƒÖƒá starego dokumentu po zmianie pliku:', deleteError.message);
+        console.warn('[Budøet] nie uda≥o siÍ usunπÊ starego dokumentu po zmianie pliku:', deleteError.message);
       }
     }
 
@@ -756,7 +737,7 @@ export default function BudzetScreen() {
       const authUserRes = await supabase.auth.getUser();
       const ownerId = authUserRes.data.user?.id ?? null;
       if (authUserRes.error || !ownerId) {
-        throw new Error(t('errors.authRequired', { defaultValue: 'Sesja wygas≈Ça. Zaloguj siƒô ponownie i spr√≥buj jeszcze raz.' }));
+        throw new Error(t('errors.authRequired'));
       }
       uploadedReceipt = await uploadOptionalFile(ownerId);
       const previousFilePath = editingExpense?.plik || null;
@@ -784,8 +765,7 @@ export default function BudzetScreen() {
         planowana_data: fStatus === STATUS_PLANNED && fData.trim() ? fData.trim() : null,
         opis: fOpis.trim() || null,
         sklep: fSklep.trim() || null,
-        ...(uploadedReceipt ? { plik: uploadedReceipt.receiptPath } : editingExpense ? {} : { plik: null }),
-      };
+        ...(uploadedReceipt ? { plik: uploadedReceipt.receiptPath } : editingExpense ? {} : { plik: null })};
       const res = editingExpense
         ? await supabase.from('wydatki').update(payload).eq('id', editingExpense.id).eq('user_id', ownerId).select('id').maybeSingle()
         : await supabase.from('wydatki').insert({ ...payload, user_id: ownerId }).select('id').maybeSingle();
@@ -804,16 +784,13 @@ export default function BudzetScreen() {
             filePath: receiptFilePath,
             previousPath: previousFilePath && previousFilePath !== receiptFilePath ? previousFilePath : null,
             title: nazwa,
-            note: [fSklep.trim(), fOpis.trim()].filter(Boolean).join(' ‚Ä¢ ') || null,
-            kind: fAttachmentKind,
-          });
+            note: [fSklep.trim(), fOpis.trim()].filter(Boolean).join(' ï ') || null,
+            kind: fAttachmentKind});
         } catch (docError: any) {
-          console.warn('[Bud≈ºet] nie uda≈Ço siƒô zsynchronizowaƒá dokumentu wydatku:', docError?.message || docError);
+          console.warn('[Budøet] nie uda≥o siÍ zsynchronizowaÊ dokumentu wydatku:', docError?.message || docError);
           Alert.alert(
-            t('errorTitle', { defaultValue: 'B≈ÇƒÖd' }),
-            t('errors.documentSyncFailed', {
-              defaultValue: 'Wydatek zapisano, ale nie uda≈Ço siƒô dodaƒá go do dokument√≥w.',
-            })
+            t('errorTitle'),
+            t('errors.documentSyncFailed')
           );
         }
       }
@@ -831,7 +808,7 @@ export default function BudzetScreen() {
       setAddOpen(false);
       await loadBudget();
     } catch (e: any) {
-      alert(e?.message ?? t('errors.saveFailed', { defaultValue: t('errors.addFailed') }));
+      Alert.alert(t('errorTitle'), t('errors.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -900,8 +877,7 @@ export default function BudzetScreen() {
   const openAllExpenses = useCallback((nextFilter: FilterType, nextSort: SortType = 'date', nextTab?: 'mine' | 'suggested') => {
     router.push({
       pathname: '/budzet/wszystkie',
-      params: { filter: nextFilter, sort: nextSort, tab: nextTab },
-    });
+      params: { filter: nextFilter, sort: nextSort, tab: nextTab }});
   }, [router]);
 
   const suggestionName = useCallback((suggestion: SuggestionView) => {
@@ -983,7 +959,7 @@ export default function BudzetScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* HEADER ‚Äî logo po lewej */}
+        {/* HEADER ó logo po lewej */}
         <View style={[styles.topBar, { paddingTop: topPad }]}>
           <View style={styles.headerSide}>
             <ExpoImage source={logo} style={styles.headerLogoLarge} contentFit="contain" cachePolicy="memory-disk" />
@@ -996,10 +972,10 @@ export default function BudzetScreen() {
           <View style={styles.headerSide} />
         </View>
 
-        {/* B≈ÅƒòDY */}
+        {/* B£ DY */}
         {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
 
-        {/* PASEK CZASU ‚Äî delikatny */}
+        {/* PASEK CZASU ó delikatny */}
         {!loading && dates.start && dates.end && (
           <View style={styles.timeBarWrap}>
             <View style={styles.timeBarTrack}>
@@ -1106,7 +1082,7 @@ export default function BudzetScreen() {
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     style={styles.suggestionIconBtn}
                   >
-                    <Text style={styles.suggestionActionText}>{t('suggestions.hide', { defaultValue: 'Ukryj' })}</Text>
+                    <Text style={styles.suggestionActionText}>{t('suggestions.hide')}</Text>
                   </TouchableOpacity>
                   <View style={styles.suggestionMiniCta}>
                     <Text style={styles.suggestionMiniCtaText}>{t('suggestions.add')}</Text>
@@ -1205,7 +1181,7 @@ export default function BudzetScreen() {
                     {resolveMainStageGroupLabel(w)}
                   </Text>
                   <Text style={styles.itemMeta} numberOfLines={1}>
-                    {w.data ? formatDateByLocale(w.data, datePickerLocale) : '‚Äî'}
+                    {w.data ? formatDateByLocale(w.data, datePickerLocale) : 'ó'}
                   </Text>
                 </View>
                 <View style={styles.topExpenseRight}>
@@ -1271,9 +1247,9 @@ export default function BudzetScreen() {
                 <View style={styles.modalInlineField}>
                   <Text style={styles.lbl}>{t('modal.dateLabel')}</Text>
                   <View style={styles.dateRow}>
-                    <AppInput value={fData} onChangeText={setFData} style={[styles.input, styles.compactInput, { flex: 1 }]} placeholder="YYYY-MM-DD" />
+                    <AppInput value={fData} onChangeText={setFData} style={[styles.input, styles.compactInput, { flex: 1 }]} placeholder={t('modal.datePlaceholder')} />
                     <TouchableOpacity style={styles.calBtn} onPress={openDatePicker} activeOpacity={0.85}>
-                      <Text style={styles.calIcon}>üìÖ</Text>
+                      <Text style={styles.calIcon}>??</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1380,7 +1356,7 @@ export default function BudzetScreen() {
               <Text style={styles.lbl}>{t('modal.storeOptional')}</Text>
               <AppInput value={fSklep} onChangeText={setFSklep} style={styles.input} placeholder={t('modal.storePlaceholder')} />
 
-              <Text style={styles.lbl}>{t('modal.attachmentTypeLabel', { defaultValue: 'Typ za≈ÇƒÖcznika' })}</Text>
+              <Text style={styles.lbl}>{t('modal.attachmentTypeLabel')}</Text>
               <View style={styles.receiptKindRow}>
                 <TouchableOpacity
                   style={[styles.receiptKindChip, fAttachmentKind === 'paragon' && styles.receiptKindChipOn]}
@@ -1388,7 +1364,7 @@ export default function BudzetScreen() {
                   activeOpacity={0.85}
                 >
                   <Text style={[styles.receiptKindChipText, fAttachmentKind === 'paragon' && styles.receiptKindChipTextOn]}>
-                    {t('modal.receiptKindReceipt', { defaultValue: 'Paragon' })}
+                    {t('modal.receiptKindReceipt')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1397,7 +1373,7 @@ export default function BudzetScreen() {
                   activeOpacity={0.85}
                 >
                   <Text style={[styles.receiptKindChipText, fAttachmentKind === 'faktura' && styles.receiptKindChipTextOn]}>
-                    {t('modal.receiptKindInvoice', { defaultValue: 'Faktura' })}
+                    {t('modal.receiptKindInvoice')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1406,7 +1382,7 @@ export default function BudzetScreen() {
                 <Text style={styles.fileBtnText}>
                   {picked
                     ? t('modal.fileSelected', { name: picked.name })
-                    : t('modal.fileOptional', { defaultValue: 'Dodaj plik' })}
+                    : t('modal.fileOptional')}
                 </Text>
               </TouchableOpacity>
 
@@ -1421,7 +1397,7 @@ export default function BudzetScreen() {
         <View style={{ height: 26 }} />
       </ScrollView>
 
-      {/* FAB ‚Äî przyklejony na dole po prawej, zawsze widoczny */}
+      {/* FAB ó przyklejony na dole po prawej, zawsze widoczny */}
       <FloatingAddButton onPress={openAddExpense} style={styles.budgetFab} />
     </AppScreen>
   );
@@ -1433,43 +1409,37 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
-    paddingTop: 0,
-  },
+    paddingTop: 0},
 
   topBar: {
     paddingHorizontal: 0,
     marginTop: 0,
     paddingBottom: 0,
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   headerSide: {
     width: 116,
     height: 120,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   headerTitleWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
+    paddingHorizontal: 6},
   headerTitleLarge: {
     ...typography.screenTitle,
     fontSize: 42,
     lineHeight: 48,
     color: colors.accent,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   headerLogoLarge: {
     width: 108,
-    height: 108,
-  },
+    height: 108},
 
   errorText: { color: '#FCA5A5', marginBottom: 10, textAlign: 'center', fontWeight: '800' },
 
-  // ‚îÄ‚îÄ Pasek czasu ‚îÄ‚îÄ
+  // ¶¶ Pasek czasu ¶¶
   timeBarWrap: { marginBottom: 16 },
   timeBarLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 },
   timeBarText: { color: 'rgba(255,255,255,0.44)', fontSize: 13, fontWeight: '800' },
@@ -1477,23 +1447,21 @@ const styles = StyleSheet.create({
   timeBarTrack: {
     height: 8, borderRadius: 99,
     backgroundColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   timeBarFill: { height: 8, borderRadius: 99, backgroundColor: 'rgba(25,112,92,0.70)' },
 
-  // ‚îÄ‚îÄ Finance overview ‚îÄ‚îÄ
+  // ¶¶ Finance overview ¶¶
   financeOverview: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
     marginTop: 2,
-    marginBottom: 18,
-  },
+    marginBottom: 18},
   financeDonutCol: { width: 180, alignItems: 'center', marginLeft: 2 },
   financeStatsCol: { width: 152, flexShrink: 0, gap: 6, alignItems: 'stretch', marginLeft: 'auto' },
   donutSubText: { marginTop: 1, color: 'rgba(255,255,255,0.46)', fontSize: 10.5, fontWeight: '700', textAlign: 'center' },
 
-  // ‚îÄ‚îÄ Stats ‚îÄ‚îÄ
+  // ¶¶ Stats ¶¶
   statBox: {
     paddingVertical: 7,
     paddingHorizontal: 10,
@@ -1504,24 +1472,21 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.08,
     shadowRadius: 12,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   statLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '800' },
   statValue: { color: '#F8FAFC', fontSize: 12.5, fontWeight: '900', marginTop: 2, lineHeight: 14 },
 
-  // ‚îÄ‚îÄ Buddy widget ‚îÄ‚îÄ
+  // ¶¶ Buddy widget ¶¶
   buddyWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 9,
     marginTop: 8, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14,
     backgroundColor: 'rgba(37,240,200,0.05)',
-    borderWidth: 1, borderColor: 'rgba(37,240,200,0.11)',
-  },
+    borderWidth: 1, borderColor: 'rgba(37,240,200,0.11)'},
   buddyAvatar: {
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: 'rgba(37,240,200,0.12)',
     borderWidth: 1, borderColor: 'rgba(37,240,200,0.25)',
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center'},
   buddyName: { color: NEON, fontSize: 10, fontWeight: '900', marginBottom: 1, opacity: 0.80 },
   buddyText: { color: 'rgba(255,255,255,0.50)', fontSize: 11.5, lineHeight: 15, fontWeight: '600' },
 
@@ -1536,13 +1501,12 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: 'rgba(25,112,92,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.26)',
-  },
+    borderColor: 'rgba(37,240,200,0.26)'},
   allExpensesLinkText: { color: NEON, fontSize: 13, fontWeight: '900' },
 
   vLabel: { marginTop: 8, color: 'rgba(255,255,255,0.78)', fontWeight: '900', fontSize: 11, textAlign: 'center' },
 
-  // ‚îÄ‚îÄ Lista ‚îÄ‚îÄ
+  // ¶¶ Lista ¶¶
   card: {
     marginTop: 14, borderRadius: RADIUS.card, padding: 16, overflow: 'hidden',
     backgroundColor: 'rgba(25,112,92,0.08)',
@@ -1550,8 +1514,7 @@ const styles = StyleSheet.create({
     shadowColor: NEON,
     shadowOpacity: 0.14,
     shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   listHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
   listTitle: { color: '#F8FAFC', fontWeight: '900', fontSize: 16 },
   listHeaderStack: { marginBottom: 0, flex: 1, paddingRight: 10 },
@@ -1561,24 +1524,21 @@ const styles = StyleSheet.create({
   topSuggestionLink: {
     paddingHorizontal: 0,
     paddingVertical: 2,
-    alignSelf: 'flex-start',
-  },
+    alignSelf: 'flex-start'},
   topSuggestionLinkText: {
     color: NEON,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.2,
     textTransform: 'uppercase',
-    opacity: 0.88,
-  },
+    opacity: 0.88},
   topSuggestionsCard: {
     marginTop: 14,
     borderRadius: RADIUS.card,
     shadowColor: NEON,
     shadowOpacity: 0.16,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-  },
+    shadowOffset: { width: 0, height: 0 }},
   topSuggestionsCardContent: {
     backgroundColor: 'rgba(15, 34, 31, 0.92)',
     borderWidth: 1,
@@ -1586,16 +1546,14 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 14,
     paddingBottom: 14,
-    paddingHorizontal: 14,
-  },
+    paddingHorizontal: 14},
   compactRow: {
     flexDirection: 'row',
     gap: 12,
     alignItems: 'center',
     paddingVertical: 11,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
+    borderTopColor: 'rgba(255,255,255,0.08)'},
   suggestionRow: {
     flexDirection: 'row',
     gap: 12,
@@ -1603,8 +1561,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 2,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.05)',
-  },
+    borderTopColor: 'rgba(255,255,255,0.05)'},
   suggestionTitle: { color: '#F8FAFC', fontSize: 14, fontWeight: '800' },
   suggestionStage: { color: 'rgba(120,255,220,0.84)', fontSize: 10.5, fontWeight: '800', marginTop: 2 },
   suggestionMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
@@ -1614,8 +1571,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
+    borderColor: 'rgba(255,255,255,0.08)'},
   suggestionPillText: { color: '#C8F7EE', fontSize: 10.5, fontWeight: '800' },
   suggestionHint: { color: 'rgba(148,163,184,0.78)', fontSize: 10.5, fontWeight: '700', marginTop: 5 },
   suggestionMiniCta: {
@@ -1624,14 +1580,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: 'rgba(37,240,200,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.18)',
-  },
+    borderColor: 'rgba(37,240,200,0.18)'},
   suggestionMiniCtaText: { color: NEON, fontSize: 10.5, fontWeight: '900' },
   suggestionActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
+    gap: 6},
   suggestionIconBtn: {
     minWidth: 48,
     height: 28,
@@ -1639,8 +1593,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.045)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.045)'},
   suggestionActionText: { color: 'rgba(255,255,255,0.64)', fontSize: 10.5, fontWeight: '900' },
   rankText: { width: 30, color: NEON, fontSize: 14, fontWeight: '900' },
   topExpenseRight: { alignItems: 'flex-end', gap: 6 },
@@ -1650,8 +1603,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-  },
+    borderColor: 'rgba(255,255,255,0.10)'},
   typeBadgeText: { color: '#E2E8F0', fontSize: 10, fontWeight: '900' },
   legendRow: { flexDirection: 'row', gap: 14, marginBottom: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -1674,8 +1626,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.06)'},
   typeSwatch: { width: 10, height: 10, borderRadius: 5 },
   typeSwatchMaterial: { backgroundColor: NEON },
   typeSwatchService: { backgroundColor: 'rgba(148,163,184,0.82)' },
@@ -1688,8 +1639,7 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.03)'},
   filterPillActive: { borderColor: 'rgba(25,112,92,0.50)', backgroundColor: 'rgba(25,112,92,0.12)' },
   filterPillText: { color: 'rgba(255,255,255,0.40)', fontSize: 12, fontWeight: '800' },
   filterPillTextActive: { color: NEON },
@@ -1698,8 +1648,7 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.06)'},
   sortLabel: { color: '#94A3B8', fontSize: 11, fontWeight: '900', marginBottom: 8 },
   sortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   sortPill: {
@@ -1708,8 +1657,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.025)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.025)'},
   sortPillActive: { borderColor: 'rgba(37,240,200,0.42)', backgroundColor: 'rgba(37,240,200,0.10)' },
   sortPillText: { color: 'rgba(255,255,255,0.48)', fontSize: 12, fontWeight: '800' },
   sortPillTextActive: { color: 'rgba(220,255,245,0.98)' },
@@ -1718,8 +1666,7 @@ const styles = StyleSheet.create({
 
   itemRow: {
     flexDirection: 'row', gap: 12, paddingVertical: 12,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.10)', paddingHorizontal: 2,
-  },
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.10)', paddingHorizontal: 2},
   itemRowPlanned: { opacity: 0.65 },
   itemName: { color: '#F8FAFC', fontWeight: '800' },
   itemNamePlanned: { color: 'rgba(255,255,255,0.65)' },
@@ -1729,31 +1676,28 @@ const styles = StyleSheet.create({
   itemAmountPlanned: { color: 'rgba(255,255,255,0.40)' },
   fileLink: { color: 'rgba(120,255,220,0.9)', fontWeight: '800', fontSize: 12 },
 
-  // Poka≈º wiƒôcej
+  // Pokaø wiÍcej
   showMoreBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 14,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
-  },
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)'},
   showMoreText: { color: NEON, fontSize: 13, fontWeight: '700', opacity: 0.70 },
 
   trashAction: {
     width: 92, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(239,68,68,0.16)',
-    borderLeftWidth: 1, borderLeftColor: 'rgba(239,68,68,0.35)',
-  },
+    borderLeftWidth: 1, borderLeftColor: 'rgba(239,68,68,0.35)'},
   trashIcon: { fontSize: 18, marginBottom: 4 },
   trashText: { color: '#FCA5A5', fontWeight: '900', fontSize: 12 },
 
-  // ‚îÄ‚îÄ Modal ‚îÄ‚îÄ
+  // ¶¶ Modal ¶¶
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
     backgroundColor: '#000000',
     paddingTop: 10,
     paddingBottom: 10,
-    paddingHorizontal: 12,
-  },
+    paddingHorizontal: 12},
   modalBackdropPressable: { ...StyleSheet.absoluteFillObject },
   modalScrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: spacing.lg, paddingVertical: 18 },
   modalCardOuter: {
@@ -1761,8 +1705,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   modalCard: {
     padding: 12,
     borderTopLeftRadius: 22,
@@ -1774,8 +1717,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: -6 },
-    elevation: 10,
-  },
+    elevation: 10},
   modalTitle: { color: NEON, fontWeight: '900', fontSize: 16, marginBottom: 8, textAlign: 'center' },
   lbl: { color: '#94A3B8', fontSize: 11, marginTop: 6, marginBottom: 4, fontWeight: '800' },
   input: {},
@@ -1783,8 +1725,7 @@ const styles = StyleSheet.create({
     minHeight: 42,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    fontSize: 13,
-  },
+    fontSize: 13},
   modalInlineRow: { flexDirection: 'row', gap: 8 },
   modalInlineField: { flex: 1 },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingVertical: 2 },
@@ -1803,8 +1744,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
+    elevation: 2},
   catTileOn: { borderColor: 'rgba(37,240,200,0.42)', backgroundColor: 'rgba(37,240,200,0.12)' },
   catTileText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
   catTileTextOn: { color: 'rgba(220,255,245,0.98)' },
@@ -1820,8 +1760,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.09,
     shadowRadius: 11,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
+    elevation: 2},
   compactStageChipOn: { borderColor: 'rgba(37,240,200,0.44)', backgroundColor: 'rgba(37,240,200,0.14)' },
   compactStageChipText: { color: '#94A3B8', fontWeight: '800', fontSize: 12, letterSpacing: 0 },
   compactStageChipTextOn: { color: 'rgba(220,255,245,0.98)' },
@@ -1836,12 +1775,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-  },
+    gap: 8},
   stageSelectOpen: {
     borderColor: 'rgba(37,240,200,0.42)',
-    backgroundColor: 'rgba(37,240,200,0.10)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.10)'},
   stageSelectText: { flex: 1, color: 'rgba(220,255,245,0.96)', fontWeight: '900', fontSize: 12 },
   stageDropdown: {
     position: 'absolute',
@@ -1854,15 +1791,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.18)',
     backgroundColor: '#07120F',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   stageDropdownItem: {
     minHeight: 30,
     justifyContent: 'center',
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.055)',
-  },
+    borderBottomColor: 'rgba(255,255,255,0.055)'},
   stageDropdownItemOn: { backgroundColor: 'rgba(37,240,200,0.12)' },
   stageDropdownText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
   stageDropdownTextOn: { color: 'rgba(220,255,245,0.98)' },
@@ -1882,8 +1817,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
-  },
+    elevation: 1},
   pillOn: { borderColor: 'rgba(37,240,200,0.40)', backgroundColor: 'rgba(37,240,200,0.12)' },
   pillText: { color: '#94A3B8', fontWeight: '800', fontSize: 12 },
   pillTextOn: { color: 'rgba(220,255,245,0.98)' },
@@ -1901,8 +1835,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.10,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
+    elevation: 2},
   calIcon: { fontSize: 18 },
   iosDateWrap: {
     marginTop: 10,
@@ -1910,15 +1843,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.14)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.03)'},
   iosDateOk: {
     paddingVertical: 10,
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: 'rgba(37,240,200,0.12)',
-    backgroundColor: 'rgba(37,240,200,0.08)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.08)'},
   iosDateOkText: { color: 'rgba(220,255,245,0.98)', fontWeight: '900' },
   fileBtn: {
     marginTop: 8,
@@ -1932,14 +1863,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
-  },
+    elevation: 1},
   fileBtnText: { color: '#E2E8F0', fontWeight: '800', fontSize: 12 },
   receiptKindRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 0,
-  },
+    marginBottom: 0},
   receiptKindChip: {
     flex: 1,
     minHeight: 36,
@@ -1949,21 +1878,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
+    paddingHorizontal: 10},
   receiptKindChipOn: {
     borderColor: 'rgba(37,240,200,0.42)',
-    backgroundColor: 'rgba(37,240,200,0.12)',
-  },
+    backgroundColor: 'rgba(37,240,200,0.12)'},
   receiptKindChipText: {
     color: 'rgba(255,255,255,0.70)',
     fontWeight: '900',
-    fontSize: 12,
-  },
+    fontSize: 12},
   receiptKindChipTextOn: {
-    color: NEON,
-  },
+    color: NEON},
   modalActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   modalBtn: { flex: 1 },
-  budgetFab: { bottom: 28 },
-});
+  budgetFab: { bottom: 28 }});

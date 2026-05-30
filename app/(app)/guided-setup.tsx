@@ -8,8 +8,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native'
+  View} from 'react-native'
 import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -20,8 +19,7 @@ import { AppButton, AppScreen } from '../../src/ui/components'
 import {
   DEFAULT_BUDDY_AVATAR_ID,
   getBuddyAvatarSource,
-  type BuddyAvatarId,
-} from '../../src/services/buddy/avatar'
+  type BuddyAvatarId} from '../../src/services/buddy/avatar'
 import { GUIDED_SETUP_VERSION } from '../../src/services/guidedSetup/launchMode'
 
 const APP_LOGO = require('../assets/logo.png')
@@ -31,8 +29,7 @@ const ACCENT = '#19705C'
 const FINAL_FEATURES = [
   { icon: 'trending-up', titleKey: 'onboarding:guided.control.progress' },
   { icon: 'camera', titleKey: 'onboarding:guided.control.photos' },
-  { icon: 'folder', titleKey: 'onboarding:guided.control.documents' },
-]
+  { icon: 'folder', titleKey: 'onboarding:guided.control.documents' }]
 
 type ProfileData = {
   imie: string | null
@@ -99,8 +96,7 @@ export default function GuidedSetupScreen() {
         setProfile({
           imie: (profileRes.data as any)?.imie ?? null,
           ai_buddy_name: (profileRes.data as any)?.ai_buddy_name ?? null,
-          ai_buddy_avatar: (profileRes.data as any)?.ai_buddy_avatar ?? null,
-        })
+          ai_buddy_avatar: (profileRes.data as any)?.ai_buddy_avatar ?? null})
       } catch (e: any) {
         if (!alive) return
         Alert.alert(t('onboarding:alerts.errorTitle'), e?.message ?? t('onboarding:guided.alerts.prepareError'))
@@ -133,8 +129,7 @@ export default function GuidedSetupScreen() {
           {
             user_id: userId,
             guided_setup_completed: true,
-            guided_setup_version: GUIDED_SETUP_VERSION,
-          },
+            guided_setup_version: GUIDED_SETUP_VERSION},
           { onConflict: 'user_id' }
         )
 
@@ -229,7 +224,7 @@ export default function GuidedSetupScreen() {
               <>
                 <View style={styles.finalKicker}>
                   <Feather name="check" size={14} color="#02110e" />
-                  <Text style={styles.finalKickerText}>{t('onboarding:guided.control.kicker', { defaultValue: 'Gotowe' })}</Text>
+                  <Text style={styles.finalKickerText}>{t('onboarding:guided.control.kicker')}</Text>
                 </View>
 
                 <Text style={styles.title}>{t('onboarding:guided.control.title')}</Text>
@@ -264,12 +259,10 @@ export default function GuidedSetupScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: BG,
-  },
+    backgroundColor: BG},
   bg: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: BG,
-  },
+    backgroundColor: BG},
   glowTop: {
     position: 'absolute',
     width: 380,
@@ -278,8 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     opacity: 0.12,
     top: -180,
-    right: -120,
-  },
+    right: -120},
   glowBottom: {
     position: 'absolute',
     width: 340,
@@ -288,39 +280,33 @@ const styles = StyleSheet.create({
     backgroundColor: NEON,
     opacity: 0.06,
     bottom: -120,
-    left: -120,
-  },
+    left: -120},
   content: {
     flex: 1,
     paddingHorizontal: 20,
     paddingBottom: 40,
-    justifyContent: 'flex-start',
-  },
+    justifyContent: 'flex-start'},
   logo: {
     width: 156,
     height: 156,
     alignSelf: 'center',
-    marginBottom: 8,
-  },
+    marginBottom: 8},
   loadingWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-  },
+    gap: 12},
   loadingText: {
     color: 'rgba(255,255,255,0.56)',
     fontSize: 13,
-    fontWeight: '600',
-  },
+    fontWeight: '600'},
   card: {
     borderRadius: 28,
     padding: 22,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   backButton: {
     alignSelf: 'flex-start',
     width: 38,
@@ -332,23 +318,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',
     marginBottom: 2,
-    marginTop: -8,
-  },
+    marginTop: -8},
   progressRow: {
     flexDirection: 'row',
     gap: 8,
     alignSelf: 'center',
-    marginBottom: 18,
-  },
+    marginBottom: 18},
   progressDot: {
     width: 10,
     height: 10,
     borderRadius: 99,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-  },
+    backgroundColor: 'rgba(255,255,255,0.14)'},
   progressDotActive: {
-    backgroundColor: NEON,
-  },
+    backgroundColor: NEON},
   avatar: {
     width: 112,
     height: 112,
@@ -356,16 +338,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 18,
     borderWidth: 2,
-    borderColor: 'rgba(37,240,200,0.35)',
-  },
+    borderColor: 'rgba(37,240,200,0.35)'},
   title: {
     color: NEON,
     fontSize: 30,
     fontWeight: '900',
     letterSpacing: -0.4,
     textAlign: 'center',
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   finalKicker: {
     alignSelf: 'center',
     flexDirection: 'row',
@@ -375,46 +355,39 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     backgroundColor: NEON,
-    marginBottom: 14,
-  },
+    marginBottom: 14},
   finalKickerText: {
     color: '#02110e',
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
+    textTransform: 'uppercase'},
   subtitle: {
     color: 'rgba(255,255,255,0.86)',
     fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   body: {
     color: 'rgba(255,255,255,0.74)',
     fontSize: 15,
     fontWeight: '600',
     lineHeight: 22,
     textAlign: 'center',
-    marginBottom: 20,
-  },
+    marginBottom: 20},
   infoList: {
     gap: 12,
-    marginBottom: 18,
-  },
+    marginBottom: 18},
   infoItem: {
     color: 'rgba(255,255,255,0.76)',
     fontSize: 15,
     fontWeight: '600',
     lineHeight: 22,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
   featureList: {
     gap: 10,
     marginBottom: 18,
-    alignSelf: 'stretch',
-  },
+    alignSelf: 'stretch'},
   featureRow: {
     minHeight: 52,
     borderRadius: 18,
@@ -424,8 +397,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
+    gap: 12},
   featureIcon: {
     width: 30,
     height: 30,
@@ -434,19 +406,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(37,240,200,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.18)',
-  },
+    borderColor: 'rgba(37,240,200,0.18)'},
   featureText: {
     flex: 1,
     color: 'rgba(255,255,255,0.88)',
     fontSize: 14,
     fontWeight: '700',
-    lineHeight: 20,
-  },
+    lineHeight: 20},
   primaryBtn: {
-    marginTop: 4,
-  },
+    marginTop: 4},
   secondaryBtn: {
-    marginTop: 10,
-  },
-})
+    marginTop: 10}})

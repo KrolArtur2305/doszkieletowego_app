@@ -11,7 +11,8 @@
   },
   "errors": {
     "fetchFailed": "Nie udało się pobrać danych.",
-    "addFailed": "Nie udało się dodać wydatku.",
+        "authRequired": "Zaloguj si? ponownie.",
+"addFailed": "Nie udało się dodać wydatku.",
     "saveFailed": "Nie udało się zapisać wydatku.",
     "deleteFailed": "Nie udało się usunąć wydatku.",
     "readFileFailed": "Nie udało się odczytać pliku"
@@ -239,6 +240,7 @@
     "typeLabel": "Typ wydatku",
     "dateLabel": "Data",
     "dateOptional": "Data - opcjonalnie",
+    "datePlaceholder": "RRRR-MM-DD",
     "plannedDateLabel": "Planowana data",
     "stageLabel": "Etap budowy",
     "noStage": "Bez etapu",

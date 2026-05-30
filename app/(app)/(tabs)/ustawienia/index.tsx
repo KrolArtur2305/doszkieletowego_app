@@ -1,12 +1,11 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  View,
-} from 'react-native';
+  View} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -99,8 +98,7 @@ export default function UstawieniaScreen() {
   const handleLogout = async () => {
     try {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { user }} = await supabase.auth.getUser();
       if (user) {
         await removePushToken(user.id);
       }
@@ -129,16 +127,14 @@ export default function UstawieniaScreen() {
             setDeletingAccount(true);
             try {
               const {
-                data: { user },
-              } = await supabase.auth.getUser();
+                data: { user }} = await supabase.auth.getUser();
 
               if (user) {
                 await removePushToken(user.id);
               }
 
               const { error } = await supabase.functions.invoke('delete-account', {
-                method: 'POST',
-              });
+                method: 'POST'});
 
               if (error) throw error;
 
@@ -148,10 +144,8 @@ export default function UstawieniaScreen() {
                 console.warn('Sign out after account deletion failed:', signOutError);
               }
               Alert.alert(
-                t('settings:appSettings.deleteAccount.successTitle', { defaultValue: 'Gotowe' }),
-                t('settings:appSettings.deleteAccount.successMessage', {
-                  defaultValue: 'Konto zostało usunięte.',
-                })
+                t('settings:appSettings.deleteAccount.successTitle'),
+                t('settings:appSettings.deleteAccount.successMessage')
               );
               router.replace('/(auth)/welcome');
             } catch (e: any) {
@@ -162,9 +156,7 @@ export default function UstawieniaScreen() {
             } finally {
               setDeletingAccount(false);
             }
-          },
-        },
-      ]
+          }}]
     );
   };
 
@@ -175,29 +167,25 @@ export default function UstawieniaScreen() {
         title: t('settings:items.profileTitle'),
         subtitle: t('settings:items.profileSubtitle'),
         icon: 'user',
-        onPress: () => router.push('/(app)/profil'),
-      },
+        onPress: () => router.push('/(app)/profil')},
       {
         key: 'inwestycja',
         title: t('settings:items.investmentTitle'),
         subtitle: t('settings:items.investmentSubtitle'),
         icon: 'home',
-        onPress: () => router.push('/(app)/inwestycja'),
-      },
+        onPress: () => router.push('/(app)/inwestycja')},
       {
         key: 'buddy',
         title: t('settings:items.buddyTitle'),
         subtitle: t('settings:items.buddySubtitle'),
         icon: 'cpu',
-        onPress: () => router.push('/(app)/buddy-settings'),
-      },
+        onPress: () => router.push('/(app)/buddy-settings')},
       {
         key: 'aplikacja',
         title: t('settings:items.appTitle'),
         subtitle: t('settings:items.appSubtitle'),
         icon: 'sliders',
-        onPress: () => router.push('/(app)/(tabs)/ustawienia/aplikacja'),
-      },
+        onPress: () => router.push('/(app)/(tabs)/ustawienia/aplikacja')},
       {
         key: 'sub',
         title: t('settings:items.subscriptionTitle'),
@@ -208,25 +196,21 @@ export default function UstawieniaScreen() {
             subscriptionUiReadOnly
               ? '/(app)/(tabs)/ustawienia/subskrypcja'
               : '/(app)/(tabs)/ustawienia/subskrypcja'
-          ),
-      },
+          )},
       {
         key: 'delete-account',
         title: t('settings:appSettings.deleteAccount.title'),
         subtitle: deletingAccount
-            ? t('settings:appSettings.deleteAccount.deleting', { defaultValue: 'Usuwanie...' })
+            ? t('settings:appSettings.deleteAccount.deleting')
             : t('settings:appSettings.deleteAccount.subtitle'),
         icon: 'trash-2',
-        onPress: handleDeleteAccount,
-      },
+        onPress: handleDeleteAccount},
       {
         key: 'logout',
         title: t('settings:logout'),
         icon: 'log-out',
         danger: true,
-        onPress: handleLogout,
-      },
-    ],
+        onPress: handleLogout}],
     [deletingAccount, router, subscriptionUiReadOnly, t]
   );
 
@@ -283,8 +267,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.xl,
     paddingTop: 0,
-    backgroundColor: 'transparent',
-  },
+    backgroundColor: 'transparent'},
 
   orbTop: {
     position: 'absolute',
@@ -294,8 +277,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     opacity: 0.08,
     top: -250,
-    right: -230,
-  },
+    right: -230},
   orbMid: {
     position: 'absolute',
     width: 340,
@@ -304,34 +286,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     opacity: 0.05,
     top: 160,
-    left: -210,
-  },
+    left: -210},
 
   header: { paddingTop: 0, paddingBottom: spacing.lg, alignItems: 'center' },
   screenHeader: {
     alignSelf: 'stretch',
-    marginHorizontal: -spacing.xl,
-  },
+    marginHorizontal: -spacing.xl},
   headerName: {
     marginTop: spacing.xs,
     color: colors.textSoft,
     ...typography.button,
     fontWeight: '600',
     letterSpacing: -0.1,
-    textAlign: 'center',
-  },
+    textAlign: 'center'},
 
   menuWrap: { gap: spacing.md, marginTop: spacing.lg },
 
   tileOuter: {
     borderRadius: radius.lg,
-    ...shadows.card,
-  },
+    ...shadows.card},
   tileOuterPressed: { transform: [{ scale: 1.005 }] },
 
   tileFrame: {
-    borderRadius: radius.lg,
-  },
+    borderRadius: radius.lg},
 
   tile: {
     minHeight: 74,
@@ -340,8 +317,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
 
   iconRing: {
     width: 44,
@@ -352,29 +328,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
-  },
+    marginRight: spacing.md},
   iconInner: {
     width: 34,
     height: 34,
     borderRadius: 17,
     backgroundColor: colors.accentFill,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
 
   tileTextWrap: { flex: 1 },
   tileTitle: {
     color: colors.text,
-    ...typography.cardTitle,
-  },
+    ...typography.cardTitle},
   tileTitleDanger: {
-    color: colors.danger,
-  },
+    color: colors.danger},
   tileSubtitle: {
     marginTop: spacing.xs,
     color: colors.textMuted,
-    ...typography.meta,
-  },
-
-});
+    ...typography.meta}});

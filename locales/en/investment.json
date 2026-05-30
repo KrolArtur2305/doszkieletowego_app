@@ -47,5 +47,25 @@
     "save": "Save",
     "cancel": "Cancel",
     "changeTypeConfirm": "Change build type"
+  },
+  "alerts": {
+    "completeDataTitle": "Complete the data",
+    "nameRequired": "Investment name is required to continue.",
+    "nameTooLong": "Investment name can have at most 18 characters.",
+    "locationRequired": "Investment location is required to continue.",
+    "selectLocationFromList": "Please select a location from the list.",
+    "startAfterEnd": "The start date cannot be later than the end date.",
+    "endBeforeStart": "The end date cannot be earlier than the start date.",
+    "startDateRequired": "Choose the start date.",
+    "endDateRequired": "Choose the end date.",
+    "changeBuildTypeTitle": "Change construction type?",
+    "changeBuildTypeMsg": "Changing the construction type will recalculate the current stage and adapt progress to the new workflow.",
+    "invalidBudgetTitle": "Invalid budget",
+    "invalidBudgetMsg": "Budget cannot be negative.",
+    "errorTitle": "Error",
+    "loadFailed": "Could not load the investment.",
+    "noSession": "No user. Please sign in again.",
+    "saveFailed": "Could not save the data. Please try again.",
+    "saveErrorTitle": "Save error"
   }
 }

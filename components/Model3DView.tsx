@@ -43,6 +43,7 @@ export default function Model3DView({ url }: { url: string }) {
   const hint = t('model.hintRotateZoom');
   const fallbackLoadFailed = t('model.loadFailed');
   const fallbackTitle = t('model.errorTitle');
+  const fallbackWebViewError = t('model.webViewError');
   const trustedUrl = useMemo(() => (isTrustedModelUrl(url) ? url : null), [url]);
 
   const html = useMemo(() => {
@@ -92,7 +93,7 @@ export default function Model3DView({ url }: { url: string }) {
         const msg =
           (e && e.detail && e.detail.sourceError && e.detail.sourceError.message)
             ? e.detail.sourceError.message
-            : 'Model error';
+            : '${escapeHtml(fallbackWebViewError)}';
         send('error', msg);
       });
     </script>
@@ -122,11 +123,11 @@ export default function Model3DView({ url }: { url: string }) {
         }}
         onError={(e) => {
           setLoading(false);
-          setErr(e?.nativeEvent?.description || 'WebView error');
+          setErr(e?.nativeEvent?.description || t('model.webViewError'));
         }}
         onLoadStart={() => {
           setLoading(true);
-          setErr(trustedUrl ? null : 'Nieprawidlowe lub niezaufane zrodlo modelu.');
+          setErr(trustedUrl ? null : t('model.invalidSource'));
         }}
         style={styles.web}
       />

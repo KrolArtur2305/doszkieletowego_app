@@ -200,14 +200,14 @@ export default function InwestycjaScreen() {
       }
 
       if (!selectedPlace) {
-        const message = t('alerts.selectLocationFromList', { defaultValue: 'Please select a location from the list.' });
+        const message = t('alerts.selectLocationFromList');
         setLocationError(message);
         Alert.alert(t('alerts.completeDataTitle'), message);
         return;
       }
 
       if (budgetNumber !== null && budgetNumber < 0) {
-        Alert.alert(t('alerts.invalidBudgetTitle', { defaultValue: 'Invalid budget' }), t('alerts.invalidBudgetMsg', { defaultValue: 'Budget cannot be negative.' }));
+        Alert.alert(t('alerts.invalidBudgetTitle'), t('alerts.invalidBudgetMsg'));
         return;
       }
 
@@ -308,7 +308,7 @@ export default function InwestycjaScreen() {
       }
 
       if (error) {
-        Alert.alert(t('alerts.saveErrorTitle', { defaultValue: 'Save error' }), error.message);
+        Alert.alert(t('alerts.saveErrorTitle'), error.message);
         return;
       }
 
@@ -325,7 +325,7 @@ export default function InwestycjaScreen() {
         );
 
       if (profileRes.error) {
-        Alert.alert(t('alerts.saveErrorTitle', { defaultValue: 'Save error' }), profileRes.error.message);
+        Alert.alert(t('alerts.saveErrorTitle'), profileRes.error.message);
         return;
       }
 
@@ -414,7 +414,7 @@ export default function InwestycjaScreen() {
                     setLokalizacja(getPlaceLocalityName(place));
                     setLocationError(null);
                   }}
-                  countryLabel={t('form.countryLabel', { defaultValue: 'Country' })}
+                  countryLabel={t('form.countryLabel')}
                   defaultCountryCode={defaultCountryCode}
                   placeholder={t('form.locationPlaceholder')}
                   disabled={loading || saving}
@@ -428,7 +428,7 @@ export default function InwestycjaScreen() {
                   <Text style={styles.fieldLabel}>{t('form.startLabel')}</Text>
                   <View style={styles.inputWrap}>
                     <Text style={[styles.input, { paddingVertical: 0 }]}>
-                      {startDisplay || t('form.datePlaceholder', { defaultValue: 'DD.MM.YYYY' })}
+                      {startDisplay || t('form.datePlaceholder')}
                     </Text>
                     <TouchableOpacity
                       onPress={() => openPicker('start')}
@@ -447,7 +447,7 @@ export default function InwestycjaScreen() {
                   <Text style={styles.fieldLabel}>{t('form.endLabel')}</Text>
                   <View style={styles.inputWrap}>
                     <Text style={[styles.input, { paddingVertical: 0 }]}>
-                      {koniecDisplay || t('form.datePlaceholder', { defaultValue: 'DD.MM.YYYY' })}
+                      {koniecDisplay || t('form.datePlaceholder')}
                     </Text>
                     <TouchableOpacity
                       onPress={() => openPicker('koniec')}
@@ -489,7 +489,7 @@ export default function InwestycjaScreen() {
           <View style={styles.modalBackdrop}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>
-                {pickerOpen === 'start' ? t('modal.pickStartTitle', { defaultValue: 'Select start date' }) : t('modal.pickEndTitle', { defaultValue: 'Select end date' })}
+                {pickerOpen === 'start' ? t('modal.pickStartTitle') : t('modal.pickEndTitle')}
               </Text>
 
               <View style={styles.modalPickerWrap}>
@@ -507,7 +507,7 @@ export default function InwestycjaScreen() {
 
               <View style={styles.modalActions}>
                 <AppButton
-                  title={t('actions.cancel', { defaultValue: 'Cancel' })}
+                  title={t('actions.cancel')}
                   variant="secondary"
                   onPress={closePicker}
                   style={styles.modalBtnGhost}

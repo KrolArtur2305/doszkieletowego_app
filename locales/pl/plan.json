@@ -28,5 +28,11 @@
   },
   "actions": {
     "choose": "Wybieram"
+  },
+  "alerts": {
+    "errorTitle": "Błąd",
+    "noSession": "Brak sesji. Zaloguj się ponownie.",
+    "saveFailed": "Nie udało się zapisać planu. Spróbuj ponownie.",
+    "paidPlanRequiresActivation": "Zakup lub trial będzie obsługiwany przez ekran subskrypcji. Na tym etapie konto pozostaje w planie darmowym."
   }
 }

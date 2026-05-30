@@ -76,5 +76,10 @@
   "noAccessPhotosDesc": "Nadaj dostęp do galerii, aby dodać rzut.",
   "uploadFailedTitle": "Upload nieudany",
   "urlError": "Nie udało się uzyskać URL pliku.",
-  "edit": "Edytuj"
+  "edit": "Edytuj",
+  "skip": "Pomiń",
+  "projectNudgeBuddyFallback": "Kierownik",
+  "projectNudgeTitle": "Uzupełnij teraz najważniejsze informacje o projekcie.",
+  "projectNudgeText": "Dzięki temu będziesz miał wszystko pod ręką, a moje podpowiedzi będą lepiej dopasowane.",
+  "projectNudgeCta": "Uzupełnij"
 }

@@ -324,7 +324,7 @@ export default function BuddySettingsScreen() {
                 {hasChanges ? (
                   <View style={styles.footerWrap}>
                     <AppButton
-                      title="Zapisz i aktywuj"
+                      title={t('settings.saveAndActivate')}
                       onPress={handleSave}
                       loading={saving}
                       style={styles.saveBtn}

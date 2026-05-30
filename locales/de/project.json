@@ -76,5 +76,10 @@
   "noAccessTitle": "Kein Zugriff",
   "noAccessPhotosDesc": "Galeriezugriff gewähren, um einen Grundriss hinzuzufügen.",
   "uploadFailedTitle": "Upload fehlgeschlagen",
-  "urlError": "Datei-URL konnte nicht abgerufen werden."
+  "urlError": "Datei-URL konnte nicht abgerufen werden.",
+  "skip": "Überspringen",
+  "projectNudgeBuddyFallback": "Bauleiter",
+  "projectNudgeTitle": "Fülle jetzt die wichtigsten Projektdaten aus.",
+  "projectNudgeText": "So hast du alles griffbereit und meine Vorschläge passen besser.",
+  "projectNudgeCta": "Ausfüllen"
 }

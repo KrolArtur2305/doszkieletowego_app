@@ -16,6 +16,7 @@
     "previewBubble": "Hallo, ich bin {{name}}. Ich helfe Ihnen dabei, Budget, Bauphasen und die wichtigsten Dinge auf der Baustelle im Blick zu behalten.",
     "avatarInfo": "Sie können jetzt 1 von 3 verfügbaren KI-Bauleiter-Avataren auswählen.",
     "save": "Einstellungen speichern",
+    "saveAndActivate": "Speichern und aktivieren",
     "savedTitle": "Gespeichert",
     "savedMessage": "Die Einstellungen des KI-Bauleiters wurden gespeichert.",
     "errors": {

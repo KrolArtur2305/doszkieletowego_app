@@ -16,6 +16,7 @@
     "previewBubble": "Cześć, jestem {{name}}. Pomogę Ci pilnować budżetu, etapów i najważniejszych rzeczy na budowie.",
     "avatarInfo": "Możesz teraz wybrać 1 z 3 dostępnych avatarów kierownika AI.",
     "save": "Zapisz ustawienia",
+    "saveAndActivate": "Zapisz i aktywuj",
     "savedTitle": "Zapisano",
     "savedMessage": "Ustawienia kierownika AI zostały zapisane.",
     "errors": {
