@@ -251,6 +251,9 @@
     "descriptionPlaceholder": "np. zaliczka",
     "storeOptional": "Sklep (opcjonalnie)",
     "storePlaceholder": "np. Castorama",
+    "attachmentTypeLabel": "Rodzaj załącznika",
+    "receiptKindReceipt": "Paragon",
+    "receiptKindInvoice": "Faktura",
     "fileOptional": "Dodaj paragon (PDF/JPG/PNG) - opcjonalnie",
     "fileSelected": "Wybrano: {{name}}"
   }

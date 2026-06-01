@@ -27,6 +27,8 @@ import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../../../src/ui/components';
 import { colors as uiColors, typography } from '../../../../../src/ui/theme';
 import {
+  buildStageGroupPickerOptions,
+  buildStagePickerOptions,
   getStageGroupDisplayName,
   stageGroupCodeFromLegacyStage,
   type StageGroupCode} from '../../../../../lib/stageModel';
@@ -253,39 +255,77 @@ export default function DziennikScreen() {
     const userId = session?.user?.id;
     if (!userId) return;
 
-    const { data } = await supabase
-      .from('etapy')
-      .select('id, nazwa, nazwa_code, status, kolejnosc')
-      .eq('user_id', userId)
-      .order('kolejnosc', { ascending: true });
+    const [profileRes, templatesRes, userStagesRes, legacyRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('build_type, current_stage_code')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabase
+        .from('stage_templates')
+        .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
+        .eq('is_active', true)
+        .order('order_index', { ascending: true }),
+      supabase
+        .from('user_stages')
+        .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
+        .eq('user_id', userId)
+        .order('order_index', { ascending: true }),
+      supabase
+        .from('etapy')
+        .select('id, nazwa, nazwa_code, status, kolejnosc')
+        .eq('user_id', userId)
+        .order('kolejnosc', { ascending: true }),
+    ]);
 
-    const rows = (data ?? []) as Etap[];
-    const grouped = new Map<StageGroupCode, Etap[]>();
+    if (profileRes.error) throw profileRes.error;
+    if (templatesRes.error) throw templatesRes.error;
+    if (userStagesRes.error) throw userStagesRes.error;
+    if (legacyRes.error) throw legacyRes.error;
 
-    rows.forEach((row) => {
+    const buildType = (profileRes.data as any)?.build_type ?? null;
+    const stageTemplates = (templatesRes.data ?? []) as any[];
+    const userStages = (userStagesRes.data ?? []) as any[];
+    const legacyRows = (legacyRes.data ?? []) as Etap[];
+
+    const stageOptions = buildStagePickerOptions(t, buildType, stageTemplates, userStages, legacyRows);
+    const stageGroupOptions = buildStageGroupPickerOptions(t, stageOptions);
+
+    const legacyByGroup = new Map<StageGroupCode, Etap[]>();
+    legacyRows.forEach((row) => {
       const groupCode = stageGroupCodeFromLegacyStage(row);
-      const current = grouped.get(groupCode) ?? [];
+      const current = legacyByGroup.get(groupCode) ?? [];
       current.push(row);
-      grouped.set(groupCode, current);
+      legacyByGroup.set(groupCode, current);
     });
 
     const nextLegacyEtapToMainEtapId: Record<string, string> = {};
-    const mainStages = MAIN_STAGE_GROUP_ORDER.flatMap((groupCode) => {
-      const groupRows = grouped.get(groupCode) ?? [];
-      if (!groupRows.length) return [];
+    const mainStages = stageGroupOptions
+      .filter((option) => option.stageGroupCode !== 'other')
+      .map((option, index) => {
+        const groupRows = legacyByGroup.get(option.stageGroupCode) ?? [];
+        const fallbackLegacyId = option.legacyId ?? groupRows.find((row) => !isDoneEtapStatus(row.status))?.id ?? groupRows[0]?.id ?? null;
+        groupRows.forEach((row) => {
+          if (fallbackLegacyId) nextLegacyEtapToMainEtapId[row.id] = fallbackLegacyId;
+        });
 
-      const firstOpen = groupRows.find((row) => !isDoneEtapStatus(row.status));
-      const representative = firstOpen ?? groupRows[0];
-      groupRows.forEach((row) => {
-        nextLegacyEtapToMainEtapId[row.id] = representative.id;
+        return {
+          id: option.legacyId ?? option.key,
+          nazwa: option.label,
+          nazwa_code: option.stageCode ?? null,
+          status: groupRows.every((row) => isDoneEtapStatus(row.status)) ? 'done' : null,
+          kolejnosc: index,
+          stageGroupCode: option.stageGroupCode,
+        } as Etap;
       });
 
-      return [{
-        ...representative,
-        nazwa: getStageGroupDisplayName(t, groupCode, representative.nazwa),
-        status: groupRows.every((row) => isDoneEtapStatus(row.status)) ? 'done' : representative.status,
-        kolejnosc: MAIN_STAGE_GROUP_ORDER.indexOf(groupCode),
-        stageGroupCode: groupCode}];
+    legacyRows.forEach((row) => {
+      const current = nextLegacyEtapToMainEtapId[row.id];
+      if (!current) {
+        const groupCode = stageGroupCodeFromLegacyStage(row);
+        const matched = stageGroupOptions.find((option) => option.stageGroupCode === groupCode);
+        if (matched?.legacyId) nextLegacyEtapToMainEtapId[row.id] = matched.legacyId;
+      }
     });
 
     setLegacyEtapToMainEtapId(nextLegacyEtapToMainEtapId);
@@ -338,7 +378,7 @@ export default function DziennikScreen() {
       setEditingWpis(w);
       setFormData(w.data);
       setFormTresc(w.tresc);
-      setFormEtapId(w.etap_id ? legacyEtapToMainEtapId[w.etap_id] ?? null : null);
+      setFormEtapId(w.etap_id ? legacyEtapToMainEtapId[w.etap_id] ?? w.etap_id : null);
       setFormZdjecieUri(null);
       setFormZdjecieUrl(w.zdjecie_display_url ?? w.zdjecie_url);
       setFormZdjecieStoredValue(w.zdjecie_url);
@@ -352,8 +392,8 @@ export default function DziennikScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.75,
-      allowsEditing: true,
-      aspect: [16, 9]});
+      allowsEditing: false,
+      allowsMultipleSelection: false});
 
     const pickedAsset = result.assets?.[0];
     if (!result.canceled && pickedAsset?.uri) {

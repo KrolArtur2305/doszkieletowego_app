@@ -217,6 +217,16 @@ export default function CheckoutScreen() {
           </View>
           <Text style={styles.brand}>{t('paywall.logo')}</Text>
           <Text style={styles.subtitle}>{t('paywall.manageSubtitle')}</Text>
+          <View style={styles.heroPills}>
+            <View style={styles.heroPill}>
+              <Feather name="zap" size={12} color={NEON} />
+              <Text style={styles.heroPillText}>{t('paywall.heroSubtitle')}</Text>
+            </View>
+            <View style={styles.heroPill}>
+              <Feather name="shield" size={12} color={NEON} />
+              <Text style={styles.heroPillText}>{t('paywall.secureCheckout')}</Text>
+            </View>
+          </View>
           <Text style={styles.disclosure}>{t('paywall.subscriptionDisclosure')}</Text>
 
           {access.isTrialActive && trialDaysRemaining !== null && (
@@ -253,28 +263,51 @@ export default function CheckoutScreen() {
         </View>
 
         {productsUnavailable ? (
-          <Text style={styles.storeErrorText}>
-            {error
-              ? t('paywall.productsErrorWithReason', {
-                  reason: error,
-                })
-              : t('paywall.productsError')}
-          </Text>
+          <BlurView intensity={12} tint="dark" style={styles.storeErrorCard}>
+            <View style={styles.storeErrorRow}>
+              <View style={styles.storeErrorDot} />
+              <Text style={styles.storeErrorText}>
+                {error
+                  ? t('paywall.productsErrorWithReason', {
+                      reason: error,
+                    })
+                  : t('paywall.productsError')}
+              </Text>
+            </View>
+          </BlurView>
         ) : null}
 
         <BlurView intensity={14} tint="dark" style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>{t('checkout.summaryTitle')}</Text>
-          <Text style={styles.summaryLine}>
-            {t('checkout.summaryPlan', { plan: selectedPlanName })}
-          </Text>
-          <Text style={styles.summaryLine}>
-            {t('checkout.summaryLength', { length: getPlanLength() })}
-          </Text>
-          <Text style={styles.summaryLine}>
-            {t('checkout.summaryPrice', { price: getPlanPrice(selectedPlan) })}
-          </Text>
+          <View style={styles.summaryTopRow}>
+            <View style={styles.summaryTitleGroup}>
+              <Text style={styles.summaryTitle}>{t('checkout.summaryTitle')}</Text>
+              <Text style={styles.summaryPlanName}>{selectedPlanName}</Text>
+            </View>
+            <View style={styles.summaryBadge}>
+              <Text style={styles.summaryBadgeText}>{billing === 'monthly' ? t('paywall.monthly') : t('paywall.yearly')}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.summaryHeadline}>{t(`paywall.selected.${selectedPlan}.title`)}</Text>
+          <Text style={styles.summaryDesc}>{t(`paywall.selected.${selectedPlan}.desc`)}</Text>
+
+          <View style={styles.summaryMetrics}>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>{t('checkout.summaryPlan', { plan: '' }).replace(': ', '')}</Text>
+              <Text style={styles.metricValue}>{selectedPlanName}</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>{t('checkout.summaryLength', { length: '' }).replace(': ', '')}</Text>
+              <Text style={styles.metricValue}>{getPlanLength()}</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>{t('checkout.summaryPrice', { price: '' }).replace(': ', '')}</Text>
+              <Text style={styles.metricValue}>{getPlanPrice(selectedPlan)}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.summaryNote}>{t('paywall.autoRenew')}</Text>
         </BlurView>
-        <Text style={styles.noticeText}>{t('checkout.notice')}</Text>
 
         <View style={styles.cardsRow}>
           {PAYWALL_PLAN_KEYS.map((key) => {
@@ -451,20 +484,43 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.8},
   subtitle: {
-    color: 'rgba(255,255,255,0.62)',
-    fontSize: 14.5,
-    lineHeight: 19,
+    color: 'rgba(255,255,255,0.66)',
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: '700',
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: 7,
     maxWidth: 350},
+  heroPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  heroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  heroPillText: {
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 11,
+    fontWeight: '800',
+  },
   disclosure: {
-    color: 'rgba(255,255,255,0.76)',
-    fontSize: 11.5,
+    color: 'rgba(255,255,255,0.60)',
+    fontSize: 11,
     lineHeight: 16,
     fontWeight: '700',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 10,
     maxWidth: 360},
   trialStatus: {
     marginTop: 8,
@@ -515,28 +571,124 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(37,240,200,0.12)'},
   saveBadgeText: { color: NEON, fontSize: 8.5, fontWeight: '900' },
   storeErrorText: {
-    color: 'rgba(255,255,255,0.58)',
-    fontSize: 11,
-    lineHeight: 15,
+    flex: 1,
+    color: '#FCA5A5',
+    fontSize: 11.5,
+    lineHeight: 16,
     fontWeight: '700',
-    textAlign: 'center',
-    marginTop: -6,
-    marginBottom: 7,
-    paddingHorizontal: 12},
+    textAlign: 'left'},
+  storeErrorCard: {
+    marginBottom: 10,
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(248,113,113,0.16)',
+    backgroundColor: 'rgba(248,113,113,0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  storeErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  storeErrorDot: {
+    marginTop: 5,
+    width: 7,
+    height: 7,
+    borderRadius: 99,
+    backgroundColor: '#FCA5A5',
+  },
   summaryCard: {
     marginBottom: 10,
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
     backgroundColor: 'rgba(255,255,255,0.04)',
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 5},
+    paddingVertical: 14,
+    gap: 10},
   summaryTitle: {
     color: 'rgba(255,255,255,0.88)',
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase'},
+  summaryTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  summaryTitleGroup: {
+    flex: 1,
+    gap: 4,
+  },
+  summaryPlanName: {
+    color: '#FFFFFF',
+    fontSize: 19,
+    lineHeight: 23,
+    fontWeight: '900',
+  },
+  summaryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.16)',
+  },
+  summaryBadgeText: {
+    color: NEON,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  summaryHeadline: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  summaryDesc: {
+    color: 'rgba(255,255,255,0.68)',
+    fontSize: 12.5,
+    lineHeight: 17,
+    fontWeight: '600',
+  },
+  summaryMetrics: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  metricCard: {
+    flex: 1,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  metricLabel: {
+    color: 'rgba(255,255,255,0.48)',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 5,
+  },
+  metricValue: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  summaryNote: {
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
   summaryLine: {
     color: 'rgba(255,255,255,0.76)',
     fontSize: 14,
@@ -563,12 +715,12 @@ const styles = StyleSheet.create({
   cardWrapDisabled: { opacity: 0.52 },
   planCard: {
     flex: 1,
-    borderRadius: 27,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.105)',
     backgroundColor: 'rgba(255,255,255,0.04)',
     paddingHorizontal: 12,
-    paddingVertical: 18,
+    paddingVertical: 16,
     overflow: 'hidden'},
   planCardActive: {
     borderWidth: 1.4,
@@ -589,10 +741,10 @@ const styles = StyleSheet.create({
   planCardDisabled: {
     borderColor: 'rgba(255,255,255,0.06)',
     backgroundColor: 'rgba(255,255,255,0.025)'},
-  cardTop: { minHeight: 70, alignItems: 'center' },
+  cardTop: { minHeight: 66, alignItems: 'center' },
   planName: {
     color: '#FFFFFF',
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '900',
     textAlign: 'center'},
   planNamePro: { color: NEON, fontSize: 22 },
@@ -614,7 +766,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.2},
-  details: { gap: 10, marginTop: 12, flex: 1 },
+  details: { gap: 10, marginTop: 10, flex: 1 },
   detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
   detailText: {
     color: 'rgba(255,255,255,0.72)',
@@ -678,7 +830,7 @@ const styles = StyleSheet.create({
   footer: { marginTop: 10, paddingBottom: 0 },
   continueBtn: {
     alignSelf: 'center',
-    width: '84%',
+    width: '88%',
     height: 56,
     borderRadius: 999,
     backgroundColor: '#27EFC8',
@@ -715,7 +867,7 @@ const styles = StyleSheet.create({
   continueIcon: { position: 'absolute', right: 22 },
   renewText: {
     color: 'rgba(255,255,255,0.36)',
-    fontSize: 10.5,
+    fontSize: 10.25,
     fontWeight: '700',
     textAlign: 'center',
     marginTop: 7},

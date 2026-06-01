@@ -251,6 +251,9 @@
     "descriptionPlaceholder": "e.g. advance payment",
     "storeOptional": "Store (optional)",
     "storePlaceholder": "e.g. Castorama",
+    "attachmentTypeLabel": "Attachment type",
+    "receiptKindReceipt": "Receipt",
+    "receiptKindInvoice": "Invoice",
     "fileOptional": "Add receipt (PDF/JPG/PNG) — optional",
     "fileSelected": "Selected: {{name}}"
   }

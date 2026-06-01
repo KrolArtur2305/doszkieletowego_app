@@ -251,6 +251,9 @@
     "descriptionPlaceholder": "z. B. Anzahlung",
     "storeOptional": "Geschäft (optional)",
     "storePlaceholder": "z. B. Castorama",
+    "attachmentTypeLabel": "Anhangtyp",
+    "receiptKindReceipt": "Beleg",
+    "receiptKindInvoice": "Rechnung",
     "fileOptional": "Beleg hinzufügen (PDF/JPG/PNG) - optional",
     "fileSelected": "Ausgewählt: {{name}}"
   }
