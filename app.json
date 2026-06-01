@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "icon": "./assets/logo-square.png",
-      "buildNumber": "9",
+      "buildNumber": "13",
       "bundleIdentifier": "pl.buildiq.mobile",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "BuildIQ needs photo library access so you can add construction photos and project images.",
@@ -51,7 +51,8 @@
           "sounds": []
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-localization"
     ],
     "extra": {
       "router": {},

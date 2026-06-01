@@ -231,9 +231,12 @@ export default function DziennikScreen() {
       const mapped = await Promise.all(
         (data ?? []).map(async (w: any) => {
           const groupCode = w.etapy ? stageGroupCodeFromLegacyStage(w.etapy) : null;
+          const stageLabel = groupCode && groupCode !== 'other'
+            ? getStageGroupDisplayName(t, groupCode)
+            : null;
           return {
             ...w,
-            etap_nazwa: groupCode ? getStageGroupDisplayName(t, groupCode, w.etapy?.nazwa ?? '') : null,
+            etap_nazwa: stageLabel,
             zdjecie_display_url: await getJournalImageDisplayUrl(w.zdjecie_url)};
         })
       );
@@ -335,7 +338,7 @@ export default function DziennikScreen() {
       setEditingWpis(w);
       setFormData(w.data);
       setFormTresc(w.tresc);
-      setFormEtapId(w.etap_id ? legacyEtapToMainEtapId[w.etap_id] ?? w.etap_id : null);
+      setFormEtapId(w.etap_id ? legacyEtapToMainEtapId[w.etap_id] ?? null : null);
       setFormZdjecieUri(null);
       setFormZdjecieUrl(w.zdjecie_display_url ?? w.zdjecie_url);
       setFormZdjecieStoredValue(w.zdjecie_url);

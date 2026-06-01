@@ -27,6 +27,7 @@ import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../src/ui/components';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
+import { getStageGroupDisplayName, stageGroupCodeFromLegacyStage } from '../../../../lib/stageModel';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -168,8 +169,8 @@ export default function ZdjeciaScreen() {
 
   const combinedStageNameMap = useMemo(
     () => ({
-      ...legacyEtapyMap,
-      ...etapNameMap}),
+      ...etapNameMap,
+      ...legacyEtapyMap}),
     [etapNameMap, legacyEtapyMap]
   );
 
@@ -243,7 +244,7 @@ export default function ZdjeciaScreen() {
 
       const nextLegacyMap = legacyStages.reduce<Record<string, string>>(
         (acc, row) => {
-          acc[row.id] = row.nazwa;
+          acc[row.id] = getStageGroupDisplayName(t, stageGroupCodeFromLegacyStage(row), row.nazwa);
           return acc;
         },
         {}
@@ -459,7 +460,6 @@ export default function ZdjeciaScreen() {
   };
 
   const onDatePicked = (event: any, selected?: Date) => {
-    if (Platform.OS === 'android') setShowDatePicker(false);
     if (event?.type === 'dismissed') return;
     const nextDate = selected ?? datePickerValue;
     setDatePickerValue(nextDate);
@@ -905,7 +905,7 @@ export default function ZdjeciaScreen() {
                         }}
                         activeOpacity={0.85}
                       >
-                        <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>{etap.nazwa}</Text>
+                        <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>{getEtapName(etap.id)}</Text>
                         {active && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
                       </TouchableOpacity>
                     );
@@ -1045,7 +1045,7 @@ export default function ZdjeciaScreen() {
                         }}
                         activeOpacity={0.85}
                       >
-                        <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>{etap.nazwa}</Text>
+                        <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>{getEtapName(etap.id)}</Text>
                         {active && <Ionicons name="checkmark" size={18} color={COLORS.brand} />}
                       </TouchableOpacity>
                     );
@@ -1167,7 +1167,7 @@ export default function ZdjeciaScreen() {
             <DateTimePicker
               value={datePickerValue}
               mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+              display="spinner"
               locale={dateLocale}
               onChange={onDatePicked}
             />

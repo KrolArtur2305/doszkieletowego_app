@@ -215,6 +215,7 @@ export default function PlanScreen() {
         <Text style={styles.hTitle}>{t('header.title')}</Text>
         <Text style={styles.hSub}>{t('header.subtitle')}</Text>
         <Text style={styles.hNote}>{t('launchInfo')}</Text>
+        <Text style={styles.hLegal}>{t('subscription:paywall.subscriptionDisclosure')}</Text>
         <View style={styles.legalRow}>
           <TouchableOpacity onPress={() => openLegalUrl('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')} activeOpacity={0.75}>
             <Text style={styles.legalLink}>{t('subscription:paywall.terms')}</Text>
@@ -247,6 +248,7 @@ const styles = StyleSheet.create({
   hTitle: { color: '#25F0C8', fontSize: 22, fontWeight: '900' },
   hSub: { color: 'rgba(255,255,255,0.65)', textAlign: 'center', marginTop: 6, lineHeight: 18 },
   hNote: { color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 8, lineHeight: 16, fontSize: 12 },
+  hLegal: { color: 'rgba(255,255,255,0.70)', textAlign: 'center', marginTop: 8, lineHeight: 17, fontSize: 12.5, fontWeight: '700' },
   legalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, gap: 8, flexWrap: 'wrap' },
   legalLink: { color: '#25F0C8', fontSize: 12, fontWeight: '800' },
   legalSep: { color: 'rgba(255,255,255,0.35)', fontSize: 12 },

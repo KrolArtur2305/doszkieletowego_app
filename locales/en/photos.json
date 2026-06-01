@@ -28,6 +28,7 @@
     "descPlaceholder": "Add a description (optional)",
     "tagsLabel": "Tags",
     "tagsPlaceholder": "e.g. windows, facade, roof",
+    "photosLabel": "Photos",
     "uploading": "Uploading",
     "cancel": "Cancel",
     "pickPhoto": "Choose photos"

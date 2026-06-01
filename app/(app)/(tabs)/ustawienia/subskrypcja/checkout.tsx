@@ -217,6 +217,7 @@ export default function CheckoutScreen() {
           </View>
           <Text style={styles.brand}>{t('paywall.logo')}</Text>
           <Text style={styles.subtitle}>{t('paywall.manageSubtitle')}</Text>
+          <Text style={styles.disclosure}>{t('paywall.subscriptionDisclosure')}</Text>
 
           {access.isTrialActive && trialDaysRemaining !== null && (
             <BlurView intensity={12} tint="dark" style={styles.trialStatus}>
@@ -273,6 +274,7 @@ export default function CheckoutScreen() {
             {t('checkout.summaryPrice', { price: getPlanPrice(selectedPlan) })}
           </Text>
         </BlurView>
+        <Text style={styles.noticeText}>{t('checkout.notice')}</Text>
 
         <View style={styles.cardsRow}>
           {PAYWALL_PLAN_KEYS.map((key) => {
@@ -456,6 +458,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 6,
     maxWidth: 350},
+  disclosure: {
+    color: 'rgba(255,255,255,0.76)',
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 8,
+    maxWidth: 360},
   trialStatus: {
     marginTop: 8,
     paddingHorizontal: 10,
@@ -532,6 +542,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     fontWeight: '600'},
+  noticeText: {
+    color: 'rgba(255,255,255,0.54)',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 10},
   cardsRow: {
     flexDirection: 'row',
     alignItems: 'stretch',

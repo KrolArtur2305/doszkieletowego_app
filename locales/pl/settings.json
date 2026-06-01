@@ -129,16 +129,16 @@
     "featureWithValue": "{{value}} {{label}}",
     "plans": {
       "free": {
-        "name": "Free"
+        "name": "Darmowy"
       },
       "free_trial": {
-        "name": "Free Trial"
+        "name": "Okres próbny"
       },
       "pro": {
         "name": "Pro"
       },
       "expert": {
-        "name": "Expert"
+        "name": "Ekspert"
       }
     },
     "features": {

@@ -3,7 +3,7 @@
   "title": "Wybierz plan BuildIQ",
   "subtitle": "Zacznij od triala z pełnym dostępem, a potem wybierz plan dopasowany do budowy.",
   "currentPlan": "Aktualny plan",
-  "launchInfo": "Ceny są pobierane z App Store, gdy produkty sklepu są dostępne.",
+  "launchInfo": "Ceny są pobierane z App Store, gdy produkty sklepu są dostępne. Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane, a linki do Regulaminu i Polityki prywatności są poniżej.",
   "popular": "Popularny",
   "free": "Brak subskrypcji",
   "trialLength": "14 dni",
@@ -99,7 +99,8 @@
     "monthly": "Miesięcznie",
     "yearly": "Rocznie",
     "priceInStore": "Cena z App Store",
-    "manageSubtitle": "Wszystko, czego potrzebujesz do zarządzania budową.",
+    "manageSubtitle": "Wszystko, czego potrzebujesz do zarządzania budową, a poniżej masz wybrany plan, czas trwania, cenę, zasady odnowienia i linki prawne.",
+    "subscriptionDisclosure": "Subskrypcja odnawia się automatycznie. Wybrany plan, czas trwania, cena i linki prawne są pokazane na tym ekranie.",
     "saveMore": "Oszczędzasz",
     "secureCheckout": "Bezpieczna płatność przez App Store",
     "continue": "Rozpocznij",
@@ -196,7 +197,7 @@
     "benefits": {
       "items": [
         {
-          "title": "AI Construction Manager",
+          "title": "AI kierownik budowy",
           "desc": "Planuj kolejne kroki, odpowiadaj na pytania i szybciej podejmuj decyzje."
         },
         {

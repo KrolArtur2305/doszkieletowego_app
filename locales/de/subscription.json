@@ -3,7 +3,7 @@
   "title": "Wähle deinen BuildIQ-Plan",
   "subtitle": "Starte mit einem Trial mit vollem Zugriff und wähle danach den passenden Plan.",
   "currentPlan": "Aktueller Plan",
-  "launchInfo": "Preise werden aus dem App Store geladen, sobald Store-Produkte verfügbar sind.",
+  "launchInfo": "Preise werden aus dem App Store geladen, sobald Store-Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden, und die Links zu Nutzungsbedingungen und Datenschutz stehen unten.",
   "popular": "Beliebt",
   "free": "Kein Abo",
   "trialLength": "14 Tage",
@@ -82,7 +82,7 @@
     "unavailableTitle": "Entwickler-Build",
     "unavailableMessage": "Die Transaktionslogik ist in diesem Build nicht verbunden.",
     "notice": "Abos verlängern sich automatisch, sofern sie nicht gekündigt werden.",
-    "summaryTitle": "Abo-?bersicht",
+    "summaryTitle": "Abo-Übersicht",
     "summaryPlan": "Plan: {{plan}}",
     "summaryLength": "Laufzeit: {{length}}",
     "summaryPrice": "Preis: {{price}}",
@@ -99,7 +99,8 @@
     "monthly": "Monatlich",
     "yearly": "Jährlich",
     "priceInStore": "Preis aus dem App Store",
-    "manageSubtitle": "Alles, was du für die Verwaltung deines Bauprojekts brauchst.",
+    "manageSubtitle": "Alles, was du für die Verwaltung deines Bauprojekts brauchst. Der gewählte Plan, die Laufzeit, der Preis, die Verlängerungsregel und die rechtlichen Links werden unten angezeigt.",
+    "subscriptionDisclosure": "Das Abo verlängert sich automatisch. Der gewählte Plan, die Laufzeit, der Preis und die rechtlichen Links werden auf diesem Bildschirm angezeigt.",
     "saveMore": "Mehr sparen",
     "secureCheckout": "Sichere Zahlung über den App Store",
     "continue": "Starten",
@@ -188,7 +189,7 @@
         "benefits": [
           "Unbegrenzte KI",
           "Unbegrenzte Fotos",
-          "Unbegrenzte Docs",
+          "Unbegrenzte Dokumente",
           "Priorisierte KI"
         ]
       }
@@ -196,8 +197,8 @@
     "benefits": {
       "items": [
         {
-          "title": "AI Construction Manager",
-          "desc": "Plane nächste Schritte, beantworte Baufragen und halte Entscheidungen in Bewegung."
+          "title": "KI-Bauleiter",
+          "desc": "Plane die nächsten Schritte, beantworte Fragen zum Bau und halte Entscheidungen in Bewegung."
         },
         {
           "title": "Budget- und Ausgabentracking",
