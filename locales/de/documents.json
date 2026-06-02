@@ -46,7 +46,11 @@
     "fileRequired": "Bitte eine Datei oder ein Bild anhängen.",
     "addError": "Dokument konnte nicht hinzugefügt werden.",
     "successTitle": "Erfolg",
-    "docAdded": "Dokument hinzugefügt."
+    "docAdded": "Dokument hinzugefügt.",
+    "emptyFile": "Die ausgewählte Datei ist leer.",
+    "fileTooLarge": "Die Datei ist zu groß.",
+    "invalidFileType": "Nicht unterstützter Dateityp.",
+    "deleteStorageError": "Das Dokument wurde aus der Liste entfernt, aber die Datei konnte nicht aus dem Speicher gelöscht werden."
   },
   "preview": {
     "pdfInfo": "Die PDF-Vorschau öffnest du über die Schaltfläche unten.",

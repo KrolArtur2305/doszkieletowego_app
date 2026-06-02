@@ -68,7 +68,9 @@
   "model": {
     "hintRotateZoom": "Drag to rotate • Pinch to zoom",
     "errorTitle": "3D model error",
-    "loadFailed": "Failed to load the model."
+    "loadFailed": "Failed to load the model.",
+    "webViewError": "Could not display the 3D model.",
+    "invalidSource": "Invalid 3D model source."
   },
   "notLoggedTitle": "Not logged in",
   "notLoggedDesc": "Please log in again.",
@@ -81,5 +83,9 @@
   "projectNudgeBuddyFallback": "Manager",
   "projectNudgeTitle": "Fill in the most important project details now.",
   "projectNudgeText": "This way everything stays at hand and my suggestions will be better tailored.",
-  "projectNudgeCta": "Fill in"
+  "projectNudgeCta": "Fill in",
+  "planTooLarge": "The plan is too large. Maximum size is 12 MB.",
+  "invalidPlanType": "You can upload JPG, PNG, WEBP or HEIC files only.",
+  "emptyPlanFile": "The selected plan file is empty.",
+  "deletePlanStorageWarning": "The plan was removed from the list, but the storage file could not be deleted."
 }

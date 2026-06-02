@@ -6,12 +6,22 @@
   "alerts": {
     "errorTitle": "Błąd",
     "noSession": "Brak sesji. Zaloguj się ponownie.",
-    "saveFailed": "Nie udało się zapisać planu. Spróbuj ponownie."
+    "saveFailed": "Nie udało się zapisać planu. Spróbuj ponownie.",
+    "paidPlanRequiresActivation": "Zakup lub trial będzie obsługiwany przez ekran subskrypcji. Na tym etapie konto pozostaje w planie darmowym."
   },
   "cards": {
-    "free": { "title": "Free", "tagline": "Na start i test projektu" },
-    "pro": { "title": "Pro", "tagline": "Dla inwestora, który chce mieć pełną kontrolę" },
-    "pro_plus": { "title": "Pro+", "tagline": "Dla maksymalnego porządku i archiwum budowy" }
+    "free": {
+      "title": "Free",
+      "tagline": "Na start i test projektu"
+    },
+    "pro": {
+      "title": "Pro",
+      "tagline": "Dla inwestora, który chce mieć pełną kontrolę"
+    },
+    "pro_plus": {
+      "title": "Pro+",
+      "tagline": "Dla maksymalnego porządku i archiwum budowy"
+    }
   },
   "bullets": {
     "photos": "Zdjęcia",
@@ -29,10 +39,5 @@
   "actions": {
     "choose": "Wybieram"
   },
-  "alerts": {
-    "errorTitle": "Błąd",
-    "noSession": "Brak sesji. Zaloguj się ponownie.",
-    "saveFailed": "Nie udało się zapisać planu. Spróbuj ponownie.",
-    "paidPlanRequiresActivation": "Zakup lub trial będzie obsługiwany przez ekran subskrypcji. Na tym etapie konto pozostaje w planie darmowym."
-  }
+  "launchInfo": "Ceny są pobierane z App Store, gdy produkty sklepu są dostępne. Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane."
 }

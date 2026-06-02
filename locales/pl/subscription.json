@@ -84,9 +84,9 @@
     "notice": "Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane.",
     "summaryTitle": "Podsumowanie subskrypcji",
     "summaryPlan": "Plan: {{plan}}",
-    "summaryLength": "D?ugo??: {{length}}",
+    "summaryLength": "Długość: {{length}}",
     "summaryPrice": "Cena: {{price}}",
-    "monthlyLength": "1 miesi?c",
+    "monthlyLength": "1 miesiąc",
     "yearlyLength": "1 rok"
   },
   "paywall": {

@@ -187,5 +187,7 @@
       "body": "Viel Erfolg mit der nächsten Phase: {{stage}}.",
       "cta": "Weiter"
     }
-  }
+  },
+  "cancel": "Abbrechen",
+  "save": "Speichern"
 }

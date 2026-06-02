@@ -31,7 +31,9 @@
     "photosLabel": "Photos",
     "uploading": "Uploading",
     "cancel": "Cancel",
-    "pickPhoto": "Choose photos"
+    "pickPhoto": "Choose photos",
+    "photoFallback": "Photo",
+    "save": "Save"
   },
   "preview": {
     "delete": "Delete"
@@ -53,6 +55,12 @@
     "deleteCancel": "Cancel",
     "deleteAction": "Delete",
     "deleteError": "Could not delete the photo.",
-    "photoDeleted": "Photo deleted."
+    "photoDeleted": "Photo deleted.",
+    "invalidFileType": "You can upload JPG, PNG, WEBP or HEIC photos only.",
+    "emptyFile": "The selected photo is empty.",
+    "fileTooLarge": "The photo is too large.",
+    "noPhotosSelected": "Choose at least one photo.",
+    "partialUploadResult": "Added {{done}} of {{total}} photos. Some files were not uploaded.",
+    "deleteStorageWarning": "The photo was removed from the list, but the storage file could not be deleted."
   }
 }

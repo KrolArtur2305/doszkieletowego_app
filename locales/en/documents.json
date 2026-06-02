@@ -46,7 +46,11 @@
     "fileRequired": "Attach a file or image.",
     "addError": "Failed to add the document.",
     "successTitle": "Success",
-    "docAdded": "Document added."
+    "docAdded": "Document added.",
+    "emptyFile": "The selected file is empty.",
+    "fileTooLarge": "The file is too large.",
+    "invalidFileType": "Unsupported file type.",
+    "deleteStorageError": "The document was removed from the list, but the storage file could not be deleted."
   },
   "preview": {
     "pdfInfo": "PDF preview opens with the button below.",

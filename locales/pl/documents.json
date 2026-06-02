@@ -46,7 +46,11 @@
     "fileRequired": "Dodaj plik lub zdjęcie.",
     "addError": "Nie udało się dodać dokumentu.",
     "successTitle": "Sukces",
-    "docAdded": "Dodano dokument."
+    "docAdded": "Dodano dokument.",
+    "emptyFile": "Wybrany plik jest pusty.",
+    "fileTooLarge": "Plik jest zbyt duży.",
+    "invalidFileType": "Nieobsługiwany typ pliku.",
+    "deleteStorageError": "Dokument usunięto z listy, ale nie udało się usunąć pliku ze storage."
   },
   "preview": {
     "pdfInfo": "Podgląd PDF otworzysz przyciskiem poniżej.",

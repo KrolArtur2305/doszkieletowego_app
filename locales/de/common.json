@@ -6,12 +6,30 @@
   "checkMore": "Mehr anzeigen",
   "dash": "—",
   "saving": "Wird gespeichert…",
-
   "errorTitle": "Fehler",
   "errors": {
     "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
   },
   "delete": "Löschen",
   "configErrorTitle": "App-Konfigurationsfehler",
-  "supabaseConfigMissing": "In diesem Build fehlt die Supabase-Konfiguration."
+  "supabaseConfigMissing": "In diesem Build fehlt die Supabase-Konfiguration.",
+  "fallback": {
+    "stage": "Phase"
+  },
+  "names": {
+    "planning": "Planung",
+    "stanZero": "Nullzustand",
+    "openShell": "Offener Rohbau",
+    "closedShell": "Geschlossener Rohbau",
+    "installations": "Installationen",
+    "developerState": "Ausbauzustand",
+    "finishing": "Fertigstellung"
+  },
+  "mainTimeline": {
+    "stanZero": "Nullzustand",
+    "sso": "Offener Rohbau",
+    "ssz": "Geschlossener Rohbau",
+    "installations": "Installationen",
+    "finishing": "Fertigstellung"
+  }
 }

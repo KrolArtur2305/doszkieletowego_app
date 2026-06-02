@@ -52,7 +52,10 @@
     },
     "proNote": "Na premierę kierownik AI jest dostępny dla wszystkich użytkowników. Płatne plany pojawią się w kolejnej aktualizacji.",
     "saving": "Zapisywanie...",
-    "cta": "Poznaj kierownika"
+    "cta": "Poznaj kierownika",
+    "nameRequired": "Podaj imi? kierownika.",
+    "avatarRequired": "Wybierz avatar kierownika.",
+    "nameTooLong": "Imię może mieć maksymalnie 30 znaków."
   },
   "chat": {
     "fallbackName": "Kierownik",
@@ -69,7 +72,10 @@
       "emptyHistoryIntro": "Cześć! Jestem gotowy. Pytaj o budżet, etapy, harmonogram albo cokolwiek związanego z budową.",
       "newConversationStarted": "Nowa rozmowa rozpoczęta. O co chcesz zapytać?",
       "generateFallback": "Nie udało mi się wygenerować odpowiedzi.",
-      "connectionError": "Przepraszam, wystąpił błąd połączenia. Spróbuj ponownie."
+      "connectionError": "Przepraszam, wystąpił błąd połączenia. Spróbuj ponownie.",
+      "invalidResponse": "Nie udało się odczytać odpowiedzi AI.",
+      "timeoutError": "Połączenie trwało zbyt długo. Spróbuj ponownie.",
+      "requestCancelled": "Zapytanie zostało anulowane."
     },
     "errors": {
       "noSession": "Brak aktywnej sesji",

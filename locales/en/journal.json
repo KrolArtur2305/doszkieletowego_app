@@ -35,11 +35,16 @@
   },
   "detail": {
     "deleteTitle": "Delete entry",
-    "deleteConfirm": "Are you sure you want to delete this journal entry?"
+    "deleteConfirm": "Are you sure you want to delete this journal entry?",
+    "deleteStorageWarning": "The entry was deleted, but the photo could not be removed from storage."
   },
   "alerts": {
     "errorTitle": "Error",
     "noteRequired": "Enter the note content.",
-    "saveError": "Failed to save the entry."
+    "saveError": "Failed to save the entry.",
+    "emptyFile": "The selected photo is empty.",
+    "fileTooLarge": "The photo is too large.",
+    "invalidFileType": "You can upload JPG, PNG, WEBP or HEIC photos only.",
+    "photoUploadError": "Could not upload the photo."
   }
 }

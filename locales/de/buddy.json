@@ -52,7 +52,10 @@
     },
     "proNote": "Zum Start ist der KI-Bauleiter für alle Nutzer verfügbar. Bezahlte Pläne folgen in einem kommenden Update.",
     "saving": "Wird gespeichert...",
-    "cta": "Bauleiter kennenlernen"
+    "cta": "Bauleiter kennenlernen",
+    "nameRequired": "Gib den Namen des Bauleiters ein.",
+    "avatarRequired": "Wähle einen Avatar für den Bauleiter.",
+    "nameTooLong": "Der Name darf maximal 30 Zeichen lang sein."
   },
   "chat": {
     "fallbackName": "Bauleiter",
@@ -69,7 +72,10 @@
       "emptyHistoryIntro": "Hallo! Ich bin bereit. Fragen Sie mich nach Budget, Bauphasen, Zeitplan oder allem rund um den Bau.",
       "newConversationStarted": "Eine neue Unterhaltung wurde gestartet. Was möchten Sie fragen?",
       "generateFallback": "Ich konnte keine Antwort generieren.",
-      "connectionError": "Entschuldigung, es ist ein Verbindungsfehler aufgetreten. Bitte versuchen Sie es erneut."
+      "connectionError": "Entschuldigung, es ist ein Verbindungsfehler aufgetreten. Bitte versuchen Sie es erneut.",
+      "invalidResponse": "Die AI-Antwort konnte nicht gelesen werden.",
+      "timeoutError": "Die Verbindung hat zu lange gedauert. Versuche es erneut.",
+      "requestCancelled": "Die Anfrage wurde abgebrochen."
     },
     "errors": {
       "noSession": "Keine aktive Sitzung",

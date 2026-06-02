@@ -187,5 +187,7 @@
       "body": "Powodzenia z kolejnym etapem: {{stage}}.",
       "cta": "Dalej"
     }
-  }
+  },
+  "cancel": "Anuluj",
+  "save": "Zapisz"
 }

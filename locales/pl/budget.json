@@ -11,11 +11,16 @@
   },
   "errors": {
     "fetchFailed": "Nie udało się pobrać danych.",
-        "authRequired": "Zaloguj si? ponownie.",
-"addFailed": "Nie udało się dodać wydatku.",
+    "authRequired": "Zaloguj si? ponownie.",
+    "addFailed": "Nie udało się dodać wydatku.",
     "saveFailed": "Nie udało się zapisać wydatku.",
     "deleteFailed": "Nie udało się usunąć wydatku.",
-    "readFileFailed": "Nie udało się odczytać pliku"
+    "readFileFailed": "Nie udało się odczytać pliku",
+    "emptyFile": "Wybrany plik jest pusty.",
+    "fileTooLarge": "Plik jest zbyt duży.",
+    "invalidFileType": "Nieobsługiwany typ pliku.",
+    "documentSyncFailed": "Wydatek zapisano, ale nie udało się skopiować załącznika do dokumentów.",
+    "deleteFileWarning": "Wydatek usunięto, ale nie udało się usunąć załącznika."
   },
   "alerts": {
     "enterName": "Podaj nazwę wydatku.",
@@ -60,7 +65,13 @@
     "mayBeNeededAtThisStage": "Może być potrzebne na tym etapie",
     "add": "Dodaj",
     "hide": "Ukryj",
-    "expenses": {}
+    "expenses": {},
+    "customNameRequired": "Wpisz nazw? wydatku.",
+    "addCustom": "Dodaj własny wydatek",
+    "custom": "Własne",
+    "notApplicable": "Nie dotyczy",
+    "hidden": "Ukryte",
+    "customPlaceholder": "np. Dodatkowy materia?"
   },
   "budgetSuggestions": {
     "aggregateBase": "Podbudowa z kruszywa",
@@ -256,5 +267,9 @@
     "receiptKindInvoice": "Faktura",
     "fileOptional": "Dodaj paragon (PDF/JPG/PNG) - opcjonalnie",
     "fileSelected": "Wybrano: {{name}}"
+  },
+  "errorTitle": "Błąd",
+  "fallback": {
+    "stage": "Etap"
   }
 }

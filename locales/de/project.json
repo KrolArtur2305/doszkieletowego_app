@@ -69,7 +69,9 @@
   "model": {
     "hintRotateZoom": "Ziehen zum Drehen • Zum Zoomen ziehen",
     "errorTitle": "3D-Modellfehler",
-    "loadFailed": "Modell konnte nicht geladen werden."
+    "loadFailed": "Modell konnte nicht geladen werden.",
+    "webViewError": "Das 3D-Modell konnte nicht angezeigt werden.",
+    "invalidSource": "Ungültige Quelle des 3D-Modells."
   },
   "notLoggedTitle": "Nicht angemeldet",
   "notLoggedDesc": "Bitte erneut anmelden.",
@@ -81,5 +83,9 @@
   "projectNudgeBuddyFallback": "Bauleiter",
   "projectNudgeTitle": "Fülle jetzt die wichtigsten Projektdaten aus.",
   "projectNudgeText": "So hast du alles griffbereit und meine Vorschläge passen besser.",
-  "projectNudgeCta": "Ausfüllen"
+  "projectNudgeCta": "Ausfüllen",
+  "planTooLarge": "Der Plan ist zu groß. Die maximale Größe beträgt 12 MB.",
+  "invalidPlanType": "Du kannst nur JPG-, PNG-, WEBP- oder HEIC-Dateien hochladen.",
+  "emptyPlanFile": "Die ausgewählte Plandatei ist leer.",
+  "deletePlanStorageWarning": "Der Plan wurde aus der Liste entfernt, aber die Datei konnte nicht aus dem Speicher gelöscht werden."
 }

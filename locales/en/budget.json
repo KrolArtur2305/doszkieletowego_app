@@ -11,11 +11,16 @@
   },
   "errors": {
     "fetchFailed": "Could not load data.",
-        "authRequired": "Please sign in again.",
-"addFailed": "Could not add the expense.",
+    "authRequired": "Please sign in again.",
+    "addFailed": "Could not add the expense.",
     "saveFailed": "Could not save the expense.",
     "deleteFailed": "Could not delete the expense.",
-    "readFileFailed": "Could not read file"
+    "readFileFailed": "Could not read file",
+    "emptyFile": "The selected file is empty.",
+    "fileTooLarge": "The file is too large.",
+    "invalidFileType": "Unsupported file type.",
+    "documentSyncFailed": "The expense was saved, but the attachment could not be copied to documents.",
+    "deleteFileWarning": "The expense was deleted, but the attachment could not be removed."
   },
   "alerts": {
     "enterName": "Enter the expense name.",
@@ -60,7 +65,13 @@
     "mayBeNeededAtThisStage": "May be needed at this stage",
     "add": "Add",
     "hide": "Hide",
-    "expenses": {}
+    "expenses": {},
+    "customNameRequired": "Enter the expense name.",
+    "addCustom": "Add custom expense",
+    "custom": "Custom",
+    "notApplicable": "Not applicable",
+    "hidden": "Hidden",
+    "customPlaceholder": "e.g. Extra material"
   },
   "budgetSuggestions": {
     "aggregateBase": "Aggregate sub-base",
@@ -241,8 +252,8 @@
     "typeLabel": "Expense type",
     "dateLabel": "Date",
     "dateOptional": "Date — optional",
-        "datePlaceholder": "YYYY-MM-DD",
-"plannedDateLabel": "Planned date",
+    "datePlaceholder": "YYYY-MM-DD",
+    "plannedDateLabel": "Planned date",
     "stageLabel": "Construction stage",
     "noStage": "No stage",
     "stageFallback": "Stage",
@@ -256,5 +267,9 @@
     "receiptKindInvoice": "Invoice",
     "fileOptional": "Add receipt (PDF/JPG/PNG) — optional",
     "fileSelected": "Selected: {{name}}"
+  },
+  "errorTitle": "Error",
+  "fallback": {
+    "stage": "Stage"
   }
 }

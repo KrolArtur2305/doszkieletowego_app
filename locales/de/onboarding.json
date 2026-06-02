@@ -54,7 +54,10 @@
     "spentPlaceholder": "z. B. 25000",
     "previewLabel": "Eingegeben",
     "previewHint": "Nach der Eingabe zeigen wir den Betrag klar an, z. B. 80.000 oder 800.000.",
-    "initialExpenseName": "Kosten vor Beginn der App-Nutzung"
+    "initialExpenseName": "Kosten vor Beginn der App-Nutzung",
+    "heroKicker": "Budget",
+    "heroTitle": "Lege dein Baubudget fest",
+    "heroText": "Gib das geplante Budget und bereits bezahlte Kosten ein, damit die App Ausgaben besser verfolgen kann."
   },
   "profile": {
     "firstName": "Vorname *",
@@ -105,5 +108,6 @@
       "photos": "Fotos - dokumentiere den Bau und greife jederzeit darauf zurück",
       "documents": "Dokumente - bewahre Verträge, Rechnungen und wichtige Dateien ordentlich auf"
     }
-  }
+  },
+  "cancel": "Abbrechen"
 }

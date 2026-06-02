@@ -6,12 +6,30 @@
   "checkMore": "Sprawdź więcej",
   "dash": "—",
   "saving": "Zapisywanie…",
-
   "errorTitle": "Błąd",
   "errors": {
     "generic": "Coś poszło nie tak. Spróbuj ponownie."
   },
   "delete": "Usuń",
   "configErrorTitle": "Błąd konfiguracji aplikacji",
-  "supabaseConfigMissing": "Brakuje konfiguracji Supabase w tym buildzie."
+  "supabaseConfigMissing": "Brakuje konfiguracji Supabase w tym buildzie.",
+  "fallback": {
+    "stage": "Etap"
+  },
+  "names": {
+    "planning": "Planowanie",
+    "stanZero": "Stan zero",
+    "openShell": "Stan surowy otwarty",
+    "closedShell": "Stan surowy zamknięty",
+    "installations": "Instalacje",
+    "developerState": "Stan deweloperski",
+    "finishing": "Wykończenie"
+  },
+  "mainTimeline": {
+    "stanZero": "Stan zero",
+    "sso": "Stan surowy otwarty",
+    "ssz": "Stan surowy zamknięty",
+    "installations": "Instalacje",
+    "finishing": "Wykończenie"
+  }
 }

@@ -15,7 +15,12 @@
     "addFailed": "Ausgabe konnte nicht hinzugefügt werden.",
     "saveFailed": "Ausgabe konnte nicht gespeichert werden.",
     "deleteFailed": "Ausgabe konnte nicht gelöscht werden.",
-    "readFileFailed": "Datei konnte nicht gelesen werden"
+    "readFileFailed": "Datei konnte nicht gelesen werden",
+    "emptyFile": "Die ausgewählte Datei ist leer.",
+    "fileTooLarge": "Die Datei ist zu groß.",
+    "invalidFileType": "Nicht unterstützter Dateityp.",
+    "documentSyncFailed": "Die Ausgabe wurde gespeichert, aber der Anhang konnte nicht in Dokumente kopiert werden.",
+    "deleteFileWarning": "Die Ausgabe wurde gelöscht, aber der Anhang konnte nicht entfernt werden."
   },
   "alerts": {
     "enterName": "Gib den Namen der Ausgabe ein.",
@@ -60,7 +65,13 @@
     "mayBeNeededAtThisStage": "Kann in dieser Phase nötig sein",
     "add": "Hinzufügen",
     "hide": "Ausblenden",
-    "expenses": {}
+    "expenses": {},
+    "customNameRequired": "Gib den Ausgabennamen ein.",
+    "addCustom": "Eigene Ausgabe hinzufügen",
+    "custom": "Eigene",
+    "notApplicable": "Nicht zutreffend",
+    "hidden": "Ausgeblendet",
+    "customPlaceholder": "z. B. Zusätzliches Material"
   },
   "budgetSuggestions": {
     "aggregateBase": "Tragschicht aus Schotter",
@@ -256,5 +267,9 @@
     "receiptKindInvoice": "Rechnung",
     "fileOptional": "Beleg hinzufügen (PDF/JPG/PNG) - optional",
     "fileSelected": "Ausgewählt: {{name}}"
+  },
+  "errorTitle": "Fehler",
+  "fallback": {
+    "stage": "Phase"
   }
 }

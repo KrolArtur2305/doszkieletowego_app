@@ -54,7 +54,10 @@
     "spentPlaceholder": "e.g. 25000",
     "previewLabel": "Entered",
     "previewHint": "After typing, we show the amount clearly, e.g. 80,000 or 800,000.",
-    "initialExpenseName": "Expenses incurred before starting to use the app"
+    "initialExpenseName": "Expenses incurred before starting to use the app",
+    "heroKicker": "Budget",
+    "heroTitle": "Set your build budget",
+    "heroText": "Enter the planned budget and costs already paid so the app can track expenses better."
   },
   "profile": {
     "firstName": "First name *",
@@ -105,5 +108,6 @@
       "photos": "Photos - document the build and revisit it whenever you need",
       "documents": "Documents - keep contracts, invoices and important files tidy"
     }
-  }
+  },
+  "cancel": "Cancel"
 }

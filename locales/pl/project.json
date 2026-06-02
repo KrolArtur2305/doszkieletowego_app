@@ -68,7 +68,9 @@
   "model": {
     "hintRotateZoom": "Przeciągnij aby obrócić • Szczypnij aby przybliżyć",
     "errorTitle": "Błąd modelu 3D",
-    "loadFailed": "Nie udało się załadować modelu."
+    "loadFailed": "Nie udało się załadować modelu.",
+    "webViewError": "Nie udało się wyświetlić modelu 3D.",
+    "invalidSource": "Nieprawidłowe źródło modelu 3D."
   },
   "notLoggedTitle": "Brak logowania",
   "notLoggedDesc": "Zaloguj się ponownie.",
@@ -81,5 +83,9 @@
   "projectNudgeBuddyFallback": "Kierownik",
   "projectNudgeTitle": "Uzupełnij teraz najważniejsze informacje o projekcie.",
   "projectNudgeText": "Dzięki temu będziesz miał wszystko pod ręką, a moje podpowiedzi będą lepiej dopasowane.",
-  "projectNudgeCta": "Uzupełnij"
+  "projectNudgeCta": "Uzupełnij",
+  "planTooLarge": "Rzut jest zbyt duży. Maksymalny rozmiar to 12 MB.",
+  "invalidPlanType": "Możesz dodać tylko plik JPG, PNG, WEBP lub HEIC.",
+  "emptyPlanFile": "Wybrany rzut jest pusty.",
+  "deletePlanStorageWarning": "Rzut usunięto z listy, ale nie udało się usunąć pliku ze storage."
 }

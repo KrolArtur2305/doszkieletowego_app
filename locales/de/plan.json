@@ -6,12 +6,22 @@
   "alerts": {
     "errorTitle": "Fehler",
     "noSession": "Keine Sitzung. Bitte erneut anmelden.",
-    "saveFailed": "Plan konnte nicht gespeichert werden. Bitte erneut versuchen."
+    "saveFailed": "Plan konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    "paidPlanRequiresActivation": "Kauf oder Testphase wird auf dem Abo-Bildschirm verwaltet. Dieses Konto bleibt vorerst im kostenlosen Plan."
   },
   "cards": {
-    "free": { "title": "Free", "tagline": "Zum Start und zum Testen des Projekts" },
-    "pro": { "title": "Pro", "tagline": "Für Nutzer, die volle Kontrolle wollen" },
-    "pro_plus": { "title": "Pro+", "tagline": "Für maximale Ordnung und ein vollständiges Bauarchiv" }
+    "free": {
+      "title": "Free",
+      "tagline": "Zum Start und zum Testen des Projekts"
+    },
+    "pro": {
+      "title": "Pro",
+      "tagline": "Für Nutzer, die volle Kontrolle wollen"
+    },
+    "pro_plus": {
+      "title": "Pro+",
+      "tagline": "Für maximale Ordnung und ein vollständiges Bauarchiv"
+    }
   },
   "bullets": {
     "photos": "Fotos",
@@ -29,10 +39,5 @@
   "actions": {
     "choose": "Auswählen"
   },
-  "alerts": {
-    "errorTitle": "Fehler",
-    "noSession": "Keine Sitzung. Bitte erneut anmelden.",
-    "saveFailed": "Plan konnte nicht gespeichert werden. Bitte erneut versuchen.",
-    "paidPlanRequiresActivation": "Kauf oder Testphase wird auf dem Abo-Bildschirm verwaltet. Dieses Konto bleibt vorerst im kostenlosen Plan."
-  }
+  "launchInfo": "Preise werden aus dem App Store geladen, sobald Store-Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden."
 }

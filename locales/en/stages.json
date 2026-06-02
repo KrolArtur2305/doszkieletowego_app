@@ -187,5 +187,7 @@
       "body": "Good luck with the next stage: {{stage}}.",
       "cta": "Continue"
     }
-  }
+  },
+  "cancel": "Cancel",
+  "save": "Save"
 }

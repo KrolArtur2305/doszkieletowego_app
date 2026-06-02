@@ -35,11 +35,16 @@
   },
   "detail": {
     "deleteTitle": "Eintrag löschen",
-    "deleteConfirm": "Möchten Sie diesen Tagebucheintrag wirklich löschen?"
+    "deleteConfirm": "Möchten Sie diesen Tagebucheintrag wirklich löschen?",
+    "deleteStorageWarning": "Der Eintrag wurde gelöscht, aber das Foto konnte nicht aus dem Speicher entfernt werden."
   },
   "alerts": {
     "errorTitle": "Fehler",
     "noteRequired": "Bitte geben Sie den Inhalt der Notiz ein.",
-    "saveError": "Der Eintrag konnte nicht gespeichert werden."
+    "saveError": "Der Eintrag konnte nicht gespeichert werden.",
+    "emptyFile": "Das ausgewählte Foto ist leer.",
+    "fileTooLarge": "Das Foto ist zu groß.",
+    "invalidFileType": "Du kannst nur JPG-, PNG-, WEBP- oder HEIC-Fotos hochladen.",
+    "photoUploadError": "Das Foto konnte nicht hochgeladen werden."
   }
 }

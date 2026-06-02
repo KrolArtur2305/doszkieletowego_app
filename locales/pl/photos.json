@@ -31,7 +31,9 @@
     "photosLabel": "Zdjęcia",
     "uploading": "Wysyłanie",
     "cancel": "Anuluj",
-    "pickPhoto": "Wybierz zdjęcia"
+    "pickPhoto": "Wybierz zdjęcia",
+    "photoFallback": "Zdjęcie",
+    "save": "Zapisz"
   },
   "preview": {
     "delete": "Usuń"
@@ -53,6 +55,12 @@
     "deleteCancel": "Anuluj",
     "deleteAction": "Usuń",
     "deleteError": "Nie udało się usunąć zdjęcia.",
-    "photoDeleted": "Usunięto zdjęcie."
+    "photoDeleted": "Usunięto zdjęcie.",
+    "invalidFileType": "Możesz dodać tylko zdjęcia JPG, PNG, WEBP lub HEIC.",
+    "emptyFile": "Wybrane zdjęcie jest puste.",
+    "fileTooLarge": "Zdjęcie jest zbyt duże.",
+    "noPhotosSelected": "Wybierz przynajmniej jedno zdjęcie.",
+    "partialUploadResult": "Dodano {{done}} z {{total}} zdjęć. Część plików nie została wysłana.",
+    "deleteStorageWarning": "Zdjęcie usunięto z listy, ale nie udało się usunąć pliku ze storage."
   }
 }

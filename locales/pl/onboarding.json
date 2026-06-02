@@ -54,7 +54,10 @@
     "spentPlaceholder": "np. 25000",
     "previewLabel": "Wpisano",
     "previewHint": "Po wpisaniu pokazemy kwote czytelnie, np. 80 000 albo 800 000.",
-    "initialExpenseName": "Koszty poniesione przed rozpoczęciem korzystania z aplikacji"
+    "initialExpenseName": "Koszty poniesione przed rozpoczęciem korzystania z aplikacji",
+    "heroKicker": "Budżet",
+    "heroTitle": "Ustal budżet budowy",
+    "heroText": "Podaj planowany budżet i koszty poniesione do tej pory, aby aplikacja mogła lepiej pilnować wydatków."
   },
   "profile": {
     "firstName": "Imię *",
@@ -105,5 +108,6 @@
       "photos": "Zdjęcia - dokumentujesz budowę i wracasz do niej w każdej chwili",
       "documents": "Dokumenty - trzymasz umowy, faktury i ważne pliki bez chaosu"
     }
-  }
+  },
+  "cancel": "Anuluj"
 }

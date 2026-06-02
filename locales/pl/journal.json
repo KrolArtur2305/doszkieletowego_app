@@ -35,11 +35,16 @@
   },
   "detail": {
     "deleteTitle": "Usuń wpis",
-    "deleteConfirm": "Na pewno usunąć ten wpis z dziennika?"
+    "deleteConfirm": "Na pewno usunąć ten wpis z dziennika?",
+    "deleteStorageWarning": "Wpis usunięto, ale nie udało się usunąć zdjęcia ze storage."
   },
   "alerts": {
     "errorTitle": "Błąd",
     "noteRequired": "Wpisz treść notatki.",
-    "saveError": "Nie udało się zapisać wpisu."
+    "saveError": "Nie udało się zapisać wpisu.",
+    "emptyFile": "Wybrane zdjęcie jest puste.",
+    "fileTooLarge": "Zdjęcie jest zbyt duże.",
+    "invalidFileType": "Możesz dodać tylko zdjęcie JPG, PNG, WEBP lub HEIC.",
+    "photoUploadError": "Nie udało się wysłać zdjęcia."
   }
 }

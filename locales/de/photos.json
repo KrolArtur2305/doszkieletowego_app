@@ -31,7 +31,9 @@
     "photosLabel": "Fotos",
     "uploading": "Wird hochgeladen",
     "cancel": "Abbrechen",
-    "pickPhoto": "Fotos auswählen"
+    "pickPhoto": "Fotos auswählen",
+    "photoFallback": "Foto",
+    "save": "Speichern"
   },
   "preview": {
     "delete": "Löschen"
@@ -53,6 +55,12 @@
     "deleteCancel": "Abbrechen",
     "deleteAction": "Löschen",
     "deleteError": "Foto konnte nicht gelöscht werden.",
-    "photoDeleted": "Foto gelöscht."
+    "photoDeleted": "Foto gelöscht.",
+    "invalidFileType": "Du kannst nur JPG-, PNG-, WEBP- oder HEIC-Fotos hochladen.",
+    "emptyFile": "Das ausgewählte Foto ist leer.",
+    "fileTooLarge": "Das Foto ist zu groß.",
+    "noPhotosSelected": "Wähle mindestens ein Foto aus.",
+    "partialUploadResult": "{{done}} von {{total}} Fotos hinzugefügt. Einige Dateien wurden nicht hochgeladen.",
+    "deleteStorageWarning": "Das Foto wurde aus der Liste entfernt, aber die Datei konnte nicht aus dem Speicher gelöscht werden."
   }
 }

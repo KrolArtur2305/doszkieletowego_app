@@ -52,7 +52,10 @@
     },
     "proNote": "At launch, the AI supervisor is available to all users. Paid plans will arrive in a future update.",
     "saving": "Saving...",
-    "cta": "Meet your supervisor"
+    "cta": "Meet your supervisor",
+    "nameRequired": "Enter the manager name.",
+    "avatarRequired": "Choose a manager avatar.",
+    "nameTooLong": "The name can be up to 30 characters."
   },
   "chat": {
     "fallbackName": "Supervisor",
@@ -69,7 +72,10 @@
       "emptyHistoryIntro": "Hi! I'm ready. Ask me about budget, stages, schedule, or anything related to the build.",
       "newConversationStarted": "A new conversation has started. What would you like to ask?",
       "generateFallback": "I couldn't generate a response.",
-      "connectionError": "Sorry, a connection error occurred. Please try again."
+      "connectionError": "Sorry, a connection error occurred. Please try again.",
+      "invalidResponse": "Could not read the AI response.",
+      "timeoutError": "The connection took too long. Try again.",
+      "requestCancelled": "The request was cancelled."
     },
     "errors": {
       "noSession": "No active session",

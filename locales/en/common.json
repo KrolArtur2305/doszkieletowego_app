@@ -6,12 +6,30 @@
   "checkMore": "Check more",
   "dash": "—",
   "saving": "Saving…",
-
   "errorTitle": "Error",
   "errors": {
     "generic": "Something went wrong. Please try again."
   },
   "delete": "Delete",
   "configErrorTitle": "App configuration error",
-  "supabaseConfigMissing": "Supabase configuration is missing in this build."
+  "supabaseConfigMissing": "Supabase configuration is missing in this build.",
+  "fallback": {
+    "stage": "Stage"
+  },
+  "names": {
+    "planning": "Planning",
+    "stanZero": "Zero state",
+    "openShell": "Open shell",
+    "closedShell": "Closed shell",
+    "installations": "Installations",
+    "developerState": "Developer state",
+    "finishing": "Finishing"
+  },
+  "mainTimeline": {
+    "stanZero": "Zero state",
+    "sso": "Open shell",
+    "ssz": "Closed shell",
+    "installations": "Installations",
+    "finishing": "Finishing"
+  }
 }
