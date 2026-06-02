@@ -119,8 +119,6 @@ export default function CheckoutScreen() {
   }
 
   const getPlanPeriod = () => (billing === 'monthly' ? t('month') : t('billingYearly'))
-  const getPlanLength = () => (billing === 'monthly' ? t('checkout.monthlyLength') : t('checkout.yearlyLength'))
-  const selectedPlanName = t(`paywall.plans.${selectedPlan}.name`)
 
   const handleContinue = async () => {
     if (purchasing) return
@@ -216,18 +214,7 @@ export default function CheckoutScreen() {
             />
           </View>
           <Text style={styles.brand}>{t('paywall.logo')}</Text>
-          <Text style={styles.subtitle}>{t('paywall.manageSubtitle')}</Text>
-          <View style={styles.heroPills}>
-            <View style={styles.heroPill}>
-              <Feather name="zap" size={12} color={NEON} />
-              <Text style={styles.heroPillText}>{t('paywall.heroSubtitle')}</Text>
-            </View>
-            <View style={styles.heroPill}>
-              <Feather name="shield" size={12} color={NEON} />
-              <Text style={styles.heroPillText}>{t('paywall.secureCheckout')}</Text>
-            </View>
-          </View>
-          <Text style={styles.disclosure}>{t('paywall.subscriptionDisclosure')}</Text>
+          <Text style={styles.subtitle}>{t('paywall.title')}</Text>
 
           {access.isTrialActive && trialDaysRemaining !== null && (
             <BlurView intensity={12} tint="dark" style={styles.trialStatus}>
@@ -277,38 +264,6 @@ export default function CheckoutScreen() {
           </BlurView>
         ) : null}
 
-        <BlurView intensity={14} tint="dark" style={styles.summaryCard}>
-          <View style={styles.summaryTopRow}>
-            <View style={styles.summaryTitleGroup}>
-              <Text style={styles.summaryTitle}>{t('checkout.summaryTitle')}</Text>
-              <Text style={styles.summaryPlanName}>{selectedPlanName}</Text>
-            </View>
-            <View style={styles.summaryBadge}>
-              <Text style={styles.summaryBadgeText}>{billing === 'monthly' ? t('paywall.monthly') : t('paywall.yearly')}</Text>
-            </View>
-          </View>
-
-          <Text style={styles.summaryHeadline}>{t(`paywall.selected.${selectedPlan}.title`)}</Text>
-          <Text style={styles.summaryDesc}>{t(`paywall.selected.${selectedPlan}.desc`)}</Text>
-
-          <View style={styles.summaryMetrics}>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricLabel}>{t('checkout.summaryPlan', { plan: '' }).replace(': ', '')}</Text>
-              <Text style={styles.metricValue}>{selectedPlanName}</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricLabel}>{t('checkout.summaryLength', { length: '' }).replace(': ', '')}</Text>
-              <Text style={styles.metricValue}>{getPlanLength()}</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricLabel}>{t('checkout.summaryPrice', { price: '' }).replace(': ', '')}</Text>
-              <Text style={styles.metricValue}>{getPlanPrice(selectedPlan)}</Text>
-            </View>
-          </View>
-
-          <Text style={styles.summaryNote}>{t('paywall.autoRenew')}</Text>
-        </BlurView>
-
         <View style={styles.cardsRow}>
           {PAYWALL_PLAN_KEYS.map((key) => {
             const isSelected = selectedPlan === key
@@ -316,6 +271,8 @@ export default function CheckoutScreen() {
             const isExpert = key === 'expert'
             const details = t(`paywall.plans.${key}.details`, { returnObjects: true }) as string[]
             const isAvailable = !!findPackage(availablePackages, key, billing)
+            const badgeText = String(t(`paywall.plans.${key}.badge`, { defaultValue: '' })).trim()
+            const showBadge = badgeText.length > 0 && !badgeText.startsWith('paywall.')
 
             return (
               <TouchableOpacity
@@ -335,35 +292,35 @@ export default function CheckoutScreen() {
                     isSelected && isPro && styles.planCardProActive,
                     !isAvailable && styles.planCardDisabled]}
                 >
+                  <View pointerEvents="none" style={styles.planGlow} />
                   <View style={styles.cardTop}>
-                    <Text
-                      style={[
-                        styles.planName,
-                        isPro && styles.planNamePro,
-                        isExpert && styles.planNameExpert]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      {t(`paywall.plans.${key}.name`)}
-                    </Text>
-                    {!!t(`paywall.plans.${key}.badge`) && (
+                    <View style={styles.planTitleGroup}>
+                      <View style={styles.planNameRow}>
+                        <Text
+                          style={[
+                            styles.planName,
+                            isPro && styles.planNamePro,
+                            isExpert && styles.planNameExpert]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {t(`paywall.plans.${key}.name`)}
+                        </Text>
+                        {isSelected ? (
+                          <View style={styles.selectedMark}>
+                            <Feather name="check" size={13} color={INK} />
+                          </View>
+                        ) : null}
+                      </View>
+                      <Text style={styles.planDescription}>{t(`paywall.plans.${key}.description`)}</Text>
+                    </View>
+                    {showBadge && (
                       <View style={[styles.badge, isPro && styles.badgePro]}>
                         <Text style={styles.badgeText} numberOfLines={1} adjustsFontSizeToFit>
-                          {t(`paywall.plans.${key}.badge`)}
+                          {badgeText}
                         </Text>
                       </View>
                     )}
-                  </View>
-
-                  <View style={styles.details}>
-                    {details.slice(0, 4).map((item) => (
-                      <View key={item} style={styles.detailRow}>
-                        <Feather name="check" size={11} color={isPro || isExpert ? NEON : ACCENT} />
-                        <Text style={styles.detailText} numberOfLines={2}>
-                          {item}
-                        </Text>
-                      </View>
-                    ))}
                   </View>
 
                   <View style={styles.priceBlock}>
@@ -375,6 +332,17 @@ export default function CheckoutScreen() {
                         / {getPlanPeriod()}
                       </Text>
                     </View>
+                  </View>
+
+                  <View style={styles.details}>
+                    {details.slice(0, 6).map((item) => (
+                      <View key={item} style={styles.detailRow}>
+                        <Feather name="check-circle" size={14} color={isPro || isExpert ? NEON : ACCENT} />
+                        <Text style={styles.detailText} numberOfLines={2}>
+                          {item}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 </BlurView>
               </TouchableOpacity>
@@ -470,58 +438,27 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center'},
-  hero: { alignItems: 'center', paddingTop: 2, paddingBottom: 14 },
+  hero: { alignItems: 'center', paddingTop: 0, paddingBottom: 8 },
   logoMark: {
-    width: 118,
-    height: 86,
+    width: 94,
+    height: 62,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4},
-  logoImage: { width: 112, height: 82 },
+  logoImage: { width: 92, height: 62 },
   brand: {
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: 25,
     fontWeight: '900',
     letterSpacing: 0.8},
   subtitle: {
-    color: 'rgba(255,255,255,0.66)',
-    fontSize: 14,
-    lineHeight: 20,
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '700',
     textAlign: 'center',
-    marginTop: 7,
+    marginTop: 5,
     maxWidth: 350},
-  heroPills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 12,
-  },
-  heroPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  heroPillText: {
-    color: 'rgba(255,255,255,0.82)',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  disclosure: {
-    color: 'rgba(255,255,255,0.60)',
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: 10,
-    maxWidth: 360},
   trialStatus: {
     marginTop: 8,
     paddingHorizontal: 10,
@@ -599,96 +536,6 @@ const styles = StyleSheet.create({
     borderRadius: 99,
     backgroundColor: '#FCA5A5',
   },
-  summaryCard: {
-    marginBottom: 10,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    gap: 10},
-  summaryTitle: {
-    color: 'rgba(255,255,255,0.88)',
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase'},
-  summaryTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  summaryTitleGroup: {
-    flex: 1,
-    gap: 4,
-  },
-  summaryPlanName: {
-    color: '#FFFFFF',
-    fontSize: 19,
-    lineHeight: 23,
-    fontWeight: '900',
-  },
-  summaryBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(37,240,200,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.16)',
-  },
-  summaryBadgeText: {
-    color: NEON,
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.4,
-  },
-  summaryHeadline: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '800',
-  },
-  summaryDesc: {
-    color: 'rgba(255,255,255,0.68)',
-    fontSize: 12.5,
-    lineHeight: 17,
-    fontWeight: '600',
-  },
-  summaryMetrics: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  metricCard: {
-    flex: 1,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  metricLabel: {
-    color: 'rgba(255,255,255,0.48)',
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginBottom: 5,
-  },
-  metricValue: {
-    color: '#FFFFFF',
-    fontSize: 13.5,
-    lineHeight: 18,
-    fontWeight: '800',
-  },
-  summaryNote: {
-    color: 'rgba(255,255,255,0.58)',
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '700',
-  },
   summaryLine: {
     color: 'rgba(255,255,255,0.76)',
     fontSize: 14,
@@ -706,16 +553,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     gap: 10,
-    flex: 1,
-    minHeight: 292,
-    maxHeight: 340,
     marginBottom: 10},
   cardWrap: { flex: 1, alignSelf: 'stretch' },
   cardWrapPro: { flex: 1, alignSelf: 'stretch' },
   cardWrapDisabled: { opacity: 0.52 },
   planCard: {
-    flex: 1,
-    borderRadius: 24,
+    minHeight: 368,
+    borderRadius: 26,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.105)',
     backgroundColor: 'rgba(255,255,255,0.04)',
@@ -741,16 +585,52 @@ const styles = StyleSheet.create({
   planCardDisabled: {
     borderColor: 'rgba(255,255,255,0.06)',
     backgroundColor: 'rgba(255,255,255,0.025)'},
-  cardTop: { minHeight: 66, alignItems: 'center' },
+  planGlow: {
+    position: 'absolute',
+    right: -80,
+    top: -80,
+    width: 168,
+    height: 168,
+    borderRadius: 84,
+    backgroundColor: NEON,
+    opacity: 0.075,
+  },
+  cardTop: {
+    minHeight: 96,
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  planTitleGroup: { flex: 1 },
+  planNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
   planName: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '900',
-    textAlign: 'center'},
-  planNamePro: { color: NEON, fontSize: 22 },
+    textAlign: 'left',
+    flexShrink: 1},
+  planNamePro: { color: NEON, fontSize: 24 },
   planNameExpert: { color: '#FFFFFF' },
+  selectedMark: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: NEON,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planDescription: {
+    color: 'rgba(255,255,255,0.64)',
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontWeight: '800',
+    marginTop: 5,
+  },
   badge: {
-    marginTop: 7,
+    marginTop: 2,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 999,
@@ -766,30 +646,30 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.2},
-  details: { gap: 10, marginTop: 10, flex: 1 },
-  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+  details: { gap: 10, marginTop: 16 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   detailText: {
-    color: 'rgba(255,255,255,0.72)',
-    fontSize: 11.2,
-    lineHeight: 15.4,
+    color: 'rgba(255,255,255,0.76)',
+    fontSize: 11.1,
+    lineHeight: 15.2,
     fontWeight: '800',
     flex: 1},
-  priceBlock: { alignItems: 'center', minHeight: 56, justifyContent: 'flex-end' },
+  priceBlock: { alignItems: 'flex-start', marginTop: 12 },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     maxWidth: '100%'},
   price: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: '900',
-    textAlign: 'center',
+    textAlign: 'left',
     flexShrink: 1},
   pricePro: { color: NEON },
   periodText: {
     color: 'rgba(255,255,255,0.42)',
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '800',
     marginLeft: 2,
     marginBottom: 2,
@@ -827,7 +707,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '700',
     marginTop: 3},
-  footer: { marginTop: 10, paddingBottom: 0 },
+  footer: { marginTop: 8, paddingBottom: 0 },
   continueBtn: {
     alignSelf: 'center',
     width: '88%',

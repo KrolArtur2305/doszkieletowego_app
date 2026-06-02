@@ -16,11 +16,11 @@ import { useTranslation } from 'react-i18next';
 import { AppHeader } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
-const { width: W } = Dimensions.get('window');
+const { width: W, height: SCREEN_H } = Dimensions.get('window');
 const H_PAD = 18;
-const TILE_GAP = 12;
+const TILE_GAP = 14;
 const TILE_W = (W - H_PAD * 2 - TILE_GAP) / 2;
-const TILE_BOX = Math.min(138, TILE_W - 24);
+const TILE_H = Math.min(148, Math.max(124, Math.min(TILE_W * 0.84, (SCREEN_H - 282) / 3)));
 const WIDE_TILE_W = W - H_PAD * 2;
 
 type Tile = {
@@ -113,21 +113,19 @@ export default function WiecejScreen() {
       <View style={[styles.content, { paddingTop: topPad }]}>
         <AppHeader title={t('more.title')} style={styles.screenHeader} />
 
-        <View style={styles.grid}>
-          {tiles.map((tile, i) => {
+        <View style={styles.mainTiles}>
+          {tiles.filter((tile) => !tile.wide).map((tile, i) => {
             const anim = anims[i];
             const scale = anim.interpolate({
               inputRange: [0, 1],
               outputRange: [0.85, 1],
             });
 
-            const isWide = !!tile.wide;
-
             return (
               <Animated.View
                 key={tile.key}
                 style={[
-                  isWide ? styles.wideTileWrap : styles.tileWrap,
+                  styles.tileWrap,
                   {
                     opacity: anim,
                     transform: [{ scale }],
@@ -137,10 +135,11 @@ export default function WiecejScreen() {
                 <Pressable
                   onPress={tile.onPress}
                   style={({ pressed }) => [
-                    isWide ? styles.wideTile : styles.tile,
+                    styles.tile,
                     pressed && styles.tilePressed,
                   ]}
                 >
+                  <View pointerEvents="none" style={[styles.tileGlow, { backgroundColor: tile.color }]} />
                   <View style={styles.tileInner}>
                     <View
                       style={[
@@ -151,12 +150,57 @@ export default function WiecejScreen() {
                         },
                       ]}
                     >
-                      <Feather name={tile.icon} size={isWide ? 24 : 26} color={tile.color} />
+                      <Feather name={tile.icon} size={26} color={tile.color} />
                     </View>
 
-                    <Text style={[styles.tileLabel, isWide && styles.wideTileLabel]}>
-                      {tile.label}
-                    </Text>
+                    <Text style={styles.tileLabel}>{tile.label}</Text>
+                  </View>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        <View style={styles.settingsSlot}>
+          {tiles.filter((tile) => tile.wide).map((tile, i) => {
+            const anim = anims[i + 6] ?? anims[6];
+            const translateY = anim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [12, 0],
+            });
+
+            return (
+              <Animated.View
+                key={tile.key}
+                style={[
+                  styles.wideTileWrap,
+                  {
+                    opacity: anim,
+                    transform: [{ translateY }],
+                  },
+                ]}
+              >
+                <Pressable
+                  onPress={tile.onPress}
+                  style={({ pressed }) => [
+                    styles.wideTile,
+                    pressed && styles.tilePressed,
+                  ]}
+                >
+                  <View pointerEvents="none" style={[styles.wideTileGlow, { backgroundColor: tile.color }]} />
+                  <View style={styles.wideTileContent}>
+                    <View
+                      style={[
+                        styles.tileIconWrap,
+                        {
+                          backgroundColor: `${tile.color}18`,
+                          borderColor: `${tile.color}35`,
+                        },
+                      ]}
+                    >
+                      <Feather name={tile.icon} size={24} color={tile.color} />
+                    </View>
+                    <Text style={styles.wideTileLabel}>{tile.label}</Text>
                   </View>
                 </Pressable>
               </Animated.View>
@@ -178,13 +222,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   content: {
+    flex: 1,
     paddingHorizontal: H_PAD,
-    paddingBottom: 0,
+    paddingBottom: 16,
   },
   screenHeader: {
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  grid: {
+  mainTiles: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: TILE_GAP,
@@ -197,31 +242,36 @@ const styles = StyleSheet.create({
     width: WIDE_TILE_W,
     alignItems: 'center',
   },
+  settingsSlot: {
+    marginTop: 'auto',
+    paddingTop: 0,
+    transform: [{ translateY: -16 }],
+  },
   tile: {
-    width: TILE_BOX,
-    height: TILE_BOX,
-    borderRadius: 24,
+    width: TILE_W,
+    height: TILE_H,
+    borderRadius: 26,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#19705c',
-    backgroundColor: '#000000',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    borderColor: 'rgba(37,240,200,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    shadowColor: NEON,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
   },
   wideTile: {
     width: WIDE_TILE_W,
-    height: 82,
-    borderRadius: 24,
+    height: 92,
+    borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#19705c',
-    backgroundColor: '#000000',
-    shadowColor: '#000',
+    borderColor: 'rgba(37,240,200,0.22)',
+    backgroundColor: 'rgba(37,240,200,0.045)',
+    shadowColor: NEON,
     shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
   },
   tilePressed: {
     opacity: 0.82,
@@ -231,26 +281,56 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 9,
-    backgroundColor: '#000000',
+    gap: 12,
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  tileGlow: {
+    position: 'absolute',
+    right: -36,
+    top: -36,
+    width: 106,
+    height: 106,
+    borderRadius: 53,
+    opacity: 0.12,
+  },
+  wideTileGlow: {
+    position: 'absolute',
+    right: -60,
+    top: -76,
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    opacity: 0.14,
   },
   tileIconWrap: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tileLabel: {
-    color: 'rgba(255,255,255,0.82)',
-    fontSize: 13.8,
-    fontWeight: '800',
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 15.2,
+    lineHeight: 18.5,
+    fontWeight: '900',
     textAlign: 'center',
   },
+  wideTileContent: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    gap: 10,
+    backgroundColor: 'rgba(0,0,0,0.68)',
+  },
   wideTileLabel: {
-    fontSize: 14.2,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
     textAlign: 'center',
-    paddingHorizontal: 12,
   },
 });

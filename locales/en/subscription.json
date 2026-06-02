@@ -115,6 +115,12 @@
     "restoreSuccess": "Purchases restored.",
     "restoreEmpty": "No purchases found for this account.",
     "restoreError": "Could not restore purchases.",
+    "purchaseUnavailableTitle": "Plan unavailable",
+    "purchaseUnavailableMessage": "This plan is not available in the App Store right now.",
+    "purchaseErrorTitle": "Purchase failed",
+    "purchaseErrorMessage": "We could not confirm the purchase. Please try again.",
+    "productsError": "Store products are not available right now.",
+    "productsErrorWithReason": "Store products are not available right now: {{reason}}",
     "plans": {
       "free": {
         "name": "Free",
@@ -146,7 +152,9 @@
         "details": [
           "20 AI messages/day",
           "100 photos",
-          "25 documents"
+          "25 documents",
+          "Budget and expenses",
+          "Build reports"
         ]
       },
       "expert": {
@@ -158,7 +166,8 @@
           "Unlimited AI",
           "Unlimited photos",
           "Unlimited documents",
-          "Priority AI"
+          "Priority AI",
+          "Full build archive"
         ]
       }
     },

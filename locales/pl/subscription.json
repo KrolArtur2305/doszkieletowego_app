@@ -68,7 +68,7 @@
     "aiMessagesUnlimited": "bez limitu"
   },
   "checkout": {
-    "title": "Wybierz plan BuildIQ",
+    "title": "Odblokuj pełną kontrolę nad swoją budową",
     "subtitle": "Zacznij od triala z pełnym dostępem, a potem wybierz plan dopasowany do budowy.",
     "selectBtn": "Kontynuuj",
     "trialCta": "Kontynuuj",
@@ -115,6 +115,12 @@
     "restoreSuccess": "Zakupy zostały przywrócone.",
     "restoreEmpty": "Nie znaleziono zakupów dla tego konta.",
     "restoreError": "Nie udało się przywrócić zakupów.",
+    "purchaseUnavailableTitle": "Plan niedostępny",
+    "purchaseUnavailableMessage": "Ten plan nie jest teraz dostępny w App Store.",
+    "purchaseErrorTitle": "Zakup nieudany",
+    "purchaseErrorMessage": "Nie udało się potwierdzić zakupu. Spróbuj ponownie.",
+    "productsError": "Produkty sklepu nie są teraz dostępne.",
+    "productsErrorWithReason": "Produkty sklepu nie są teraz dostępne: {{reason}}",
     "plans": {
       "free": {
         "name": "Free",
@@ -141,24 +147,28 @@
       "pro": {
         "name": "Pro",
         "badge": "NAJPOPULARNIEJSZY",
-        "description": "Idealny dla większości budujących",
+        "description": "Pełna kontrola nad budową",
         "samplePrice": "14,99 $",
         "details": [
-          "20 wiadomości AI dziennie",
-          "100 zdjęć",
-          "25 dokumentów"
+          "Kierownik Budowy AI",
+          "Pełna kontrola budżetu i wydatków",
+          "Wszystkie dokumenty w jednym miejscu",
+          "Zdjęcia uporządkowane według etapów budowy",
+          "Śledź postępy budowy krok po kroku"
         ]
       },
       "expert": {
         "name": "Expert",
         "badge": "",
-        "description": "Wszystko bez limitów",
+        "description": "Maksymalne możliwości BuildIQ",
         "samplePrice": "19,99 $",
         "details": [
-          "AI bez limitu",
-          "Zdjęcia bez limitu",
-          "Dokumenty bez limitu",
-          "Priorytetowe AI"
+          "Wszystkie funkcje planu Pro",
+          "AI bez limitów",
+          "Zdjęcia bez limitów",
+          "Dokumenty bez limitów",
+          "Wczesny dostęp do nowych funkcji",
+          "Pełny dostęp przez cały okres budowy"
         ]
       }
     },

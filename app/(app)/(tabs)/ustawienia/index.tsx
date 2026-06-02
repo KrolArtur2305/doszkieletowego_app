@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
     textAlign: 'center'},
 
-  menuWrap: { gap: spacing.md, marginTop: spacing.lg },
+  menuWrap: { gap: spacing.md, marginTop: spacing.xs },
 
   tileOuter: {
     borderRadius: radius.lg,
