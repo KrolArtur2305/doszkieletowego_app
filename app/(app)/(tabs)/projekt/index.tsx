@@ -1322,6 +1322,7 @@ const styles = StyleSheet.create({
 
   projectTitle: {
     color: colors.text,
+    fontFamily: 'Rubik_800ExtraBold',
     fontSize: 26,
     fontWeight: '800',
     textAlign: 'center'},

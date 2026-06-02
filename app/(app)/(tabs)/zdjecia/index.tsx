@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
@@ -113,6 +114,8 @@ function isAllowedImageAsset(asset: UploadPhotoAsset) {
 
 export default function ZdjeciaScreen() {
   const { t, i18n } = useTranslation(['photos', 'common']);
+  const params = useLocalSearchParams<{ openAdd?: string }>();
+  const openedFromParamRef = useRef(false);
 
   // ✅ zawsze string do <Text/>
   const tt = useCallback((key: string, options?: any) => String(t(key as any, options)), [t]);
@@ -438,6 +441,12 @@ export default function ZdjeciaScreen() {
     setSelectedEtapForUpload((current) => current || etapy[0]?.id || '');
     setAddModalVisible(true);
   };
+
+  useEffect(() => {
+    if (params.openAdd !== '1' || openedFromParamRef.current || loading) return;
+    openedFromParamRef.current = true;
+    openAddModal();
+  }, [etapy.length, loading, params.openAdd]);
 
   const handleAddModalBackdropPress = () => {
     if (keyboardVisible) {
@@ -820,9 +829,6 @@ export default function ZdjeciaScreen() {
           }}
         />
       )}
-
-      <View pointerEvents="none" style={styles.glowOne} />
-      <View pointerEvents="none" style={styles.glowTwo} />
 
       {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: topPad }]}>

@@ -119,9 +119,6 @@ export default function BuddyOnboardingScreen() {
       <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg} />
 
-        <View pointerEvents="none" style={styles.glowTop} />
-        <View pointerEvents="none" style={styles.glowBottom} />
-
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -299,7 +296,7 @@ const styles = StyleSheet.create({
 
   titleWrap: { alignItems: 'center', marginBottom: 28 },
   title: {
-    color: '#FFFFFF', fontSize: 28, fontWeight: '900',
+    color: '#FFFFFF', fontFamily: 'Rubik_800ExtraBold', fontSize: 28, fontWeight: '900',
     letterSpacing: -0.3, textAlign: 'center', lineHeight: 34, marginBottom: 10,
   },
   subtitle: {

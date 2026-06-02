@@ -215,14 +215,7 @@ export default function UstawieniaScreen() {
   );
 
   return (
-    <AppScreen
-      background={
-        <>
-          <View pointerEvents="none" style={styles.orbTop} />
-          <View pointerEvents="none" style={styles.orbMid} />
-        </>
-      }
-    >
+    <AppScreen>
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 44 }}

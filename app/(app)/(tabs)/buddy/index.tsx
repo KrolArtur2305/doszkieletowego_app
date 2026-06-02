@@ -417,7 +417,6 @@ export default function BuddyChatScreen() {
   return (
       <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg} />
-        <View pointerEvents="none" style={styles.glowTop} />
 
       <View style={[styles.header, { paddingTop: Math.max(topPad - 14, 4) }]}>
         <View style={styles.headerTopRow}>

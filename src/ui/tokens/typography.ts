@@ -1,5 +1,6 @@
 export const typography = {
   screenTitle: {
+    fontFamily: 'Rubik_800ExtraBold',
     fontSize: 34,
     fontWeight: '900' as const,
     letterSpacing: -0.2,

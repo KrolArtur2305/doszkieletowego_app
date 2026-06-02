@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { ActivityIndicator, Text, View } from 'react-native';
+import { useFonts, Rubik_700Bold, Rubik_800ExtraBold } from '@expo-google-fonts/rubik';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +23,7 @@ import {
 export default function RootLayout() {
   const { session, loading } = useSupabaseAuth();
   const [i18nReady, setI18nReady] = useState(false);
+  const [fontsLoaded] = useFonts({ Rubik_700Bold, Rubik_800ExtraBold });
   const { t } = useTranslation('common');
 
   usePushNotifications();
@@ -63,7 +65,7 @@ export default function RootLayout() {
     });
   }, [session?.user?.id]);
 
-  const showLoader = loading || !i18nReady;
+  const showLoader = loading || !i18nReady || !fontsLoaded;
   const configErrorScreen = !isSupabaseConfigured ? (
     <View
       style={{

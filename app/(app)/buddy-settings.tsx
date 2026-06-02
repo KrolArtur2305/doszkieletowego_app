@@ -177,8 +177,6 @@ export default function BuddySettingsScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg} />
-        <View pointerEvents="none" style={styles.glowTop} />
-        <View pointerEvents="none" style={styles.glowBottom} />
 
       <KeyboardAvoidingView
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
@@ -460,6 +458,7 @@ const styles = StyleSheet.create({
 
   title: {
     color: NEON,
+    fontFamily: 'Rubik_800ExtraBold',
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: -0.35,

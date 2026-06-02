@@ -261,9 +261,8 @@ export default function AppLayout() {
 
   return (
     <View style={styles.root}>
-      {/* ✅ WARSTWA TŁA POD SPODem */}
       <View pointerEvents="none" style={styles.bgLayer}>
-        <StarsBackground count={26} />
+        <View style={styles.bg} />
       </View>
 
       {/* ✅ CONTENT NAD TŁEM */}

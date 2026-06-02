@@ -751,6 +751,7 @@ const styles = StyleSheet.create({
     fontWeight: '600'},
   title: {
     color: NEON,
+    fontFamily: 'Rubik_800ExtraBold',
     fontSize: 33,
     fontWeight: '900',
     letterSpacing: -0.4,
@@ -758,6 +759,7 @@ const styles = StyleSheet.create({
     textAlign: 'center'},
   stageTitle: {
     color: NEON,
+    fontFamily: 'Rubik_800ExtraBold',
     fontSize: 27,
     fontWeight: '900',
     letterSpacing: -0.25,

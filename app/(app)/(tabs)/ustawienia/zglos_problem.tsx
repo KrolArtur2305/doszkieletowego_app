@@ -78,7 +78,6 @@ export default function ZglosProblemScreen() {
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
-      <View pointerEvents="none" style={styles.glowOrb} />
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
@@ -173,7 +172,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   screenTitle: {
-    color: NEON, fontSize: 20, fontWeight: '900', letterSpacing: -0.2,
+    color: NEON, fontFamily: 'Rubik_800ExtraBold', fontSize: 20, fontWeight: '900', letterSpacing: -0.2,
     textShadowColor: 'rgba(37,240,200,0.18)', textShadowRadius: 14,
   },
 

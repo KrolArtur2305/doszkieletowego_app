@@ -22,6 +22,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { WebView } from 'react-native-webview';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
@@ -178,6 +179,7 @@ const DOC_TYPES: { key: DocTypeKey; icon: keyof typeof Ionicons.glyphMap }[] = [
 
 export default function DokumentyScreen() {
   const { t, i18n } = useTranslation(['documents', 'common']);
+  const params = useLocalSearchParams<{ openAdd?: string }>();
 
   const tt = useCallback((key: string, options?: any) => String(t(key as any, options)), [t]);
 
@@ -439,6 +441,11 @@ export default function DokumentyScreen() {
     setAddDropdownOpen(false);
   };
 
+  useEffect(() => {
+    if (params.openAdd !== '1') return;
+    setAddModalVisible(true);
+  }, [params.openAdd]);
+
   const addDoc = async () => {
     if (saving) return;
 
@@ -655,9 +662,6 @@ export default function DokumentyScreen() {
           }}
         />
       )}
-
-      <View pointerEvents="none" style={styles.glowOne} />
-      <View pointerEvents="none" style={styles.glowTwo} />
 
       <View style={[styles.topBar, { paddingTop: topPad }]}>
         <View style={styles.headerSide}>

@@ -222,20 +222,6 @@ function hasRainForecast(day: Pick<WeatherDay, 'weatherCode' | 'precipitationPro
   );
 }
 
-function getWeatherDayNoteKey(day: Pick<WeatherDay, 'weatherCode' | 'tempMax' | 'tempMin' | 'windSpeed'>) {
-  const code = Number(day.weatherCode ?? 0);
-
-  if (isStormyWeatherCode(code)) return 'weather.dayNotes.storm';
-  if (isRainyWeatherCode(code)) return 'weather.dayNotes.rain';
-  if (isSnowyWeatherCode(code)) return 'weather.dayNotes.snow';
-  if (isWindyForecast(day)) return 'weather.dayNotes.wind';
-  if (isHotForecast(day)) return 'weather.dayNotes.hot';
-  if (isColdForecast(day)) return 'weather.dayNotes.cold';
-  if (code === 0) return 'weather.dayNotes.clear';
-  if (code <= 3) return 'weather.dayNotes.cloudy';
-  return 'weather.dayNotes.mixed';
-}
-
 function pickWeatherVariantIndex(forecast: WeatherDay[], locale: string) {
   const localeSeed = Array.from(locale).reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
   const weatherSeed = forecast.reduce((sum, day, index) => {
@@ -981,10 +967,7 @@ export default function DashboardScreen() {
                     {!weatherLoading && weather && weather.length > 0 ? weather[0].icon : '📍'}
                   </Text>
                   <View style={styles.weatherLeftTextWrap}>
-                    <Text style={styles.weatherLeftTitle} numberOfLines={1}>
-                      {t('weather.workConditionsTitle')}
-                    </Text>
-                    <Text style={styles.weatherLeftHint} numberOfLines={1}>
+                    <Text style={styles.weatherLeftHint} numberOfLines={2}>
                       {weatherHasData ? t(getWeatherWorkHint(weather, appLocale)) : t('weather.emptyText')}
                     </Text>
                   </View>
@@ -1007,9 +990,6 @@ export default function DashboardScreen() {
                       <Text style={styles.weatherDayLabel}>{day.label}</Text>
                       <Text style={styles.weatherDayIcon}>{day.icon}</Text>
                       <Text style={styles.weatherDayTemp}>{day.tempMax}°</Text>
-                      <Text style={styles.weatherDayNote} numberOfLines={1}>
-                        {t(getWeatherDayNoteKey(day))}
-                      </Text>
                     </View>
                   ))
                 ) : (
@@ -1018,9 +998,6 @@ export default function DashboardScreen() {
                       <Text style={styles.weatherDayLabel}>—</Text>
                       <Text style={styles.weatherDayIcon}>·</Text>
                       <Text style={styles.weatherDayTemp}>—</Text>
-                      <Text style={styles.weatherDayNote} numberOfLines={1}>
-                        {t('weather.emptyFallback')}
-                      </Text>
                     </View>
                   ))
                 )}
@@ -1177,9 +1154,9 @@ export default function DashboardScreen() {
         <View style={styles.sectionWrap}>
           <View style={styles.qaRow}>
             {([
-              { icon: '💸', label: t('quickActions.addExpense'), route: '/(app)/(tabs)/budzet' },
-              { icon: '📷', label: t('quickActions.addPhoto'), route: '/(app)/(tabs)/zdjecia' },
-              { icon: '📄', label: t('quickActions.addDocument'), route: '/(app)/(tabs)/dokumenty' },
+              { icon: '💸', label: t('quickActions.addExpense'), route: '/(app)/(tabs)/budzet?openAdd=1' },
+              { icon: '📷', label: t('quickActions.addPhoto'), route: '/(app)/(tabs)/zdjecia?openAdd=1' },
+              { icon: '📄', label: t('quickActions.addDocument'), route: '/(app)/(tabs)/dokumenty?openAdd=1' },
               { icon: '✍️', label: t('quickActions.addEntry'), route: '/(app)/(tabs)/wiecej/dziennik?openAdd=1' },
             ] as any[]).map((qa, i) => (
               <TouchableOpacity
@@ -1511,6 +1488,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     width: '100%',
+    fontFamily: 'Rubik_800ExtraBold',
     color: '#34f0c8',
     fontSize: 34,
     fontWeight: '900',
@@ -1521,6 +1499,7 @@ const styles = StyleSheet.create({
   heroName: {
     width: '100%',
     marginTop: -4,
+    fontFamily: 'Rubik_800ExtraBold',
     color: '#34f0c8',
     fontSize: 34,
     fontWeight: '900',
@@ -1563,8 +1542,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   weatherLeftIcon: {
-    fontSize: 20,
-    lineHeight: 22,
+    fontSize: 21,
+    lineHeight: 23,
     marginTop: 0,
   },
   weatherLeftTextWrap: {
@@ -1572,18 +1551,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flexShrink: 1,
   },
-  weatherLeftTitle: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
-    lineHeight: 14,
-    fontWeight: '800',
-    letterSpacing: -0.1,
-  },
   weatherLeftHint: {
     color: 'rgba(255,255,255,0.66)',
-    fontSize: 9.5,
-    lineHeight: 11,
-    marginTop: 1,
+    fontSize: 10.5,
+    lineHeight: 13,
+    marginTop: 0,
   },
   weatherCta: {
     alignSelf: 'flex-start',
@@ -1617,29 +1589,22 @@ const styles = StyleSheet.create({
   },
   weatherDayLabel: {
     color: 'rgba(255,255,255,0.52)',
-    fontSize: 8.5,
-    lineHeight: 9,
+    fontSize: 9,
+    lineHeight: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   weatherDayIcon: {
-    fontSize: 14,
-    lineHeight: 16,
-    marginTop: 1,
+    fontSize: 19,
+    lineHeight: 21,
+    marginTop: 2,
   },
   weatherDayTemp: {
     color: '#FFFFFF',
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 12,
+    lineHeight: 14,
     fontWeight: '800',
-    marginTop: 0,
-  },
-  weatherDayNote: {
-    color: 'rgba(255,255,255,0.60)',
-    fontSize: 8,
-    lineHeight: 9,
-    marginTop: 0,
-    textAlign: 'center',
+    marginTop: 1,
   },
 
   briefOuter: { marginTop: 10, borderRadius: 20, overflow: 'hidden' },

@@ -149,8 +149,6 @@ export default function GuidedSetupScreen() {
   return (
     <AppScreen style={styles.screen}>
       <View style={styles.bg} pointerEvents="none" />
-      <View style={styles.glowTop} pointerEvents="none" />
-      <View style={styles.glowBottom} pointerEvents="none" />
 
       <View style={[styles.content, { paddingTop: topPad }]}>
         <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
@@ -341,6 +339,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.35)'},
   title: {
     color: NEON,
+    fontFamily: 'Rubik_800ExtraBold',
     fontSize: 30,
     fontWeight: '900',
     letterSpacing: -0.4,

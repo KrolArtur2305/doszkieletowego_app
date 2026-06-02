@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   screenTitle: {
-    color: ACCENT, fontSize: 20, fontWeight: '900', letterSpacing: -0.2,
+    color: ACCENT, fontFamily: 'Rubik_800ExtraBold', fontSize: 20, fontWeight: '900', letterSpacing: -0.2,
     textShadowColor: 'rgba(25,112,92,0.18)', textShadowRadius: 14,
   },
 

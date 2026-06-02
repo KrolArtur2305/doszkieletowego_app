@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   star: { position: 'absolute', borderRadius: 99, backgroundColor: '#FFF' },
 
   header: { marginTop: 12, marginBottom: 14, alignItems: 'center' },
-  hTitle: { color: '#25F0C8', fontSize: 22, fontWeight: '900' },
+  hTitle: { color: '#25F0C8', fontFamily: 'Rubik_800ExtraBold', fontSize: 22, fontWeight: '900' },
   hSub: { color: 'rgba(255,255,255,0.65)', textAlign: 'center', marginTop: 6, lineHeight: 18 },
   hNote: { color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 8, lineHeight: 16, fontSize: 12 },
   hLegal: { color: 'rgba(255,255,255,0.70)', textAlign: 'center', marginTop: 8, lineHeight: 17, fontSize: 12.5, fontWeight: '700' },

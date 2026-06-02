@@ -310,7 +310,7 @@ export default function DziennikScreen() {
         });
 
         return {
-          id: option.legacyId ?? option.key,
+          id: fallbackLegacyId ?? option.legacyId ?? option.key,
           nazwa: option.label,
           nazwa_code: option.stageCode ?? null,
           status: groupRows.every((row) => isDoneEtapStatus(row.status)) ? 'done' : null,
@@ -397,17 +397,18 @@ export default function DziennikScreen() {
 
     const pickedAsset = result.assets?.[0];
     if (!result.canceled && pickedAsset?.uri) {
-      const fileSize = Number((pickedAsset as any).fileSize ?? 0);
+      const rawFileSize = (pickedAsset as any).fileSize;
+      const fileSize = typeof rawFileSize === 'number' ? rawFileSize : null;
       const mimeType = String((pickedAsset as any).mimeType ?? '').toLowerCase();
       const isImageMime = mimeType.startsWith('image/');
       const hasAllowedExt = !!getJournalImageExt((pickedAsset as any).fileName ?? pickedAsset.uri);
 
-      if (fileSize === 0) {
+      if (fileSize !== null && fileSize <= 0) {
         Alert.alert(t('alerts.errorTitle'), t('alerts.emptyFile'));
         return;
       }
 
-      if (fileSize > 0 && fileSize > MAX_JOURNAL_IMAGE_BYTES) {
+      if (fileSize !== null && fileSize > MAX_JOURNAL_IMAGE_BYTES) {
         Alert.alert(t('alerts.errorTitle'), t('alerts.fileTooLarge'));
         return;
       }
@@ -484,11 +485,14 @@ export default function DziennikScreen() {
         }
       }
 
+      const selectedEtap = formEtapId ? etapy.find((etap) => etap.id === formEtapId) ?? null : null;
+      const savedEtapId = selectedEtap && !selectedEtap.id.includes(':') ? selectedEtap.id : null;
+
       const payload = {
         user_id: userId,
         data: formData,
         tresc: formTresc.trim(),
-        etap_id: formEtapId || null,
+        etap_id: savedEtapId,
         zdjecie_url: zdjecieUrl || null};
 
       if (editingWpis) {
@@ -551,8 +555,6 @@ export default function DziennikScreen() {
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
-      <View pointerEvents="none" style={styles.glowTop} />
-      <View pointerEvents="none" style={styles.glowBottom} />
 
       {/* Header */}
       <Animated.View style={[styles.header, { paddingTop: topPad, opacity: headerAnim }]}>

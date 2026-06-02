@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -356,9 +356,6 @@ export default function InwestycjaScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg}>
-          <View style={styles.glowA} />
-          <View style={styles.glowB} />
-          <View style={styles.glowC} />
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

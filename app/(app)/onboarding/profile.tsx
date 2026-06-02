@@ -175,8 +175,6 @@ export default function OnboardingProfileScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
         <View pointerEvents="none" style={styles.bg} />
-        <View pointerEvents="none" style={styles.glowTop} />
-        <View pointerEvents="none" style={styles.glowBottom} />
 
         <View style={styles.content}>
           <View style={{ height: topPad }} />
@@ -318,6 +316,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: NEON,
+    fontFamily: 'Rubik_800ExtraBold',
     fontSize: 33,
     fontWeight: '900',
     letterSpacing: -0.4,

@@ -270,7 +270,6 @@ export default function KontaktyScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg} />
-        <View pointerEvents="none" style={styles.glowTop} />
 
         <ScrollView
           contentContainerStyle={[styles.content, { paddingTop: topPad }]}

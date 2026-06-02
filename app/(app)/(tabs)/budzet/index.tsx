@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View} from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
@@ -234,6 +234,7 @@ export default function BudzetScreen() {
   const { t, i18n } = useTranslation('budget');
   const { currency } = useCurrency();
   const router = useRouter();
+  const params = useLocalSearchParams<{ openAdd?: string }>();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
   const datePickerLocale = useMemo(() => {
@@ -245,6 +246,7 @@ export default function BudzetScreen() {
   }, [i18n.language, i18n.resolvedLanguage]);
 
   const scrollRef = useRef<ScrollView>(null);
+  const openedFromParamRef = useRef(false);
   const topPad = 0;
 
   const [loading, setLoading] = useState(true);
@@ -840,6 +842,12 @@ export default function BudzetScreen() {
     setAddOpen(true);
   };
 
+  useEffect(() => {
+    if (params.openAdd !== '1' || openedFromParamRef.current || authLoading) return;
+    openedFromParamRef.current = true;
+    openAddExpense();
+  }, [authLoading, params.openAdd, stageGroupOptions.length]);
+
   const openEditExpense = (expense: WydatkiRow) => {
     setEditingExpense(expense);
     setStageMenuOpen(false);
@@ -1249,7 +1257,7 @@ export default function BudzetScreen() {
                   <View style={styles.dateRow}>
                     <AppInput value={fData} onChangeText={setFData} style={[styles.input, styles.compactInput, { flex: 1 }]} placeholder={t('modal.datePlaceholder')} />
                     <TouchableOpacity style={styles.calBtn} onPress={openDatePicker} activeOpacity={0.85}>
-                      <Text style={styles.calIcon}>??</Text>
+                      <Feather name="calendar" size={18} color={NEON} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1836,7 +1844,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2},
-  calIcon: { fontSize: 18 },
   iosDateWrap: {
     marginTop: 10,
     borderRadius: 16,

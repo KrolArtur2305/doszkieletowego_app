@@ -99,17 +99,23 @@ const localeFromLng = (lng?: string) => {
 function getMonthMatrix(baseDate: Date) {
   const year = baseDate.getFullYear();
   const month = baseDate.getMonth();
-
   const firstDay = new Date(year, month, 1);
   const jsDay = firstDay.getDay();
   const mondayFirst = jsDay === 0 ? 6 : jsDay - 1;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const startDate = new Date(year, month, 1 - mondayFirst);
-  const totalCells = 42;
+  return Array.from({ length: mondayFirst + daysInMonth }, (_, i) => {
+    if (i < mondayFirst) {
+      return {
+        date: null,
+        ymd: `blank-${year}-${month}-${i}`,
+        day: null,
+        inCurrentMonth: false,
+        isBlank: true,
+      };
+    }
 
-  return Array.from({ length: totalCells }, (_, i) => {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
+    const date = new Date(year, month, i - mondayFirst + 1);
 
     const ymd = toYMD(date);
 
@@ -117,7 +123,8 @@ function getMonthMatrix(baseDate: Date) {
       date,
       ymd,
       day: date.getDate(),
-      inCurrentMonth: date.getMonth() === month,
+      inCurrentMonth: true,
+      isBlank: false,
     };
   });
 }
@@ -401,7 +408,6 @@ export default function ZadaniaScreen() {
   return (
     <Pressable style={styles.screen} onPress={Keyboard.dismiss}>
       <View pointerEvents="none" style={styles.bg} />
-      <View pointerEvents="none" style={styles.glowTop} />
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: topPad }]}
@@ -568,6 +574,10 @@ export default function ZadaniaScreen() {
 
             <View style={styles.daysGrid}>
               {monthCells.map((cell) => {
+                if (cell.isBlank) {
+                  return <View key={cell.ymd} style={[styles.dayCell, styles.dayCellBlank]} />;
+                }
+
                 const isSelected = cell.ymd === selectedDate;
                 const isToday = cell.ymd === todayYMD;
                 const hasTasks = !!tasksCountByDate[cell.ymd];
@@ -1106,6 +1116,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.025)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
+  },
+  dayCellBlank: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
   },
   dayCellSelected: {
     backgroundColor: 'rgba(37,240,200,0.12)',

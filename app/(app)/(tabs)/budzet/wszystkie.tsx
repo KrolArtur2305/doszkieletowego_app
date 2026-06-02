@@ -83,7 +83,8 @@ const CATEGORY_OPTIONS = [
 
 type FilterType = 'all' | 'spent' | 'planned';
 type SortType = 'date' | 'amount' | 'stage';
-type TypeFilter = 'all' | 'material' | 'service';
+type TypeFilter = 'all' | ExpenseType;
+type StageFilter = 'all' | StageGroupCode;
 type TabType = 'mine' | 'suggested';
 type CategoryValue = ExpenseCategoryCode;
 type WydatkiRow = {
@@ -229,7 +230,7 @@ export default function WszystkieWydatkiScreen() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [sortBy, setSortBy] = useState<SortType>('date');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
-  const [stageFilter, setStageFilter] = useState<string>('all');
+  const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -274,24 +275,33 @@ export default function WszystkieWydatkiScreen() {
     [fStageKey, stageGroupOptions]
   );
 
-  const selectedListStageOption = useMemo(
-    () => (stageFilter === 'all' ? null : stageOptions.find((option) => option.key === stageFilter) ?? null),
-    [stageFilter, stageOptions]
+  const visibleStageGroups = useMemo(() => STAGE_GROUP_ORDER, []);
+
+  const stageFilterOptions = useMemo(
+    () => visibleStageGroups.map((groupCode) => ({
+      key: groupCode,
+      label: getStageGroupDisplayName(t, groupCode)})),
+    [t, visibleStageGroups]
   );
 
-  const activeStageGroupCode = useMemo<StageGroupCode>(() => {
-    const fromProfile = stageGroupCodeFromStageCode(currentStageCode, stageTemplates);
-    if (fromProfile !== 'other') return fromProfile;
-    const activeLegacy = activeStageId ? etapy.find((stage) => stage.id === activeStageId) : null;
-    const fromLegacy = stageGroupCodeFromLegacyStage(activeLegacy ?? etapy[0] ?? null);
-    return fromLegacy === 'other' ? 'stan_zero' : fromLegacy;
-  }, [activeStageId, currentStageCode, etapy, stageTemplates]);
+  const resolveExpenseStageGroup = useCallback((expense: WydatkiRow): StageGroupCode => {
+    const byStoredGroup = normalizeStageGroupCode(expense.stage_group_code);
+    if (byStoredGroup !== 'other') return byStoredGroup;
 
-  const visibleStageGroups = useMemo(() => {
-    const currentIndex = STAGE_GROUP_ORDER.indexOf(activeStageGroupCode);
-    const maxIndex = currentIndex >= 0 ? currentIndex : STAGE_GROUP_ORDER.length - 1;
-    return STAGE_GROUP_ORDER.slice(0, maxIndex + 1);
-  }, [activeStageGroupCode]);
+    const byStageCode = stageGroupCodeFromStageCode(expense.stage_code, stageTemplates);
+    if (byStageCode !== 'other') return byStageCode;
+
+    const legacyStage = expense.etap_id ? etapy.find((stage) => stage.id === expense.etap_id) ?? null : null;
+    const byLegacy = stageGroupCodeFromLegacyStage(legacyStage);
+    if (byLegacy !== 'other') return byLegacy;
+
+    return normalizeStageGroupCode(expense.expense_category_code ?? expense.kategoria);
+  }, [etapy, stageTemplates]);
+
+  useEffect(() => {
+    if (stageFilter === 'all') return;
+    setExpandedExpenseGroups((prev) => new Set([...prev, stageFilter]));
+  }, [stageFilter]);
 
   const visibleSuggestionStages = useMemo(() => {
     return SUGGESTION_STAGE_ORDER;
@@ -499,19 +509,7 @@ export default function WszystkieWydatkiScreen() {
       return true;
     }).filter((w) => {
       if (typeFilter !== 'all' && normalizeExpenseTypeCode(w.expense_type ?? w.typ) !== typeFilter) return false;
-      if (selectedListStageOption) {
-        const selectedStageCode = normalize(selectedListStageOption.stageCode);
-        const selectedLegacyId = normalize(selectedListStageOption.legacyId);
-        const selectedGroupCode = normalize(selectedListStageOption.stageGroupCode);
-        const expenseStageCode = normalize(w.stage_code);
-        const expenseLegacyId = normalize(w.etap_id);
-        const expenseGroupCode = normalize(w.stage_group_code);
-        const matches =
-          (!!selectedStageCode && !!expenseStageCode && expenseStageCode === selectedStageCode) ||
-          (!!selectedLegacyId && !!expenseLegacyId && expenseLegacyId === selectedLegacyId) ||
-          (!!selectedGroupCode && !!expenseGroupCode && expenseGroupCode === selectedGroupCode);
-        if (!matches) return false;
-      }
+      if (stageFilter !== 'all' && resolveExpenseStageGroup(w) !== stageFilter) return false;
       return true;
     });
 
@@ -524,12 +522,12 @@ export default function WszystkieWydatkiScreen() {
       if (sortBy === 'stage') {
         const aStage = getStageGroupDisplayName(
           t,
-          stageGroupCodeFromStageCode(a.stage_code, stageTemplates),
+          resolveExpenseStageGroup(a),
           t('fallback.stage')
         );
         const bStage = getStageGroupDisplayName(
           t,
-          stageGroupCodeFromStageCode(b.stage_code, stageTemplates),
+          resolveExpenseStageGroup(b),
           t('fallback.stage')
         );
         const byStage = (aStage || '').localeCompare(bStage || '', datePickerLocale);
@@ -538,21 +536,14 @@ export default function WszystkieWydatkiScreen() {
 
       return bDate - aDate;
     });
-  }, [datePickerLocale, filter, selectedListStageOption, sortBy, stageTemplates, typeFilter, wydatki, t]);
+  }, [datePickerLocale, filter, resolveExpenseStageGroup, sortBy, stageFilter, typeFilter, wydatki, t]);
 
   const expenseSections = useMemo(() => {
     return visibleStageGroups.map((groupCode) => ({
       groupCode,
       title: getStageGroupDisplayName(t, groupCode),
-      items: sortedExpenses.filter((expense) => {
-        const byStageCode = stageGroupCodeFromStageCode(expense.stage_code, stageTemplates);
-        const byLegacy = expense.etap_id
-          ? stageGroupCodeFromLegacyStage(etapy.find((stage) => stage.id === expense.etap_id) ?? null)
-          : 'other';
-        const byStoredGroup = normalizeStageGroupCode(expense.stage_group_code);
-        return byStageCode === groupCode || byLegacy === groupCode || byStoredGroup === groupCode;
-      })}));
-  }, [etapy, sortedExpenses, stageTemplates, t, visibleStageGroups]);
+      items: sortedExpenses.filter((expense) => resolveExpenseStageGroup(expense) === groupCode)}));
+  }, [resolveExpenseStageGroup, sortedExpenses, t, visibleStageGroups]);
 
   async function getReceiptSignedUrl(storageKey: string) {
     for (const bucket of ['dokumenty', 'paragony'] as const) {
@@ -752,8 +743,9 @@ export default function WszystkieWydatkiScreen() {
   }, [activeStageId, stageGroupOptions, suggestionName]);
 
   const selectedStageLabel = useMemo(() => {
-    return selectedListStageOption?.label ?? t('modal.stageFallback');
-  }, [selectedListStageOption, t]);
+    if (stageFilter === 'all') return t('filter.all');
+    return stageFilterOptions.find((option) => option.key === stageFilter)?.label ?? getStageGroupDisplayName(t, stageFilter);
+  }, [stageFilter, stageFilterOptions, t]);
 
   const recentTitle = useMemo(() => {
     return 'Wydatki';
@@ -772,7 +764,7 @@ export default function WszystkieWydatkiScreen() {
     const expenseCategoryLabel = getBudgetCategoryLabel(item.expense_category_code ?? item.kategoria, t);
     const stageLabel = getStageGroupDisplayName(
       t,
-      stageGroupCodeFromStageCode(item.stage_code, stageTemplates),
+      resolveExpenseStageGroup(item),
       t('fallback.stage')
     );
     return (
@@ -834,7 +826,7 @@ export default function WszystkieWydatkiScreen() {
       <View style={styles.screen}>
         <View style={styles.topBar}>
           <View style={styles.headerSide}>
-            <ExpoImage source={logo} style={styles.headerLogoLarge} contentFit="contain" cachePolicy="memory-disk" />
+            <ExpoImage source={logo} style={{ width: 92, height: 92 }} contentFit="contain" cachePolicy="memory-disk" />
           </View>
           <View style={styles.headerTitleWrap}>
             <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9} style={styles.headerTitleLarge}>
@@ -866,11 +858,13 @@ export default function WszystkieWydatkiScreen() {
               <Feather name="bar-chart-2" size={14} color={NEON} />
               <Text style={styles.sortButtonText}>{t(`sort.${sortBy}`)}</Text>
             </TouchableOpacity>
-            <Text style={styles.filterSummary} numberOfLines={1}>
-              {filter === 'all' ? t('filter.all') : filter === 'spent' ? t('filter.spent') : t('filter.planned')}
-              {typeFilter !== 'all' ? ` • ${typeFilter === 'material' ? t('type.material') : t('type.service')}` : ''}
-              {stageFilter !== 'all' ? ` • ${selectedStageLabel}` : ''}
-            </Text>
+            <View style={styles.filterSummaryPill}>
+              <Text style={styles.filterSummary} numberOfLines={1}>
+                {filter === 'all' ? t('filter.all') : filter === 'spent' ? t('filter.spent') : t('filter.planned')}
+                {typeFilter !== 'all' ? ` • ${typeFilter === TYPE_MATERIAL ? t('type.material') : typeFilter === TYPE_SERVICE ? t('type.service') : typeFilter === TYPE_MIXED ? t('type.mixed') : t('type.other')}` : ''}
+                {stageFilter !== 'all' ? ` • ${selectedStageLabel}` : ''}
+              </Text>
+            </View>
           </View>
         )}
 
@@ -902,7 +896,7 @@ export default function WszystkieWydatkiScreen() {
                 </TouchableOpacity>
               ))}
               <TouchableOpacity
-                onPress={() => setStageFilter(stageFilter === 'all' ? stageOptions[0]?.key ?? 'all' : 'all')}
+                onPress={() => setStageFilter(stageFilter === 'all' ? stageFilterOptions[0]?.key ?? 'all' : 'all')}
                 style={[styles.filterPill, stageFilter !== 'all' && styles.filterPillActive]}
                 activeOpacity={0.85}
               >
@@ -910,7 +904,7 @@ export default function WszystkieWydatkiScreen() {
                   {selectedStageLabel}
                 </Text>
               </TouchableOpacity>
-              {stageOptions.map((stage) => (
+              {stageFilterOptions.map((stage) => (
                 <TouchableOpacity
                   key={stage.key}
                   onPress={() => setStageFilter(stage.key)}
@@ -1146,26 +1140,28 @@ export default function WszystkieWydatkiScreen() {
 
             <Text style={styles.filterGroupLabel}>{t('modal.typeLabel')}</Text>
             <View style={styles.modalChipRow}>
-              {(['all', 'material', 'service'] as TypeFilter[]).map((type) => (
+              {(['all', TYPE_MATERIAL, TYPE_SERVICE, TYPE_MIXED, TYPE_OTHER] as TypeFilter[]).map((type) => (
                 <TouchableOpacity key={type} onPress={() => setTypeFilter(type)} style={[styles.filterPill, typeFilter === type && styles.filterPillActive]} activeOpacity={0.85}>
                   <Text style={[styles.filterPillText, typeFilter === type && styles.filterPillTextActive]}>
-                    {type === 'all' ? t('filter.all') : type === 'material' ? t('type.material') : t('type.service')}
+                    {type === 'all' ? t('filter.all') : type === TYPE_MATERIAL ? t('type.material') : type === TYPE_SERVICE ? t('type.service') : type === TYPE_MIXED ? t('type.mixed') : t('type.other')}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             <Text style={styles.filterGroupLabel}>{t('modal.stageLabel')}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modalChipRow}>
-              <TouchableOpacity onPress={() => setStageFilter('all')} style={[styles.filterPill, stageFilter === 'all' && styles.filterPillActive]} activeOpacity={0.85}>
-                <Text style={[styles.filterPillText, stageFilter === 'all' && styles.filterPillTextActive]}>{t('filter.all')}</Text>
+            <View style={styles.stageFilterGrid}>
+              <TouchableOpacity onPress={() => setStageFilter('all')} style={[styles.stageFilterCard, stageFilter === 'all' && styles.stageFilterCardActive]} activeOpacity={0.85}>
+                <Feather name="layers" size={15} color={stageFilter === 'all' ? NEON : 'rgba(255,255,255,0.48)'} />
+                <Text style={[styles.stageFilterCardText, stageFilter === 'all' && styles.stageFilterCardTextActive]}>{t('filter.all')}</Text>
               </TouchableOpacity>
-              {stageOptions.map((stage) => (
-                <TouchableOpacity key={stage.key} onPress={() => setStageFilter(stage.key)} style={[styles.stageDot, stageFilter === stage.key && styles.stageDotActive]} activeOpacity={0.85}>
-                  <Text style={[styles.stageDotText, stageFilter === stage.key && styles.stageDotTextActive]}>{stage.label}</Text>
+              {stageFilterOptions.map((stage) => (
+                <TouchableOpacity key={stage.key} onPress={() => setStageFilter(stage.key)} style={[styles.stageFilterCard, stageFilter === stage.key && styles.stageFilterCardActive]} activeOpacity={0.85}>
+                  <Feather name="check-circle" size={15} color={stageFilter === stage.key ? NEON : 'rgba(255,255,255,0.38)'} />
+                  <Text style={[styles.stageFilterCardText, stageFilter === stage.key && styles.stageFilterCardTextActive]}>{stage.label}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
 
             <View style={styles.filterModalActions}>
               <TouchableOpacity
@@ -1264,7 +1260,7 @@ export default function WszystkieWydatkiScreen() {
                   <View style={styles.dateRow}>
                     <AppInput value={fData} onChangeText={setFData} style={[styles.input, { flex: 1 }]} placeholder={t('modal.datePlaceholder')} />
                     <TouchableOpacity style={styles.calBtn} onPress={() => openDatePicker('data')} activeOpacity={0.85}>
-                      <Text style={styles.calIcon}>📅</Text>
+                      <Feather name="calendar" size={18} color={NEON} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1410,7 +1406,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
     marginBottom: 8},
   filterButton: {
     flexDirection: 'row',
@@ -1434,7 +1430,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.14)'},
   filterButtonText: { color: NEON, fontSize: 12, fontWeight: '900' },
   sortButtonText: { color: NEON, fontSize: 12, fontWeight: '900' },
-  filterSummary: { flex: 1, color: 'rgba(255,255,255,0.46)', fontSize: 11, fontWeight: '800' },
+  filterSummaryPill: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 150,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.065)'},
+  filterSummary: { color: 'rgba(235,255,250,0.66)', fontSize: 11, fontWeight: '800' },
   filterModalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1461,6 +1467,32 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)'},
   filterGroupLabel: { color: '#94A3B8', fontSize: 11, fontWeight: '900', marginTop: 10, marginBottom: 7 },
   modalChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, paddingRight: 12 },
+  stageFilterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8},
+  stageFilterCard: {
+    width: '48%',
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 11,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)'},
+  stageFilterCardActive: {
+    backgroundColor: 'rgba(37,240,200,0.11)',
+    borderColor: 'rgba(37,240,200,0.30)'},
+  stageFilterCardText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 11.5,
+    lineHeight: 15,
+    fontWeight: '900'},
+  stageFilterCardTextActive: { color: 'rgba(220,255,245,0.98)' },
   filterModalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   resetFiltersBtn: {
     flex: 1,
@@ -1674,7 +1706,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2},
-  calIcon: { fontSize: 18 },
   iosDateWrap: {
     marginTop: 8,
     borderRadius: 16,

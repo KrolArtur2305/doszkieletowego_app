@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -216,9 +216,6 @@ export default function ProfilScreen() {
         <View style={styles.screen}>
         {/* tło + glowy (zostają, ale wyciszone — czarne tło) */}
         <View pointerEvents="none" style={styles.bg}>
-          <View style={styles.glowA} />
-          <View style={styles.glowB} />
-          <View style={styles.glowC} />
         </View>
 
         <View style={styles.container}>
