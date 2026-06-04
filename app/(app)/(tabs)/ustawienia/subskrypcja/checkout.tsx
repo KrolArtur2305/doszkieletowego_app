@@ -6,6 +6,7 @@ import {
   Image,
   Linking,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -15,6 +16,7 @@ import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { PurchasesPackage } from 'react-native-purchases'
 import { useSubscription } from '../../../../../hooks/useSubscription'
 import type { SubscriptionPlanKey } from '../../../../../src/config/subscriptionPlans'
@@ -84,6 +86,7 @@ function getTrialDaysRemaining(trialEndsAt: string | null): number | null {
 export default function CheckoutScreen() {
   const router = useRouter()
   const { t } = useTranslation('subscription')
+  const insets = useSafeAreaInsets()
   const { planKey } = useLocalSearchParams<{ planKey?: SubscriptionPlanKey }>()
   const subscriptionUiReadOnly = isSubscriptionUiReadOnly()
   const { access, offerings, refresh, loading, error } = useSubscription()
@@ -97,7 +100,7 @@ export default function CheckoutScreen() {
   const introAnim = useRef(new Animated.Value(0)).current
 
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8
-  const bottomPad = Platform.OS === 'ios' ? 18 : 12
+  const bottomPad = Math.max(Platform.OS === 'ios' ? 18 : 12, insets.bottom + 24)
   const trialDaysRemaining = getTrialDaysRemaining(access.trialEndsAt)
 
   const availablePackages = useMemo(
@@ -189,7 +192,13 @@ export default function CheckoutScreen() {
       <View pointerEvents="none" style={styles.lineMid} />
       <View pointerEvents="none" style={styles.glowSide} />
 
-      <View style={[styles.content, { paddingTop: topPad, paddingBottom: bottomPad }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: bottomPad }]}
+        scrollIndicatorInsets={{ bottom: insets.bottom + 12 }}
+        alwaysBounceVertical
+        showsVerticalScrollIndicator={false}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
           <Feather name="arrow-left" size={19} color="rgba(255,255,255,0.70)" />
         </TouchableOpacity>
@@ -382,7 +391,7 @@ export default function CheckoutScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   )
 }
@@ -423,7 +432,8 @@ const styles = StyleSheet.create({
     opacity: 0.055,
     top: 270,
     right: -200},
-  content: { flex: 1, paddingHorizontal: 14 },
+  scroll: { flex: 1 },
+  content: { flexGrow: 1, paddingHorizontal: 14 },
   backBtn: {
     position: 'absolute',
     top: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 18,

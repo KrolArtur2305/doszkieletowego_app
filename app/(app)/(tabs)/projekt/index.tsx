@@ -83,9 +83,9 @@ const PLAN_NAME_PRESETS = [
   { key: 'right', labelKey: 'planNamePresets.right'}]
 
 function fmtNum(v: any, suffix: string) {
-  if (v === null || v === undefined || v === '') return '—'
+  if (v === null || v === undefined || v === '') return 'â€”'
   const n = typeof v === 'string' ? Number(v) : v
-  if (Number.isNaN(n)) return '—'
+  if (Number.isNaN(n)) return 'â€”'
   const out = Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10)
   return `${out}${suffix}`
 }
@@ -378,11 +378,11 @@ export default function ProjektScreen() {
   const tiles = useMemo(
     () => [
       { id: 'pow_u', label: t('tilePowU'), value: fmtNum(projekt?.powierzchnia_uzytkowa, ' m2') },
-      { id: 'kond', label: t('tileFloors'), value: String(projekt?.kondygnacje ?? '—') },
-      { id: 'pom', label: t('tileRooms'), value: String(projekt?.pomieszczenia ?? '—') },
+      { id: 'kond', label: t('tileFloors'), value: String(projekt?.kondygnacje ?? 'â€”') },
+      { id: 'pom', label: t('tileRooms'), value: String(projekt?.pomieszczenia ?? 'â€”') },
       { id: 'pow_z', label: t('tilePowZ'), value: fmtNum(projekt?.powierzchnia_zabudowy, ' m2') },
       { id: 'wys', label: t('tileHeight'), value: fmtNum(projekt?.wysokosc_budynku, ' m') },
-      { id: 'kat', label: t('tileRoofAngle'), value: fmtNum(projekt?.kat_dachu, '°') },
+      { id: 'kat', label: t('tileRoofAngle'), value: fmtNum(projekt?.kat_dachu, 'Â°') },
       { id: 'pow_d', label: t('tileRoofArea'), value: fmtNum(projekt?.powierzchnia_dachu, ' m2') },
       { id: 'szer', label: t('tileFacadeWidth'), value: fmtNum(projekt?.szerokosc_elewacji, ' m') },
       { id: 'dl', label: t('tileFacadeLength'), value: fmtNum(projekt?.dlugosc_elewacji, ' m') }],
@@ -505,7 +505,7 @@ export default function ProjektScreen() {
       if (!publicUrl) {
         const { error: rollbackError } = await supabase.storage.from(BUCKET_MODELS).remove([path])
         if (rollbackError) {
-          console.warn('[Projekt] nie uda³o siê wycofaæ modelu po braku publicUrl:', rollbackError.message)
+          console.warn('[Projekt] nie udaÅ‚o siÄ™ wycofaÄ‡ modelu po braku publicUrl:', rollbackError.message)
         }
         Alert.alert(
           t('saveErrorTitle'),
@@ -525,7 +525,7 @@ export default function ProjektScreen() {
       if (updateError) {
         const { error: rollbackError } = await supabase.storage.from(BUCKET_MODELS).remove([path])
         if (rollbackError) {
-          console.warn('[Projekt] rollback modelu nie powiód³ siê:', rollbackError.message)
+          console.warn('[Projekt] rollback modelu nie powiÃ³dÅ‚ siÄ™:', rollbackError.message)
         }
         Alert.alert(
           t('saveErrorTitle'),
@@ -541,7 +541,7 @@ export default function ProjektScreen() {
       if (previousModelPath && previousModelPath !== path) {
         const { error: removeError } = await supabase.storage.from(BUCKET_MODELS).remove([previousModelPath])
         if (removeError) {
-          console.warn('[Projekt] nie uda³o siê usun¹æ poprzedniego modelu:', removeError.message)
+          console.warn('[Projekt] nie udaÅ‚o siÄ™ usunÄ…Ä‡ poprzedniego modelu:', removeError.message)
         }
       }
     } catch (e: any) {
@@ -685,7 +685,7 @@ export default function ProjektScreen() {
       if (insErr) {
         const { error: rollbackError } = await supabase.storage.from(BUCKET_RZUTY).remove([path])
         if (rollbackError) {
-          console.warn('[Projekt] rollback rzutu nie powiód³ siê:', rollbackError.message)
+          console.warn('[Projekt] rollback rzutu nie powiÃ³dÅ‚ siÄ™:', rollbackError.message)
         }
         Alert.alert(t('saveErrorTitle'), insErr.message)
         return
@@ -743,7 +743,7 @@ export default function ProjektScreen() {
               const { error: removeError } = await supabase.storage.from(BUCKET_RZUTY).remove([path])
               if (removeError) {
                 storageRemoveError = removeError.message
-                console.warn('[Projekt] nie uda³o siê usun¹æ pliku rzutu ze storage:', removeError.message)
+                console.warn('[Projekt] nie udaÅ‚o siÄ™ usunÄ…Ä‡ pliku rzutu ze storage:', removeError.message)
               }
             }
 
@@ -854,7 +854,7 @@ export default function ProjektScreen() {
 
           <View style={styles.headerTitleWrap}>
             <Text style={styles.projectTitle} numberOfLines={2}>
-              {projekt?.nazwa || '—'}
+              {projekt?.nazwa || 'â€”'}
             </Text>
 
             {!!lokalizacja && (
@@ -965,7 +965,7 @@ export default function ProjektScreen() {
               </Text>
               <Text style={styles.nudgeTitle}>
                 {userFirstName
-                  ? `${userFirstName} uzupe³nij teraz najwa¿niejsze informacje o projekcie.`
+                  ? `${userFirstName}, uzupeÅ‚nij teraz najwaÅ¼niejsze informacje o projekcie.`
                   : t('projectNudgeTitle')}
               </Text>
               <Text style={styles.nudgeText}>

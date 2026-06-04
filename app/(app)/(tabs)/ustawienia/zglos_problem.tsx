@@ -13,6 +13,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../../../lib/supabase';
 import { AppButton, AppInput } from '../../../../src/ui/components';
 
@@ -24,8 +25,10 @@ type Category = { key: string; label: string; icon: keyof typeof Feather.glyphMa
 export default function ZglosProblemScreen() {
   const router = useRouter();
   const { t } = useTranslation('settings');
+  const insets = useSafeAreaInsets();
 
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const bottomPad = Math.max(40, insets.bottom + 96);
 
   const categories: Category[] = useMemo(
     () => [
@@ -80,7 +83,9 @@ export default function ZglosProblemScreen() {
       <View pointerEvents="none" style={styles.bg} />
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: topPad }]}
+        contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: bottomPad }]}
+        scrollIndicatorInsets={{ bottom: insets.bottom + 76 }}
+        alwaysBounceVertical
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
@@ -145,7 +150,6 @@ export default function ZglosProblemScreen() {
           </BlurView>
         </View>
 
-        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -159,7 +163,7 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT, opacity: 0.07, top: -60, right: -100,
   },
 
-  content: { paddingHorizontal: 18, paddingBottom: 40 },
+  content: { paddingHorizontal: 18 },
 
   topBar: {
     flexDirection: 'row', alignItems: 'center',

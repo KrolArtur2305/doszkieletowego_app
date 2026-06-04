@@ -4,6 +4,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
@@ -14,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '../../../lib/supabase';
 import { AppButton, AppHeader, AppInput } from '../../../src/ui/components';
@@ -48,6 +50,7 @@ export default function ProfilScreen() {
   const { t: tc } = useTranslation('common');
 
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string>('');
@@ -218,7 +221,16 @@ export default function ProfilScreen() {
         <View pointerEvents="none" style={styles.bg}>
         </View>
 
-        <View style={styles.container}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.container,
+            { paddingBottom: Math.max(24, insets.bottom + 40) },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          scrollIndicatorInsets={{ bottom: insets.bottom + 12 }}
+          alwaysBounceVertical
+          showsVerticalScrollIndicator={false}
+        >
           <AppHeader title={t('header.title')} style={styles.screenHeader} />
 
           <BlurView intensity={70} tint="dark" style={styles.card}>
@@ -278,7 +290,7 @@ export default function ProfilScreen() {
               </View>
             )}
           </BlurView>
-        </View>
+        </ScrollView>
       </View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
@@ -356,7 +368,7 @@ const styles = StyleSheet.create({
     left: -160,
   },
 
-  container: { paddingTop: 28, paddingHorizontal: 16, paddingBottom: 24 },
+  container: { flexGrow: 1, paddingTop: 28, paddingHorizontal: 16 },
   screenHeader: { marginBottom: 14 },
 
   card: {

@@ -9,6 +9,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '../../../../lib/supabase';
 import { removePushToken } from '../../../../src/services/notifications/pushService';
@@ -34,6 +35,7 @@ type MenuItem = {
 export default function UstawieniaScreen() {
   const router = useRouter();
   const { t } = useTranslation(['settings', 'common']);
+  const insets = useSafeAreaInsets();
   const subscriptionUiReadOnly = isSubscriptionUiReadOnly();
 
   const [loading, setLoading] = useState(true);
@@ -218,7 +220,12 @@ export default function UstawieniaScreen() {
     <AppScreen>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 44 }}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(44, insets.bottom + 96) },
+        ]}
+        scrollIndicatorInsets={{ bottom: insets.bottom + 76 }}
+        alwaysBounceVertical
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -261,6 +268,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: 0,
     backgroundColor: 'transparent'},
+  scrollContent: {
+    flexGrow: 1},
 
   orbTop: {
     position: 'absolute',

@@ -154,8 +154,7 @@ export default function LoginScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         style={styles.container}
       >
-        <AppScreen>
-          <View style={styles.content}>
+        <AppScreen scroll contentContainerStyle={styles.content}>
             <View style={styles.brandStack}>
               <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
               <Text style={styles.brandName}>BuildIQ</Text>
@@ -237,7 +236,6 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
         </AppScreen>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
@@ -254,7 +252,7 @@ function mapError(msg: string, t: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: spacing.xl + 2,
     backgroundColor: colors.bg,
   },

@@ -8,8 +8,10 @@ import {
   Dimensions,
   Alert,
   Linking,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import {
@@ -55,6 +57,7 @@ type PlanLimits = {
 export default function PlanScreen() {
   const router = useRouter();
   const stars = useMemo(() => buildStars(90), []);
+  const insets = useSafeAreaInsets();
 
   const { t } = useTranslation('plan');
   const { t: ts } = useTranslation('subscription');
@@ -211,37 +214,45 @@ export default function PlanScreen() {
         ))}
       </View>
 
-      <View style={styles.header}>
-        <Text style={styles.hTitle}>{t('header.title')}</Text>
-        <Text style={styles.hSub}>{t('header.subtitle')}</Text>
-        <Text style={styles.hNote}>{t('launchInfo')}</Text>
-        <Text style={styles.hLegal}>{t('subscription:paywall.subscriptionDisclosure')}</Text>
-        <View style={styles.legalRow}>
-          <TouchableOpacity onPress={() => openLegalUrl('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')} activeOpacity={0.75}>
-            <Text style={styles.legalLink}>{t('subscription:paywall.terms')}</Text>
-          </TouchableOpacity>
-          <Text style={styles.legalSep}>|</Text>
-          <TouchableOpacity onPress={() => openLegalUrl('https://mybuildiq.com/privacy')} activeOpacity={0.75}>
-            <Text style={styles.legalLink}>{t('subscription:paywall.privacy')}</Text>
-          </TouchableOpacity>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(18, insets.bottom + 32) }]}
+        scrollIndicatorInsets={{ bottom: insets.bottom + 12 }}
+        alwaysBounceVertical
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={styles.hTitle}>{t('header.title')}</Text>
+          <Text style={styles.hSub}>{t('header.subtitle')}</Text>
+          <Text style={styles.hNote}>{t('launchInfo')}</Text>
+          <Text style={styles.hLegal}>{t('subscription:paywall.subscriptionDisclosure')}</Text>
+          <View style={styles.legalRow}>
+            <TouchableOpacity onPress={() => openLegalUrl('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')} activeOpacity={0.75}>
+              <Text style={styles.legalLink}>{t('subscription:paywall.terms')}</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalSep}>|</Text>
+            <TouchableOpacity onPress={() => openLegalUrl('https://mybuildiq.com/privacy')} activeOpacity={0.75}>
+              <Text style={styles.legalLink}>{t('subscription:paywall.privacy')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {loading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator />
-        </View>
-      ) : (
-        <View style={styles.list}>
-          {SUBSCRIPTION_PLAN_LIST.map(renderCard)}
-        </View>
-      )}
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator />
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {SUBSCRIPTION_PLAN_LIST.map(renderCard)}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000', paddingHorizontal: 18, paddingTop: 18 },
+  container: { flex: 1, backgroundColor: '#000' },
+  content: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 18 },
   star: { position: 'absolute', borderRadius: 99, backgroundColor: '#FFF' },
 
   header: { marginTop: 12, marginBottom: 14, alignItems: 'center' },

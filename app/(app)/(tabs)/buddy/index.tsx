@@ -17,6 +17,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { publicConfig, supabase } from '../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import {
@@ -74,6 +75,7 @@ function displayAssistantText(value: string) {
 export default function BuddyChatScreen() {
   const { session } = useSupabaseAuth();
   const { t, i18n } = useTranslation('buddy');
+  const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 44) + 8;
   const uiLocale = (i18n.resolvedLanguage || i18n.language || 'en').startsWith('de')
     ? 'de-DE'
@@ -551,7 +553,12 @@ export default function BuddyChatScreen() {
           </ScrollView>
         )}
 
-        <View style={styles.inputBar}>
+        <View
+          style={[
+            styles.inputBar,
+            { paddingBottom: Math.max(Platform.OS === 'ios' ? 24 : 12, insets.bottom + 12) },
+          ]}
+        >
           <BlurView intensity={18} tint="dark" style={styles.inputWrap}>
             <TextInput
               value={input}
@@ -801,7 +808,6 @@ const styles = StyleSheet.create({
 
   inputBar: {
     paddingHorizontal: 14,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
     paddingTop: 8},
   inputWrap: {
     flexDirection: 'row',

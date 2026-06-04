@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { useFonts, Rubik_700Bold, Rubik_800ExtraBold } from '@expo-google-fonts/rubik';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -19,6 +19,7 @@ import {
   logOutPurchasesUser,
 } from '../src/services/subscription/revenuecat';
 
+const APP_LOGO = require('../assets/logo.png');
 
 export default function RootLayout() {
   const { session, loading } = useSupabaseAuth();
@@ -98,9 +99,14 @@ export default function RootLayout() {
                 backgroundColor: '#000000',
                 alignItems: 'center',
                 justifyContent: 'center',
+                padding: 40,
               }}
             >
-              <ActivityIndicator />
+              <Image
+                source={APP_LOGO}
+                resizeMode="contain"
+                style={{ width: '72%', maxWidth: 260, height: 120 }}
+              />
             </View>
           ) : !session ? (
             <Stack screenOptions={{ headerShown: false }}>

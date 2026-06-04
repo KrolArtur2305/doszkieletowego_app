@@ -16,6 +16,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
@@ -57,7 +58,9 @@ const LANGUAGES: { key: AppLanguage; labelKey: string; flag: string }[] = [
 export default function UstawieniaAplikacjiScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation(['settings', 'common']);
+  const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
+  const bottomPad = Math.max(60, insets.bottom + 96);
   const appVersionLabel = getAppVersionLabel();
 
   const activeLang = (i18n.resolvedLanguage || i18n.language) as AppLanguage;
@@ -177,7 +180,9 @@ export default function UstawieniaAplikacjiScreen() {
       <View pointerEvents="none" style={styles.bg} />
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: topPad }]}
+        contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: bottomPad }]}
+        scrollIndicatorInsets={{ bottom: insets.bottom + 76 }}
+        alwaysBounceVertical
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
@@ -521,7 +526,7 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT, opacity: 0.07, top: -100, right: -120,
   },
 
-  content: { paddingHorizontal: 20, paddingBottom: 60 },
+  content: { paddingHorizontal: 20 },
 
   topBar: {
     flexDirection: 'row', alignItems: 'center',

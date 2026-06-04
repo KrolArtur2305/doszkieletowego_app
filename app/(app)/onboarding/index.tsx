@@ -18,6 +18,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../../lib/supabase';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
@@ -74,6 +75,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation(['onboarding', 'buddy', 'common']);
   const { session } = useSupabaseAuth();
+  const insets = useSafeAreaInsets();
   const userId = session?.user?.id;
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
   const contentTopPad = Math.max(topPad - 18, 2);
@@ -659,8 +661,13 @@ export default function OnboardingScreen() {
         ) : null}
 
         <ScrollView
-          contentContainerStyle={[styles.content, { paddingTop: contentTopPad }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: contentTopPad, paddingBottom: Math.max(44, insets.bottom + 40) },
+          ]}
           keyboardShouldPersistTaps="handled"
+          scrollIndicatorInsets={{ bottom: insets.bottom + 12 }}
+          alwaysBounceVertical
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
@@ -702,7 +709,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: 20,
-    paddingBottom: 44},
+  },
   backButton: {
     alignSelf: 'flex-start',
     width: 38,

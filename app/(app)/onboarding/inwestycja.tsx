@@ -21,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
@@ -72,6 +73,7 @@ function defaultCountryFromLang(lang?: string) {
 export default function OnboardingInvestmentScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('investment');
+  const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
 
   const locale = useMemo(
@@ -348,7 +350,16 @@ export default function OnboardingInvestmentScreen() {
             <Feather name="log-out" size={15} color="#FFFFFF" />
           </TouchableOpacity>
         ) : null}
-        <ScrollView contentContainerStyle={[styles.content, { paddingTop: topPad }]} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: topPad, paddingBottom: Math.max(44, insets.bottom + 40) },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          scrollIndicatorInsets={{ bottom: insets.bottom + 12 }}
+          alwaysBounceVertical
+          showsVerticalScrollIndicator={false}
+        >
           <TouchableOpacity onPress={handleBack} activeOpacity={0.8} style={styles.backButton}>
             <Feather name="chevron-left" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -484,7 +495,6 @@ const styles = StyleSheet.create({
   bg: { ...StyleSheet.absoluteFillObject, backgroundColor: BG },
   content: {
     paddingHorizontal: 20,
-    paddingBottom: 44,
   },
   backButton: {
     alignSelf: 'flex-start',

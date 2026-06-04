@@ -37,6 +37,8 @@ export function AppScreen({
           style={styles.fill}
           contentContainerStyle={contentContainerStyle}
           showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+          keyboardShouldPersistTaps="handled"
+          alwaysBounceVertical
         >
           {children}
         </ScrollView>

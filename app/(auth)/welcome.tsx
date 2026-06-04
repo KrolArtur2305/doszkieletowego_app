@@ -111,8 +111,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <AppScreen>
-      <View style={styles.container}>
+    <AppScreen scroll contentContainerStyle={styles.container}>
         <View style={styles.topBlock}>
           <View style={styles.brandStack}>
             <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
@@ -173,14 +172,13 @@ export default function WelcomeScreen() {
             />
           </View>
         </AppCard>
-      </View>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: spacing.xl + 2,

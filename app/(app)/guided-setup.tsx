@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import { BlurView } from 'expo-blur'
 import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { supabase } from '../../lib/supabase'
 import { AppButton, AppScreen } from '../../src/ui/components'
@@ -40,6 +42,7 @@ type ProfileData = {
 export default function GuidedSetupScreen() {
   const router = useRouter()
   const { t } = useTranslation(['onboarding', 'common'])
+  const insets = useSafeAreaInsets()
   const { step: stepParam } = useLocalSearchParams<{ step?: string | string[] }>()
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 10
 
@@ -150,7 +153,15 @@ export default function GuidedSetupScreen() {
     <AppScreen style={styles.screen}>
       <View style={styles.bg} pointerEvents="none" />
 
-      <View style={[styles.content, { paddingTop: topPad }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: topPad, paddingBottom: Math.max(40, insets.bottom + 40) },
+        ]}
+        scrollIndicatorInsets={{ bottom: insets.bottom + 12 }}
+        alwaysBounceVertical
+        showsVerticalScrollIndicator={false}
+      >
         <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
 
         {loading ? (
@@ -249,7 +260,7 @@ export default function GuidedSetupScreen() {
             ) : null}
           </BlurView>
         )}
-      </View>
+      </ScrollView>
     </AppScreen>
   )
 }
@@ -280,9 +291,8 @@ const styles = StyleSheet.create({
     bottom: -120,
     left: -120},
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 20,
-    paddingBottom: 40,
     justifyContent: 'flex-start'},
   logo: {
     width: 156,

@@ -16,6 +16,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../src/ui/components';
@@ -52,6 +53,7 @@ export default function BuddyOnboardingScreen() {
   const router = useRouter();
   const { t } = useTranslation('buddy');
   const { session } = useSupabaseAuth();
+  const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
 
   const [buddyName, setBuddyName] = useState('');
@@ -124,7 +126,12 @@ export default function BuddyOnboardingScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView
-            contentContainerStyle={[styles.content, { paddingTop: topPad }]}
+            contentContainerStyle={[
+              styles.content,
+              { paddingTop: topPad, paddingBottom: Math.max(40, insets.bottom + 40) },
+            ]}
+            scrollIndicatorInsets={{ bottom: insets.bottom + 12 }}
+            alwaysBounceVertical
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -245,7 +252,6 @@ export default function BuddyOnboardingScreen() {
               />
             </Animated.View>
 
-            <View style={{ height: 40 }} />
           </ScrollView>
         </KeyboardAvoidingView>
       </View>

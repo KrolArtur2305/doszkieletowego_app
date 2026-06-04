@@ -4,6 +4,7 @@ import {
   Dimensions,
   Platform,
   Pressable,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -12,6 +13,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader } from '../../../../src/ui/components';
 
@@ -35,6 +37,7 @@ type Tile = {
 export default function WiecejScreen() {
   const router = useRouter();
   const { t } = useTranslation('navigation');
+  const insets = useSafeAreaInsets();
   const topPad = Platform.OS === 'android' ? Math.max((StatusBar.currentHeight ?? 0) - 4, 0) : 8;
 
   const anims = useRef(Array.from({ length: 7 }, () => new Animated.Value(0))).current;
@@ -110,7 +113,19 @@ export default function WiecejScreen() {
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
 
-      <View style={[styles.content, { paddingTop: topPad }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: topPad,
+            paddingBottom: Math.max(16, insets.bottom + 88),
+          },
+        ]}
+        scrollIndicatorInsets={{ bottom: insets.bottom + 76 }}
+        alwaysBounceVertical
+        showsVerticalScrollIndicator={false}
+      >
         <AppHeader title={t('more.title')} style={styles.screenHeader} />
 
         <View style={styles.mainTiles}>
@@ -207,7 +222,7 @@ export default function WiecejScreen() {
             );
           })}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -221,10 +236,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000000',
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     paddingHorizontal: H_PAD,
-    paddingBottom: 16,
   },
   screenHeader: {
     marginBottom: 16,

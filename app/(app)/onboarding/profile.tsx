@@ -6,6 +6,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -17,6 +18,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../../lib/supabase';
 import { AppButton, AppInput } from '../../../src/ui/components';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
@@ -40,6 +42,7 @@ function normalizePhoneInput(v: string) {
 export default function OnboardingProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation('onboarding');
+  const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -176,7 +179,16 @@ export default function OnboardingProfileScreen() {
       >
         <View pointerEvents="none" style={styles.bg} />
 
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: Math.max(0, insets.bottom + 32) },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          scrollIndicatorInsets={{ bottom: insets.bottom + 12 }}
+          alwaysBounceVertical
+          showsVerticalScrollIndicator={false}
+        >
           <View style={{ height: topPad }} />
           <TouchableOpacity onPress={handleBack} activeOpacity={0.8} style={styles.backButton}>
             <Feather name="chevron-left" size={20} color="#FFFFFF" />
@@ -221,7 +233,7 @@ export default function OnboardingProfileScreen() {
               </>
             )}
           </BlurView>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
@@ -292,7 +304,7 @@ const styles = StyleSheet.create({
     left: -120,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 20,
     justifyContent: 'flex-start',
   },
