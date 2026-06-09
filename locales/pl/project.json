@@ -4,6 +4,26 @@
   "projectLocationPlaceholder": "—",
   "buildingParams": "Parametry budynku",
   "projectPlans": "Rzuty projektu",
+  "projectAssetTypes": {
+    "plan": {
+      "title": "Rzuty projektu",
+      "add": "Dodaj rzut",
+      "defaultName": "Rzut",
+      "modalTitle": "Dodaj rzut",
+      "inputLabel": "Nazwa rzutu",
+      "emptyTitle": "Brak rzutów",
+      "emptySubtitle": "Dodaj pierwszy rzut (jpg/png/webp)."
+    },
+    "visualization": {
+      "title": "Wizualizacje",
+      "add": "Dodaj wizualizację",
+      "defaultName": "Wizualizacja",
+      "modalTitle": "Dodaj wizualizację",
+      "inputLabel": "Nazwa wizualizacji",
+      "emptyTitle": "Brak wizualizacji",
+      "emptySubtitle": "Dodaj pierwszą wizualizację (jpg/png/webp)."
+    }
+  },
   "change3dModel": "Dodaj / podmień model 3D",
   "tilePowU": "Pow. użytkowa",
   "tileFloors": "Kondygnacje",
@@ -35,9 +55,9 @@
   "errorTitle": "Błąd",
   "loadError": "Nie udało się wczytać danych projektu z Supabase.",
   "createProjectError": "Nie udało się utworzyć projektu w Supabase.",
-  "addPlanError": "Nie udało się dodać rzutu.",
-  "deletePlanError": "Nie udało się usunąć rzutu.",
-  "deletePlanTitle": "Usunąć rzut?",
+  "addPlanError": "Nie udało się dodać zdjęcia.",
+  "deletePlanError": "Nie udało się usunąć zdjęcia.",
+  "deletePlanTitle": "Usunąć zdjęcie?",
   "deletePlanDesc": "To usunie plik ze Storage oraz rekord z bazy danych.",
   "cancel": "Anuluj",
   "delete": "Usuń",
@@ -75,7 +95,7 @@
   "notLoggedTitle": "Brak logowania",
   "notLoggedDesc": "Zaloguj się ponownie.",
   "noAccessTitle": "Brak dostępu",
-  "noAccessPhotosDesc": "Nadaj dostęp do galerii, aby dodać rzut.",
+  "noAccessPhotosDesc": "Nadaj dostęp do galerii, aby dodać zdjęcie.",
   "uploadFailedTitle": "Upload nieudany",
   "urlError": "Nie udało się uzyskać URL pliku.",
   "edit": "Edytuj",
@@ -84,8 +104,8 @@
   "projectNudgeTitle": "Uzupełnij teraz najważniejsze informacje o projekcie.",
   "projectNudgeText": "Dzięki temu będziesz miał wszystko pod ręką, a moje podpowiedzi będą lepiej dopasowane.",
   "projectNudgeCta": "Uzupełnij",
-  "planTooLarge": "Rzut jest zbyt duży. Maksymalny rozmiar to 12 MB.",
+  "planTooLarge": "Zdjęcie jest zbyt duże. Maksymalny rozmiar to 15 MB.",
   "invalidPlanType": "Możesz dodać tylko plik JPG, PNG, WEBP lub HEIC.",
-  "emptyPlanFile": "Wybrany rzut jest pusty.",
-  "deletePlanStorageWarning": "Rzut usunięto z listy, ale nie udało się usunąć pliku ze storage."
+  "emptyPlanFile": "Wybrany plik jest pusty.",
+  "deletePlanStorageWarning": "Zdjęcie usunięto z listy, ale nie udało się usunąć pliku ze storage."
 }

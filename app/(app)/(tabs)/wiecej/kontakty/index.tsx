@@ -339,7 +339,7 @@ export default function KontaktyScreen() {
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback>
+              <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
                 <View style={styles.modalCard}>
                   <View style={styles.modalHeader}>
                     <View style={styles.modalHeaderSide} />
@@ -354,6 +354,7 @@ export default function KontaktyScreen() {
                   <ScrollView
                     contentContainerStyle={{ padding: 16, gap: 12 }}
                     keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
                     showsVerticalScrollIndicator={false}
                   >
                     <FormField

@@ -69,6 +69,13 @@
     "currency": {
       "groupLabel": "Währung"
     },
+    "units": {
+      "groupLabel": "Einheiten",
+      "options": {
+        "metric": "Metrisch (m, m²)",
+        "imperial": "US-Einheiten (ft, sq ft)"
+      }
+    },
     "notif": {
       "groupLabel": "Benachrichtigungen",
       "pushTitle": "Push-Benachrichtigungen",

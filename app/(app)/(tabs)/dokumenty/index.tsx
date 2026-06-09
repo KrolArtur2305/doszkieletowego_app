@@ -21,6 +21,7 @@ import { Image } from 'expo-image';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import * as WebBrowser from 'expo-web-browser';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -136,6 +137,18 @@ function getFileExt(path?: string | null) {
   const cleaned = String(path || '').split('?')[0].split('#')[0];
   const parts = cleaned.split('.');
   return parts.length > 1 ? parts.pop()!.toLowerCase() : '';
+}
+
+function getUploadContentType(file: { name?: string; mimeType?: string } | null) {
+  const ext = getFileExt(file?.name);
+  if (ext === 'pdf') return 'application/pdf';
+  if (ext === 'txt') return 'text/plain';
+  if (ext === 'csv') return 'text/csv';
+  if (ext === 'doc') return 'application/msword';
+  if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (ext === 'xls') return 'application/vnd.ms-excel';
+  if (ext === 'xlsx') return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  return file?.mimeType || undefined;
 }
 
 function getPreviewKind(path?: string | null): PreviewKind {
@@ -343,7 +356,7 @@ export default function DokumentyScreen() {
     const path = doc.plik_url;
     if (path.startsWith('http')) return path;
 
-    const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(path, 120);
+    const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(path, 60 * 60);
     if (error) throw error;
     return data?.signedUrl || null;
   }, []);
@@ -352,7 +365,18 @@ export default function DokumentyScreen() {
     async (doc: DbDoc) => {
       try {
         const url = await getDocSignedUrl(doc);
-        if (url) await Linking.openURL(url);
+        if (!url) throw new Error('NO_DOCUMENT_URL');
+
+        if (Platform.OS === 'ios' && /^https?:\/\//i.test(url)) {
+          await WebBrowser.openBrowserAsync(url, {
+            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+          });
+          return;
+        }
+
+        const canOpen = await Linking.canOpenURL(url);
+        if (!canOpen) throw new Error('CANNOT_OPEN_DOCUMENT_URL');
+        await Linking.openURL(url);
       } catch (e: any) {
         console.error('Błąd otwierania dokumentu:', e);
         Alert.alert(
@@ -499,7 +523,7 @@ export default function DokumentyScreen() {
       }
 
       const { error: upErr } = await supabase.storage.from(bucketName).upload(filePath, blob, {
-        contentType: file.mimeType || (ext === 'pdf' ? 'application/pdf' : undefined),
+        contentType: getUploadContentType(file),
         upsert: false});
       if (upErr) throw upErr;
 
@@ -592,7 +616,7 @@ export default function DokumentyScreen() {
               <Text style={styles.docType} numberOfLines={1}>
                 {getTypeLabel(type).toUpperCase()}
               </Text>
-              <Text style={styles.docDate}>{dateTxt}</Text>
+              <Text style={styles.docDate} numberOfLines={1}>{dateTxt}</Text>
             </View>
           </View>
         </BlurView>
@@ -904,7 +928,7 @@ export default function DokumentyScreen() {
           }}
         >
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
-            <Pressable style={styles.modalContent} onPress={() => {}}>
+            <Pressable style={styles.modalContent} onPress={Keyboard.dismiss}>
               <Text style={styles.modalTitle}>{tt('documents:addModal.title')}</Text>
 
               <Text style={styles.modalLabel}>{tt('documents:addModal.labels.titleOptional')}</Text>
@@ -1199,7 +1223,7 @@ const styles = StyleSheet.create({
 
   gridContainer: { paddingHorizontal: 8, paddingBottom: 110 },
   gridRow: { gap: 16, paddingHorizontal: 8, marginBottom: 16 },
-  gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * 1.22, borderRadius: 18, overflow: 'hidden' },
+  gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * 1.28, borderRadius: 18, overflow: 'hidden' },
   cardBlur: { flex: 1, borderWidth: 1, borderColor: COLORS.cardBorder },
   docCardInner: { flex: 1, backgroundColor: 'rgba(0,0,0,0.12)' },
   docCoverWrap: {
@@ -1239,7 +1263,7 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     marginHorizontal: 14,
     paddingTop: 10,
-    paddingBottom: 12,
+    paddingBottom: 14,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.08)'},
   docType: {
@@ -1248,7 +1272,7 @@ const styles = StyleSheet.create({
     color: COLORS.brand,
     letterSpacing: 1.2,
     marginBottom: 6},
-  docDate: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700' },
+  docDate: { fontSize: 11, lineHeight: 15, color: 'rgba(255,255,255,0.65)', fontWeight: '700' },
 
   listContainer: { paddingHorizontal: 18, paddingBottom: 110 },
   listRow: { marginBottom: 12, borderRadius: 18, overflow: 'hidden' },

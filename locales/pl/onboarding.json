@@ -33,8 +33,8 @@
   },
   "buildStages": {
     "stan_zero": "Stan zero",
-    "stan_surowy_otwarty": "Stan SSO",
-    "stan_surowy_zamkniety": "Stan SSZ",
+    "stan_surowy_otwarty": "Stan surowy otwarty",
+    "stan_surowy_zamkniety": "Stan surowy zamknięty",
     "instalacje": "Instalacje",
     "wykonczenie": "Wykończenie"
   },
@@ -47,6 +47,17 @@
   },
   "budget": {
     "currencyLabel": "Waluta budzetu",
+    "unitsLabel": "Jednostki",
+    "units": {
+      "metric": {
+        "title": "Metryczne",
+        "subtitle": "m, m²"
+      },
+      "imperial": {
+        "title": "Amerykańskie",
+        "subtitle": "ft, sq ft"
+      }
+    },
     "plannedLabel": "Planowany budżet",
     "spentLabel": "Już poniesione wydatki",
     "currency": "PLN",

@@ -32,6 +32,11 @@ import {
   setAppCurrency,
   type AppCurrency} from '../../../lib/currency';
 import {
+  defaultUnitsForLanguage,
+  getStoredUnits,
+  setAppUnits,
+  type UnitSystem} from '../../../lib/units';
+import {
   BUDDY_AVATAR_OPTIONS,
   DEFAULT_BUDDY_AVATAR_ID,
   type BuddyAvatarId} from '../../../src/services/buddy/avatar';
@@ -91,10 +96,14 @@ export default function OnboardingScreen() {
   const [budgetCurrency, setBudgetCurrency] = useState<AppCurrency>(() =>
     defaultCurrencyForLanguage(i18n.resolvedLanguage || i18n.language)
   );
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>(() =>
+    defaultUnitsForLanguage(i18n.resolvedLanguage || i18n.language)
+  );
   const [activeStageInfo, setActiveStageInfo] = useState<string | null>(null);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [buddyName, setBuddyName] = useState('');
   const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
+  const scrollRef = useRef<ScrollView>(null);
   const buddyFloat = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (step !== 'buddy') return;
@@ -142,6 +151,7 @@ export default function OnboardingScreen() {
             .eq('user_id', userId)
             .maybeSingle()]);
         const storedCurrency = await getStoredCurrency();
+        const storedUnits = await getStoredUnits();
 
         if (!alive) return;
 
@@ -155,6 +165,7 @@ export default function OnboardingScreen() {
         setBuildType(String(profileRes.data?.build_type ?? '').trim());
         setBuildStage(String(profileRes.data?.build_stage ?? '').trim());
         setBudgetCurrency(storedCurrency);
+        setUnitSystem(storedUnits);
         setBuddyName(String(profileRes.data?.ai_buddy_name ?? '').trim());
         setAvatarId(
           profileRes.data?.ai_buddy_avatar === 'avatar2' || profileRes.data?.ai_buddy_avatar === 'avatar3'
@@ -288,6 +299,7 @@ export default function OnboardingScreen() {
       if (investmentRes.error) throw investmentRes.error;
       if (existingExpenseRes?.error) throw existingExpenseRes.error;
       await setAppCurrency(budgetCurrency);
+      await setAppUnits(unitSystem);
 
       if (spent > 0 && !existingExpenseRes?.data?.id) {
         const { error: expenseError } = await supabase.from('wydatki').insert({
@@ -379,7 +391,7 @@ export default function OnboardingScreen() {
 
             {activeStageInfo === item.value ? (
               <View style={styles.stageInfoBubble}>
-                <Text style={styles.stageTileInfo}>{t(item.key)}</Text>
+                <Text style={styles.stageTileInfo}>{t(item.infoKey)}</Text>
               </View>
             ) : null}
           </View>
@@ -478,12 +490,43 @@ export default function OnboardingScreen() {
         </View>
 
         <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>{t('budget.unitsLabel')}</Text>
+          <View style={styles.unitOptionsRow}>
+            {(['metric', 'imperial'] as UnitSystem[]).map((option) => {
+              const active = unitSystem === option;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  onPress={async () => {
+                    setUnitSystem(option);
+                    await setAppUnits(option);
+                  }}
+                  activeOpacity={0.86}
+                  style={[styles.unitOption, active && styles.unitOptionActive]}
+                >
+                  <Text style={[styles.unitOptionTitle, active && styles.unitOptionTitleActive]}>
+                    {t(`budget.units.${option}.title`)}
+                  </Text>
+                  <Text style={styles.unitOptionSubtitle}>
+                    {t(`budget.units.${option}.subtitle`)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>{t('budget.plannedLabel')}</Text>
           <AppInput
             value={plannedBudget}
             onChangeText={(value) => setPlannedBudget(formatBudgetInput(value))}
+            onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120)}
             placeholder={t('budget.plannedPlaceholder')}
             keyboardType="numeric"
+            autoComplete="off"
+            importantForAutofill="no"
+            textContentType="none"
             style={styles.input}
           />
         </View>
@@ -493,8 +536,12 @@ export default function OnboardingScreen() {
           <AppInput
             value={spentBudget}
             onChangeText={(value) => setSpentBudget(formatBudgetInput(value))}
+            onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120)}
             placeholder={t('budget.spentPlaceholder')}
             keyboardType="numeric"
+            autoComplete="off"
+            importantForAutofill="no"
+            textContentType="none"
             style={styles.input}
           />
         </View>
@@ -661,6 +708,7 @@ export default function OnboardingScreen() {
         ) : null}
 
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={[
             styles.content,
             { paddingTop: contentTopPad, paddingBottom: Math.max(44, insets.bottom + 40) },
@@ -987,6 +1035,34 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.46)',
     fontSize: 13,
     fontWeight: '800'},
+  unitOptionsRow: {
+    flexDirection: 'row',
+    gap: 10},
+  unitOption: {
+    flex: 1,
+    minHeight: 66,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)'},
+  unitOptionActive: {
+    backgroundColor: 'rgba(37,240,200,0.11)',
+    borderColor: 'rgba(37,240,200,0.34)'},
+  unitOptionTitle: {
+    color: 'rgba(255,255,255,0.80)',
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 3},
+  unitOptionTitleActive: {
+    color: NEON},
+  unitOptionSubtitle: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 10.5,
+    fontWeight: '800',
+    lineHeight: 14},
   primaryBtn: {
     marginTop: 18},
   avatarGrid: {

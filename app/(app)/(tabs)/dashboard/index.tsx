@@ -6,6 +6,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -1156,7 +1157,7 @@ export default function DashboardScreen() {
             {([
               { icon: '💸', label: t('quickActions.addExpense'), route: '/(app)/(tabs)/budzet?openAdd=1' },
               { icon: '📷', label: t('quickActions.addPhoto'), route: '/(app)/(tabs)/zdjecia?openAdd=1' },
-              { icon: '📄', label: t('quickActions.addDocument'), route: '/(app)/(tabs)/dokumenty?openAdd=1' },
+              { icon: '📄', label: t('quickActions.addDocument'), displayLabel: t('quickActions.addDocument').replace(/\s+/, '\n'), route: '/(app)/(tabs)/dokumenty?openAdd=1' },
               { icon: '✍️', label: t('quickActions.addEntry'), route: '/(app)/(tabs)/wiecej/dziennik?openAdd=1' },
             ] as any[]).map((qa, i) => (
               <TouchableOpacity
@@ -1167,7 +1168,7 @@ export default function DashboardScreen() {
               >
                 <BlurView intensity={14} tint="dark" style={styles.qaBlur}>
                   <Text style={styles.qaIcon}>{qa.icon}</Text>
-                  <Text style={styles.qaLabel}>{qa.label}</Text>
+                  <Text style={styles.qaLabel}>{qa.displayLabel ?? qa.label}</Text>
                 </BlurView>
               </TouchableOpacity>
             ))}
@@ -1371,7 +1372,7 @@ export default function DashboardScreen() {
             setTaskModalOpen(false);
           }}
         >
-          <Pressable style={styles.modalCard} onPress={() => {}}>
+          <Pressable style={styles.modalCard} onPress={Keyboard.dismiss}>
             <Text style={styles.modalTitle}>{t('modal.addTaskTitle')}</Text>
             <Text style={styles.modalSubtitle}>{t('modal.selectedDate', { date: selectedYMD })}</Text>
 

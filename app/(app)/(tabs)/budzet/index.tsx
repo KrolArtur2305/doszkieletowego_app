@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Modal,
   Platform,
   RefreshControl,
@@ -1241,6 +1242,7 @@ export default function BudzetScreen() {
               setAddOpen(false);
             }}
             />
+            <Pressable onPress={Keyboard.dismiss}>
             <AppCard contentStyle={styles.modalCard} style={styles.modalCardOuter} withShadow={false}>
               <Text style={styles.modalTitle}>{editingExpense ? t('modal.editTitle') : t('modal.title')}</Text>
 
@@ -1399,6 +1401,7 @@ export default function BudzetScreen() {
                 <AppButton title={saving ? t('common.saving') : t('common.save')} onPress={saveExpense} disabled={saving} style={styles.modalBtn} />
               </View>
             </AppCard>
+            </Pressable>
           </View>
         </Modal>
 

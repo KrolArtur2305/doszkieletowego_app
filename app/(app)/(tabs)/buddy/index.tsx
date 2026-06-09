@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -464,6 +465,7 @@ export default function BuddyChatScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          onTouchStart={Keyboard.dismiss}
         >
           {loadingInitial || loadingMessages ? (
             <View style={styles.loadingWrap}>

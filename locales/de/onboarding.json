@@ -47,6 +47,17 @@
   },
   "budget": {
     "currencyLabel": "Budgetwahrung",
+    "unitsLabel": "Einheiten",
+    "units": {
+      "metric": {
+        "title": "Metrisch",
+        "subtitle": "m, m²"
+      },
+      "imperial": {
+        "title": "US-Einheiten",
+        "subtitle": "ft, sq ft"
+      }
+    },
     "plannedLabel": "Geplantes Budget",
     "spentLabel": "Bereits entstandene Kosten",
     "currency": "PLN",

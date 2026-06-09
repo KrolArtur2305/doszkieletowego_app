@@ -47,6 +47,17 @@
   },
   "budget": {
     "currencyLabel": "Budget currency",
+    "unitsLabel": "Units",
+    "units": {
+      "metric": {
+        "title": "Metric",
+        "subtitle": "m, m²"
+      },
+      "imperial": {
+        "title": "US units",
+        "subtitle": "ft, sq ft"
+      }
+    },
     "plannedLabel": "Planned budget",
     "spentLabel": "Already incurred expenses",
     "currency": "PLN",

@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TouchableWithoutFeedback,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -79,15 +81,18 @@ export default function ZglosProblemScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.bg} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.screen}>
+        <View pointerEvents="none" style={styles.bg} />
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: bottomPad }]}
-        scrollIndicatorInsets={{ bottom: insets.bottom + 76 }}
-        alwaysBounceVertical
-        showsVerticalScrollIndicator={false}
-      >
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: bottomPad }]}
+          scrollIndicatorInsets={{ bottom: insets.bottom + 76 }}
+          alwaysBounceVertical
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
             <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.70)" />
@@ -149,9 +154,9 @@ export default function ZglosProblemScreen() {
             <Text style={styles.hint}>{t('report.hint')}</Text>
           </BlurView>
         </View>
-
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 

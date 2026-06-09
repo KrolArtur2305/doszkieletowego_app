@@ -4,6 +4,7 @@ import {
   Alert,
   Animated,
   Image,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -19,6 +20,7 @@ import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../../../../lib/supabase'
+import { formatAreaUnit, formatDegreeUnit, formatLengthUnit, useUnits } from '../../../../lib/units'
 import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
@@ -39,6 +41,7 @@ const MAX_PLAN_UPLOAD_BYTES = 15 * 1024 * 1024
 const MAX_MODEL_UPLOAD_BYTES = 50 * 1024 * 1024
 const ALLOWED_PLAN_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic'])
 const ALLOWED_MODEL_EXTENSIONS = new Set(['glb', 'gltf'])
+type ProjectAssetType = 'plan' | 'visualization'
 
 type Projekt = {
   id: string
@@ -61,6 +64,7 @@ type Rzut = {
   user_id: string
   projekt_id: string
   url: string
+  typ?: ProjectAssetType | null
   nazwa?: string | null
   created_at: string
   display_url?: string | null
@@ -82,12 +86,22 @@ const PLAN_NAME_PRESETS = [
   { key: 'left', labelKey: 'planNamePresets.left'},
   { key: 'right', labelKey: 'planNamePresets.right'}]
 
+const PROJECT_ASSET_TYPES: ProjectAssetType[] = ['plan', 'visualization']
+
+function normalizeProjectAssetType(value?: string | null): ProjectAssetType {
+  return PROJECT_ASSET_TYPES.includes(value as ProjectAssetType) ? (value as ProjectAssetType) : 'plan'
+}
+
 function fmtNum(v: any, suffix: string) {
   if (v === null || v === undefined || v === '') return '—'
   const n = typeof v === 'string' ? Number(v) : v
   if (Number.isNaN(n)) return '—'
   const out = Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10)
   return `${out}${suffix}`
+}
+
+function labelWithUnit(label: string, unit: string) {
+  return `${label.replace(/\s*\([^)]*\)\s*$/, '')} (${unit})`
 }
 
 function safeNumberOrNull(v: string) {
@@ -223,6 +237,7 @@ function base64ToUint8Array(base64: string) {
 
 export default function ProjektScreen() {
   const { t, i18n } = useTranslation('project')
+  const { units } = useUnits()
   const router = useRouter()
   const { setup, guidedStep } = useLocalSearchParams<{ setup?: string | string[]; guidedStep?: string | string[] }>()
   const isSetupMode = Array.isArray(setup) ? setup[0] === '1' : setup === '1'
@@ -253,6 +268,7 @@ export default function ProjektScreen() {
   const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null)
   const [pendingPlanName, setPendingPlanName] = useState('')
   const [pendingPlanPreset, setPendingPlanPreset] = useState<string | null>(null)
+  const [pendingPlanType, setPendingPlanType] = useState<ProjectAssetType>('plan')
   const [planNameOpen, setPlanNameOpen] = useState(false)
   const [planUploading, setPlanUploading] = useState(false)
   const [modelUploading, setModelUploading] = useState(false)
@@ -306,7 +322,7 @@ export default function ProjektScreen() {
         if ((projData as any)?.id) {
           const { data: rzutyData, error: rzutyErr } = await supabase
             .from('rzuty_projektu')
-            .select('id,user_id,projekt_id,url,nazwa,created_at')
+            .select('id,user_id,projekt_id,url,nazwa,typ,created_at')
             .eq('user_id', user.id)
             .eq('projekt_id', (projData as any).id)
             .order('created_at', { ascending: false })
@@ -374,19 +390,28 @@ export default function ProjektScreen() {
   }, [isSetupMode, loading, projekt, userId])
 
   const modelUrl = useMemo(() => projekt?.model_url || DEFAULT_MODEL_URL, [projekt?.model_url])
+  const areaUnit = formatAreaUnit(units)
+  const lengthUnit = formatLengthUnit(units)
+  const degreeUnit = formatDegreeUnit()
+  const projectAssetsByType = useMemo(
+    () => ({
+      plan: rzuty.filter((asset) => normalizeProjectAssetType(asset.typ) === 'plan'),
+      visualization: rzuty.filter((asset) => normalizeProjectAssetType(asset.typ) === 'visualization')}),
+    [rzuty]
+  )
 
   const tiles = useMemo(
     () => [
-      { id: 'pow_u', label: t('tilePowU'), value: fmtNum(projekt?.powierzchnia_uzytkowa, ' m2') },
+      { id: 'pow_u', label: t('tilePowU'), value: fmtNum(projekt?.powierzchnia_uzytkowa, ` ${areaUnit}`) },
       { id: 'kond', label: t('tileFloors'), value: String(projekt?.kondygnacje ?? '—') },
       { id: 'pom', label: t('tileRooms'), value: String(projekt?.pomieszczenia ?? '—') },
-      { id: 'pow_z', label: t('tilePowZ'), value: fmtNum(projekt?.powierzchnia_zabudowy, ' m2') },
-      { id: 'wys', label: t('tileHeight'), value: fmtNum(projekt?.wysokosc_budynku, ' m') },
-      { id: 'kat', label: t('tileRoofAngle'), value: fmtNum(projekt?.kat_dachu, '°') },
-      { id: 'pow_d', label: t('tileRoofArea'), value: fmtNum(projekt?.powierzchnia_dachu, ' m2') },
-      { id: 'szer', label: t('tileFacadeWidth'), value: fmtNum(projekt?.szerokosc_elewacji, ' m') },
-      { id: 'dl', label: t('tileFacadeLength'), value: fmtNum(projekt?.dlugosc_elewacji, ' m') }],
-    [projekt, t]
+      { id: 'pow_z', label: t('tilePowZ'), value: fmtNum(projekt?.powierzchnia_zabudowy, ` ${areaUnit}`) },
+      { id: 'wys', label: t('tileHeight'), value: fmtNum(projekt?.wysokosc_budynku, ` ${lengthUnit}`) },
+      { id: 'kat', label: t('tileRoofAngle'), value: fmtNum(projekt?.kat_dachu, degreeUnit) },
+      { id: 'pow_d', label: t('tileRoofArea'), value: fmtNum(projekt?.powierzchnia_dachu, ` ${areaUnit}`) },
+      { id: 'szer', label: t('tileFacadeWidth'), value: fmtNum(projekt?.szerokosc_elewacji, ` ${lengthUnit}`) },
+      { id: 'dl', label: t('tileFacadeLength'), value: fmtNum(projekt?.dlugosc_elewacji, ` ${lengthUnit}`) }],
+    [areaUnit, degreeUnit, lengthUnit, projekt, t]
   )
 
   const ensureProjektExists = async (): Promise<Projekt | null> => {
@@ -555,7 +580,7 @@ export default function ProjektScreen() {
     }
   }
 
-  const uploadRzutAndSave = async () => {
+  const uploadRzutAndSave = async (type: ProjectAssetType = 'plan') => {
     try {
       if (!userId) {
         Alert.alert(
@@ -617,6 +642,7 @@ export default function ProjektScreen() {
         fileName: (asset as any)?.fileName ?? null,
         mimeType: 'image/jpeg',
         fileSize: assetSize || null})
+      setPendingPlanType(type)
       setPendingPlanName('')
       setPendingPlanPreset(null)
       setPlanNameOpen(true)
@@ -642,7 +668,7 @@ export default function ProjektScreen() {
       if (!proj?.id) return
 
       const key = `${Date.now()}_${Math.random().toString(16).slice(2)}.jpg`
-      const path = `rzuty/${userId}/${proj.id}/${key}`
+      const path = `rzuty/${userId}/${proj.id}/${pendingPlanType}/${key}`
 
       const base64 = await FileSystem.readAsStringAsync(pendingPlan.uri, { encoding: 'base64' as any })
       if (!base64) {
@@ -670,7 +696,7 @@ export default function ProjektScreen() {
         return
       }
 
-      const planName = pendingPlanName.trim() || t('planDefaultName')
+      const planName = pendingPlanName.trim() || t(`projectAssetTypes.${pendingPlanType}.defaultName`)
 
       const { data: row, error: insErr } = await supabase
         .from('rzuty_projektu')
@@ -678,8 +704,9 @@ export default function ProjektScreen() {
           user_id: userId,
           projekt_id: proj.id,
           url: path,
+          typ: pendingPlanType,
           nazwa: planName})
-        .select('id,user_id,projekt_id,url,nazwa,created_at')
+        .select('id,user_id,projekt_id,url,nazwa,typ,created_at')
         .single()
 
       if (insErr) {
@@ -702,6 +729,7 @@ export default function ProjektScreen() {
       setPendingPlan(null)
       setPendingPlanName('')
       setPendingPlanPreset(null)
+      setPendingPlanType('plan')
     } catch (e: any) {
       console.error('[Projekt] savePendingRzut error:', e?.message || e)
       Alert.alert(t('errorTitle'), t('addPlanError'))
@@ -842,6 +870,56 @@ export default function ProjektScreen() {
     }
   }
 
+  const renderProjectAssetSection = (type: ProjectAssetType) => {
+    const assets = projectAssetsByType[type]
+
+    return (
+      <View style={type === 'plan' ? undefined : styles.assetSubsection}>
+        <SectionHeader
+          title={t(`projectAssetTypes.${type}.title`)}
+          right={
+            <TouchableOpacity onPress={() => uploadRzutAndSave(type)} style={styles.editBtn} activeOpacity={0.9}>
+              <Feather name="plus" size={14} color={NEON} />
+              <Text style={styles.editBtnText}>{t(`projectAssetTypes.${type}.add`)}</Text>
+            </TouchableOpacity>
+          }
+          style={styles.sectionHeaderRow}
+        />
+
+        {loading ? (
+          <ActivityIndicator color={NEON} style={{ marginVertical: 16 }} />
+        ) : assets.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Feather name="image" size={28} color="rgba(37,240,200,0.35)" />
+            <Text style={styles.emptyTitle}>{t(`projectAssetTypes.${type}.emptyTitle`)}</Text>
+            <Text style={styles.emptySubtitle}>{t(`projectAssetTypes.${type}.emptySubtitle`)}</Text>
+          </View>
+        ) : (
+          <View style={{ marginTop: 8, gap: 12 }}>
+            {assets.map((r) => (
+              <Pressable key={r.id} onPress={() => openPreview(r)} onLongPress={() => deleteRzut(r)} style={styles.rzutCard}>
+                <Image source={{ uri: getRzutRenderUrl(r) || undefined }} style={styles.rzutImg} resizeMode="cover" />
+                <View style={styles.rzutFooter}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={styles.rzutName} numberOfLines={1}>
+                      {r.nazwa || t(`projectAssetTypes.${normalizeProjectAssetType(r.typ)}.defaultName`)}
+                    </Text>
+                    <Text style={styles.rzutHint}>
+                      {t('planHint')}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10} activeOpacity={0.85}>
+                    <Feather name="trash-2" size={16} color="#F8FAFC" />
+                  </TouchableOpacity>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+    )
+  }
+
   const topPad = 0
 
   return (
@@ -906,47 +984,8 @@ export default function ProjektScreen() {
 
         <View style={styles.sectionOuter}>
           <AppCard contentStyle={styles.sectionGlass}>
-            <SectionHeader
-              title={t('projectPlans')}
-              right={
-                <TouchableOpacity onPress={uploadRzutAndSave} style={styles.editBtn} activeOpacity={0.9}>
-                  <Feather name="plus" size={14} color={NEON} />
-                  <Text style={styles.editBtnText}>{t('addPlan')}</Text>
-                </TouchableOpacity>
-              }
-              style={styles.sectionHeaderRow}
-            />
-
-            {loading ? (
-              <ActivityIndicator color={NEON} style={{ marginVertical: 16 }} />
-            ) : rzuty.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Feather name="image" size={28} color="rgba(37,240,200,0.35)" />
-                <Text style={styles.emptyTitle}>{t('noPlansTitle')}</Text>
-                <Text style={styles.emptySubtitle}>{t('noPlansSubtitle')}</Text>
-              </View>
-            ) : (
-              <View style={{ marginTop: 8, gap: 12 }}>
-                {rzuty.map((r) => (
-                  <Pressable key={r.id} onPress={() => openPreview(r)} onLongPress={() => deleteRzut(r)} style={styles.rzutCard}>
-                    <Image source={{ uri: getRzutRenderUrl(r) || undefined }} style={styles.rzutImg} resizeMode="cover" />
-                    <View style={styles.rzutFooter}>
-                      <View style={{ flex: 1, paddingRight: 10 }}>
-                        <Text style={styles.rzutName} numberOfLines={1}>
-                          {r.nazwa || t('planDefaultName')}
-                        </Text>
-                        <Text style={styles.rzutHint}>
-                          {t('planHint')}
-                        </Text>
-                      </View>
-                      <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10} activeOpacity={0.85}>
-                        <Feather name="trash-2" size={16} color="#F8FAFC" />
-                      </TouchableOpacity>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            )}
+            {renderProjectAssetSection('plan')}
+            {renderProjectAssetSection('visualization')}
           </AppCard>
         </View>
 
@@ -989,7 +1028,7 @@ export default function ProjektScreen() {
               </TouchableOpacity>
 
               <Text style={styles.previewTitle} numberOfLines={1}>
-                {previewRzut?.nazwa || t('planDefaultName')}
+                {previewRzut?.nazwa || t(`projectAssetTypes.${normalizeProjectAssetType(previewRzut?.typ)}.defaultName`)}
               </Text>
 
               <TouchableOpacity
@@ -1019,15 +1058,16 @@ export default function ProjektScreen() {
             setPendingPlan(null)
             setPendingPlanName('')
             setPendingPlanPreset(null)
+            setPendingPlanType('plan')
           }}
         >
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
             <View style={styles.modalBackdrop}>
-              <View style={styles.modalSheet}>
+              <Pressable style={styles.modalSheet} onPress={Keyboard.dismiss}>
                 <View style={styles.modalHandle} />
 
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{t('planNameModalTitle')}</Text>
+                  <Text style={styles.modalTitle}>{t(`projectAssetTypes.${pendingPlanType}.modalTitle`)}</Text>
 
                   <TouchableOpacity
                     onPress={() => {
@@ -1036,6 +1076,7 @@ export default function ProjektScreen() {
                       setPendingPlan(null)
                       setPendingPlanName('')
                       setPendingPlanPreset(null)
+                      setPendingPlanType('plan')
                     }}
                     style={styles.modalCloseBtn}
                     activeOpacity={0.85}
@@ -1044,12 +1085,17 @@ export default function ProjektScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  contentContainerStyle={{ paddingBottom: 24 }}
+                >
                   {pendingPlan?.uri ? (
                     <Image source={{ uri: pendingPlan.uri }} style={styles.planNamePreview} resizeMode="cover" />
                   ) : null}
 
-                  <Text style={styles.fieldGroupLabel}>{t('planNameInputLabel')}</Text>
+                  <Text style={styles.fieldGroupLabel}>{t(`projectAssetTypes.${pendingPlanType}.inputLabel`)}</Text>
                   <AppInput
                     value={pendingPlanName}
                     onChangeText={(text) => {
@@ -1061,29 +1107,33 @@ export default function ProjektScreen() {
                     containerStyle={styles.planNameInput}
                   />
 
-                  <Text style={styles.fieldGroupLabel}>{t('planNamePresetLabel')}</Text>
-                  <View style={styles.planPresetGrid}>
-                    {PLAN_NAME_PRESETS.map((preset) => {
-                      const label = t(preset.labelKey)
-                      const active = pendingPlanPreset === preset.key
+                  {pendingPlanType === 'plan' ? (
+                    <>
+                      <Text style={styles.fieldGroupLabel}>{t('planNamePresetLabel')}</Text>
+                      <View style={styles.planPresetGrid}>
+                        {PLAN_NAME_PRESETS.map((preset) => {
+                          const label = t(preset.labelKey)
+                          const active = pendingPlanPreset === preset.key
 
-                      return (
-                        <TouchableOpacity
-                          key={preset.key}
-                          onPress={() => {
-                            setPendingPlanPreset(preset.key)
-                            setPendingPlanName(label)
-                          }}
-                          style={[styles.planPresetChip, active && styles.planPresetChipActive]}
-                          activeOpacity={0.85}
-                        >
-                          <Text style={[styles.planPresetText, active && styles.planPresetTextActive]} numberOfLines={1}>
-                            {label}
-                          </Text>
-                        </TouchableOpacity>
-                      )
-                    })}
-                  </View>
+                          return (
+                            <TouchableOpacity
+                              key={preset.key}
+                              onPress={() => {
+                                setPendingPlanPreset(preset.key)
+                                setPendingPlanName(label)
+                              }}
+                              style={[styles.planPresetChip, active && styles.planPresetChipActive]}
+                              activeOpacity={0.85}
+                            >
+                              <Text style={[styles.planPresetText, active && styles.planPresetTextActive]} numberOfLines={1}>
+                                {label}
+                              </Text>
+                            </TouchableOpacity>
+                          )
+                        })}
+                      </View>
+                    </>
+                  ) : null}
                 </ScrollView>
 
                 <View style={styles.modalActions}>
@@ -1095,6 +1145,7 @@ export default function ProjektScreen() {
                       setPendingPlan(null)
                       setPendingPlanName('')
                       setPendingPlanPreset(null)
+                      setPendingPlanType('plan')
                     }}
                     disabled={planUploading}
                     style={styles.modalBtnGhost}
@@ -1107,7 +1158,7 @@ export default function ProjektScreen() {
                     style={styles.modalBtnPrimary}
                   />
                 </View>
-              </View>
+              </Pressable>
             </View>
           </KeyboardAvoidingView>
         </Modal>
@@ -1115,7 +1166,7 @@ export default function ProjektScreen() {
         <Modal visible={editOpen} transparent animationType="slide" onRequestClose={() => setEditOpen(false)}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
             <View style={styles.modalBackdrop}>
-              <View style={styles.modalSheet}>
+              <Pressable style={styles.modalSheet} onPress={Keyboard.dismiss}>
                 <View style={styles.modalHandle} />
 
                 <View style={styles.modalHeader}>
@@ -1126,7 +1177,12 @@ export default function ProjektScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  contentContainerStyle={{ paddingBottom: 24 }}
+                >
                   <Text style={styles.fieldGroupLabel}>{t('fieldGroupGeneral')}</Text>
                   <FieldText
                     label={t('fieldProjectName')}
@@ -1137,19 +1193,19 @@ export default function ProjektScreen() {
                   <Text style={styles.fieldGroupLabel}>{t('fieldGroupSurfaces')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
-                      label={t('fieldPowU')}
+                      label={labelWithUnit(t('fieldPowU'), areaUnit)}
                       value={form.powierzchnia_uzytkowa}
                       onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: txt }))}
                     />
                     <FieldNum
-                      label={t('fieldPowZ')}
+                      label={labelWithUnit(t('fieldPowZ'), areaUnit)}
                       value={form.powierzchnia_zabudowy}
                       onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_zabudowy: txt }))}
                     />
                   </View>
 
                   <FieldNum
-                    label={t('fieldRoofArea')}
+                    label={labelWithUnit(t('fieldRoofArea'), areaUnit)}
                     value={form.powierzchnia_dachu}
                     onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_dachu: txt }))}
                   />
@@ -1170,12 +1226,12 @@ export default function ProjektScreen() {
 
                   <View style={styles.row2}>
                     <FieldNum
-                      label={t('fieldHeight')}
+                      label={labelWithUnit(t('fieldHeight'), lengthUnit)}
                       value={form.wysokosc_budynku}
                       onChange={(txt) => setForm((p) => ({ ...p, wysokosc_budynku: txt }))}
                     />
                     <FieldNum
-                      label={t('fieldRoofAngle')}
+                      label={labelWithUnit(t('fieldRoofAngle'), degreeUnit)}
                       value={form.kat_dachu}
                       onChange={(txt) => setForm((p) => ({ ...p, kat_dachu: txt }))}
                     />
@@ -1184,12 +1240,12 @@ export default function ProjektScreen() {
                   <Text style={styles.fieldGroupLabel}>{t('fieldGroupFacade')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
-                      label={t('fieldFacadeWidth')}
+                      label={labelWithUnit(t('fieldFacadeWidth'), lengthUnit)}
                       value={form.szerokosc_elewacji}
                       onChange={(txt) => setForm((p) => ({ ...p, szerokosc_elewacji: txt }))}
                     />
                     <FieldNum
-                      label={t('fieldFacadeLength')}
+                      label={labelWithUnit(t('fieldFacadeLength'), lengthUnit)}
                       value={form.dlugosc_elewacji}
                       onChange={(txt) => setForm((p) => ({ ...p, dlugosc_elewacji: txt }))}
                     />
@@ -1215,7 +1271,7 @@ export default function ProjektScreen() {
 
                   <AppButton title={t('save')} loading={saving} onPress={saveParams} style={styles.modalBtnPrimary} />
                 </View>
-              </View>
+              </Pressable>
             </View>
           </KeyboardAvoidingView>
         </Modal>
@@ -1390,6 +1446,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16},
+
+  assetSubsection: {
+    marginTop: 22,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)'},
 
   sectionTitleNeon: {
     color: NEON,

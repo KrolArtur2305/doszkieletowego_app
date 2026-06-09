@@ -4,6 +4,26 @@
   "projectLocationPlaceholder": "—",
   "buildingParams": "Gebäudeparameter",
   "projectPlans": "Projektgrundrisse",
+  "projectAssetTypes": {
+    "plan": {
+      "title": "Projektgrundrisse",
+      "add": "Grundriss hinzufügen",
+      "defaultName": "Grundriss",
+      "modalTitle": "Grundriss benennen",
+      "inputLabel": "Name des Grundrisses",
+      "emptyTitle": "Keine Grundrisse",
+      "emptySubtitle": "Füge deinen ersten Grundriss hinzu (jpg/png/webp)."
+    },
+    "visualization": {
+      "title": "Visualisierungen",
+      "add": "Visualisierung hinzufügen",
+      "defaultName": "Visualisierung",
+      "modalTitle": "Visualisierung hinzufügen",
+      "inputLabel": "Name der Visualisierung",
+      "emptyTitle": "Keine Visualisierungen",
+      "emptySubtitle": "Füge die erste Visualisierung hinzu (jpg/png/webp)."
+    }
+  },
   "change3dModel": "3D-Modell hinzufügen / ersetzen",
   "edit": "Bearbeiten",
   "tilePowU": "Nutzfläche",
@@ -36,9 +56,9 @@
   "errorTitle": "Fehler",
   "loadError": "Projektdaten konnten nicht aus Supabase geladen werden.",
   "createProjectError": "Projekt konnte in Supabase nicht erstellt werden.",
-  "addPlanError": "Grundriss konnte nicht hinzugefügt werden.",
-  "deletePlanError": "Grundriss konnte nicht gelöscht werden.",
-  "deletePlanTitle": "Grundriss löschen?",
+  "addPlanError": "Bild konnte nicht hinzugefügt werden.",
+  "deletePlanError": "Bild konnte nicht gelöscht werden.",
+  "deletePlanTitle": "Bild löschen?",
   "deletePlanDesc": "Die Datei wird aus dem Storage und der Datenbank entfernt.",
   "cancel": "Abbrechen",
   "delete": "Löschen",
@@ -76,7 +96,7 @@
   "notLoggedTitle": "Nicht angemeldet",
   "notLoggedDesc": "Bitte erneut anmelden.",
   "noAccessTitle": "Kein Zugriff",
-  "noAccessPhotosDesc": "Galeriezugriff gewähren, um einen Grundriss hinzuzufügen.",
+  "noAccessPhotosDesc": "Galeriezugriff gewähren, um ein Bild hinzuzufügen.",
   "uploadFailedTitle": "Upload fehlgeschlagen",
   "urlError": "Datei-URL konnte nicht abgerufen werden.",
   "skip": "Überspringen",
@@ -84,8 +104,8 @@
   "projectNudgeTitle": "Fülle jetzt die wichtigsten Projektdaten aus.",
   "projectNudgeText": "So hast du alles griffbereit und meine Vorschläge passen besser.",
   "projectNudgeCta": "Ausfüllen",
-  "planTooLarge": "Der Plan ist zu groß. Die maximale Größe beträgt 12 MB.",
+  "planTooLarge": "Das Bild ist zu groß. Die maximale Größe beträgt 15 MB.",
   "invalidPlanType": "Du kannst nur JPG-, PNG-, WEBP- oder HEIC-Dateien hochladen.",
-  "emptyPlanFile": "Die ausgewählte Plandatei ist leer.",
-  "deletePlanStorageWarning": "Der Plan wurde aus der Liste entfernt, aber die Datei konnte nicht aus dem Speicher gelöscht werden."
+  "emptyPlanFile": "Die ausgewählte Datei ist leer.",
+  "deletePlanStorageWarning": "Das Bild wurde aus der Liste entfernt, aber die Datei konnte nicht aus dem Speicher gelöscht werden."
 }

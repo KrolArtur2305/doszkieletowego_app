@@ -39,6 +39,7 @@ type SortOrder = 'newest' | 'oldest';
 type EtapZdjecia = {
   id: string;
   nazwa: string;
+  nazwa_code?: string | null;
   kolejnosc: number;
 };
 
@@ -247,7 +248,10 @@ export default function ZdjeciaScreen() {
 
       const nextLegacyMap = legacyStages.reduce<Record<string, string>>(
         (acc, row) => {
-          acc[row.id] = getStageGroupDisplayName(t, stageGroupCodeFromLegacyStage(row), row.nazwa);
+          const groupCode = stageGroupCodeFromLegacyStage(row);
+          acc[row.id] = groupCode === 'other'
+            ? row.nazwa
+            : getStageGroupDisplayName(t, groupCode, row.nazwa);
           return acc;
         },
         {}
@@ -423,6 +427,7 @@ export default function ZdjeciaScreen() {
   };
 
   const openDatePicker = () => {
+    setUploadDropdownOpen(false);
     setDatePickerValue(takenAt ?? new Date());
     setShowDatePicker(true);
   };
@@ -435,6 +440,14 @@ export default function ZdjeciaScreen() {
     setPendingPhotos([]);
     setShowDatePicker(false);
     setUploadDropdownOpen(false);
+  };
+
+  const closeAddModalAndReset = () => {
+    Keyboard.dismiss();
+    setAddModalVisible(false);
+    setShowDatePicker(false);
+    setUploadDropdownOpen(false);
+    resetAddForm();
   };
 
   const openAddModal = () => {
@@ -469,6 +482,9 @@ export default function ZdjeciaScreen() {
   };
 
   const onDatePicked = (event: any, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (event?.type === 'dismissed') return;
     const nextDate = selected ?? datePickerValue;
     setDatePickerValue(nextDate);
@@ -519,12 +535,7 @@ export default function ZdjeciaScreen() {
       }
 
       if (successCount > 0) {
-        setAddModalVisible(false);
-        setSelectedEtapForUpload('');
-        setTakenAt(null);
-        setOpis('');
-        setTagsInput('');
-        setUploadDropdownOpen(false);
+        closeAddModalAndReset();
 
         await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
       }
@@ -569,13 +580,7 @@ export default function ZdjeciaScreen() {
       }
 
       if (successCount > 0) {
-        setAddModalVisible(false);
-        setSelectedEtapForUpload('');
-        setTakenAt(null);
-        setOpis('');
-        setTagsInput('');
-        setPendingPhotos([]);
-        setUploadDropdownOpen(false);
+        closeAddModalAndReset();
 
         await Promise.all([loadEtapUsage(false), loadZdjecia(false)]);
       }
@@ -819,7 +824,7 @@ export default function ZdjeciaScreen() {
 
   return (
     <View style={styles.container}>
-      {(filterDropdownOpen || uploadDropdownOpen || sortDropdownOpen) && (
+      {(filterDropdownOpen || sortDropdownOpen || (addModalVisible && uploadDropdownOpen)) && (
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={() => {
@@ -1141,8 +1146,7 @@ export default function ZdjeciaScreen() {
                 variant="secondary"
                 style={[styles.modalButton, styles.modalButtonSecondary]}
                 onPress={() => {
-                  setAddModalVisible(false);
-                  resetAddForm();
+                  closeAddModalAndReset();
                 }}
                 disabled={uploading}
               />
@@ -1166,7 +1170,22 @@ export default function ZdjeciaScreen() {
         </Pressable>
       </Modal>
 
-      <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={() => setShowDatePicker(false)}>
+      {showDatePicker && Platform.OS === 'android' ? (
+        <DateTimePicker
+          value={datePickerValue}
+          mode="date"
+          display="default"
+          locale={dateLocale}
+          onChange={onDatePicked}
+        />
+      ) : null}
+
+      <Modal
+        visible={showDatePicker && Platform.OS !== 'android'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDatePicker(false)}
+      >
         <Pressable style={styles.datePickerBackdrop} onPress={() => setShowDatePicker(false)}>
           <Pressable style={styles.datePickerCard} onPress={() => {}}>
             <Text style={styles.datePickerModalTitle}>{tt('photos:addModal.dateLabel')}</Text>

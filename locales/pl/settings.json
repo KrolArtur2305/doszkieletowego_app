@@ -69,6 +69,13 @@
     "currency": {
       "groupLabel": "Waluta"
     },
+    "units": {
+      "groupLabel": "Jednostki",
+      "options": {
+        "metric": "Metryczne (m, m²)",
+        "imperial": "Amerykańskie (ft, sq ft)"
+      }
+    },
     "notif": {
       "groupLabel": "Powiadomienia",
       "pushTitle": "Powiadomienia push",

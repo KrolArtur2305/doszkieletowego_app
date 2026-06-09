@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   Linking,
   Modal,
   Platform,
@@ -10,6 +11,7 @@ import {
   Switch,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -27,6 +29,7 @@ import {
   setAppCurrency,
   type AppCurrency,
 } from '../../../../lib/currency';
+import { getStoredUnits, setAppUnits, setUnitsForLanguage, type UnitSystem } from '../../../../lib/units';
 import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
 import { AppButton, AppInput } from '../../../../src/ui/components';
@@ -68,8 +71,10 @@ export default function UstawieniaAplikacjiScreen() {
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifLoading, setNotifLoading] = useState(true);
   const [activeCurrency, setActiveCurrency] = useState<AppCurrency>('PLN');
+  const [activeUnits, setActiveUnits] = useState<UnitSystem>('metric');
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
+  const [unitsModalOpen, setUnitsModalOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -83,6 +88,16 @@ export default function UstawieniaAplikacjiScreen() {
     let alive = true;
     getStoredCurrency().then((currency) => {
       if (alive) setActiveCurrency(currency);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    getStoredUnits().then((units) => {
+      if (alive) setActiveUnits(units);
     });
     return () => {
       alive = false;
@@ -219,7 +234,7 @@ export default function UstawieniaAplikacjiScreen() {
             <TouchableOpacity
               activeOpacity={0.86}
               onPress={() => setCurrencyModalOpen(true)}
-              style={styles.selectRow}
+              style={[styles.selectRow, styles.selectRowBorder]}
             >
               <View style={styles.rowIconWrap}>
                 <Feather name="dollar-sign" size={18} color={ACCENT} />
@@ -228,6 +243,23 @@ export default function UstawieniaAplikacjiScreen() {
                 <Text style={styles.selectLabel}>{t('appSettings.currency.groupLabel')}</Text>
                 <Text style={styles.rowTitle}>
                   {selectedCurrency.code} · {selectedCurrency.symbol}
+                </Text>
+              </View>
+              <Feather name="chevron-down" size={18} color="rgba(255,255,255,0.36)" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.86}
+              onPress={() => setUnitsModalOpen(true)}
+              style={styles.selectRow}
+            >
+              <View style={styles.rowIconWrap}>
+                <Feather name="sliders" size={18} color={ACCENT} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.selectLabel}>{t('appSettings.units.groupLabel')}</Text>
+                <Text style={styles.rowTitle}>
+                  {t(`appSettings.units.options.${activeUnits}`)}
                 </Text>
               </View>
               <Feather name="chevron-down" size={18} color="rgba(255,255,255,0.36)" />
@@ -375,6 +407,8 @@ export default function UstawieniaAplikacjiScreen() {
                   activeOpacity={0.86}
                   onPress={async () => {
                     await setAppLanguage(lang.key);
+                    await setUnitsForLanguage(lang.key);
+                    setActiveUnits(lang.key === 'en' ? 'imperial' : 'metric');
                     setLanguageModalOpen(false);
                   }}
                   style={[styles.optionRow, isActive && styles.optionRowActive]}
@@ -426,12 +460,47 @@ export default function UstawieniaAplikacjiScreen() {
       </Modal>
 
       <Modal
+        visible={unitsModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUnitsModalOpen(false)}
+      >
+        <View style={styles.pickerBackdrop}>
+          <View style={styles.pickerCard}>
+            <Text style={styles.pickerTitle}>{t('appSettings.units.groupLabel')}</Text>
+            {(['metric', 'imperial'] as UnitSystem[]).map((option) => {
+              const isActive = activeUnits === option;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  activeOpacity={0.86}
+                  onPress={async () => {
+                    await setAppUnits(option);
+                    setActiveUnits(option);
+                    setUnitsModalOpen(false);
+                  }}
+                  style={[styles.optionRow, isActive && styles.optionRowActive]}
+                >
+                  <Text style={styles.optionCurrency}>{option === 'imperial' ? 'ft' : 'm'}</Text>
+                  <Text style={[styles.optionText, isActive && styles.optionTextActive]}>
+                    {t(`appSettings.units.options.${option}`)}
+                  </Text>
+                  {isActive ? <Feather name="check" size={17} color={NEON} /> : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={pwdModalOpen}
         transparent
         animationType="slide"
         onRequestClose={() => setPwdModalOpen(false)}
       >
         <View style={styles.modalBackdrop}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
 
@@ -512,6 +581,7 @@ export default function UstawieniaAplikacjiScreen() {
               />
             </View>
           </View>
+          </TouchableWithoutFeedback>
         </View>
       </Modal>
     </View>

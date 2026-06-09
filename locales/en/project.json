@@ -4,6 +4,26 @@
   "projectLocationPlaceholder": "—",
   "buildingParams": "Building parameters",
   "projectPlans": "Project floor plans",
+  "projectAssetTypes": {
+    "plan": {
+      "title": "Project floor plans",
+      "add": "Add floor plan",
+      "defaultName": "Floor plan",
+      "modalTitle": "Name the floor plan",
+      "inputLabel": "Floor plan name",
+      "emptyTitle": "No floor plans",
+      "emptySubtitle": "Add your first floor plan (jpg/png/webp)."
+    },
+    "visualization": {
+      "title": "Visualizations",
+      "add": "Add visualization",
+      "defaultName": "Visualization",
+      "modalTitle": "Add visualization",
+      "inputLabel": "Visualization name",
+      "emptyTitle": "No visualizations",
+      "emptySubtitle": "Add the first visualization (jpg/png/webp)."
+    }
+  },
   "change3dModel": "Add / replace 3D model",
   "tilePowU": "Usable area",
   "tileFloors": "Floors",
@@ -35,9 +55,9 @@
   "errorTitle": "Error",
   "loadError": "Failed to load project data from Supabase.",
   "createProjectError": "Failed to create project in Supabase.",
-  "addPlanError": "Failed to add floor plan.",
-  "deletePlanError": "Failed to delete floor plan.",
-  "deletePlanTitle": "Delete floor plan?",
+  "addPlanError": "Failed to add image.",
+  "deletePlanError": "Failed to delete image.",
+  "deletePlanTitle": "Delete image?",
   "deletePlanDesc": "This will remove the file from Storage and the database record.",
   "cancel": "Cancel",
   "delete": "Delete",
@@ -75,7 +95,7 @@
   "notLoggedTitle": "Not logged in",
   "notLoggedDesc": "Please log in again.",
   "noAccessTitle": "No access",
-  "noAccessPhotosDesc": "Grant gallery access to add a floor plan.",
+  "noAccessPhotosDesc": "Grant gallery access to add an image.",
   "uploadFailedTitle": "Upload failed",
   "urlError": "Failed to retrieve file URL.",
   "edit": "Edit",
@@ -84,8 +104,8 @@
   "projectNudgeTitle": "Fill in the most important project details now.",
   "projectNudgeText": "This way everything stays at hand and my suggestions will be better tailored.",
   "projectNudgeCta": "Fill in",
-  "planTooLarge": "The plan is too large. Maximum size is 12 MB.",
+  "planTooLarge": "The image is too large. Maximum size is 15 MB.",
   "invalidPlanType": "You can upload JPG, PNG, WEBP or HEIC files only.",
-  "emptyPlanFile": "The selected plan file is empty.",
-  "deletePlanStorageWarning": "The plan was removed from the list, but the storage file could not be deleted."
+  "emptyPlanFile": "The selected file is empty.",
+  "deletePlanStorageWarning": "The image was removed from the list, but the storage file could not be deleted."
 }

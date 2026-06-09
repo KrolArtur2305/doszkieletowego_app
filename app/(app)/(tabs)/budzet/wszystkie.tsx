@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Linking,
   Modal,
   Platform,
@@ -10,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image as ExpoImage } from 'expo-image';
@@ -1222,6 +1224,7 @@ export default function WszystkieWydatkiScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.modalScrollContent}
           >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <AppCard contentStyle={styles.modalCard} style={styles.modalCardOuter} withShadow={false}>
               <Text style={styles.modalTitle}>{editingExpense ? t('modal.editTitle') : t('modal.title')}</Text>
 
@@ -1343,6 +1346,7 @@ export default function WszystkieWydatkiScreen() {
                 <AppButton title={saving ? t('common.saving') : t('common.save')} onPress={saveExpense} disabled={saving} style={styles.modalBtn} />
               </View>
             </AppCard>
+            </TouchableWithoutFeedback>
           </ScrollView>
         </View>
       </Modal>
