@@ -3,7 +3,7 @@
     "name": "BuildIQ",
     "slug": "buildiq",
     "scheme": "buildiq",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/logo-square.png",
     "userInterfaceStyle": "dark",
@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "icon": "./assets/logo-square.png",
-      "buildNumber": "14",
+      "buildNumber": "17",
       "bundleIdentifier": "pl.buildiq.mobile",
       "splash": {
         "image": "./assets/logo.png",

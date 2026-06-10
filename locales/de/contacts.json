@@ -12,6 +12,7 @@
     "invalidEmail": "Bitte eine gültige E-Mail-Adresse eingeben.",
     "invalidPhone": "Bitte eine gültige Telefonnummer eingeben.",
     "noSession": "Keine aktive Benutzersitzung.",
+    "linkError": "Kontaktaktion konnte nicht geöffnet werden.",
     "saveError": "Kontakt konnte nicht gespeichert werden.",
     "deleteTitle": "Kontakt löschen",
     "deleteConfirm": "{{name}} löschen?",

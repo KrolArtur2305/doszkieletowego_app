@@ -12,6 +12,7 @@
     "invalidEmail": "Podaj poprawny adres e-mail.",
     "invalidPhone": "Podaj poprawny numer telefonu.",
     "noSession": "Brak aktywnej sesji użytkownika.",
+    "linkError": "Nie udało się otworzyć akcji kontaktu.",
     "saveError": "Nie udało się zapisać kontaktu.",
     "deleteTitle": "Usuń kontakt",
     "deleteConfirm": "Usunąć {{name}}?",

@@ -26,15 +26,18 @@
     "title": "Dokument hinzufügen",
     "labels": {
       "type": "TYP",
+      "documentDate": "DOKUMENTDATUM",
       "titleOptional": "TITEL (OPTIONAL)",
       "descriptionOptional": "BESCHREIBUNG (OPTIONAL)",
       "file": "DATEI / BILD"
     },
     "placeholders": {
       "title": "z. B. Vertrag",
+      "documentDate": "Datum auswahlen",
       "description": "Beschreibung hinzufügen (optional)",
       "file": "Datei oder Bild anhängen"
     },
+    "setDate": "Datum setzen",
     "saving": "Speichern…"
   },
   "alerts": {

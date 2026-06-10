@@ -34,6 +34,8 @@ type Tile = {
   wide?: boolean;
 };
 
+const hasGreenGlow = (color: string) => color === NEON || color.toUpperCase() === '#22C55E';
+
 export default function WiecejScreen() {
   const router = useRouter();
   const { t } = useTranslation('navigation');
@@ -154,7 +156,9 @@ export default function WiecejScreen() {
                     pressed && styles.tilePressed,
                   ]}
                 >
-                  <View pointerEvents="none" style={[styles.tileGlow, { backgroundColor: tile.color }]} />
+                  {!hasGreenGlow(tile.color) && (
+                    <View pointerEvents="none" style={[styles.tileGlow, { backgroundColor: tile.color }]} />
+                  )}
                   <View style={styles.tileInner}>
                     <View
                       style={[
@@ -202,7 +206,9 @@ export default function WiecejScreen() {
                     pressed && styles.tilePressed,
                   ]}
                 >
-                  <View pointerEvents="none" style={[styles.wideTileGlow, { backgroundColor: tile.color }]} />
+                  {!hasGreenGlow(tile.color) && (
+                    <View pointerEvents="none" style={[styles.wideTileGlow, { backgroundColor: tile.color }]} />
+                  )}
                   <View style={styles.wideTileContent}>
                     <View
                       style={[

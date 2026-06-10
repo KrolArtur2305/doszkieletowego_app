@@ -190,7 +190,6 @@ export default function CheckoutScreen() {
       <View pointerEvents="none" style={styles.bg} />
       <View pointerEvents="none" style={styles.lineTop} />
       <View pointerEvents="none" style={styles.lineMid} />
-      <View pointerEvents="none" style={styles.glowSide} />
 
       <ScrollView
         style={styles.scroll}

@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { WebView } from 'react-native-webview';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
@@ -55,6 +56,7 @@ type DbDoc = {
   tytul: string;
   notatki?: string | null;
   kategoria?: string | null;
+  document_date?: string | null;
   created_at?: string | null;
   plik_url: string;
 };
@@ -133,6 +135,17 @@ function normalizeType(cat?: string | null): DocTypeKey {
   return 'inne';
 }
 
+function toISODate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function randomFileToken() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
 function getFileExt(path?: string | null) {
   const cleaned = String(path || '').split('?')[0].split('#')[0];
   const parts = cleaned.split('.');
@@ -156,14 +169,6 @@ function getPreviewKind(path?: string | null): PreviewKind {
   if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic'].includes(ext)) return 'image';
   if (ext === 'pdf') return 'pdf';
   return 'file';
-}
-
-function getPdfPreviewUri(url: string) {
-  if (Platform.OS === 'android') {
-    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
-  }
-
-  return url;
 }
 
 function getFileIcon(path?: string | null): keyof typeof Ionicons.glyphMap {
@@ -218,6 +223,9 @@ export default function DokumentyScreen() {
   const [selectedTypeForUpload, setSelectedTypeForUpload] = useState<DocTypeKey>('umowa');
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
+  const [documentDate, setDocumentDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerValue, setDatePickerValue] = useState<Date>(new Date());
   const [file, setFile] = useState<{ uri: string; name: string; mimeType?: string; size?: number } | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -262,7 +270,7 @@ export default function DokumentyScreen() {
 
         const { data, error } = await supabase
           .from('dokumenty')
-          .select('id,user_id,tytul,notatki,kategoria,created_at,plik_url')
+          .select('id,user_id,tytul,notatki,kategoria,document_date,created_at,plik_url')
           .eq('user_id', userId)
           .order('created_at', { ascending: sortOrder === 'oldest' });
 
@@ -305,6 +313,19 @@ export default function DokumentyScreen() {
   const closeAllDropdowns = () => {
     setFilterDropdownOpen(false);
     setAddDropdownOpen(false);
+  };
+
+  const openDatePicker = () => {
+    closeAllDropdowns();
+    setDatePickerValue(documentDate ?? new Date());
+    setShowDatePicker(true);
+  };
+
+  const onDatePicked = (_event: any, selected?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    const nextDate = selected ?? datePickerValue;
+    setDatePickerValue(nextDate);
+    setDocumentDate(nextDate);
   };
 
   const pickFile = async () => {
@@ -461,6 +482,9 @@ export default function DokumentyScreen() {
     setSelectedTypeForUpload('umowa');
     setTitle('');
     setDesc('');
+    setDocumentDate(null);
+    setShowDatePicker(false);
+    setDatePickerValue(new Date());
     setFile(null);
     setAddDropdownOpen(false);
   };
@@ -515,7 +539,7 @@ export default function DokumentyScreen() {
         return parts.length > 1 ? parts.pop()!.toLowerCase() : '';
       })();
 
-      const filePath = `dokumenty/${userId}/${Date.now()}${ext ? '.' + ext : ''}`;
+      const filePath = `dokumenty/${userId}/${Date.now()}-${randomFileToken()}${ext ? '.' + ext : ''}`;
 
       const blob = await (await fetch(file.uri)).blob();
       if (!blob || blob.size <= 0) {
@@ -538,6 +562,7 @@ export default function DokumentyScreen() {
         tytul: finalTitle,
         notatki: desc.trim() ? desc.trim() : null,
         kategoria: selectedTypeForUpload,
+        document_date: documentDate ? toISODate(documentDate) : null,
         plik_url: filePath});
 
       if (error) {
@@ -579,7 +604,7 @@ export default function DokumentyScreen() {
 
   const renderGridItem = ({ item }: { item: DbDoc }) => {
     const type = normalizeType(item.kategoria);
-    const dateTxt = formatDateLocale(item.created_at || null, dateLocale);
+    const dateTxt = formatDateLocale(item.document_date || item.created_at || null, dateLocale);
     const iconName = getFileIcon(item.plik_url);
     const cover = getDocCover(type);
 
@@ -626,7 +651,7 @@ export default function DokumentyScreen() {
 
   const renderListItem = ({ item }: { item: DbDoc }) => {
     const type = normalizeType(item.kategoria);
-    const dateTxt = formatDateLocale(item.created_at || null, dateLocale);
+    const dateTxt = formatDateLocale(item.document_date || item.created_at || null, dateLocale);
     const iconName = getFileIcon(item.plik_url);
     const cover = getDocCover(type);
 
@@ -715,7 +740,7 @@ export default function DokumentyScreen() {
               >
                 <Ionicons name="filter" size={14} color={COLORS.brand} />
                 <Text style={styles.controlButtonTextCompact} numberOfLines={1}>
-                  {tt('documents:addModal.labels.type')}
+                  {getTypeLabel(selectedType)}
                 </Text>
                 <Ionicons
                   name={filterDropdownOpen ? 'chevron-up' : 'chevron-down'}
@@ -857,10 +882,10 @@ export default function DokumentyScreen() {
               </View>
             ) : previewKind === 'image' && previewUrl ? (
               <Image source={{ uri: previewUrl }} style={styles.previewImage} contentFit="contain" />
-            ) : previewKind === 'pdf' && previewUrl && !previewWebFailed ? (
+            ) : previewKind === 'pdf' && previewUrl && Platform.OS === 'ios' && !previewWebFailed ? (
               <View style={styles.previewPdfWrap}>
                 <WebView
-                  source={{ uri: getPdfPreviewUri(previewUrl) }}
+                  source={{ uri: previewUrl }}
                   style={styles.previewPdf}
                   originWhitelist={['*']}
                   startInLoadingState
@@ -929,7 +954,8 @@ export default function DokumentyScreen() {
         >
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
             <Pressable style={styles.modalContent} onPress={Keyboard.dismiss}>
-              <Text style={styles.modalTitle}>{tt('documents:addModal.title')}</Text>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <Text style={styles.modalTitle}>{tt('documents:addModal.title')}</Text>
 
               <Text style={styles.modalLabel}>{tt('documents:addModal.labels.titleOptional')}</Text>
               <AppInput
@@ -989,6 +1015,53 @@ export default function DokumentyScreen() {
                 </View>
               )}
 
+              <Text style={styles.modalLabel}>{tt('documents:addModal.labels.documentDate')}</Text>
+              <TouchableOpacity style={styles.dateButton} activeOpacity={0.85} onPress={openDatePicker}>
+                <Ionicons name="calendar-outline" size={18} color={COLORS.brand} />
+                <Text style={styles.dateButtonText}>
+                  {documentDate
+                    ? formatDateLocale(toISODate(documentDate), dateLocale)
+                    : tt('documents:addModal.placeholders.documentDate')}
+                </Text>
+                {documentDate && (
+                  <TouchableOpacity onPress={() => setDocumentDate(null)} style={styles.dateClear} activeOpacity={0.85}>
+                    <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.55)" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+
+              {showDatePicker && Platform.OS === 'android' ? (
+                <DateTimePicker
+                  value={datePickerValue}
+                  mode="date"
+                  display="default"
+                  locale={dateLocale}
+                  onChange={onDatePicked}
+                />
+              ) : null}
+
+              {showDatePicker && Platform.OS !== 'android' ? (
+                <View style={styles.iosDateWrap}>
+                  <DateTimePicker
+                    value={datePickerValue}
+                    mode="date"
+                    display="spinner"
+                    locale={dateLocale}
+                    onChange={onDatePicked}
+                  />
+                  <TouchableOpacity
+                    style={styles.iosDateOk}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setDocumentDate(datePickerValue);
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <Text style={styles.iosDateOkText}>{tt('documents:addModal.setDate')}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
               <Text style={styles.modalLabel}>{tt('documents:addModal.labels.descriptionOptional')}</Text>
               <AppInput
                 value={desc}
@@ -1037,6 +1110,7 @@ export default function DokumentyScreen() {
                   loading={saving}
                 />
               </View>
+              </ScrollView>
             </Pressable>
           </KeyboardAvoidingView>
         </Pressable>
@@ -1113,7 +1187,9 @@ const styles = StyleSheet.create({
   controlsLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8},
+    gap: 8,
+    flex: 1,
+    minWidth: 0},
 
   controlsRight: {
     flexDirection: 'row',
@@ -1123,7 +1199,8 @@ const styles = StyleSheet.create({
 
   dropdownWrap: {
     position: 'relative',
-    zIndex: 50},
+    zIndex: 50,
+    flexShrink: 1},
 
   controlButtonCompact: {
     flexDirection: 'row',
@@ -1135,12 +1212,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.96)',
     borderWidth: 1,
     borderColor: 'rgba(25,112,92,0.35)',
-    minWidth: 102},
+    minWidth: 96,
+    maxWidth: 138},
 
   controlButtonTextCompact: {
     color: COLORS.text,
     fontWeight: '800',
-    fontSize: 13},
+    fontSize: 13,
+    flexShrink: 1},
 
   controlIconButtonSmall: {
     width: 42,
@@ -1443,6 +1522,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 420,
+    maxHeight: SCREEN_HEIGHT * 0.88,
     backgroundColor: '#000000',
     borderRadius: 26,
     padding: 22,
@@ -1484,6 +1564,34 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: '#FFFFFF',
     fontWeight: '800'},
+
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.35)'},
+  dateButtonText: { flex: 1, color: COLORS.text, fontWeight: '800' },
+  dateClear: { paddingHorizontal: 6, paddingVertical: 2 },
+  iosDateWrap: {
+    marginTop: 8,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.28)',
+    overflow: 'hidden'},
+  iosDateOk: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(37,240,200,0.12)',
+    backgroundColor: 'rgba(25,112,92,0.16)'},
+  iosDateOkText: { color: THEME_COLORS.neon, fontWeight: '900' },
 
   filePickButton: {
     flexDirection: 'row',

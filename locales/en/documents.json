@@ -26,15 +26,18 @@
     "title": "Add document",
     "labels": {
       "type": "TYPE",
+      "documentDate": "DOCUMENT DATE",
       "titleOptional": "TITLE (OPTIONAL)",
       "descriptionOptional": "DESCRIPTION (OPTIONAL)",
       "file": "FILE / IMAGE"
     },
     "placeholders": {
       "title": "e.g. Contract",
+      "documentDate": "Select date",
       "description": "Add description (optional)",
       "file": "Attach file or image"
     },
+    "setDate": "Set date",
     "saving": "Saving…"
   },
   "alerts": {

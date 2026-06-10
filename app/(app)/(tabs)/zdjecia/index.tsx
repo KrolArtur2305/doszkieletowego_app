@@ -14,7 +14,8 @@ import {
   ScrollView,
   Platform,
   Pressable,
-  StatusBar} from 'react-native';
+  StatusBar,
+  KeyboardAvoidingView} from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -28,7 +29,13 @@ import { supabase } from '../../../../lib/supabase';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../src/ui/components';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
-import { getStageGroupDisplayName, stageGroupCodeFromLegacyStage } from '../../../../lib/stageModel';
+import {
+  buildStageGroupPickerOptions,
+  buildStagePickerOptions,
+  getStageGroupDisplayName,
+  stageGroupCodeFromLegacyStage,
+  type StageGroupCode,
+} from '../../../../lib/stageModel';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -41,6 +48,7 @@ type EtapZdjecia = {
   nazwa: string;
   nazwa_code?: string | null;
   kolejnosc: number;
+  stageGroupCode?: StageGroupCode;
 };
 
 type Zdjecie = {
@@ -141,6 +149,7 @@ export default function ZdjeciaScreen() {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [selectedZdjecie, setSelectedZdjecie] = useState<Zdjecie | null>(null);
+  const [stagesReady, setStagesReady] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
@@ -226,6 +235,7 @@ export default function ZdjeciaScreen() {
   }, [selectedEtap, sortOrder]);
 
   const loadEtapy = async () => {
+    setStagesReady(false);
     try {
       const userId = await getUserId();
       if (!userId) {
@@ -234,19 +244,45 @@ export default function ZdjeciaScreen() {
         return;
       }
 
-      const { data: legacyData, error: legacyError } = await supabase
-        .from('etapy_zdjecia')
-        .select('id,nazwa,kolejnosc')
-        .order('kolejnosc', { ascending: true });
+      const [profileRes, templateRes, userStageRes, legacyEtapyRes, legacyPhotoStageRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('build_type, current_stage_code')
+          .eq('user_id', userId)
+          .maybeSingle(),
+        supabase
+          .from('stage_templates')
+          .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
+          .eq('is_active', true)
+          .order('order_index', { ascending: true }),
+        supabase
+          .from('user_stages')
+          .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
+          .eq('user_id', userId)
+          .order('order_index', { ascending: true }),
+        supabase
+          .from('etapy')
+          .select('id,nazwa,nazwa_code,status,kolejnosc')
+          .eq('user_id', userId)
+          .order('kolejnosc', { ascending: true }),
+        supabase
+          .from('etapy_zdjecia')
+          .select('id,nazwa,kolejnosc')
+          .order('kolejnosc', { ascending: true }),
+      ]);
 
-      if (legacyError) throw legacyError;
+      if (profileRes.error) throw profileRes.error;
+      if (templateRes.error) throw templateRes.error;
+      if (userStageRes.error) throw userStageRes.error;
+      if (legacyEtapyRes.error) throw legacyEtapyRes.error;
+      if (legacyPhotoStageRes.error) throw legacyPhotoStageRes.error;
 
-      const legacyStages = ((legacyData ?? []) as EtapZdjecia[]).map((row) => ({
+      const legacyPhotoStages = ((legacyPhotoStageRes.data ?? []) as EtapZdjecia[]).map((row) => ({
         id: String(row.id),
         nazwa: String(row.nazwa ?? tt('photos:misc.stageFallback')),
         kolejnosc: Number(row.kolejnosc ?? 0)}));
 
-      const nextLegacyMap = legacyStages.reduce<Record<string, string>>(
+      const nextLegacyMap = legacyPhotoStages.reduce<Record<string, string>>(
         (acc, row) => {
           const groupCode = stageGroupCodeFromLegacyStage(row);
           acc[row.id] = groupCode === 'other'
@@ -257,15 +293,60 @@ export default function ZdjeciaScreen() {
         {}
       );
 
+      const buildType = (profileRes.data as any)?.build_type ?? null;
+      const legacyEtapy = (legacyEtapyRes.data ?? []) as EtapZdjecia[];
+      const stageOptions = buildStagePickerOptions(
+        t,
+        buildType,
+        (templateRes.data ?? []) as any[],
+        (userStageRes.data ?? []) as any[],
+        legacyEtapy as any[]
+      );
+      const stageGroupOptions = buildStageGroupPickerOptions(t, stageOptions);
+
+      legacyEtapy.forEach((row) => {
+        const id = String(row.id);
+        const groupCode = stageGroupCodeFromLegacyStage(row);
+        nextLegacyMap[id] = groupCode === 'other'
+          ? String(row.nazwa ?? tt('photos:misc.stageFallback'))
+          : getStageGroupDisplayName(t, groupCode, String(row.nazwa ?? tt('photos:misc.stageFallback')));
+      });
+
+      const photoStagesByGroup = new Map<StageGroupCode, EtapZdjecia[]>();
+      legacyPhotoStages.forEach((row) => {
+        const groupCode = stageGroupCodeFromLegacyStage(row);
+        const current = photoStagesByGroup.get(groupCode) ?? [];
+        current.push(row);
+        photoStagesByGroup.set(groupCode, current);
+      });
+
+      const currentStages = stageGroupOptions
+        .filter((option) => option.stageGroupCode !== 'other')
+        .map((option, index): EtapZdjecia | null => {
+          const groupRows = photoStagesByGroup.get(option.stageGroupCode) ?? [];
+          const photoStageId = groupRows[0]?.id ?? null;
+          if (!photoStageId) return null;
+          return {
+            id: String(photoStageId),
+            nazwa: option.label,
+            nazwa_code: option.stageCode ?? null,
+            kolejnosc: index,
+            stageGroupCode: option.stageGroupCode,
+          };
+        })
+        .filter(Boolean) as EtapZdjecia[];
+
       setLegacyEtapyMap(nextLegacyMap);
-      setEtapy(legacyStages);
-      setSelectedEtapForUpload((current) => current || legacyStages[0]?.id || '');
+      setEtapy(currentStages);
+      setSelectedEtapForUpload((current) => current || currentStages[0]?.id || '');
     } catch (e) {
       console.error('Błąd ładowania etapów zdjęć:', e);
       Alert.alert(
         tt('common:errorTitle'),
         tt('photos:alerts.loadStagesError'),
       );
+    } finally {
+      setStagesReady(true);
     }
   };
 
@@ -456,10 +537,10 @@ export default function ZdjeciaScreen() {
   };
 
   useEffect(() => {
-    if (params.openAdd !== '1' || openedFromParamRef.current || loading) return;
+    if (params.openAdd !== '1' || openedFromParamRef.current || loading || !stagesReady) return;
     openedFromParamRef.current = true;
     openAddModal();
-  }, [etapy.length, loading, params.openAdd]);
+  }, [loading, params.openAdd, stagesReady]);
 
   const handleAddModalBackdropPress = () => {
     if (keyboardVisible) {
@@ -492,6 +573,14 @@ export default function ZdjeciaScreen() {
   };
 
   const handleSavePendingPhotos = async () => {
+    if (!stagesReady) {
+      Alert.alert(
+        tt('common:errorTitle'),
+        tt('photos:alerts.loadStagesError'),
+      );
+      return;
+    }
+
     if (!selectedEtapForUpload || !etapy.some((etap) => etap.id === selectedEtapForUpload)) {
       Alert.alert(
         tt('photos:alerts.pickStageTitle'),
@@ -511,7 +600,7 @@ export default function ZdjeciaScreen() {
     await uploadPhotosBatchSafe(pendingPhotos);
   };
 
-  const uploadPhotosBatch = async (assets: UploadPhotoAsset[]) => {
+  /* const uploadPhotosBatch = async (assets: UploadPhotoAsset[]) => {
     let successCount = 0;
     let failureCount = 0;
     let lastErrorMessage: string | null = null;
@@ -554,7 +643,7 @@ export default function ZdjeciaScreen() {
       setUploading(false);
       setUploadProgress(null);
     }
-  };
+  }; */
 
   const uploadPhotosBatchSafe = async (assets: UploadPhotoAsset[]) => {
     let successCount = 0;
@@ -749,10 +838,17 @@ export default function ZdjeciaScreen() {
 
   const renderGridItem = ({ item }: { item: Zdjecie }) => {
     const etapName = getEtapName(item.etap_zdjecia_id);
+    const hasUrl = !!item.url;
     return (
       <TouchableOpacity style={styles.gridCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
         <BlurView intensity={25} tint="dark" style={styles.cardBlur}>
-          <Image source={{ uri: item.url }} style={styles.gridImage} contentFit="cover" transition={250} />
+          {hasUrl ? (
+            <Image source={{ uri: item.url }} style={styles.gridImage} contentFit="cover" transition={250} />
+          ) : (
+            <View style={styles.photoFallbackSurface}>
+              <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.35)" />
+            </View>
+          )}
           <View style={styles.cardOverlay}>
             <Text style={styles.etapBadge}>{etapName.toUpperCase()}</Text>
             <Text style={styles.dateText}>{getDisplayDate(item)}</Text>
@@ -764,10 +860,17 @@ export default function ZdjeciaScreen() {
 
   const renderCarouselItem = ({ item }: { item: Zdjecie }) => {
     const etapName = getEtapName(item.etap_zdjecia_id);
+    const hasUrl = !!item.url;
     return (
       <TouchableOpacity style={styles.carouselCard} onPress={() => openPreview(item)} activeOpacity={0.85}>
         <BlurView intensity={25} tint="dark" style={styles.carouselBlur}>
-          <Image source={{ uri: item.url }} style={styles.carouselImage} contentFit="cover" transition={250} />
+          {hasUrl ? (
+            <Image source={{ uri: item.url }} style={styles.carouselImage} contentFit="cover" transition={250} />
+          ) : (
+            <View style={styles.carouselFallbackSurface}>
+              <Ionicons name="image-outline" size={40} color="rgba(255,255,255,0.35)" />
+            </View>
+          )}
           <View style={styles.carouselInfo}>
             <Text style={styles.carouselEtap}>{etapName.toUpperCase()}</Text>
             <Text style={styles.carouselDate}>{getDisplayDate(item)}</Text>
@@ -1016,8 +1119,15 @@ export default function ZdjeciaScreen() {
       {/* ADD MODAL */}
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={handleAddModalBackdropPress}>
         <Pressable style={styles.modalBlackOverlay} onPress={handleAddModalBackdropPress}>
-          <Pressable style={styles.modalContent} onPress={Keyboard.dismiss}>
-            <Text style={styles.modalTitle}>{tt('photos:addModal.title')}</Text>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
+            <Pressable style={styles.modalContent} onPress={Keyboard.dismiss}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.modalScrollContent}
+              >
+                <Text style={styles.modalTitle}>{tt('photos:addModal.title')}</Text>
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.stageLabel')}</Text>
 
@@ -1077,6 +1187,38 @@ export default function ZdjeciaScreen() {
                 </TouchableOpacity>
               )}
             </TouchableOpacity>
+
+            {showDatePicker && Platform.OS === 'android' ? (
+              <DateTimePicker
+                value={datePickerValue}
+                mode="date"
+                display="default"
+                locale={dateLocale}
+                onChange={onDatePicked}
+              />
+            ) : null}
+
+            {showDatePicker && Platform.OS !== 'android' ? (
+              <View style={styles.iosDateWrap}>
+                <DateTimePicker
+                  value={datePickerValue}
+                  mode="date"
+                  display="spinner"
+                  locale={dateLocale}
+                  onChange={onDatePicked}
+                />
+                <TouchableOpacity
+                  style={styles.iosDateOk}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setTakenAt(datePickerValue);
+                    setShowDatePicker(false);
+                  }}
+                >
+                  <Text style={styles.iosDateOkText}>{tt('photos:addModal.setDate')}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
             <Text style={styles.modalLabel}>{tt('photos:addModal.descLabel')}</Text>
             <AppInput
@@ -1140,7 +1282,7 @@ export default function ZdjeciaScreen() {
               </View>
             )}
 
-            <View style={styles.modalButtons}>
+                <View style={styles.modalButtons}>
               <AppButton
                 title={tt('photos:addModal.cancel')}
                 variant="secondary"
@@ -1151,12 +1293,12 @@ export default function ZdjeciaScreen() {
                 disabled={uploading}
               />
 
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonPrimary, pendingPhotos.length === 0 && { opacity: 0.55 }]}
-                onPress={handleSavePendingPhotos}
-                disabled={uploading || pendingPhotos.length === 0}
-                activeOpacity={0.85}
-              >
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonPrimary, pendingPhotos.length === 0 && { opacity: 0.55 }]}
+                  onPress={handleSavePendingPhotos}
+                  disabled={uploading || pendingPhotos.length === 0 || !stagesReady}
+                  activeOpacity={0.85}
+                >
                 {uploading ? (
                   <ActivityIndicator color={COLORS.bg} />
                 ) : (
@@ -1165,57 +1307,10 @@ export default function ZdjeciaScreen() {
                   </Text>
                 )}
               </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {showDatePicker && Platform.OS === 'android' ? (
-        <DateTimePicker
-          value={datePickerValue}
-          mode="date"
-          display="default"
-          locale={dateLocale}
-          onChange={onDatePicked}
-        />
-      ) : null}
-
-      <Modal
-        visible={showDatePicker && Platform.OS !== 'android'}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDatePicker(false)}
-      >
-        <Pressable style={styles.datePickerBackdrop} onPress={() => setShowDatePicker(false)}>
-          <Pressable style={styles.datePickerCard} onPress={() => {}}>
-            <Text style={styles.datePickerModalTitle}>{tt('photos:addModal.dateLabel')}</Text>
-            <DateTimePicker
-              value={datePickerValue}
-              mode="date"
-              display="spinner"
-              locale={dateLocale}
-              onChange={onDatePicked}
-            />
-            <View style={styles.datePickerActions}>
-              <TouchableOpacity
-                onPress={() => setShowDatePicker(false)}
-                style={[styles.datePickerActionBtn, styles.datePickerCancelBtn]}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.datePickerCancelText}>{tt('common:cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setTakenAt(datePickerValue);
-                  setShowDatePicker(false);
-                }}
-                style={[styles.datePickerActionBtn, styles.datePickerConfirmBtn]}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.datePickerConfirmText}>{tt('photos:addModal.setDate')}</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
+                </View>
+              </ScrollView>
+            </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
 
@@ -1228,7 +1323,13 @@ export default function ZdjeciaScreen() {
 
           {selectedZdjecie && (
             <>
-              <Image source={{ uri: selectedZdjecie.url }} style={styles.previewImage} contentFit="contain" />
+              {selectedZdjecie.url ? (
+                <Image source={{ uri: selectedZdjecie.url }} style={styles.previewImage} contentFit="contain" />
+              ) : (
+                <View style={styles.previewFallback}>
+                  <Ionicons name="image-outline" size={48} color="rgba(255,255,255,0.35)" />
+                </View>
+              )}
 
               <View style={styles.previewInfo}>
                 <BlurView intensity={80} tint="dark" style={styles.previewInfoBlur}>
@@ -1369,6 +1470,12 @@ const styles = StyleSheet.create({
   gridCard: { width: CARD_WIDTH, height: CARD_WIDTH * 1.22, borderRadius: 18, overflow: 'hidden' },
   cardBlur: { flex: 1, borderWidth: 1, borderColor: COLORS.cardBorder },
   gridImage: { width: '100%', height: '100%' },
+  photoFallbackSurface: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)'},
   cardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: 'rgba(0,0,0,0.55)' },
   etapBadge: { fontSize: 10, fontWeight: '900', color: COLORS.brand, letterSpacing: 1, marginBottom: 4 },
   dateText: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '700' },
@@ -1377,6 +1484,12 @@ const styles = StyleSheet.create({
   carouselCard: { width: SCREEN_WIDTH - 32, height: SCREEN_HEIGHT * 0.6, marginRight: 16, borderRadius: 26, overflow: 'hidden' },
   carouselBlur: { flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
   carouselImage: { width: '100%', height: '80%' },
+  carouselFallbackSurface: {
+    width: '100%',
+    height: '80%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)'},
   carouselInfo: { padding: 20, backgroundColor: 'rgba(0,0,0,0.65)' },
   carouselEtap: { fontSize: 13, fontWeight: '900', color: COLORS.brand, letterSpacing: 1.4, marginBottom: 6 },
   carouselDate: { fontSize: 13, color: 'rgba(255,255,255,0.72)', fontWeight: '700' },
@@ -1405,6 +1518,7 @@ const styles = StyleSheet.create({
     padding: 22,
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.18)'},
+  modalScrollContent: { paddingBottom: 8 },
   modalTitle: { fontSize: 22, fontWeight: '900', color: THEME_COLORS.neon, marginBottom: 18, textAlign: 'center' },
   modalLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.6, marginTop: 12, marginBottom: 10 },
 
@@ -1558,8 +1672,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10},
+  zIndex: 10},
   previewImage: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.72 },
+  previewFallback: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)'},
   previewInfo: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   previewInfoBlur: { padding: 22, paddingBottom: Platform.OS === 'ios' ? 44 : 22 },
   previewEtap: { fontSize: 14, fontWeight: '900', color: COLORS.brand, letterSpacing: 1.6, marginBottom: 8 },

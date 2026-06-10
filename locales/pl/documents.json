@@ -26,15 +26,18 @@
     "title": "Dodaj dokument",
     "labels": {
       "type": "RODZAJ",
+      "documentDate": "DATA DOKUMENTU",
       "titleOptional": "TYTUŁ (OPCJONALNIE)",
       "descriptionOptional": "OPIS (OPCJONALNIE)",
       "file": "PLIK / ZDJĘCIE"
     },
     "placeholders": {
       "title": "np. Umowa wykonawcza",
+      "documentDate": "Wybierz datę",
       "description": "Dodaj opis (opcjonalnie)",
       "file": "Dodaj plik lub zdjęcie"
     },
+    "setDate": "Ustaw datę",
     "saving": "Zapisywanie…"
   },
   "alerts": {

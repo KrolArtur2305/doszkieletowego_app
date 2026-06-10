@@ -12,6 +12,7 @@
     "invalidEmail": "Enter a valid email address.",
     "invalidPhone": "Enter a valid phone number.",
     "noSession": "No active user session.",
+    "linkError": "Could not open the contact action.",
     "saveError": "Failed to save the contact.",
     "deleteTitle": "Delete contact",
     "deleteConfirm": "Delete {{name}}?",

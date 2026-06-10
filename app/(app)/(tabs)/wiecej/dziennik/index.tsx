@@ -20,8 +20,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Feather } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { supabase } from '../../../../../lib/supabase';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../../../src/ui/components';
@@ -44,6 +46,7 @@ const JOURNAL_IMAGES_BUCKET = 'zdjecia';
 
 type Etap = {
   id: string;
+  saveId?: string | null;
   nazwa: string;
   nazwa_code?: string | null;
   status?: string | null;
@@ -61,7 +64,7 @@ type Wpis = {
   etap_id: string | null;
   etap_nazwa: string | null;
   zdjecie_url: string | null;
-  zdjecie_display_url?: string | null;
+  url?: string | null;
   created_at: string;
 };
 
@@ -122,45 +125,13 @@ function getJournalImageExt(uri?: string | null) {
   return ALLOWED_JOURNAL_IMAGE_EXTENSIONS.has(ext) ? ext : '';
 }
 
-function getJournalStoragePathFromUrl(url?: string | null) {
-  const rawUrl = String(url || '').trim();
-  if (!rawUrl) return null;
-  if (!/^https?:\/\//i.test(rawUrl)) return rawUrl.replace(/^\/+/, '') || null;
-
-  const publicMarker = `/storage/v1/object/public/${JOURNAL_IMAGES_BUCKET}/`;
-  const signedMarker = `/storage/v1/object/sign/${JOURNAL_IMAGES_BUCKET}/`;
-
-  const publicIndex = rawUrl.indexOf(publicMarker);
-  if (publicIndex !== -1) {
-    return rawUrl.slice(publicIndex + publicMarker.length).split('?')[0];
-  }
-
-  const signedIndex = rawUrl.indexOf(signedMarker);
-  if (signedIndex !== -1) {
-    return rawUrl.slice(signedIndex + signedMarker.length).split('?')[0];
-  }
-
-  return null;
-}
-
-async function getJournalImageDisplayUrl(value?: string | null) {
-  const rawValue = String(value || '').trim();
-  if (!rawValue) return null;
-
-  const storagePath = getJournalStoragePathFromUrl(rawValue);
-  if (!storagePath) {
-    return /^https?:\/\//i.test(rawValue) ? rawValue : null;
-  }
-
-  const { data, error } = await supabase.storage
-    .from(JOURNAL_IMAGES_BUCKET)
-    .createSignedUrl(storagePath, 60 * 60);
-
+async function getJournalSignedUrlForPath(filePath: string) {
+  if (!filePath) return '';
+  const { data, error } = await supabase.storage.from(JOURNAL_IMAGES_BUCKET).createSignedUrl(filePath, 60 * 60);
   if (error || !data?.signedUrl) {
-    console.warn('[Dziennik] createSignedUrl failed:', error?.message || storagePath);
-    return /^https?:\/\//i.test(rawValue) ? rawValue : null;
+    console.warn('[Dziennik] Nie udało się wygenerować signed URL:', error?.message || filePath);
+    return '';
   }
-
   return data.signedUrl;
 }
 
@@ -181,6 +152,7 @@ export default function DziennikScreen() {
   const [loading, setLoading] = useState(true);
   const [etapy, setEtapy] = useState<Etap[]>([]);
   const [legacyEtapToMainEtapId, setLegacyEtapToMainEtapId] = useState<Record<string, string>>({});
+  const [etapyLoading, setEtapyLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // â”€â”€ Add modal â”€â”€
@@ -198,11 +170,13 @@ export default function DziennikScreen() {
   // â”€â”€ Detail modal â”€â”€
   const [detailWpis, setDetailWpis] = useState<Wpis | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [detailImageError, setDetailImageError] = useState(false);
 
   // â”€â”€ Animations â”€â”€
   const fabAnim = useRef(new Animated.Value(0)).current;
   const headerAnim = useRef(new Animated.Value(0)).current;
   const openedFromParamRef = useRef(false);
+  const pendingOpenAddRef = useRef(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -239,7 +213,7 @@ export default function DziennikScreen() {
           return {
             ...w,
             etap_nazwa: stageLabel,
-            zdjecie_display_url: await getJournalImageDisplayUrl(w.zdjecie_url)};
+            url: await getJournalSignedUrlForPath(String(w.zdjecie_url ?? ''))};
         })
       );
 
@@ -254,82 +228,87 @@ export default function DziennikScreen() {
   const loadEtapy = async () => {
     const userId = session?.user?.id;
     if (!userId) return;
+    setEtapyLoading(true);
+    try {
+      const [profileRes, templatesRes, userStagesRes, legacyRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('build_type, current_stage_code')
+          .eq('user_id', userId)
+          .maybeSingle(),
+        supabase
+          .from('stage_templates')
+          .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
+          .eq('is_active', true)
+          .order('order_index', { ascending: true }),
+        supabase
+          .from('user_stages')
+          .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
+          .eq('user_id', userId)
+          .order('order_index', { ascending: true }),
+        supabase
+          .from('etapy')
+          .select('id, nazwa, nazwa_code, status, kolejnosc')
+          .eq('user_id', userId)
+          .order('kolejnosc', { ascending: true }),
+      ]);
 
-    const [profileRes, templatesRes, userStagesRes, legacyRes] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('build_type, current_stage_code')
-        .eq('user_id', userId)
-        .maybeSingle(),
-      supabase
-        .from('stage_templates')
-        .select('id, workflow_code, stage_group_code, stage_code, name_key, order_index, is_active')
-        .eq('is_active', true)
-        .order('order_index', { ascending: true }),
-      supabase
-        .from('user_stages')
-        .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
-        .eq('user_id', userId)
-        .order('order_index', { ascending: true }),
-      supabase
-        .from('etapy')
-        .select('id, nazwa, nazwa_code, status, kolejnosc')
-        .eq('user_id', userId)
-        .order('kolejnosc', { ascending: true }),
-    ]);
+      if (profileRes.error) throw profileRes.error;
+      if (templatesRes.error) throw templatesRes.error;
+      if (userStagesRes.error) throw userStagesRes.error;
+      if (legacyRes.error) throw legacyRes.error;
 
-    if (profileRes.error) throw profileRes.error;
-    if (templatesRes.error) throw templatesRes.error;
-    if (userStagesRes.error) throw userStagesRes.error;
-    if (legacyRes.error) throw legacyRes.error;
+      const buildType = (profileRes.data as any)?.build_type ?? null;
+      const stageTemplates = (templatesRes.data ?? []) as any[];
+      const userStages = (userStagesRes.data ?? []) as any[];
+      const legacyRows = (legacyRes.data ?? []) as Etap[];
 
-    const buildType = (profileRes.data as any)?.build_type ?? null;
-    const stageTemplates = (templatesRes.data ?? []) as any[];
-    const userStages = (userStagesRes.data ?? []) as any[];
-    const legacyRows = (legacyRes.data ?? []) as Etap[];
+      const stageOptions = buildStagePickerOptions(t, buildType, stageTemplates, userStages, legacyRows);
+      const stageGroupOptions = buildStageGroupPickerOptions(t, stageOptions);
 
-    const stageOptions = buildStagePickerOptions(t, buildType, stageTemplates, userStages, legacyRows);
-    const stageGroupOptions = buildStageGroupPickerOptions(t, stageOptions);
-
-    const legacyByGroup = new Map<StageGroupCode, Etap[]>();
-    legacyRows.forEach((row) => {
-      const groupCode = stageGroupCodeFromLegacyStage(row);
-      const current = legacyByGroup.get(groupCode) ?? [];
-      current.push(row);
-      legacyByGroup.set(groupCode, current);
-    });
-
-    const nextLegacyEtapToMainEtapId: Record<string, string> = {};
-    const mainStages = stageGroupOptions
-      .filter((option) => option.stageGroupCode !== 'other')
-      .map((option, index) => {
-        const groupRows = legacyByGroup.get(option.stageGroupCode) ?? [];
-        const fallbackLegacyId = option.legacyId ?? groupRows.find((row) => !isDoneEtapStatus(row.status))?.id ?? groupRows[0]?.id ?? null;
-        groupRows.forEach((row) => {
-          if (fallbackLegacyId) nextLegacyEtapToMainEtapId[row.id] = fallbackLegacyId;
-        });
-
-        return {
-          id: fallbackLegacyId ?? option.legacyId ?? option.key,
-          nazwa: option.label,
-          nazwa_code: option.stageCode ?? null,
-          status: groupRows.every((row) => isDoneEtapStatus(row.status)) ? 'done' : null,
-          kolejnosc: index,
-          stageGroupCode: option.stageGroupCode,
-        } as Etap;
+      const legacyByGroup = new Map<StageGroupCode, Etap[]>();
+      legacyRows.forEach((row) => {
+        const groupCode = stageGroupCodeFromLegacyStage(row);
+        const current = legacyByGroup.get(groupCode) ?? [];
+        current.push(row);
+        legacyByGroup.set(groupCode, current);
       });
 
-    legacyRows.forEach((row) => {
-      const current = nextLegacyEtapToMainEtapId[row.id];
-      if (!current) {
-        const groupCode = stageGroupCodeFromLegacyStage(row);
-        const matched = stageGroupOptions.find((option) => option.stageGroupCode === groupCode);
-        if (matched?.legacyId) nextLegacyEtapToMainEtapId[row.id] = matched.legacyId;
-      }
-    });
+      const nextLegacyEtapToMainEtapId: Record<string, string> = {};
+      const mainStages = stageGroupOptions
+        .filter((option) => option.stageGroupCode !== 'other')
+        .map((option, index) => {
+          const groupRows = legacyByGroup.get(option.stageGroupCode) ?? [];
+          const fallbackLegacyId = option.legacyId ?? groupRows.find((row) => !isDoneEtapStatus(row.status))?.id ?? groupRows[0]?.id ?? null;
+          groupRows.forEach((row) => {
+            if (fallbackLegacyId) nextLegacyEtapToMainEtapId[row.id] = fallbackLegacyId;
+          });
 
-    setLegacyEtapToMainEtapId(nextLegacyEtapToMainEtapId);
-    setEtapy(mainStages);
+          return {
+            id: fallbackLegacyId ?? option.legacyId ?? option.key,
+            saveId: fallbackLegacyId ?? option.legacyId ?? null,
+            nazwa: option.label,
+            nazwa_code: option.stageCode ?? null,
+            status: groupRows.every((row) => isDoneEtapStatus(row.status)) ? 'done' : null,
+            kolejnosc: index,
+            stageGroupCode: option.stageGroupCode,
+          } as Etap;
+        });
+
+      legacyRows.forEach((row) => {
+        const current = nextLegacyEtapToMainEtapId[row.id];
+        if (!current) {
+          const groupCode = stageGroupCodeFromLegacyStage(row);
+          const matched = stageGroupOptions.find((option) => option.stageGroupCode === groupCode);
+          if (matched?.legacyId) nextLegacyEtapToMainEtapId[row.id] = matched.legacyId;
+        }
+      });
+
+      setLegacyEtapToMainEtapId(nextLegacyEtapToMainEtapId);
+      setEtapy(mainStages);
+    } finally {
+      setEtapyLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -351,14 +330,16 @@ export default function DziennikScreen() {
     return copy;
   }, [wpisy, sortOrder]);
 
-  const currentEtapId = useMemo(() => getCurrentEtapId(etapy), [etapy]);
-
   // â”€â”€ Open add â”€â”€
   const openAdd = () => {
+    if (etapyLoading) {
+      pendingOpenAddRef.current = true;
+      return;
+    }
+
     setEditingWpis(null);
     setFormData(toYMD(new Date()));
     setFormTresc('');
-    setFormEtapId(currentEtapId);
     setFormZdjecieUri(null);
     setFormZdjecieUrl(null);
     setFormZdjecieStoredValue(null);
@@ -372,15 +353,20 @@ export default function DziennikScreen() {
     openAdd();
   }, [params.openAdd]);
 
+  useEffect(() => {
+    if (etapyLoading || !pendingOpenAddRef.current) return;
+    pendingOpenAddRef.current = false;
+    openAdd();
+  }, [etapyLoading]);
+
   const openEdit = (w: Wpis) => {
     setDetailOpen(false);
     setTimeout(() => {
       setEditingWpis(w);
       setFormData(w.data);
       setFormTresc(w.tresc);
-      setFormEtapId(w.etap_id ? legacyEtapToMainEtapId[w.etap_id] ?? w.etap_id : null);
       setFormZdjecieUri(null);
-      setFormZdjecieUrl(w.zdjecie_display_url ?? w.zdjecie_url);
+      setFormZdjecieUrl(w.url ?? null);
       setFormZdjecieStoredValue(w.zdjecie_url);
       setShowDatePicker(false);
       setModalOpen(true);
@@ -441,16 +427,19 @@ export default function DziennikScreen() {
         throw new Error(t('alerts.invalidFileType'));
       }
       const path = `${userId}/dziennik/${Date.now()}.${ext}`;
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      if (!blob || blob.size <= 0) {
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+      if (!base64) {
         throw new Error(t('alerts.emptyFile'));
       }
-      if (blob.size > MAX_JOURNAL_IMAGE_BYTES) {
+      const arrayBuffer = decodeBase64(base64);
+      if (!arrayBuffer || arrayBuffer.byteLength <= 0) {
+        throw new Error(t('alerts.emptyFile'));
+      }
+      if (arrayBuffer.byteLength > MAX_JOURNAL_IMAGE_BYTES) {
         throw new Error(t('alerts.fileTooLarge'));
       }
 
-      const { error } = await supabase.storage.from(JOURNAL_IMAGES_BUCKET).upload(path, blob, {
+      const { error } = await supabase.storage.from(JOURNAL_IMAGES_BUCKET).upload(path, arrayBuffer, {
         contentType: `image/${ext}`});
 
       if (error) throw error;
@@ -485,14 +474,11 @@ export default function DziennikScreen() {
         }
       }
 
-      const selectedEtap = formEtapId ? etapy.find((etap) => etap.id === formEtapId) ?? null : null;
-      const savedEtapId = selectedEtap && !selectedEtap.id.includes(':') ? selectedEtap.id : null;
-
       const payload = {
         user_id: userId,
         data: formData,
         tresc: formTresc.trim(),
-        etap_id: savedEtapId,
+        etap_id: null,
         zdjecie_url: zdjecieUrl || null};
 
       if (editingWpis) {
@@ -524,7 +510,7 @@ export default function DziennikScreen() {
             const { error } = await supabase.from('dziennik').delete().eq('id', w.id);
             if (error) throw error;
 
-            const storagePath = getJournalStoragePathFromUrl(w.zdjecie_url);
+            const storagePath = String(w.zdjecie_url || '').trim() || null;
             if (storagePath) {
               const { error: storageError } = await supabase
                 .storage
@@ -547,6 +533,10 @@ export default function DziennikScreen() {
           }
         }}]);
   };
+
+  useEffect(() => {
+    setDetailImageError(false);
+  }, [detailWpis?.id]);
 
   const fabScale = fabAnim.interpolate({
     inputRange: [0, 1],
@@ -636,7 +626,12 @@ export default function DziennikScreen() {
 
       {/* FAB */}
       <Animated.View style={[styles.fabWrap, { transform: [{ scale: fabScale }] }]}>
-        <TouchableOpacity style={styles.fab} onPress={openAdd} activeOpacity={0.88}>
+        <TouchableOpacity
+          style={[styles.fab, etapyLoading && styles.fabDisabled]}
+          onPress={openAdd}
+          activeOpacity={0.88}
+          disabled={etapyLoading}
+        >
           <Feather name="plus" size={24} color="#0B1120" />
         </TouchableOpacity>
       </Animated.View>
@@ -732,7 +727,7 @@ export default function DziennikScreen() {
               </View>
 
               {/* Etap */}
-              {etapy.length > 0 && (
+              {false && etapy.length > 0 && (
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>{t('modal.stage')}</Text>
                   <View style={styles.compactStageGrid}>
@@ -885,12 +880,20 @@ export default function DziennikScreen() {
 
               <Text style={styles.detailTresc}>{detailWpis.tresc}</Text>
 
-              {(detailWpis.zdjecie_display_url || detailWpis.zdjecie_url) && (
-                <Image
-                  source={{ uri: detailWpis.zdjecie_display_url ?? detailWpis.zdjecie_url! }}
-                  style={styles.detailImage}
-                  resizeMode="cover"
-                />
+              {detailWpis.url && (
+                detailImageError ? (
+                  <View style={styles.imageFallback}>
+                    <Feather name="image" size={26} color="rgba(255,255,255,0.28)" />
+                  </View>
+                ) : (
+                  <ExpoImage
+                    source={{ uri: detailWpis.url }}
+                    style={styles.detailImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    onError={() => setDetailImageError(true)}
+                  />
+                )
               )}
             </ScrollView>
           </View>
@@ -928,6 +931,7 @@ function WpisCard({
     inputRange: [0, 1],
     outputRange: [20, 0]});
   const isToday = w.data === toYMD(new Date());
+  const [imageError, setImageError] = useState(false);
 
   return (
     <Animated.View style={[styles.cardWrap, { opacity, transform: [{ translateY }] }]}>
@@ -956,8 +960,20 @@ function WpisCard({
           </Text>
         </View>
 
-        {(w.zdjecie_display_url || w.zdjecie_url) && (
-          <Image source={{ uri: w.zdjecie_display_url ?? w.zdjecie_url! }} style={styles.cardThumb} resizeMode="cover" />
+        {w.url && (
+          imageError ? (
+            <View style={styles.cardThumbFallback}>
+              <Feather name="image" size={14} color="rgba(255,255,255,0.30)" />
+            </View>
+          ) : (
+            <ExpoImage
+              source={{ uri: w.url }}
+              style={styles.cardThumb}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              onError={() => setImageError(true)}
+            />
+          )
         )}
 
         <Feather
@@ -1159,6 +1175,16 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 12,
     flexShrink: 0},
+  cardThumbFallback: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)'},
 
   // FAB
   fabWrap: {
@@ -1176,6 +1202,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 0 }},
+  fabDisabled: {
+    opacity: 0.55},
 
   // Modal shared
   modalScreen: {
@@ -1476,6 +1504,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     lineHeight: 24},
+  imageFallback: {
+    width: '100%',
+    height: 220,
+    borderRadius: 18,
+    marginTop: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)'},
   detailImage: {
     width: '100%',
     height: 220,

@@ -66,6 +66,12 @@ const normalizePhoneInput = (phone: string) => {
   return hasLeadingPlus ? `+${digits}` : digits;
 };
 
+const openLinkSafely = async (url: string) => {
+  const canOpen = await Linking.canOpenURL(url);
+  if (!canOpen) throw new Error('CANNOT_OPEN_URL');
+  await Linking.openURL(url);
+};
+
 const isValidPhone = (phone: string) => {
   const value = phone.trim();
   if (!value) return true;
@@ -256,6 +262,36 @@ export default function KontaktyScreen() {
     ]);
   };
 
+  const callContact = useCallback(async (phone?: string | null) => {
+    if (!phone) return;
+
+    try {
+      await openLinkSafely(`tel:${phone}`);
+    } catch {
+      Alert.alert(t('alerts.errorTitle'), t('alerts.linkError'));
+    }
+  }, [t]);
+
+  const smsContact = useCallback(async (phone?: string | null) => {
+    if (!phone) return;
+
+    try {
+      await openLinkSafely(`sms:${phone}`);
+    } catch {
+      Alert.alert(t('alerts.errorTitle'), t('alerts.linkError'));
+    }
+  }, [t]);
+
+  const emailContact = useCallback(async (email?: string | null) => {
+    if (!email) return;
+
+    try {
+      await openLinkSafely(`mailto:${email}`);
+    } catch {
+      Alert.alert(t('alerts.errorTitle'), t('alerts.linkError'));
+    }
+  }, [t]);
+
   const headerScale = headerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.94, 1],
@@ -271,63 +307,67 @@ export default function KontaktyScreen() {
       <View style={styles.screen}>
         <View pointerEvents="none" style={styles.bg} />
 
-        <ScrollView
+        <FlatList
+          data={loading ? [] : contacts}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.content, { paddingTop: topPad }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-        >
-          <Animated.View
-            style={{
-              opacity: headerAnim,
-              transform: [{ scale: headerScale }],
-            }}
-          >
-            <View style={styles.headerRow}>
-              <AppHeader title={t('screenTitle')} />
-            </View>
-          </Animated.View>
-
-          <Animated.View
-            style={{
-              opacity: listAnim,
-              transform: [{ scale: listScale }],
-            }}
-          >
-            {loading ? (
-              <View style={styles.emptyWrap}>
-                <Text style={styles.emptyText}>{t('loading')}</Text>
+          ListHeaderComponent={
+            <Animated.View
+              style={{
+                opacity: headerAnim,
+                transform: [{ scale: headerScale }],
+              }}
+            >
+              <View style={styles.headerRow}>
+                <AppHeader title={t('screenTitle')} />
               </View>
-            ) : contacts.length === 0 ? (
-              <View style={styles.emptyWrap}>
-                <Feather name="users" size={44} color="rgba(255,255,255,0.15)" />
-                <Text style={styles.emptyText}>{t('empty.title')}</Text>
-                <TouchableOpacity
-                  onPress={openNew}
-                  style={styles.emptyAddBtn}
-                  activeOpacity={0.88}
-                >
-                  <Text style={styles.emptyAddBtnText}>{t('empty.cta')}</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <FlatList
-                data={contacts}
-                keyExtractor={(item) => item.id}
-                scrollEnabled={false}
-                contentContainerStyle={styles.listContent}
-                ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-                renderItem={({ item }) => (
-                  <ContactCard
-                    contact={item}
-                    onPress={() => openDetails(item)}
-                    onEdit={() => openEdit(item)}
-                    onDelete={() => deleteContact(item)}
-                  />
-                )}
+            </Animated.View>
+          }
+          ListEmptyComponent={
+            <Animated.View
+              style={{
+                opacity: listAnim,
+                transform: [{ scale: listScale }],
+              }}
+            >
+              {loading ? (
+                <View style={styles.emptyWrap}>
+                  <Text style={styles.emptyText}>{t('loading')}</Text>
+                </View>
+              ) : (
+                <View style={styles.emptyWrap}>
+                  <Feather name="users" size={44} color="rgba(255,255,255,0.15)" />
+                  <Text style={styles.emptyText}>{t('empty.title')}</Text>
+                  <TouchableOpacity
+                    onPress={openNew}
+                    style={styles.emptyAddBtn}
+                    activeOpacity={0.88}
+                  >
+                    <Text style={styles.emptyAddBtnText}>{t('empty.cta')}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Animated.View>
+          }
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          renderItem={({ item }) => (
+            <Animated.View
+              style={{
+                opacity: listAnim,
+                transform: [{ scale: listScale }],
+              }}
+            >
+              <ContactCard
+                contact={item}
+                onPress={() => openDetails(item)}
+                onEdit={() => openEdit(item)}
+                onDelete={() => deleteContact(item)}
               />
-            )}
-          </Animated.View>
-        </ScrollView>
+            </Animated.View>
+          )}
+        />
 
         <FloatingAddButton onPress={openNew} />
 
@@ -503,7 +543,7 @@ export default function KontaktyScreen() {
                           {!!selectedContact.telefon && (
                             <>
                               <TouchableOpacity
-                                onPress={() => Linking.openURL(`tel:${selectedContact.telefon}`)}
+                                onPress={() => callContact(selectedContact.telefon)}
                                 style={styles.detailsActionBtn}
                                 activeOpacity={0.88}
                               >
@@ -512,7 +552,7 @@ export default function KontaktyScreen() {
                               </TouchableOpacity>
 
                               <TouchableOpacity
-                                onPress={() => Linking.openURL(`sms:${selectedContact.telefon}`)}
+                                onPress={() => smsContact(selectedContact.telefon)}
                                 style={styles.detailsActionBtn}
                                 activeOpacity={0.88}
                               >
@@ -524,7 +564,7 @@ export default function KontaktyScreen() {
 
                           {!!selectedContact.email && (
                             <TouchableOpacity
-                              onPress={() => Linking.openURL(`mailto:${selectedContact.email}`)}
+                              onPress={() => emailContact(selectedContact.email)}
                               style={styles.detailsActionBtn}
                               activeOpacity={0.88}
                             >
@@ -564,9 +604,9 @@ function ContactCard({
     .join('')
     .toUpperCase();
 
-  const call = () => c.telefon && Linking.openURL(`tel:${c.telefon}`);
-  const sms = () => c.telefon && Linking.openURL(`sms:${c.telefon}`);
-  const mail = () => c.email && Linking.openURL(`mailto:${c.email}`);
+  const call = () => c.telefon && openLinkSafely(`tel:${c.telefon}`).catch(() => null);
+  const sms = () => c.telefon && openLinkSafely(`sms:${c.telefon}`).catch(() => null);
+  const mail = () => c.email && openLinkSafely(`mailto:${c.email}`).catch(() => null);
 
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
