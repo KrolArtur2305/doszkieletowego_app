@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
 import { setCurrencyForLanguage } from '../../lib/currency';
-import { setAppLanguage, type AppLanguage } from '../../lib/i18n';
+import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../lib/i18n';
 import { AppButton, AppCard, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
@@ -124,9 +124,7 @@ export default function WelcomeScreen() {
 
 
           <View style={styles.langRow}>
-            {renderLangButton('pl', 'PL')}
-            {renderLangButton('en', 'EN')}
-            {renderLangButton('de', 'DE')}
+            {LANGUAGE_OPTIONS.map((lang) => renderLangButton(lang.key, lang.shortLabel))}
           </View>
         </View>
 

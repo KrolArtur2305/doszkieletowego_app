@@ -25,6 +25,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { supabase } from '../../../../../lib/supabase';
+import { getAppLocale } from '../../../../../lib/i18n';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../../../src/ui/components';
 import { colors as uiColors, typography } from '../../../../../src/ui/theme';
@@ -83,13 +84,6 @@ function fromYMD(ymd: string) {
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
-function localeFromLng(lng?: string) {
-  const base = (lng || 'en').split('-')[0];
-  if (base === 'pl') return 'pl-PL';
-  if (base === 'de') return 'de-DE';
-  return 'en-US';
-}
-
 function formatDate(ymd: string, locale: string) {
   const d = new Date(ymd + 'T00:00:00');
   return d.toLocaleDateString(locale, {
@@ -143,7 +137,7 @@ export default function DziennikScreen() {
   const params = useLocalSearchParams<{ openAdd?: string }>();
   const topPad = 0;
   const dateLocale = useMemo(
-    () => localeFromLng(i18n.resolvedLanguage || i18n.language),
+    () => getAppLocale(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
   );
 

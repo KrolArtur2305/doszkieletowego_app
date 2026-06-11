@@ -17,6 +17,7 @@ type Props = {
   onPressLabel?: () => void;
   isActive?: boolean;
   hideCenterValue?: boolean;
+  animated?: boolean;
 };
 
 function clamp01(n: number) {
@@ -31,6 +32,7 @@ export function FuturisticDonutSvg({
   onPressLabel,
   isActive = false,
   hideCenterValue = false,
+  animated = true,
 }: Props) {
   const v = clamp01(value);
   const displayValue = Math.max(0, Number.isFinite(value) ? value : 0);
@@ -95,7 +97,16 @@ export function FuturisticDonutSvg({
   };
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !animated) {
+      stopShimmer();
+      stopRingDrift();
+      prog.stopAnimation();
+      spin.stopAnimation();
+      prog.setValue(v);
+      spin.setValue(1);
+      setDidFinish(false);
+      return;
+    }
 
     setDidFinish(false);
     stopShimmer();
@@ -121,7 +132,7 @@ export function FuturisticDonutSvg({
     });
 
     return () => undefined;
-  }, [isActive, prog, ringDrift, shimmer, spin, v]);
+  }, [animated, isActive, prog, ringDrift, shimmer, spin, v]);
 
   useEffect(() => {
     return () => {

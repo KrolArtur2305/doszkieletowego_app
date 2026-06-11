@@ -21,6 +21,7 @@ import { Feather } from '@expo/vector-icons';
 
 import { supabase } from '../../../../lib/supabase';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
+import { getAppLocale } from '../../../../lib/i18n';
 import {
   getBudgetCategoryLabel} from '../../../../lib/localizedLabels';
 import {
@@ -225,6 +226,14 @@ function isAllowedReceiptFile(file?: PickedFile | null) {
   return ALLOWED_RECEIPT_EXTENSIONS.has(ext);
 }
 
+function linkedDocumentPathFromReceiptPath(ownerId: string, receiptPath?: string | null) {
+  const path = String(receiptPath ?? '').trim();
+  if (!path) return null;
+  if (path.startsWith('dokumenty/')) return path;
+  if (path.startsWith(`${ownerId}/`)) return `dokumenty/${path}`;
+  return path;
+}
+
 async function uriToArrayBuffer(uri: string, readFileFailedText: string): Promise<ArrayBuffer> {
   const res = await fetch(uri);
   if (!res.ok) throw new Error(`${readFileFailedText}: ${res.status} ${res.statusText}`);
@@ -238,13 +247,10 @@ export default function BudzetScreen() {
   const params = useLocalSearchParams<{ openAdd?: string }>();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
-  const datePickerLocale = useMemo(() => {
-    const lang = i18n.resolvedLanguage || i18n.language;
-    if (!lang) return 'pl-PL';
-    if (lang.startsWith('pl')) return 'pl-PL';
-    if (lang.startsWith('de')) return 'de-DE';
-    return 'en-US';
-  }, [i18n.language, i18n.resolvedLanguage]);
+  const datePickerLocale = useMemo(
+    () => getAppLocale(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
 
   const scrollRef = useRef<ScrollView>(null);
   const openedFromParamRef = useRef(false);
@@ -744,6 +750,7 @@ export default function BudzetScreen() {
       }
       uploadedReceipt = await uploadOptionalFile(ownerId);
       const previousFilePath = editingExpense?.plik || null;
+      const previousDocumentPath = linkedDocumentPathFromReceiptPath(ownerId, previousFilePath);
       const selectedStage = selectedStageOption;
       const legacyStage = fEtapId ? etapy.find((stage) => stage.id === fEtapId) ?? null : null;
       const stageCode = selectedStage?.stageCode ?? stageCodeFromLegacyStage(legacyStage, legacyStage ? etapy.findIndex((stage) => stage.id === legacyStage.id) : undefined);
@@ -751,6 +758,9 @@ export default function BudzetScreen() {
       const expenseCategoryCode = expenseCategoryCodeFromLegacyLabel(fKategoria);
       const expenseCategoryLegacy = expenseCategoryCodeToLegacyLabel(expenseCategoryCode);
       const expenseType = normalizeExpenseTypeCode(fTyp);
+      const plannedDate = fStatus === STATUS_PLANNED
+        ? (fPlanowanaData.trim() || fData.trim() || null)
+        : null;
       const payload = {
         user_id: ownerId,
         nazwa,
@@ -758,14 +768,14 @@ export default function BudzetScreen() {
         expense_category_code: expenseCategoryCode,
         kwota: kw,
         status: fStatus,
-        data: fStatus === STATUS_PLANNED ? null : (fData?.trim() ? fData.trim() : null),
+        data: fStatus === STATUS_PLANNED ? null : (fData.trim() || null),
         typ: expenseType,
         expense_type: expenseType,
         etap_id: fEtapId || null,
         stage_group_code: stageGroupCode,
         stage_code: stageCode,
         suggestion_key: fSuggestionKey || null,
-        planowana_data: fStatus === STATUS_PLANNED && fData.trim() ? fData.trim() : null,
+        planowana_data: plannedDate,
         opis: fOpis.trim() || null,
         sklep: fSklep.trim() || null,
         ...(uploadedReceipt ? { plik: uploadedReceipt.receiptPath } : editingExpense ? {} : { plik: null })};
@@ -779,13 +789,13 @@ export default function BudzetScreen() {
         throw res.error;
       }
 
-      const receiptFilePath = uploadedReceipt?.documentPath || previousFilePath;
+      const receiptFilePath = uploadedReceipt?.documentPath || previousDocumentPath;
       if (receiptFilePath) {
         try {
           await syncLinkedReceiptDocument({
             userIdValue: ownerId,
             filePath: receiptFilePath,
-            previousPath: previousFilePath && previousFilePath !== receiptFilePath ? previousFilePath : null,
+            previousPath: previousDocumentPath && previousDocumentPath !== receiptFilePath ? previousDocumentPath : null,
             title: nazwa,
             note: [fSklep.trim(), fOpis.trim()].filter(Boolean).join(' • ') || null,
             kind: fAttachmentKind});
@@ -799,7 +809,7 @@ export default function BudzetScreen() {
       }
 
       if (uploadedReceipt && previousFilePath && previousFilePath !== uploadedReceipt.receiptPath) {
-        await removeReceiptFileEverywhere(previousFilePath);
+        await removeReceiptFileEverywhere(previousFilePath, previousDocumentPath ?? previousFilePath);
       }
 
       setFNazwa(''); setFKategoria('other'); setFKwota('');

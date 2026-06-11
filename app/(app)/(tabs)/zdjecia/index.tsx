@@ -26,6 +26,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { getAppLocale } from '../../../../lib/i18n';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../src/ui/components';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
@@ -101,13 +102,6 @@ function sanitizeFolderName(input: string) {
     .replace(/(^-|-$)/g, '');
 }
 
-function localeFromLng(lng?: string) {
-  const base = (lng || 'en').split('-')[0];
-  if (base === 'pl') return 'pl-PL';
-  if (base === 'de') return 'de-DE';
-  return 'en-US';
-}
-
 function getImageExtFromAsset(asset: UploadPhotoAsset) {
   const rawName = asset.fileName || asset.uri || '';
   const cleaned = rawName.split('?')[0].split('#')[0];
@@ -130,7 +124,7 @@ export default function ZdjeciaScreen() {
   const tt = useCallback((key: string, options?: any) => String(t(key as any, options)), [t]);
 
   const dateLocale = useMemo(
-    () => localeFromLng(i18n.resolvedLanguage || i18n.language),
+    () => getAppLocale(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage],
   );
 

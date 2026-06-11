@@ -20,7 +20,8 @@
     "fileTooLarge": "The file is too large.",
     "invalidFileType": "Unsupported file type.",
     "documentSyncFailed": "The expense was saved, but the attachment could not be copied to documents.",
-    "deleteFileWarning": "The expense was deleted, but the attachment could not be removed."
+    "deleteFileWarning": "The expense was deleted, but the attachment could not be removed.",
+    "openReceiptFailed": "Could not open the attachment."
   },
   "alerts": {
     "enterName": "Enter the expense name.",

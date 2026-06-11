@@ -20,7 +20,8 @@
     "fileTooLarge": "Plik jest zbyt duży.",
     "invalidFileType": "Nieobsługiwany typ pliku.",
     "documentSyncFailed": "Wydatek zapisano, ale nie udało się skopiować załącznika do dokumentów.",
-    "deleteFileWarning": "Wydatek usunięto, ale nie udało się usunąć załącznika."
+    "deleteFileWarning": "Wydatek usunięto, ale nie udało się usunąć załącznika.",
+    "openReceiptFailed": "Nie udało się otworzyć załącznika."
   },
   "alerts": {
     "enterName": "Podaj nazwę wydatku.",

@@ -27,6 +27,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { getAppLocale } from '../../../../lib/i18n';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppInput } from '../../../../src/ui/components';
 import { colors as uiColors, typography } from '../../../../src/ui/theme';
@@ -104,12 +105,6 @@ function isAllowedDocument(file?: { name?: string; mimeType?: string } | null) {
 
   const ext = String(file?.name || '').split('.').pop()?.toLowerCase() || '';
   return ALLOWED_DOCUMENT_EXTENSIONS.has(ext);
-}
-
-function localeFromLng(lng?: string) {
-  const base = (lng || 'en').split('-')[0];
-  const map: Record<string, string> = { pl: 'pl-PL', en: 'en-US', de: 'de-DE' };
-  return map[base] || 'en-US';
 }
 
 function formatDateLocale(iso: string | null | undefined, locale: string) {
@@ -202,7 +197,7 @@ export default function DokumentyScreen() {
   const tt = useCallback((key: string, options?: any) => String(t(key as any, options)), [t]);
 
   const dateLocale = useMemo(
-    () => localeFromLng(i18n.resolvedLanguage || i18n.language),
+    () => getAppLocale(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage],
   );
 

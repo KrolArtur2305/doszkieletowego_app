@@ -20,6 +20,7 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { publicConfig, supabase } from '../../../../lib/supabase';
+import { getAppLocale } from '../../../../lib/i18n';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import {
   DEFAULT_BUDDY_AVATAR_ID,
@@ -78,11 +79,7 @@ export default function BuddyChatScreen() {
   const { t, i18n } = useTranslation('buddy');
   const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 44) + 8;
-  const uiLocale = (i18n.resolvedLanguage || i18n.language || 'en').startsWith('de')
-    ? 'de-DE'
-    : (i18n.resolvedLanguage || i18n.language || 'en').startsWith('pl')
-      ? 'pl-PL'
-      : 'en-US';
+  const uiLocale = getAppLocale(i18n.resolvedLanguage || i18n.language);
 
   const [buddyName, setBuddyName] = useState(t('chat.fallbackName'));
   const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);

@@ -112,10 +112,13 @@ export default function PostepyScreen() {
         const nextTemplates = (templateRes.data ?? []) as StageTemplateRow[];
         const nextUserStages = (userStageRes.data ?? []) as UserStageRow[];
 
+        if (templateRes.error) throw templateRes.error;
+        if (userStageRes.error) throw userStageRes.error;
+
         if (!cancelled) {
           setProfile(nextProfile);
-          setTemplates(templateRes.error ? [] : nextTemplates);
-          setUserStages(userStageRes.error ? [] : nextUserStages);
+          setTemplates(nextTemplates);
+          setUserStages(nextUserStages);
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -221,6 +224,7 @@ export default function PostepyScreen() {
                 value={viewModel.overallPercent / 100}
                 label=""
                 isActive
+                animated={false}
                 size={96}
                 stroke={11}
               />
@@ -259,6 +263,7 @@ export default function PostepyScreen() {
               value={viewModel.currentPercent / 100}
               label=""
               isActive
+              animated={false}
               size={96}
               stroke={11}
             />

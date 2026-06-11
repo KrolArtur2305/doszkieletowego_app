@@ -22,6 +22,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
+import { getAppLocale } from '../../../../lib/i18n';
 import { getStageLabel } from '../../../../lib/localizedLabels';
 import {
   getLegacyStageLabelFromGroupCode,
@@ -92,14 +93,6 @@ type WeatherDay = {
 const STATUS_DONE = 'zrealizowany';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function normalizeLocale(lang?: string) {
-  if (!lang) return 'pl-PL';
-  if (lang.startsWith('pl')) return 'pl-PL';
-  if (lang.startsWith('en')) return 'en-US';
-  if (lang.startsWith('de')) return 'de-DE';
-  return lang;
-}
 
 function formatDateLongByLocale(d: Date, locale: string) {
   return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
@@ -351,7 +344,7 @@ export default function DashboardScreen() {
   const { t, i18n } = useTranslation('dashboard');
   const { t: tStages } = useTranslation('stages');
   const { currency } = useCurrency();
-  const appLocale = useMemo(() => normalizeLocale(i18n.resolvedLanguage || i18n.language), [i18n.resolvedLanguage, i18n.language]);
+  const appLocale = useMemo(() => getAppLocale(i18n.resolvedLanguage || i18n.language), [i18n.resolvedLanguage, i18n.language]);
 
   // ── Hero ──
   const [imie, setImie] = useState<string>('');

@@ -19,6 +19,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
+import { getAppLocale, getDefaultCountry } from '../../../lib/i18n';
 import { AppButton, AppHeader, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
 import { normalizeBuildType, remapStageCodeForBuildType } from '../../../lib/buildWorkflow';
@@ -27,8 +28,8 @@ function pad2(n: number) {
   return String(n).padStart(2, '0');
 }
 
-function formatPL(d: Date) {
-  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
+function formatDateForLocale(d: Date, locale: string) {
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function toISODate(d: Date) {
@@ -49,26 +50,13 @@ function parseISODate(value: string) {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-function uiLocaleFromLang(lang?: string) {
-  const base = (lang || 'en').split('-')[0];
-  const map: Record<string, string> = { pl: 'pl-PL', en: 'en-US', de: 'de-DE' };
-  return map[base] || 'en-US';
-}
-
-function defaultCountryFromLang(lang?: string) {
-  const base = (lang || 'pl').split('-')[0];
-  if (base === 'de') return 'de';
-  if (base === 'en') return 'gb';
-  return 'pl';
-}
-
 export default function InwestycjaScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('investment');
 
-  const locale = useMemo(() => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language), [i18n.language, i18n.resolvedLanguage]);
+  const locale = useMemo(() => getAppLocale(i18n.resolvedLanguage || i18n.language), [i18n.language, i18n.resolvedLanguage]);
   const defaultCountryCode = useMemo(
-    () => defaultCountryFromLang(i18n.resolvedLanguage || i18n.language),
+    () => getDefaultCountry(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
   );
 
@@ -88,13 +76,13 @@ export default function InwestycjaScreen() {
 
   const startDisplay = useMemo(() => {
     const dt = parseISODate(dataStartISO);
-    return dt ? formatPL(dt) : '';
-  }, [dataStartISO]);
+    return dt ? formatDateForLocale(dt, locale) : '';
+  }, [dataStartISO, locale]);
 
   const koniecDisplay = useMemo(() => {
     const dt = parseISODate(dataKoniecISO);
-    return dt ? formatPL(dt) : '';
-  }, [dataKoniecISO]);
+    return dt ? formatDateForLocale(dt, locale) : '';
+  }, [dataKoniecISO, locale]);
 
   const [budzet, setBudzet] = useState('');
 

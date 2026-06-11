@@ -21,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
+import { getAppLocale } from '../../../lib/i18n';
 import { syncAllTaskReminders } from '../../../lib/notifications';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../components/FloatingAddButton';
@@ -89,13 +90,6 @@ const emptyForm = (): TaskForm => ({
   godzina: '',
 });
 
-const localeFromLng = (lng?: string) => {
-  const base = (lng || 'en').split('-')[0];
-  if (base === 'pl') return 'pl-PL';
-  if (base === 'de') return 'de-DE';
-  return 'en-US';
-};
-
 function getMonthMatrix(baseDate: Date) {
   const year = baseDate.getFullYear();
   const month = baseDate.getMonth();
@@ -134,7 +128,7 @@ export default function ZadaniaScreen() {
   const { t, i18n } = useTranslation('tasks');
   const topPad = 0;
   const dateLocale = useMemo(
-    () => localeFromLng(i18n.resolvedLanguage || i18n.language),
+    () => getAppLocale(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
   );
 

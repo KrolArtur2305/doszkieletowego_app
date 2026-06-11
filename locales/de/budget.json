@@ -20,7 +20,8 @@
     "fileTooLarge": "Die Datei ist zu groß.",
     "invalidFileType": "Nicht unterstützter Dateityp.",
     "documentSyncFailed": "Die Ausgabe wurde gespeichert, aber der Anhang konnte nicht in Dokumente kopiert werden.",
-    "deleteFileWarning": "Die Ausgabe wurde gelöscht, aber der Anhang konnte nicht entfernt werden."
+    "deleteFileWarning": "Die Ausgabe wurde gelöscht, aber der Anhang konnte nicht entfernt werden.",
+    "openReceiptFailed": "Der Anhang konnte nicht geöffnet werden."
   },
   "alerts": {
     "enterName": "Gib den Namen der Ausgabe ein.",

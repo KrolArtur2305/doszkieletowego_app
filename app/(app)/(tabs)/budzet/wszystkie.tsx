@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
+import { getAppLocale } from '../../../../lib/i18n';
 import {
   resolveRuntimeCurrentStageCode,
   workflowBuildType} from '../../../../lib/buildWorkflow';
@@ -196,13 +197,10 @@ export default function WszystkieWydatkiScreen() {
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
 
-  const datePickerLocale = useMemo(() => {
-    const lang = i18n.resolvedLanguage || i18n.language;
-    if (!lang) return 'pl-PL';
-    if (lang.startsWith('pl')) return 'pl-PL';
-    if (lang.startsWith('de')) return 'de-DE';
-    return 'en-US';
-  }, [i18n.language, i18n.resolvedLanguage]);
+  const datePickerLocale = useMemo(
+    () => getAppLocale(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -557,27 +555,30 @@ export default function WszystkieWydatkiScreen() {
   }
 
   const openReceipt = async (storageKey: string) => {
-    const signed = await supabase.storage.from('paragony').createSignedUrl(storageKey, 60 * 60);
-    if (signed.error) {
-      Alert.alert(t('errorTitle'), signed.error.message);
+    const signedUrl = await getReceiptSignedUrl(storageKey);
+    if (!signedUrl) {
+      Alert.alert(t('errorTitle'), t('errors.openReceiptFailed'));
       return;
     }
-    if (signed.data?.signedUrl) Linking.openURL(signed.data.signedUrl);
+    Linking.openURL(signedUrl);
   };
 
   const deleteExpense = async (row: WydatkiRow) => {
     if (!userId) return;
     try {
-      const del = await supabase.from('wydatki').delete().eq('id', row.id).eq('user_id', userId);
-      if (del.error) throw del.error;
-      if (row.plik) {
-        const removeResult = await supabase.storage.from('paragony').remove([row.plik]);
-        if (removeResult.error) {
-          Alert.alert(
-            t('errorTitle'),
-            t('errors.deleteFileWarning')
-          );
-        }
+      const { data, error } = await supabase.functions.invoke('delete-expense', {
+        method: 'POST',
+        body: { id: row.id },
+      });
+      if (error) throw error;
+
+      const storageWarning = String((data as { storageWarning?: unknown } | null)?.storageWarning ?? '').trim();
+      if (storageWarning) {
+        console.warn('[Budzet] nie udalo sie usunac wszystkich plikow wydatku:', storageWarning);
+        Alert.alert(
+          t('errorTitle'),
+          t('errors.deleteFileWarning')
+        );
       }
       setWydatki((prev) => prev.filter((w) => w.id !== row.id));
     } catch (e: any) {
@@ -673,6 +674,9 @@ export default function WszystkieWydatkiScreen() {
       const expenseCategoryCode = expenseCategoryCodeFromLegacyLabel(fKategoria);
       const expenseCategoryLegacy = expenseCategoryCodeToLegacyLabel(expenseCategoryCode);
       const expenseType = normalizeExpenseTypeCode(fTyp);
+      const plannedDate = fStatus === STATUS_PLANNED
+        ? (fPlanowanaData.trim() || fData.trim() || null)
+        : null;
       const payload = {
         user_id: userId,
         nazwa,
@@ -683,7 +687,7 @@ export default function WszystkieWydatkiScreen() {
         typ: expenseType,
         expense_type: expenseType,
         data: fStatus === STATUS_PLANNED ? null : (fData.trim() || null),
-        planowana_data: fStatus === STATUS_PLANNED && fData.trim() ? fData.trim() : null,
+        planowana_data: plannedDate,
         etap_id: fEtapId || null,
         stage_group_code: stageGroupCode,
         stage_code: stageCode,

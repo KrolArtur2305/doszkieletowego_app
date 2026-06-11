@@ -11,7 +11,8 @@
     "ios": "expo run:ios",
     "eas:login": "eas login",
     "eas:build:ios": "eas build -p ios --profile development",
-    "eas:build:android": "eas build -p android --profile development"
+    "eas:build:android": "eas build -p android --profile development",
+    "validate:locales": "node scripts/validate-locales.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/rubik": "^0.4.2",

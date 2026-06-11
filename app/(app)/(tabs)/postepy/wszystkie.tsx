@@ -89,6 +89,12 @@ export default function WszystkieEtapyScreen() {
     nextStageName: string;
   }>({ visible: false, nextStageName: '' });
 
+  type SaveStagesRpcResult = {
+    saved_rows?: UserStageRow[];
+    advanced?: boolean;
+    next_stage_code?: string | null;
+  };
+
   const stageItems = useMemo(() => {
     const templateItems: StageItem[] = templates.map((template) => {
       const match =
@@ -118,7 +124,9 @@ export default function WszystkieEtapyScreen() {
         key: `custom-${row.id}`,
         title: row.custom_name?.trim() || t('all.customStage'),
         stageCode: String(row.stage_code ?? '').trim().toUpperCase(),
-        groupCode: resolveCurrentStageGroupCode(templates, profile?.build_type, row.stage_code),
+        groupCode:
+          normalizeStageGroupCode(row.stage_group_code) ??
+          resolveCurrentStageGroupCode(templates, profile?.build_type, row.stage_code),
         orderIndex: safeOrder(row.order_index),
         status: draftStatuses[`custom-${row.id}`] ?? row.status ?? 'pending',
         userStage: row,
@@ -206,62 +214,6 @@ export default function WszystkieEtapyScreen() {
     };
   }, [t]);
 
-  const persistStatus = async (item: StageItem, nextStatus: string): Promise<UserStageRow> => {
-    const userId = item.userStage?.user_id ?? currentUserId;
-    if (!userId) throw new Error(t('errors.updateFailed'));
-
-    const workflowCode = normalizeWorkflowCode(profile?.build_type);
-    const persistedRowId =
-      item.userStage?.id && !String(item.userStage.id).startsWith('optimistic-')
-        ? item.userStage.id
-        : null;
-
-    if (persistedRowId) {
-      const { data, error } = await supabase
-        .from('user_stages')
-        .update({ status: nextStatus })
-        .eq('id', persistedRowId)
-        .eq('user_id', userId)
-        .select(USER_STAGE_SELECT)
-        .single();
-      if (error) throw error;
-      return data as UserStageRow;
-    }
-
-    const { data: existingRows, error: existingError } = await supabase
-      .from('user_stages')
-      .select(USER_STAGE_SELECT)
-      .eq('user_id', userId)
-      .eq('workflow_code', workflowCode)
-      .eq('stage_code', item.stageCode || '')
-      .order('updated_at', { ascending: false })
-      .limit(1);
-    if (existingError) throw existingError;
-
-    const existing = existingRows?.[0] as UserStageRow | undefined;
-    const query = existing?.id
-      ? supabase
-          .from('user_stages')
-          .update({ status: nextStatus, template_id: item.templateId, stage_group_code: item.groupCode })
-          .eq('id', existing.id)
-          .eq('user_id', userId)
-      : supabase
-          .from('user_stages')
-          .insert({
-            user_id: userId,
-            template_id: item.templateId,
-            workflow_code: workflowCode,
-            stage_group_code: item.groupCode,
-            stage_code: item.stageCode || null,
-            source: 'template',
-            status: nextStatus,
-            order_index: item.orderIndex});
-
-    const { data, error } = await query.select(USER_STAGE_SELECT).single();
-    if (error) throw error;
-    return data as UserStageRow;
-  };
-
   const mergeSavedStages = (savedRows: UserStageRow[]) => {
     setUserStages((prev) => {
       const next = [...prev];
@@ -311,25 +263,39 @@ export default function WszystkieEtapyScreen() {
       setSavingAll(true);
       setError(null);
 
-      const savedRows = await Promise.all(
-        changedItems.map((item) => persistStatus(item, draftStatuses[item.key]))
-      );
+      const workflowCode = normalizeWorkflowCode(profile?.build_type);
+      const nextStageCode = shouldAdvance && nextTemplate?.stage_code
+        ? String(nextTemplate.stage_code ?? '').trim().toUpperCase()
+        : null;
+
+      const { data: rpcData, error: rpcError } = await supabase.rpc('save_user_stage_statuses', {
+        p_items: changedItems.map((item) => ({
+          id: item.userStage?.id && !String(item.userStage.id).startsWith('optimistic-')
+            ? item.userStage.id
+            : null,
+          template_id: item.templateId,
+          workflow_code: workflowCode,
+          stage_group_code: item.groupCode,
+          stage_code: item.stageCode || null,
+          source: item.userStage?.source ?? 'template',
+          status: draftStatuses[item.key],
+          order_index: item.orderIndex,
+        })),
+        p_next_stage_code: nextStageCode,
+      });
+
+      if (rpcError) throw rpcError;
+
+      const rpcResult = (rpcData ?? {}) as SaveStagesRpcResult;
+      const savedRows = Array.isArray(rpcResult.saved_rows) ? rpcResult.saved_rows : [];
       mergeSavedStages(savedRows);
       setDraftStatuses({});
 
-      if (shouldAdvance && nextTemplate?.stage_code) {
-        const nextStageCode = String(nextTemplate.stage_code ?? '').trim().toUpperCase();
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ current_stage_code: nextStageCode })
-          .eq('user_id', userId);
-
-        if (profileError) throw profileError;
-
+      if (nextStageCode) {
         setProfile((prev) => (prev ? { ...prev, current_stage_code: nextStageCode } : prev));
         setCompletionModal({
           visible: true,
-          nextStageName: getStageGroupDisplayName(t, normalizeStageGroupCode(nextTemplate.stage_group_code))});
+          nextStageName: getStageGroupDisplayName(t, normalizeStageGroupCode(nextTemplate?.stage_group_code))});
       } else {
         router.replace('/(app)/(tabs)/postepy');
       }

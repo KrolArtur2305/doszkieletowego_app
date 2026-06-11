@@ -9,16 +9,14 @@ import {
   FALLBACK_LANGUAGE,
   DEFAULT_NS,
   NAMESPACES,
+  normalizeAppLanguage,
   type AppLanguage,
 } from './languages';
 
 let initPromise: Promise<void> | null = null;
 
 function normalizeToSupported(lng: string | null | undefined): AppLanguage | null {
-  if (!lng) return null;
-  const base = lng.split('-')[0]?.toLowerCase();
-  if (SUPPORTED_LANGUAGES.includes(base as AppLanguage)) return base as AppLanguage;
-  return null;
+  return normalizeAppLanguage(lng);
 }
 
 function resolveInitialLanguage(saved: string | null): AppLanguage {
@@ -64,7 +62,7 @@ export async function setAppLanguage(lng: AppLanguage): Promise<void> {
   await i18n.changeLanguage(lng);
 }
 
-export { SUPPORTED_LANGUAGES };
+export { SUPPORTED_LANGUAGES, LANGUAGE_OPTIONS, getAppLocale, getDefaultCountry, getLanguageOption, normalizeAppLanguage } from './languages';
 export type { AppLanguage };
 
 export default i18n;

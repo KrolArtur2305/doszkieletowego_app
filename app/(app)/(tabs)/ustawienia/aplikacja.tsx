@@ -30,7 +30,7 @@ import {
   type AppCurrency,
 } from '../../../../lib/currency';
 import { getStoredUnits, setAppUnits, setUnitsForLanguage, type UnitSystem } from '../../../../lib/units';
-import { setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
+import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
 import { AppButton, AppInput } from '../../../../src/ui/components';
 
@@ -51,12 +51,6 @@ function getAppVersionLabel(): string {
 
   return build ? `${version} (${build})` : version;
 }
-
-const LANGUAGES: { key: AppLanguage; labelKey: string; flag: string }[] = [
-  { key: 'pl', labelKey: 'appSettings.language.options.pl', flag: '🇵🇱' },
-  { key: 'en', labelKey: 'appSettings.language.options.en', flag: '🇬🇧' },
-  { key: 'de', labelKey: 'appSettings.language.options.de', flag: '🇩🇪' },
-];
 
 export default function UstawieniaAplikacjiScreen() {
   const router = useRouter();
@@ -187,7 +181,7 @@ export default function UstawieniaAplikacjiScreen() {
     }
   };
 
-  const selectedLanguage = LANGUAGES.find((lang) => lang.key === activeLang) ?? LANGUAGES[0];
+  const selectedLanguage = LANGUAGE_OPTIONS.find((lang) => lang.key === activeLang) ?? LANGUAGE_OPTIONS[0];
   const selectedCurrency = CURRENCY_OPTIONS.find((option) => option.code === activeCurrency) ?? CURRENCY_OPTIONS[0];
 
   return (
@@ -399,7 +393,7 @@ export default function UstawieniaAplikacjiScreen() {
         <View style={styles.pickerBackdrop}>
           <View style={styles.pickerCard}>
             <Text style={styles.pickerTitle}>{t('appSettings.language.groupLabel')}</Text>
-            {LANGUAGES.map((lang) => {
+            {LANGUAGE_OPTIONS.map((lang) => {
               const isActive = activeLang === lang.key;
               return (
                 <TouchableOpacity

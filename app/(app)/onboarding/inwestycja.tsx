@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
+import { getAppLocale, getDefaultCountry } from '../../../lib/i18n';
 
 const BG = '#000000';
 const NEON = '#25F0C8';
@@ -57,19 +58,6 @@ function parseISODate(value: string) {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-function uiLocaleFromLang(lang?: string) {
-  const base = (lang || 'en').split('-')[0];
-  const map: Record<string, string> = { pl: 'pl-PL', en: 'en-US', de: 'de-DE' };
-  return map[base] || 'en-US';
-}
-
-function defaultCountryFromLang(lang?: string) {
-  const base = (lang || 'pl').split('-')[0];
-  if (base === 'de') return 'de';
-  if (base === 'en') return 'gb';
-  return 'pl';
-}
-
 export default function OnboardingInvestmentScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('investment');
@@ -77,11 +65,11 @@ export default function OnboardingInvestmentScreen() {
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
 
   const locale = useMemo(
-    () => uiLocaleFromLang(i18n.resolvedLanguage || i18n.language),
+    () => getAppLocale(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
   );
   const defaultCountryCode = useMemo(
-    () => defaultCountryFromLang(i18n.resolvedLanguage || i18n.language),
+    () => getDefaultCountry(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage]
   );
 
