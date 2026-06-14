@@ -96,6 +96,7 @@ export async function savePushToken(token: string): Promise<void> {
         platform,
         updated_at: new Date().toISOString(),
       })
+      .eq('user_id', user.id)
       .eq('installation_id', installationId);
 
     error = updateResult.error;

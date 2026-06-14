@@ -314,14 +314,23 @@ export default function ZdjeciaScreen() {
         photoStagesByGroup.set(groupCode, current);
       });
 
+      const legacyStagesByGroup = new Map<StageGroupCode, EtapZdjecia>();
+      legacyEtapy.forEach((row) => {
+        const groupCode = stageGroupCodeFromLegacyStage(row);
+        if (groupCode === 'other' || legacyStagesByGroup.has(groupCode)) return;
+        legacyStagesByGroup.set(groupCode, row);
+      });
+
       const currentStages = stageGroupOptions
         .filter((option) => option.stageGroupCode !== 'other')
         .map((option, index): EtapZdjecia | null => {
           const groupRows = photoStagesByGroup.get(option.stageGroupCode) ?? [];
-          const photoStageId = groupRows[0]?.id ?? null;
-          if (!photoStageId) return null;
+          const fallbackLegacyStage = legacyStagesByGroup.get(option.stageGroupCode) ?? null;
+          const stageId = groupRows[0]?.id ?? fallbackLegacyStage?.id ?? option.legacyId ?? null;
+          if (!stageId) return null;
+          nextLegacyMap[String(stageId)] = option.label;
           return {
-            id: String(photoStageId),
+            id: String(stageId),
             nazwa: option.label,
             nazwa_code: option.stageCode ?? null,
             kolejnosc: index,
@@ -748,6 +757,12 @@ export default function ZdjeciaScreen() {
       throw new Error(tt('photos:alerts.emptyFile'));
     }
     const arrayBuffer = decodeBase64(base64);
+    if (!arrayBuffer || arrayBuffer.byteLength <= 0) {
+      throw new Error(tt('photos:alerts.emptyFile'));
+    }
+    if (arrayBuffer.byteLength > MAX_PHOTO_UPLOAD_BYTES) {
+      throw new Error(tt('photos:alerts.fileTooLarge'));
+    }
 
     const { error: uploadError } = await supabase.storage.from(bucketName).upload(file_path, arrayBuffer, {
       contentType,
@@ -787,7 +802,14 @@ export default function ZdjeciaScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error: delError } = await supabase.from('zdjecia').delete().eq('id', z.id);
+              const userId = await getUserId();
+              if (!userId) throw new Error(tt('photos:alerts.loginRequired'));
+
+              const { error: delError } = await supabase
+                .from('zdjecia')
+                .delete()
+                .eq('id', z.id)
+                .eq('user_id', userId);
               if (delError) throw delError;
 
               const { error: rmError } = await supabase.storage.from(bucketName).remove([z.file_path]);

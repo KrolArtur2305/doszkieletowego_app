@@ -301,15 +301,23 @@ export default function OnboardingScreen() {
       await setAppCurrency(budgetCurrency);
       await setAppUnits(unitSystem);
 
-      if (spent > 0 && !existingExpenseRes?.data?.id) {
-        const { error: expenseError } = await supabase.from('wydatki').insert({
+      if (spent > 0) {
+        const expensePayload = {
           user_id: userId,
           nazwa: t('budget.initialExpenseName'),
           kwota: spent,
           status: 'poniesiony',
           kategoria: 'Inne',
           data: todayYMD(),
-          source: 'onboarding'});
+          source: 'onboarding'};
+
+        const { error: expenseError } = existingExpenseRes?.data?.id
+          ? await supabase
+              .from('wydatki')
+              .update(expensePayload)
+              .eq('id', existingExpenseRes.data.id)
+              .eq('user_id', userId)
+          : await supabase.from('wydatki').insert(expensePayload);
 
         if (expenseError) throw expenseError;
       }

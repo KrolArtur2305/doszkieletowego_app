@@ -476,7 +476,11 @@ export default function DziennikScreen() {
         zdjecie_url: zdjecieUrl || null};
 
       if (editingWpis) {
-        const { error } = await supabase.from('dziennik').update(payload).eq('id', editingWpis.id);
+        const { error } = await supabase
+          .from('dziennik')
+          .update(payload)
+          .eq('id', editingWpis.id)
+          .eq('user_id', userId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('dziennik').insert(payload);
@@ -501,7 +505,14 @@ export default function DziennikScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            const { error } = await supabase.from('dziennik').delete().eq('id', w.id);
+            const userId = session?.user?.id;
+            if (!userId) return;
+
+            const { error } = await supabase
+              .from('dziennik')
+              .delete()
+              .eq('id', w.id)
+              .eq('user_id', userId);
             if (error) throw error;
 
             const storagePath = String(w.zdjecie_url || '').trim() || null;

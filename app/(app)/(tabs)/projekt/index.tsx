@@ -510,6 +510,13 @@ export default function ProjektScreen() {
         )
         return
       }
+      if (bytes.byteLength > MAX_MODEL_UPLOAD_BYTES) {
+        Alert.alert(
+          t('errorTitle'),
+          t('model3dTooLarge')
+        )
+        return
+      }
 
       const previousModelUrl = proj.model_url || null
 
@@ -686,6 +693,13 @@ export default function ProjektScreen() {
         )
         return
       }
+      if (bytes.byteLength > MAX_PLAN_UPLOAD_BYTES) {
+        Alert.alert(
+          t('errorTitle'),
+          t('planTooLarge')
+        )
+        return
+      }
 
       const { error: upErr } = await supabase.storage
         .from(BUCKET_RZUTY)
@@ -852,6 +866,7 @@ export default function ProjektScreen() {
         .from('projekty')
         .update(payload)
         .eq('user_id', userId)
+        .eq('id', proj.id)
         .select('*')
         .single()
 

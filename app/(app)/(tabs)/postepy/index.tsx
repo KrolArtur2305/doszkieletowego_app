@@ -88,7 +88,7 @@ export default function PostepyScreen() {
           .from('profiles')
           .select('build_type, current_stage_code')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
         if (profileError) throw profileError;
 

@@ -91,14 +91,6 @@ Deno.serve(async (req) => {
   if (selectError) return json(500, { error: selectError.message });
   if (!expense) return json(404, { error: "Expense not found." });
 
-  const { error: deleteError } = await supabase
-    .from("wydatki")
-    .delete()
-    .eq("id", expenseId)
-    .eq("user_id", user.id);
-
-  if (deleteError) return json(500, { error: deleteError.message });
-
   const receiptPath = storagePathFromValue((expense as { plik?: unknown }).plik, RECEIPTS_BUCKET);
   const documentPath = linkedDocumentPathFromReceiptPath(user.id, receiptPath);
   const warnings: string[] = [];
@@ -127,6 +119,21 @@ Deno.serve(async (req) => {
       if (documentStorageError) warnings.push(`${DOCUMENTS_BUCKET}: ${documentStorageError.message}`);
     }
   }
+
+  if (warnings.length > 0) {
+    return json(500, {
+      error: "Expense deletion was stopped because not all linked files could be removed.",
+      warnings,
+    });
+  }
+
+  const { error: deleteError } = await supabase
+    .from("wydatki")
+    .delete()
+    .eq("id", expenseId)
+    .eq("user_id", user.id);
+
+  if (deleteError) return json(500, { error: deleteError.message });
 
   return json(200, { deleted: true, storageWarning: warnings[0] ?? null, warnings });
 });

@@ -218,7 +218,8 @@ export default function KontaktyScreen() {
         const { error } = await supabase
           .from('kontakty')
           .update(payload)
-          .eq('id', editingContact.id);
+          .eq('id', editingContact.id)
+          .eq('user_id', userId);
 
         if (error) throw error;
       } else {
@@ -245,7 +246,14 @@ export default function KontaktyScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            const { error } = await supabase.from('kontakty').delete().eq('id', c.id);
+            const userId = session?.user?.id;
+            if (!userId) return;
+
+            const { error } = await supabase
+              .from('kontakty')
+              .delete()
+              .eq('id', c.id)
+              .eq('user_id', userId);
             if (error) throw error;
 
             if (selectedContact?.id === c.id) {

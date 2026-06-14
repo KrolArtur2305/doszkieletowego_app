@@ -450,7 +450,14 @@ export default function DokumentyScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error: deleteError } = await supabase.from('dokumenty').delete().eq('id', doc.id);
+              const userId = await getUserId();
+              if (!userId) throw new Error('NO_USER');
+
+              const { error: deleteError } = await supabase
+                .from('dokumenty')
+                .delete()
+                .eq('id', doc.id)
+                .eq('user_id', userId);
               if (deleteError) throw deleteError;
 
               const { error: removeError } = await supabase.storage.from(bucketName).remove([doc.plik_url]);
@@ -539,6 +546,9 @@ export default function DokumentyScreen() {
       const blob = await (await fetch(file.uri)).blob();
       if (!blob || blob.size <= 0) {
         throw new Error(tt('documents:alerts.emptyFile'));
+      }
+      if (blob.size > MAX_DOCUMENT_UPLOAD_BYTES) {
+        throw new Error(tt('documents:alerts.fileTooLarge'));
       }
 
       const { error: upErr } = await supabase.storage.from(bucketName).upload(filePath, blob, {

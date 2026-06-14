@@ -353,7 +353,7 @@ export default function WszystkieWydatkiScreen() {
         .from('profiles')
         .select('build_type, current_stage_code')
         .eq('user_id', authUser.id)
-        .single();
+        .maybeSingle();
 
       if (profileRes.error) throw profileRes.error;
 

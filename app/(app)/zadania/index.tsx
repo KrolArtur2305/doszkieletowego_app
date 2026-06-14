@@ -321,7 +321,8 @@ export default function ZadaniaScreen() {
         const { error } = await supabase
           .from('zadania')
           .update(payload)
-          .eq('id', editingTask.id);
+          .eq('id', editingTask.id)
+          .eq('user_id', userId);
 
         if (error) throw error;
       } else {
@@ -352,7 +353,8 @@ export default function ZadaniaScreen() {
           wykonane: nextDone,
           zakonczone_at: nextDone ? new Date().toISOString() : null,
         })
-        .eq('id', task.id);
+        .eq('id', task.id)
+        .eq('user_id', task.user_id);
 
       if (error) throw error;
       if (session?.user?.id) {
@@ -374,7 +376,13 @@ export default function ZadaniaScreen() {
         onPress: async () => {
           try {
             const userId = session?.user?.id;
-            const { error } = await supabase.from('zadania').delete().eq('id', task.id);
+            if (!userId) return;
+
+            const { error } = await supabase
+              .from('zadania')
+              .delete()
+              .eq('id', task.id)
+              .eq('user_id', userId);
             if (error) throw error;
             if (userId) {
               await Promise.all([loadTasks(), syncAllTaskReminders(userId)]);

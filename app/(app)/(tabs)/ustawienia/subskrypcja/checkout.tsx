@@ -21,6 +21,7 @@ import type { PurchasesPackage } from 'react-native-purchases'
 import { useSubscription } from '../../../../../hooks/useSubscription'
 import type { SubscriptionPlanKey } from '../../../../../src/config/subscriptionPlans'
 import { isSubscriptionUiReadOnly } from '../../../../../src/services/subscription/launchMode'
+import { getSubscriptionAccess } from '../../../../../src/services/subscription/access'
 import { purchasePackageSafe, restorePurchasesSafe } from '../../../../../src/services/subscription/revenuecat'
 
 const NEON = '#25F0C8'
@@ -149,7 +150,8 @@ export default function CheckoutScreen() {
 
       await refresh()
 
-      if (result.customerInfo) {
+      const nextAccess = getSubscriptionAccess(result.customerInfo)
+      if (nextAccess.isSubscriptionActive) {
         Alert.alert(
           t('checkout.successTitle'),
           t('checkout.successMessage')
@@ -170,9 +172,10 @@ export default function CheckoutScreen() {
     try {
       const restored = await restorePurchasesSafe()
       await refresh()
+      const restoredAccess = getSubscriptionAccess(restored)
       Alert.alert(
         t('paywall.restoreTitle'),
-        restored ? t('paywall.restoreSuccess') : t('paywall.restoreEmpty')
+        restoredAccess.isSubscriptionActive ? t('paywall.restoreSuccess') : t('paywall.restoreEmpty')
       )
     } catch {
       Alert.alert(t('paywall.restoreTitle'), t('paywall.restoreError'))

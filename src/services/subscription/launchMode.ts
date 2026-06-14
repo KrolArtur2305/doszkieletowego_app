@@ -1,5 +1,4 @@
-// Pre-release guard: keep RevenueCat purchase flows disabled until store products,
-// webhook sync, and review-ready subscription UI are configured end to end.
+// RevenueCat purchase flows are enabled for App Store builds.
 export const PAYMENTS_ENABLED = true
 
 // Temporary launch mode: AI remains open while paid plans are not active.

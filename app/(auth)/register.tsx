@@ -79,7 +79,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
 
-    const { error: registerError } = await supabase.auth.signUp({
+    const { data, error: registerError } = await supabase.auth.signUp({
       email: e,
       password,
       options: {
@@ -91,6 +91,11 @@ export default function RegisterScreen() {
 
     if (registerError) {
       setError(mapRegisterError(registerError.message, t));
+      return;
+    }
+
+    if (data.session) {
+      router.replace('/(app)');
       return;
     }
 

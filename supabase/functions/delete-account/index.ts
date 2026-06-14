@@ -33,6 +33,7 @@ const storageBuckets = [
   "dokumenty",
   "paragony",
   "rzuty_projektu",
+  "models",
   "modele_projektu",
   "dziennik",
 ];
@@ -86,18 +87,42 @@ async function removeUserFolder(
   userId: string,
   warnings: string[],
 ) {
-  const { data, error } = await supabase.storage.from(bucket).list(userId, { limit: 1000 });
-  if (error || !data?.length) {
-    if (error && !error.message.toLowerCase().includes("not found")) warnings.push(`${bucket}: ${error.message}`);
-    return;
+  const paths: string[] = [];
+
+  async function collect(prefix: string) {
+    const limit = 1000;
+    let offset = 0;
+
+    while (true) {
+      const { data, error } = await supabase.storage.from(bucket).list(prefix, {
+        limit,
+        offset,
+        sortBy: { column: "name", order: "asc" },
+      });
+
+      if (error) {
+        if (!error.message.toLowerCase().includes("not found")) warnings.push(`${bucket}: ${error.message}`);
+        return;
+      }
+
+      if (!data?.length) return;
+
+      for (const entry of data) {
+        const path = `${prefix}/${entry.name}`;
+        if (entry.metadata === null) {
+          await collect(path);
+        } else {
+          paths.push(path);
+        }
+      }
+
+      if (data.length < limit) return;
+      offset += limit;
+    }
   }
 
-  await removeStoragePaths(
-    supabase,
-    bucket,
-    data.map((entry) => `${userId}/${entry.name}`),
-    warnings,
-  );
+  await collect(userId);
+  await removeStoragePaths(supabase, bucket, paths, warnings);
 }
 
 Deno.serve(async (req) => {
@@ -167,6 +192,12 @@ Deno.serve(async (req) => {
       (projects.data ?? []).map((row: any) => storagePathFromValue(row.model_url, "modele_projektu")),
       warnings,
     ),
+    removeStoragePaths(
+      supabase,
+      "models",
+      (projects.data ?? []).map((row: any) => storagePathFromValue(row.model_url, "models")),
+      warnings,
+    ),
   ]);
 
   for (const bucket of storageBuckets) {
@@ -176,6 +207,13 @@ Deno.serve(async (req) => {
   for (const table of userTables) {
     const { error } = await supabase.from(table).delete().eq("user_id", user.id);
     if (error) warnings.push(`${table}: ${error.message}`);
+  }
+
+  if (warnings.length > 0) {
+    return json(500, {
+      error: "Account deletion was stopped because not all user data could be removed.",
+      warnings,
+    });
   }
 
   const { error: deleteUserError } = await supabase.auth.admin.deleteUser(user.id);

@@ -81,6 +81,7 @@ export default function OnboardingInvestmentScreen() {
   const [nazwa, setNazwa] = useState('');
   const [lokalizacja, setLokalizacja] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<PlaceSuggestion | null>(null);
+  const [savedLegacyLocation, setSavedLegacyLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [dataStartISO, setDataStartISO] = useState('');
   const [dataKoniecISO, setDataKoniecISO] = useState('');
@@ -125,6 +126,7 @@ export default function OnboardingInvestmentScreen() {
             .eq('user_id', user.id)
             .maybeSingle();
 
+          if (fallback.error) throw fallback.error;
           data = fallback.data as any;
         }
 
@@ -143,6 +145,10 @@ export default function OnboardingInvestmentScreen() {
             latitude: data.latitude,
             longitude: data.longitude,
           });
+          setSavedLegacyLocation(false);
+        } else {
+          setSelectedPlace(null);
+          setSavedLegacyLocation(Boolean(placeName || data?.lokalizacja));
         }
         setDataStartISO(data?.data_start ?? '');
         setDataKoniecISO(data?.data_koniec ?? '');
@@ -221,7 +227,7 @@ export default function OnboardingInvestmentScreen() {
       return;
     }
 
-    if (!selectedPlace) {
+    if (!selectedPlace && !savedLegacyLocation) {
       const message = t('alerts.selectLocationFromList');
       setLocationError(message);
       Alert.alert(t('alerts.errorTitle'), message);
@@ -248,15 +254,16 @@ export default function OnboardingInvestmentScreen() {
 
     setSaving(true);
     try {
+      const legacyLocation = lokalizacja.trim();
       const investmentPayload = {
         user_id: userId,
         nazwa: trimmedName,
-        lokalizacja: getPlaceLocalityName(selectedPlace),
-        place_name: selectedPlace.placeName,
-        location_city: selectedPlace.city,
-        location_country: selectedPlace.country,
-        latitude: selectedPlace.latitude,
-        longitude: selectedPlace.longitude,
+        lokalizacja: selectedPlace ? getPlaceLocalityName(selectedPlace) : legacyLocation,
+        place_name: selectedPlace ? selectedPlace.placeName : legacyLocation,
+        location_city: selectedPlace ? selectedPlace.city : null,
+        location_country: selectedPlace ? selectedPlace.country : null,
+        latitude: selectedPlace ? selectedPlace.latitude : null,
+        longitude: selectedPlace ? selectedPlace.longitude : null,
         data_start: dataStartISO || null,
         data_koniec: dataKoniecISO || null,
         inwestycja_wypelniona: true,
@@ -375,6 +382,7 @@ export default function OnboardingInvestmentScreen() {
                   onChangeText={(value) => {
                     setLokalizacja(value);
                     setSelectedPlace(null);
+                    setSavedLegacyLocation(false);
                     setLocationError(null);
                   }}
                   selectedPlace={selectedPlace}

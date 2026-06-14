@@ -197,8 +197,8 @@ function stageGroupFromStageName(stageName: string) {
 
   const normalized = normalize(stageName);
   if (normalized.includes('fund') || normalized.includes('zero') || normalized.includes('podstaw')) return 'stan_zero';
-  if (normalized.includes('otwart') || normalized.includes('open') || normalized.includes('sso') || normalized.includes('surow')) return 'sso';
   if (normalized.includes('zamkni') || normalized.includes('closed') || normalized.includes('ssz')) return 'ssz';
+  if (normalized.includes('otwart') || normalized.includes('open') || normalized.includes('sso')) return 'sso';
   if (normalized.includes('instal') || normalized.includes('dach') || normalized.includes('roof')) return 'instalacje';
   if (normalized.includes('dewel') || normalized.includes('wykoncz') || normalized.includes('finish')) return 'wykonczenie';
   return 'other';

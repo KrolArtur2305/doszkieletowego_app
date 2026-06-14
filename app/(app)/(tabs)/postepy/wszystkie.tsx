@@ -169,7 +169,7 @@ export default function WszystkieEtapyScreen() {
           .from('profiles')
           .select('build_type, current_stage_code, ai_buddy_name, ai_buddy_avatar')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         if (profileError) throw profileError;
 
         const workflowCode = normalizeWorkflowCode((profileData as ProfileRow | null)?.build_type);

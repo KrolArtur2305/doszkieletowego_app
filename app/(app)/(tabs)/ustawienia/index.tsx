@@ -135,10 +135,14 @@ export default function UstawieniaScreen() {
                 await removePushToken(user.id);
               }
 
-              const { error } = await supabase.functions.invoke('delete-account', {
+              const { data, error } = await supabase.functions.invoke('delete-account', {
                 method: 'POST'});
 
               if (error) throw error;
+              if (Array.isArray(data?.warnings) && data.warnings.length > 0) {
+                console.warn('Account deletion warnings:', data.warnings);
+                throw new Error(t('settings:appSettings.deleteAccount.errorMessage'));
+              }
 
               try {
                 await supabase.auth.signOut();

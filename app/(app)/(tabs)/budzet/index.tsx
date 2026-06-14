@@ -495,7 +495,7 @@ export default function BudzetScreen() {
         .from('profiles')
         .select('build_type, current_stage_code, build_stage')
         .eq('user_id', authUser.id)
-        .single();
+        .maybeSingle();
       if (profileRes.error) throw profileRes.error;
 
       const buildTypeRaw = String((profileRes.data as any)?.build_type ?? '').trim();
@@ -644,6 +644,7 @@ export default function BudzetScreen() {
     const documentPath = `dokumenty/${ownerId}/wydatki/${stamp}_${safeName}`;
     const ab = await uriToArrayBuffer(picked.uri, t('errors.readFileFailed'));
     if (!ab || ab.byteLength <= 0) throw new Error(t('errors.emptyFile'));
+    if (ab.byteLength > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge'));
     const up = await supabase.storage.from(RECEIPT_BUCKET).upload(receiptPath, ab, { contentType: picked.mimeType, upsert: false });
     if (up.error) throw up.error;
     const docCopy = await supabase.storage.from(DOCUMENT_RECEIPT_BUCKET).upload(documentPath, ab, { contentType: picked.mimeType, upsert: false });

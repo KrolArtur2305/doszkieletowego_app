@@ -100,11 +100,15 @@ export default function AppLayout() {
             .maybeSingle()
         }
 
+        if (profileRes.error) throw profileRes.error
+
         const invRes = await supabase
           .from('inwestycje')
           .select('inwestycja_wypelniona')
           .eq('user_id', userId)
           .maybeSingle()
+
+        if (invRes.error) throw invRes.error
 
         if (!alive) return;
 
@@ -142,8 +146,10 @@ export default function AppLayout() {
               )
             : true
         );
-      } catch {
+      } catch (e) {
         if (!alive) return;
+        console.warn('[OnboardingGate] failed to load onboarding state:', e);
+        // Fail closed: do not keep stale state from a previous user/session.
         setProfileComplete(false);
         setInvestmentComplete(false);
         setOnboardingStep('build_type');

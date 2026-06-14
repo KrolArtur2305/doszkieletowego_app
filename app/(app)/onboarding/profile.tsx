@@ -92,7 +92,7 @@ export default function OnboardingProfileScreen() {
 
         setUserId(user.id);
         setEmail(user.email ?? '');
-        setImie('');
+        setImie(data?.imie ?? '');
         setNazwisko(data?.nazwisko ?? '');
         setTelefon(data?.telefon ?? '');
       } catch (e: any) {

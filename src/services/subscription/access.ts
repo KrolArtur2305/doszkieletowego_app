@@ -41,12 +41,15 @@ function mapEntitlementsToPlan(
   activeEntitlementIds: string[],
   entitlements: RevenueCatEntitlementMap,
 ): SubscriptionAccess['currentPlan'] {
+  const normalizedIds = activeEntitlementIds.map((id) => id.trim().toLowerCase());
   const hasExpertEntitlement =
-    !!entitlements.expert && activeEntitlementIds.includes(entitlements.expert);
+    (!!entitlements.expert && activeEntitlementIds.includes(entitlements.expert)) ||
+    normalizedIds.some((id) => id.includes('expert'));
   if (hasExpertEntitlement) return EXPERT_PLAN_KEY;
 
   const hasProEntitlement =
-    !!entitlements.pro && activeEntitlementIds.includes(entitlements.pro);
+    (!!entitlements.pro && activeEntitlementIds.includes(entitlements.pro)) ||
+    normalizedIds.some((id) => id.includes('pro'));
   if (hasProEntitlement) return PRO_PLAN_KEY;
 
   // Conservative fallback for future RevenueCat setup mistakes: any active
