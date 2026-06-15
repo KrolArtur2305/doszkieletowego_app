@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { getFriendlyErrorMessage } from '../lib/errorMessages';
 import { completeAuthSessionFromUrl, getAuthCallbackType } from '../src/services/auth/deepLinkAuth';
 
 export default function AuthCallbackScreen() {
@@ -11,8 +12,11 @@ export default function AuthCallbackScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let alive = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
     async function handle(url: string | null) {
-      if (!url || handledRef.current) return;
+      if (!alive || !url || handledRef.current) return;
       handledRef.current = true;
 
       try {
@@ -26,40 +30,58 @@ export default function AuthCallbackScreen() {
 
         router.replace('/(app)');
       } catch (nextError: any) {
+        if (!alive) return;
         const callbackType = url ? getAuthCallbackType(url) : 'unknown';
         const fallbackMessage =
           callbackType === 'recovery'
             ? t('callback.errors.recoveryFailed')
             : t('callback.errors.completeFailed');
 
-        setError(nextError?.message ?? fallbackMessage);
-        setTimeout(() => {
+        setError(getFriendlyErrorMessage(nextError, t, fallbackMessage));
+        const timer = setTimeout(() => {
+          if (!alive) return;
           router.replace(
             callbackType === 'recovery'
               ? '/reset-password?status=invalid'
               : '/(auth)/login'
           );
         }, 1200);
+        timers.push(timer);
       }
     }
 
-    Linking.getInitialURL().then((initialUrl) => {
-      if (initialUrl) {
-        handle(initialUrl);
-        return;
-      }
+    Linking.getInitialURL()
+      .then((initialUrl) => {
+        if (initialUrl) {
+          handle(initialUrl);
+          return;
+        }
 
-      setError(t('callback.errors.noCallbackData'));
-      setTimeout(() => {
-        router.replace('/(auth)/login');
-      }, 1200);
-    });
+        if (!alive) return;
+        setError(t('callback.errors.noCallbackData'));
+        const timer = setTimeout(() => {
+          if (!alive) return;
+          router.replace('/(auth)/login');
+        }, 1200);
+        timers.push(timer);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setError(t('callback.errors.noCallbackData'));
+        const timer = setTimeout(() => {
+          if (!alive) return;
+          router.replace('/(auth)/login');
+        }, 1200);
+        timers.push(timer);
+      });
 
     const subscription = Linking.addEventListener('url', ({ url }) => {
       handle(url);
     });
 
     return () => {
+      alive = false;
+      timers.forEach(clearTimeout);
       subscription.remove();
     };
   }, [t]);

@@ -17,6 +17,8 @@ import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { supabase } from '../../lib/supabase'
+import { getUserWithTimeout } from '../../lib/supabaseTimeout'
+import { getFriendlyErrorMessage } from '../../lib/errorMessages'
 import { AppButton, AppScreen } from '../../src/ui/components'
 import {
   DEFAULT_BUDDY_AVATAR_ID,
@@ -48,6 +50,8 @@ export default function GuidedSetupScreen() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
   const [step, setStep] = useState(() => {
     const raw = Array.isArray(stepParam) ? stepParam[0] : stepParam
@@ -69,12 +73,11 @@ export default function GuidedSetupScreen() {
 
     const load = async () => {
       setLoading(true)
+      setLoadError(null)
       try {
-        const { data: authData, error: authErr } = await supabase.auth.getUser()
-        if (authErr) throw authErr
-
-        const user = authData?.user
+        const user = await getUserWithTimeout()
         if (!user?.id) {
+          if (alive) setLoadError(t('onboarding:guided.alerts.prepareError'))
           if (alive) setLoading(false)
           return
         }
@@ -102,7 +105,9 @@ export default function GuidedSetupScreen() {
           ai_buddy_avatar: (profileRes.data as any)?.ai_buddy_avatar ?? null})
       } catch (e: any) {
         if (!alive) return
-        Alert.alert(t('onboarding:alerts.errorTitle'), e?.message ?? t('onboarding:guided.alerts.prepareError'))
+        const message = getFriendlyErrorMessage(e, t, 'onboarding:guided.alerts.prepareError')
+        setLoadError(message)
+        Alert.alert(t('onboarding:alerts.errorTitle'), message)
       } finally {
         if (alive) setLoading(false)
       }
@@ -112,7 +117,7 @@ export default function GuidedSetupScreen() {
     return () => {
       alive = false
     }
-  }, [t])
+  }, [t, reloadToken])
 
   const buddyName = useMemo(() => String(profile.ai_buddy_name ?? '').trim() || t('onboarding:guided.defaultBuddyName'), [profile.ai_buddy_name, t])
   const avatarId: BuddyAvatarId =
@@ -122,6 +127,38 @@ export default function GuidedSetupScreen() {
 
   const next = () => setStep((current) => Math.min(current + 1, 4))
   const back = () => setStep((current) => Math.max(current - 1, 0))
+
+  if (!loading && loadError) {
+    return (
+      <AppScreen style={styles.screen}>
+        <View style={styles.bg} pointerEvents="none" />
+        <View style={[styles.content, styles.errorState]}>
+          <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
+          <BlurView intensity={18} tint="dark" style={styles.card}>
+            <Text style={styles.title}>{t('onboarding:alerts.errorTitle')}</Text>
+            <Text style={styles.body}>{loadError}</Text>
+            <AppButton
+              title={t('retry', { ns: 'common' })}
+              onPress={() => setReloadToken((current) => current + 1)}
+              style={styles.primaryBtn}
+            />
+            <AppButton
+              title={t('onboarding:alerts.logoutAction')}
+              variant="secondary"
+              onPress={async () => {
+                try {
+                  await supabase.auth.signOut()
+                } finally {
+                  router.replace('/(auth)/welcome')
+                }
+              }}
+              style={styles.secondaryBtn}
+            />
+          </BlurView>
+        </View>
+      </AppScreen>
+    )
+  }
 
   const finish = async () => {
     if (saving) return
@@ -143,7 +180,10 @@ export default function GuidedSetupScreen() {
 
       router.replace('/(app)/(tabs)/dashboard')
     } catch (e: any) {
-      Alert.alert(t('onboarding:alerts.errorTitle'), e?.message ?? t('onboarding:guided.alerts.finishError'))
+      Alert.alert(
+        t('onboarding:alerts.errorTitle'),
+        getFriendlyErrorMessage(e, t, 'onboarding:guided.alerts.finishError')
+      )
     } finally {
       setSaving(false)
     }
@@ -294,6 +334,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     justifyContent: 'flex-start'},
+  errorState: {
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    paddingTop: 0,
+  },
   logo: {
     width: 156,
     height: 156,

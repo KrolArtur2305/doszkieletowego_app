@@ -20,6 +20,8 @@ import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../../../../lib/supabase'
+import { getUserWithTimeout } from '../../../../lib/supabaseTimeout'
+import { getFriendlyErrorMessage } from '../../../../lib/errorMessages'
 import { formatAreaUnit, formatDegreeUnit, formatLengthUnit, useUnits } from '../../../../lib/units'
 import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
@@ -281,10 +283,7 @@ export default function ProjektScreen() {
 
     const load = async () => {
       try {
-        const { data: authData, error: authErr } = await supabase.auth.getUser()
-        if (authErr) throw authErr
-
-        const user = authData?.user
+        const user = await getUserWithTimeout()
         if (!user?.id) {
           if (!alive) return
           setUserId(null)
@@ -340,7 +339,7 @@ export default function ProjektScreen() {
         console.error('[Projekt] load error:', e?.message || e)
         if (!alive) return
         setLoading(false)
-        Alert.alert(t('errorTitle'), t('loadError'))
+        Alert.alert(t('errorTitle'), getFriendlyErrorMessage(e, t, 'loadError'))
       }
     }
 
@@ -527,7 +526,7 @@ export default function ProjektScreen() {
       if (uploadError) {
         Alert.alert(
           t('uploadFailedTitle'),
-          uploadError.message
+          t('model3dSaveFailed')
         )
         return
       }
@@ -561,7 +560,7 @@ export default function ProjektScreen() {
         }
         Alert.alert(
           t('saveErrorTitle'),
-          updateError.message
+          t('model3dSaveFailed')
         )
         return
       }
@@ -580,7 +579,7 @@ export default function ProjektScreen() {
       console.error('[Projekt] change model error:', e?.message || e)
       Alert.alert(
         t('errorTitle'),
-        e?.message || t('model3dSaveFailed')
+        t('model3dSaveFailed')
       )
     } finally {
       setModelUploading(false)
@@ -706,7 +705,7 @@ export default function ProjektScreen() {
         .upload(path, bytes, { contentType: 'image/jpeg', upsert: false })
 
       if (upErr) {
-        Alert.alert(t('uploadFailedTitle'), upErr.message)
+        Alert.alert(t('uploadFailedTitle'), t('addPlanError'))
         return
       }
 
@@ -728,7 +727,7 @@ export default function ProjektScreen() {
         if (rollbackError) {
           console.warn('[Projekt] rollback rzutu nie powiódł się:', rollbackError.message)
         }
-        Alert.alert(t('saveErrorTitle'), insErr.message)
+        Alert.alert(t('saveErrorTitle'), t('addPlanError'))
         return
       }
 
@@ -774,7 +773,7 @@ export default function ProjektScreen() {
               .eq('user_id', userId)
 
             if (delDbErr) {
-              Alert.alert(t('errorTitle'), delDbErr.message)
+              Alert.alert(t('errorTitle'), t('deletePlanError'))
               return
             }
 
@@ -871,7 +870,7 @@ export default function ProjektScreen() {
         .single()
 
       if (error) {
-        Alert.alert(t('saveErrorTitle'), error.message)
+        Alert.alert(t('saveErrorTitle'), getFriendlyErrorMessage(error, t, 'saveParamsError'))
         return
       }
 

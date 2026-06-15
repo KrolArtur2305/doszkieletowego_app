@@ -20,6 +20,8 @@ import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
+import { getUserWithTimeout } from '../../../lib/supabaseTimeout';
+import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
@@ -75,6 +77,8 @@ export default function OnboardingInvestmentScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [appleUser, setAppleUser] = useState(false);
@@ -104,14 +108,15 @@ export default function OnboardingInvestmentScreen() {
 
     const load = async () => {
       setLoading(true);
+      setLoadError(null);
       try {
-        const { data: userRes, error: userErr } = await supabase.auth.getUser();
-        if (userErr || !userRes?.user) {
+        const user = await getUserWithTimeout();
+        if (!user) {
+          if (alive) setLoadError(t('alerts.noSession'));
           if (alive) setLoading(false);
           return;
         }
 
-        const user = userRes.user;
         setAppleUser(isAppleAuthUser(user));
         let { data, error } = await supabase
           .from('inwestycje')
@@ -153,7 +158,10 @@ export default function OnboardingInvestmentScreen() {
         setDataStartISO(data?.data_start ?? '');
         setDataKoniecISO(data?.data_koniec ?? '');
       } catch (e: any) {
-        Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadFailed'));
+        if (!alive) return;
+        const message = getFriendlyErrorMessage(e, t, 'alerts.loadFailed');
+        setLoadError(message);
+        Alert.alert(t('alerts.errorTitle'), message);
       } finally {
         if (alive) setLoading(false);
       }
@@ -163,7 +171,43 @@ export default function OnboardingInvestmentScreen() {
     return () => {
       alive = false;
     };
-  }, [t]);
+  }, [t, reloadToken]);
+
+  if (!loading && loadError) {
+    return (
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
+        <View pointerEvents="none" style={styles.bg} />
+        <View style={[styles.content, styles.errorState]}>
+          <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
+          <BlurView intensity={18} tint="dark" style={styles.card}>
+            <Text style={styles.title}>{t('alerts.errorTitle')}</Text>
+            <Text style={styles.loadingText}>{loadError}</Text>
+            <AppButton
+              title={t('retry', { ns: 'common' })}
+              onPress={() => setReloadToken((current) => current + 1)}
+              style={styles.primaryBtn}
+            />
+            <AppButton
+              title={t('alerts.logoutAction', { ns: 'onboarding' })}
+              variant="secondary"
+              onPress={async () => {
+                try {
+                  await supabase.auth.signOut();
+                } finally {
+                  router.replace('/(auth)/welcome');
+                }
+              }}
+              style={styles.primaryBtn}
+            />
+          </BlurView>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
 
   const openPicker = (which: 'start' | 'koniec') => {
     const startDate = parseISODate(dataStartISO);
@@ -299,7 +343,10 @@ export default function OnboardingInvestmentScreen() {
 
       router.replace('/(app)/onboarding');
     } catch (e: any) {
-      Alert.alert(t('alerts.saveErrorTitle'), e?.message ?? t('alerts.saveFailed'));
+      Alert.alert(
+        t('alerts.saveErrorTitle'),
+        getFriendlyErrorMessage(e, t, 'alerts.saveFailed')
+      );
     } finally {
       setSaving(false);
     }
@@ -491,6 +538,11 @@ const styles = StyleSheet.create({
   bg: { ...StyleSheet.absoluteFillObject, backgroundColor: BG },
   content: {
     paddingHorizontal: 20,
+  },
+  errorState: {
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    paddingTop: 0,
   },
   backButton: {
     alignSelf: 'flex-start',

@@ -20,6 +20,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../../lib/supabase';
+import { getUserWithTimeout } from '../../../lib/supabaseTimeout';
+import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { AppButton, AppInput } from '../../../src/ui/components';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 
@@ -46,6 +48,8 @@ export default function OnboardingProfileScreen() {
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -58,14 +62,15 @@ export default function OnboardingProfileScreen() {
 
     const load = async () => {
       setLoading(true);
+      setLoadError(null);
       try {
-        const { data: userRes, error: userErr } = await supabase.auth.getUser();
-        if (userErr || !userRes?.user) {
+        const user = await getUserWithTimeout();
+        if (!user) {
+          if (alive) setLoadError(t('errors.noUser'));
           if (alive) setLoading(false);
           return;
         }
 
-        const user = userRes.user;
         if (isAppleAuthUser(user)) {
           await supabase.from('profiles').upsert(
             {
@@ -96,7 +101,10 @@ export default function OnboardingProfileScreen() {
         setNazwisko(data?.nazwisko ?? '');
         setTelefon(data?.telefon ?? '');
       } catch (e: any) {
-        Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadProfileError'));
+        if (!alive) return;
+        const message = getFriendlyErrorMessage(e, t, 'alerts.loadProfileError');
+        setLoadError(message);
+        Alert.alert(t('alerts.errorTitle'), message);
       } finally {
         if (alive) setLoading(false);
       }
@@ -106,7 +114,43 @@ export default function OnboardingProfileScreen() {
     return () => {
       alive = false;
     };
-  }, [t]);
+  }, [t, reloadToken]);
+
+  if (!loading && loadError) {
+    return (
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
+        <View pointerEvents="none" style={styles.bg} />
+        <View style={[styles.content, styles.errorState]}>
+          <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
+          <BlurView intensity={18} tint="dark" style={styles.card}>
+            <Text style={styles.title}>{t('alerts.errorTitle')}</Text>
+            <Text style={styles.loadingText}>{loadError}</Text>
+            <AppButton
+              title={t('retry', { ns: 'common' })}
+              onPress={() => setReloadToken((current) => current + 1)}
+              style={styles.primaryBtn}
+            />
+            <AppButton
+              title={t('alerts.logoutAction', { ns: 'onboarding' })}
+              variant="secondary"
+              onPress={async () => {
+                try {
+                  await supabase.auth.signOut();
+                } finally {
+                  router.replace('/(auth)/welcome');
+                }
+              }}
+              style={styles.primaryBtn}
+            />
+          </BlurView>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
 
   const handleSave = async () => {
     if (!userId || saving) return;
@@ -144,7 +188,10 @@ export default function OnboardingProfileScreen() {
       if (error) throw error;
       router.replace('/(app)/onboarding/inwestycja');
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveProfileError'));
+      Alert.alert(
+        t('alerts.errorTitle'),
+        getFriendlyErrorMessage(e, t, 'alerts.saveProfileError')
+      );
     } finally {
       setSaving(false);
     }
@@ -307,6 +354,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     justifyContent: 'flex-start',
+  },
+  errorState: {
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    paddingTop: 0,
   },
   backButton: {
     alignSelf: 'flex-start',

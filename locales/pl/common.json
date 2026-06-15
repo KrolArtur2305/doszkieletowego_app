@@ -6,9 +6,12 @@
   "checkMore": "Sprawdź więcej",
   "dash": "—",
   "saving": "Zapisywanie…",
+  "retry": "Ponów",
   "errorTitle": "Błąd",
   "errors": {
-    "generic": "Coś poszło nie tak. Spróbuj ponownie."
+    "generic": "Coś poszło nie tak. Spróbuj ponownie.",
+    "connection": "Nie udało się połączyć z usługą. Sprawdź internet i spróbuj ponownie.",
+    "timeout": "Serwer nie odpowiedział na czas. Spróbuj ponownie."
   },
   "delete": "Usuń",
   "configErrorTitle": "Błąd konfiguracji aplikacji",

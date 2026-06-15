@@ -64,6 +64,7 @@
   "save": "Zapisz",
   "editParamsTitle": "Edytuj parametry",
   "saveErrorTitle": "Błąd zapisu",
+  "saveParamsError": "Nie udało się zapisać parametrów projektu.",
   "fieldGroupGeneral": "Ogólne",
   "fieldGroupSurfaces": "Powierzchnie",
   "fieldGroupStructure": "Bryła",

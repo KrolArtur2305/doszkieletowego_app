@@ -23,6 +23,7 @@ import * as Notifications from 'expo-notifications';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { supabase } from '../../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import {
   CURRENCY_OPTIONS,
   getStoredCurrency,
@@ -174,7 +175,7 @@ export default function UstawieniaAplikacjiScreen() {
     } catch (e: any) {
       Alert.alert(
         t('appSettings.password.errorTitle'),
-        e?.message ?? t('appSettings.password.genericError')
+        getFriendlyErrorMessage(e, t, 'appSettings.password.genericError')
       );
     } finally {
       setPwdSaving(false);

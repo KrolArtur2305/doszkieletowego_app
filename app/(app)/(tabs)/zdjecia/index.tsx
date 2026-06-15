@@ -26,6 +26,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { getSessionWithTimeout } from '../../../../lib/supabaseTimeout';
+import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import { getAppLocale } from '../../../../lib/i18n';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../src/ui/components';
@@ -200,8 +202,7 @@ export default function ZdjeciaScreen() {
   }, []);
 
   const getUserId = useCallback(async (): Promise<string | null> => {
-    const {
-      data: { session }} = await supabase.auth.getSession();
+    const session = await getSessionWithTimeout();
     return session?.user?.id ?? null;
   }, []);
 
@@ -619,7 +620,7 @@ export default function ZdjeciaScreen() {
           successCount += 1;
         } catch (e: any) {
           failureCount += 1;
-          lastErrorMessage = e?.message ? String(e.message) : null;
+          lastErrorMessage = getFriendlyErrorMessage(e, tt, 'photos:alerts.uploadErrorFallback');
           console.error('Błąd uploadu pojedynczego zdjęcia:', e);
         } finally {
           setUploadProgress({ done: i + 1, total: assets.length });
@@ -664,7 +665,7 @@ export default function ZdjeciaScreen() {
           successCount += 1;
         } catch (e: any) {
           failureCount += 1;
-          lastErrorMessage = e?.message ? String(e.message) : null;
+          lastErrorMessage = getFriendlyErrorMessage(e, tt, 'photos:alerts.uploadErrorFallback');
           console.error('Błąd uploadu pojedynczego zdjęcia:', e);
         } finally {
           setUploadProgress({ done: i + 1, total: assets.length });

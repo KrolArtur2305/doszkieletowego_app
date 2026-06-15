@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { Feather } from '@expo/vector-icons';
 
 import { supabase } from '../../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import { getAppLocale } from '../../../../lib/i18n';
 import {
@@ -556,7 +557,7 @@ export default function BudzetScreen() {
 
       setStageSuggestions(visibleSuggestions);
     } catch (e: any) {
-      setErrorMsg(e?.message ?? t('errors.fetchFailed'));
+      setErrorMsg(getFriendlyErrorMessage(e, t, 'errors.fetchFailed'));
     } finally {
       setLoading(false);
     }

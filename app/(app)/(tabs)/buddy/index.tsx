@@ -392,7 +392,7 @@ export default function BuddyChatScreen() {
         ? t('chat.messages.timeoutError')
         : isAbortError
         ? t('chat.messages.requestCancelled')
-        : e?.message ?? t('chat.messages.connectionError');
+        : t('chat.messages.connectionError');
 
       setMessages((prev) =>
         prev.map((m) =>

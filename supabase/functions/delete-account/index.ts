@@ -84,7 +84,7 @@ async function removeStoragePaths(
 async function removeUserFolder(
   supabase: ReturnType<typeof createClient>,
   bucket: string,
-  userId: string,
+  prefix: string,
   warnings: string[],
 ) {
   const paths: string[] = [];
@@ -121,8 +121,24 @@ async function removeUserFolder(
     }
   }
 
-  await collect(userId);
+  await collect(prefix);
   await removeStoragePaths(supabase, bucket, paths, warnings);
+}
+
+async function removeUserFolders(
+  supabase: ReturnType<typeof createClient>,
+  bucket: string,
+  prefixes: string[],
+  warnings: string[],
+) {
+  const uniquePrefixes = Array.from(new Set(prefixes.map((prefix) => prefix.replace(/^\/+|\/+$/g, "")).filter(Boolean)));
+  for (const prefix of uniquePrefixes) {
+    await removeUserFolder(supabase, bucket, prefix, warnings);
+  }
+}
+
+function pushQueryWarning(label: string, result: { error?: { message?: string } | null }, warnings: string[]) {
+  if (result.error) warnings.push(`${label}: ${result.error.message ?? "query failed"}`);
 }
 
 Deno.serve(async (req) => {
@@ -160,6 +176,19 @@ Deno.serve(async (req) => {
     supabase.from("rzuty_projektu").select("url").eq("user_id", user.id),
     supabase.from("projekty").select("model_url").eq("user_id", user.id),
   ]);
+
+  pushQueryWarning("zdjecia", photos, warnings);
+  pushQueryWarning("dokumenty", docs, warnings);
+  pushQueryWarning("wydatki", receipts, warnings);
+  pushQueryWarning("rzuty_projektu", plans, warnings);
+  pushQueryWarning("projekty", projects, warnings);
+
+  if (warnings.length > 0) {
+    return json(500, {
+      error: "Account deletion was stopped because user data could not be inspected.",
+      warnings,
+    });
+  }
 
   await Promise.all([
     removeStoragePaths(
@@ -201,7 +230,21 @@ Deno.serve(async (req) => {
   ]);
 
   for (const bucket of storageBuckets) {
-    await removeUserFolder(supabase, bucket, user.id, warnings);
+    const legacyPrefixes =
+      bucket === "dokumenty"
+        ? [`dokumenty/${user.id}`]
+        : bucket === "rzuty_projektu"
+          ? [`rzuty/${user.id}`]
+          : [];
+
+    await removeUserFolders(supabase, bucket, [user.id, ...legacyPrefixes], warnings);
+  }
+
+  if (warnings.length > 0) {
+    return json(500, {
+      error: "Account deletion was stopped because not all linked files could be removed.",
+      warnings,
+    });
   }
 
   for (const table of userTables) {

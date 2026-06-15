@@ -19,6 +19,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { getAppLocale, getDefaultCountry } from '../../../lib/i18n';
 import { AppButton, AppHeader, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
@@ -233,7 +234,7 @@ export default function InwestycjaScreen() {
 
       await persistInvestmentAndProfile(user.id);
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveFailed'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -296,7 +297,7 @@ export default function InwestycjaScreen() {
       }
 
       if (error) {
-        Alert.alert(t('alerts.saveErrorTitle'), error.message);
+        Alert.alert(t('alerts.saveErrorTitle'), getFriendlyErrorMessage(error, t, 'alerts.saveFailed'));
         return;
       }
 
@@ -313,7 +314,7 @@ export default function InwestycjaScreen() {
         );
 
       if (profileRes.error) {
-        Alert.alert(t('alerts.saveErrorTitle'), profileRes.error.message);
+        Alert.alert(t('alerts.saveErrorTitle'), getFriendlyErrorMessage(profileRes.error, t, 'alerts.saveFailed'));
         return;
       }
 

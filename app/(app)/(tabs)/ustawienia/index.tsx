@@ -12,6 +12,8 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '../../../../lib/supabase';
+import { getUserWithTimeout } from '../../../../lib/supabaseTimeout';
+import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import { removePushToken } from '../../../../src/services/notifications/pushService';
 import { isSubscriptionUiReadOnly } from '../../../../src/services/subscription/launchMode';
 import { AppCard, AppHeader, AppScreen } from '../../../../src/ui/components';
@@ -50,10 +52,7 @@ export default function UstawieniaScreen() {
       try {
         setLoading(true);
 
-        const { data: userData, error: userErr } = await supabase.auth.getUser();
-        if (userErr) throw userErr;
-
-        const user = userData.user;
+        const user = await getUserWithTimeout();
 
         if (!user) {
           if (!alive) return;
@@ -85,7 +84,7 @@ export default function UstawieniaScreen() {
       } catch (e: any) {
         Alert.alert(
           t('common:errorTitle'),
-          e?.message ?? t('common:errors.generic')
+          getFriendlyErrorMessage(e, t)
         );
       } finally {
         if (alive) setLoading(false);
@@ -99,8 +98,7 @@ export default function UstawieniaScreen() {
 
   const handleLogout = async () => {
     try {
-      const {
-        data: { user }} = await supabase.auth.getUser();
+      const user = await getUserWithTimeout();
       if (user) {
         await removePushToken(user.id);
       }
@@ -109,7 +107,7 @@ export default function UstawieniaScreen() {
     } catch (e: any) {
       Alert.alert(
         t('common:errorTitle'),
-        e?.message ?? t('settings:logoutError')
+        getFriendlyErrorMessage(e, t, 'settings:logoutError')
       );
     }
   };
@@ -128,8 +126,7 @@ export default function UstawieniaScreen() {
           onPress: async () => {
             setDeletingAccount(true);
             try {
-              const {
-                data: { user }} = await supabase.auth.getUser();
+              const user = await getUserWithTimeout();
 
               if (user) {
                 await removePushToken(user.id);
@@ -157,7 +154,7 @@ export default function UstawieniaScreen() {
             } catch (e: any) {
               Alert.alert(
                 t('settings:appSettings.deleteAccount.errorTitle'),
-                e?.message ?? t('settings:appSettings.deleteAccount.errorMessage')
+                getFriendlyErrorMessage(e, t, 'settings:appSettings.deleteAccount.errorMessage')
               );
             } finally {
               setDeletingAccount(false);

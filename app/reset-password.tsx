@@ -14,8 +14,29 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../lib/supabase';
+import { getFriendlyErrorMessage } from '../lib/errorMessages';
 import { AppButton, AppHeader, AppInput, AppScreen } from '../src/ui/components';
 import { colors, spacing, typography } from '../src/ui/theme';
+
+const RESET_PASSWORD_TIMEOUT_MS = 8000;
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(label));
+    }, timeoutMs);
+
+    Promise.resolve(promise)
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
 
 export default function ResetPasswordScreen() {
   const { t } = useTranslation('auth');
@@ -39,11 +60,20 @@ export default function ResetPasswordScreen() {
         return;
       }
 
-      const { data, error: sessionError } = await supabase.auth.getSession();
+      try {
+        const { data, error: sessionError } = await withTimeout(
+          supabase.auth.getSession(),
+          RESET_PASSWORD_TIMEOUT_MS,
+          'Reset password session load timed out',
+        );
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      if (sessionError || !data.session) {
+        if (sessionError || !data.session) {
+          setError(t('reset.errors.invalidLink'));
+        }
+      } catch {
+        if (!mounted) return;
         setError(t('reset.errors.invalidLink'));
       }
 
@@ -91,7 +121,7 @@ export default function ResetPasswordScreen() {
         ]
       );
     } catch (nextError: any) {
-      setError(nextError?.message ?? t('reset.errors.updateFailed'));
+      setError(getFriendlyErrorMessage(nextError, t, 'reset.errors.updateFailed'));
     } finally {
       setLoading(false);
     }

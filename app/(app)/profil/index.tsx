@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { AppButton, AppHeader, AppInput } from '../../../src/ui/components';
 
 type ProfileCache = {
@@ -191,7 +192,7 @@ export default function ProfilScreen() {
         .maybeSingle();
 
       if (error) {
-        Alert.alert(t('alerts.saveErrorTitle'), error.message);
+        Alert.alert(t('alerts.saveErrorTitle'), getFriendlyErrorMessage(error, t, 'errors.generic'));
         return;
       }
 
@@ -203,7 +204,7 @@ export default function ProfilScreen() {
       // ✅ od razu przejście dalej
       router.replace('/(app)/inwestycja');
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('errors.generic'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'errors.generic'));
     } finally {
       setSaving(false);
     }

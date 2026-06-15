@@ -6,9 +6,12 @@
   "checkMore": "Mehr anzeigen",
   "dash": "—",
   "saving": "Wird gespeichert…",
+  "retry": "Wiederholen",
   "errorTitle": "Fehler",
   "errors": {
-    "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "connection": "Verbindung zum Dienst fehlgeschlagen. Bitte Internet prüfen und erneut versuchen.",
+    "timeout": "Der Server hat nicht rechtzeitig geantwortet. Bitte erneut versuchen."
   },
   "delete": "Löschen",
   "configErrorTitle": "App-Konfigurationsfehler",

@@ -22,6 +22,7 @@ import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../../../lib/errorMessages';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../../src/ui/components';
@@ -143,7 +144,7 @@ export default function KontaktyScreen() {
       setContacts((data ?? []) as Contact[]);
     } catch (e: any) {
       setContacts([]);
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.loadError'));
     } finally {
       setLoading(false);
     }
@@ -232,7 +233,7 @@ export default function KontaktyScreen() {
       setForm(emptyContact());
       await loadContacts();
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveError'));
     } finally {
       setSaving(false);
     }
@@ -263,7 +264,7 @@ export default function KontaktyScreen() {
 
             await loadContacts();
           } catch (e: any) {
-            Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.deleteError'));
+            Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.deleteError'));
           }
         },
       },

@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { supabase } from '../../../../../lib/supabase';
 import { getAppLocale } from '../../../../../lib/i18n';
+import { getFriendlyErrorMessage } from '../../../../../lib/errorMessages';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../../../src/ui/components';
 import { colors as uiColors, typography } from '../../../../../src/ui/theme';
@@ -133,7 +134,7 @@ async function getJournalSignedUrlForPath(filePath: string) {
 
 export default function DziennikScreen() {
   const { session } = useSupabaseAuth();
-  const { t, i18n } = useTranslation('journal');
+  const { t, i18n } = useTranslation(['journal', 'common']);
   const params = useLocalSearchParams<{ openAdd?: string }>();
   const topPad = 0;
   const dateLocale = useMemo(
@@ -490,7 +491,7 @@ export default function DziennikScreen() {
       setModalOpen(false);
       await loadWpisy();
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveError'));
     } finally {
       setSaving(false);
     }
@@ -534,7 +535,7 @@ export default function DziennikScreen() {
             setDetailOpen(false);
             await loadWpisy();
           } catch (e: any) {
-            Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
+            Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveError'));
           }
         }}]);
   };

@@ -19,6 +19,25 @@ configureNotifications();
 const BG = '#000000';
 const NEON = '#25F0C8';
 const BRAND = '#19705C';
+const ONBOARDING_GATE_TIMEOUT_MS = 8000;
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(label));
+    }, timeoutMs);
+
+    Promise.resolve(promise)
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
 
 type Particle = {
   id: number;
@@ -85,28 +104,40 @@ export default function AppLayout() {
 
       try {
         let guidedColumnsAvailable = true
-        let profileRes = await supabase
-          .from('profiles')
-          .select('profil_wypelniony, onboarding_step, onboarding_completed, guided_setup_completed, guided_setup_version')
-          .eq('user_id', userId)
-          .maybeSingle()
+        let profileRes = await withTimeout(
+          supabase
+            .from('profiles')
+            .select('profil_wypelniony, onboarding_step, onboarding_completed, guided_setup_completed, guided_setup_version')
+            .eq('user_id', userId)
+            .maybeSingle(),
+          ONBOARDING_GATE_TIMEOUT_MS,
+          'Onboarding profile load timed out',
+        )
 
         if (profileRes.error && String(profileRes.error.message || '').includes('guided_setup_')) {
           guidedColumnsAvailable = false
-          profileRes = await supabase
-            .from('profiles')
-            .select('profil_wypelniony, onboarding_step, onboarding_completed')
-            .eq('user_id', userId)
-            .maybeSingle()
+          profileRes = await withTimeout(
+            supabase
+              .from('profiles')
+              .select('profil_wypelniony, onboarding_step, onboarding_completed')
+              .eq('user_id', userId)
+              .maybeSingle(),
+            ONBOARDING_GATE_TIMEOUT_MS,
+            'Onboarding profile fallback load timed out',
+          )
         }
 
         if (profileRes.error) throw profileRes.error
 
-        const invRes = await supabase
-          .from('inwestycje')
-          .select('inwestycja_wypelniona')
-          .eq('user_id', userId)
-          .maybeSingle()
+        const invRes = await withTimeout(
+          supabase
+            .from('inwestycje')
+            .select('inwestycja_wypelniona')
+            .eq('user_id', userId)
+            .maybeSingle(),
+          ONBOARDING_GATE_TIMEOUT_MS,
+          'Onboarding investment load timed out',
+        )
 
         if (invRes.error) throw invRes.error
 

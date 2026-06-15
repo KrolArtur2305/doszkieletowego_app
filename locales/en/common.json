@@ -6,9 +6,12 @@
   "checkMore": "Check more",
   "dash": "—",
   "saving": "Saving…",
+  "retry": "Retry",
   "errorTitle": "Error",
   "errors": {
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "connection": "Could not connect to the service. Check your internet connection and try again.",
+    "timeout": "The server did not respond in time. Please try again."
   },
   "delete": "Delete",
   "configErrorTitle": "App configuration error",

@@ -21,6 +21,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import { getAppLocale } from '../../../../lib/i18n';
 import {
@@ -398,7 +399,7 @@ export default function WszystkieWydatkiScreen() {
         );
       }
     } catch (e: any) {
-      setErrorMsg(e?.message ?? t('errors.fetchFailed'));
+      setErrorMsg(getFriendlyErrorMessage(e, t, 'errors.fetchFailed'));
     } finally {
       setLoading(false);
     }
@@ -582,7 +583,7 @@ export default function WszystkieWydatkiScreen() {
       }
       setWydatki((prev) => prev.filter((w) => w.id !== row.id));
     } catch (e: any) {
-      Alert.alert(t('errorTitle'), e?.message ?? t('errors.deleteFailed'));
+      Alert.alert(t('errorTitle'), getFriendlyErrorMessage(e, t, 'errors.deleteFailed'));
     }
   };
 
@@ -706,7 +707,7 @@ export default function WszystkieWydatkiScreen() {
       setFStageKey(null);
       await loadExpenses();
     } catch (e: any) {
-      Alert.alert(t('errorTitle'), e?.message ?? t('errors.addFailed'));
+      Alert.alert(t('errorTitle'), getFriendlyErrorMessage(e, t, 'errors.addFailed'));
     } finally {
       setSaving(false);
     }

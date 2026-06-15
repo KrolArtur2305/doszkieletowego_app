@@ -27,6 +27,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
+import { getSessionWithTimeout } from '../../../../lib/supabaseTimeout';
 import { getAppLocale } from '../../../../lib/i18n';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppInput } from '../../../../src/ui/components';
@@ -233,8 +234,7 @@ export default function DokumentyScreen() {
   const topPad = 0;
 
   const getUserId = useCallback(async (): Promise<string | null> => {
-    const {
-      data: { session }} = await supabase.auth.getSession();
+    const session = await getSessionWithTimeout();
     return session?.user?.id ?? null;
   }, []);
 

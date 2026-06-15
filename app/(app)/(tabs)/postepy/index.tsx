@@ -12,6 +12,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import {
   MAIN_STAGE_TIMELINE,
   getGroupDisplayKey,
@@ -122,7 +123,7 @@ export default function PostepyScreen() {
         }
       } catch (e: any) {
         if (!cancelled) {
-          setError(e?.message ?? t('errors.fetchFailed'));
+          setError(getFriendlyErrorMessage(e, t, 'errors.fetchFailed'));
           setProfile(null);
           setTemplates([]);
           setUserStages([]);

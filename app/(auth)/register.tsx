@@ -78,32 +78,35 @@ export default function RegisterScreen() {
     if (password !== password2) return setError(t('register.errors.passwordsMismatch'));
 
     setLoading(true);
+    try {
+      const { data, error: registerError } = await supabase.auth.signUp({
+        email: e,
+        password,
+        options: {
+          emailRedirectTo: getAuthCallbackRedirectUri(),
+        },
+      });
 
-    const { data, error: registerError } = await supabase.auth.signUp({
-      email: e,
-      password,
-      options: {
-        emailRedirectTo: getAuthCallbackRedirectUri(),
-      },
-    });
+      if (registerError) {
+        setError(mapRegisterError(registerError.message, t));
+        return;
+      }
 
-    setLoading(false);
+      if (data.session) {
+        router.replace('/(app)');
+        return;
+      }
 
-    if (registerError) {
-      setError(mapRegisterError(registerError.message, t));
-      return;
+      Alert.alert(
+        t('register.alerts.checkEmailTitle'),
+        t('register.alerts.checkEmailMessage'),
+        [{ text: t('common:ok'), onPress: () => router.replace('/(auth)/login') }]
+      );
+    } catch (e: any) {
+      setError(mapRegisterError(e?.message ?? 'network error', t));
+    } finally {
+      setLoading(false);
     }
-
-    if (data.session) {
-      router.replace('/(app)');
-      return;
-    }
-
-    Alert.alert(
-      t('register.alerts.checkEmailTitle'),
-      t('register.alerts.checkEmailMessage'),
-      [{ text: t('common:ok'), onPress: () => router.replace('/(auth)/login') }]
-    );
   };
 
   async function handleGoogleLogin() {

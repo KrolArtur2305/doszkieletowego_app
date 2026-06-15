@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CustomerInfo, PurchasesOfferings } from 'react-native-purchases';
 import i18n from '../lib/i18n';
+import { getFriendlyErrorMessage } from '../lib/errorMessages';
 import { useSupabaseAuth } from './useSupabaseAuth';
 import { getSubscriptionAccess } from '../src/services/subscription/access';
 import { AI_OPEN_ACCESS } from '../src/services/subscription/launchMode';
@@ -66,7 +67,7 @@ export function useSubscription(): UseSubscriptionResult {
       setOfferings(null);
       setAccess(FREE_ACCESS);
       setSupportStatus(getRevenueCatSupportStatus());
-      setError(e instanceof Error ? e.message : i18n.t('subscription:errors.loadFailed'));
+      setError(getFriendlyErrorMessage(e, i18n.t.bind(i18n), 'subscription:errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ export function useSubscription(): UseSubscriptionResult {
         setOfferings(null);
         setAccess(FREE_ACCESS);
         setSupportStatus(getRevenueCatSupportStatus());
-        setError(e instanceof Error ? e.message : i18n.t('subscription:errors.loadFailed'));
+        setError(getFriendlyErrorMessage(e, i18n.t.bind(i18n), 'subscription:errors.loadFailed'));
       } finally {
         if (alive) setLoading(false);
       }

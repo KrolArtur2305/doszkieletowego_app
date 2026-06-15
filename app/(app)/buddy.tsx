@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../lib/errorMessages';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../src/ui/components';
 
@@ -110,7 +111,7 @@ export default function BuddyOnboardingScreen() {
 
       router.replace('/(app)/(tabs)/dashboard');
     } catch (e: any) {
-      setError(e?.message ?? t('settings.errors.save'));
+      setError(getFriendlyErrorMessage(e, t, 'settings.errors.save'));
     } finally {
       setSaving(false);
     }

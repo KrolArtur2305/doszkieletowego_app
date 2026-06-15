@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 import { AppButton, AppInput } from '../../../src/ui/components';
@@ -177,7 +178,7 @@ export default function OnboardingScreen() {
           setPlannedBudget(formatBudgetInput(String(investmentRes.data.budzet)));
         }
       } catch (e: any) {
-        Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.prepareError'));
+        Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.prepareError'));
       } finally {
         if (alive) setLoading(false);
       }
@@ -209,7 +210,7 @@ export default function OnboardingScreen() {
       setBuildType(value);
       setStep('build_stage');
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveBuildTypeError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveBuildTypeError'));
     } finally {
       setSaving(false);
     }
@@ -229,7 +230,7 @@ export default function OnboardingScreen() {
               await supabase.auth.signOut();
               router.replace('/(auth)/welcome');
             } catch (e: any) {
-              Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.logoutError'));
+              Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.logoutError'));
             }
           }}]
     );
@@ -255,7 +256,7 @@ export default function OnboardingScreen() {
       setBuildStage(value);
       setStep('budget');
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveBuildStageError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveBuildStageError'));
     } finally {
       setSaving(false);
     }
@@ -337,7 +338,7 @@ export default function OnboardingScreen() {
 
       router.replace(appleUser ? '/(app)/onboarding/inwestycja' : '/(app)/onboarding/profile');
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveBudgetError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveBudgetError'));
     } finally {
       setSaving(false);
     }
@@ -612,7 +613,7 @@ export default function OnboardingScreen() {
     } catch (e: any) {
       Alert.alert(
         t('onboarding:alerts.errorTitle'),
-        e?.message ?? t('buddy:settings.errors.save')
+        getFriendlyErrorMessage(e, t, 'buddy:settings.errors.save')
       );
     } finally {
       setSaving(false);

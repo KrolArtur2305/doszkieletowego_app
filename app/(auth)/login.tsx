@@ -76,14 +76,18 @@ export default function LoginScreen() {
   const onLogin = async () => {
     setError(null);
     setLoading(true);
+    try {
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    if (loginError) setError(mapError(loginError.message, t));
-    setLoading(false);
+      if (loginError) setError(mapError(loginError.message, t));
+    } catch (e: any) {
+      setError(mapError(e?.message ?? 'network error', t));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onForgotPassword = async () => {
@@ -93,16 +97,21 @@ export default function LoginScreen() {
       return;
     }
     setLoading(true);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(e, {
-      redirectTo: getAuthCallbackRedirectUri(),
-    });
-    setLoading(false);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(e, {
+        redirectTo: getAuthCallbackRedirectUri(),
+      });
 
-    if (resetError) {
+      if (resetError) {
+        Alert.alert(t('login.alerts.errorTitle'), t('login.alerts.errorMessage'));
+        return;
+      }
+      Alert.alert(t('login.alerts.doneTitle'), t('login.alerts.doneMessage'));
+    } catch {
       Alert.alert(t('login.alerts.errorTitle'), t('login.alerts.errorMessage'));
-      return;
+    } finally {
+      setLoading(false);
     }
-    Alert.alert(t('login.alerts.doneTitle'), t('login.alerts.doneMessage'));
   };
 
   async function handleGoogleLogin() {

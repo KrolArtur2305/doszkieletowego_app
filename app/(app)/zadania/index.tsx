@@ -22,6 +22,7 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { getAppLocale } from '../../../lib/i18n';
+import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { syncAllTaskReminders } from '../../../lib/notifications';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../components/FloatingAddButton';
@@ -194,7 +195,7 @@ export default function ZadaniaScreen() {
       setTasks((data ?? []) as Task[]);
     } catch (e: any) {
       setTasks([]);
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.loadError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.loadError'));
     } finally {
       setLoading(false);
     }
@@ -338,7 +339,7 @@ export default function ZadaniaScreen() {
       closeModal();
       await Promise.all([loadTasks(), syncAllTaskReminders(userId)]);
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.saveError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveError'));
     } finally {
       setSaving(false);
     }
@@ -363,7 +364,7 @@ export default function ZadaniaScreen() {
         await loadTasks();
       }
     } catch (e: any) {
-      Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.toggleError'));
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.toggleError'));
     }
   };
 
@@ -390,7 +391,7 @@ export default function ZadaniaScreen() {
               await loadTasks();
             }
           } catch (e: any) {
-            Alert.alert(t('alerts.errorTitle'), e?.message ?? t('alerts.deleteError'));
+            Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.deleteError'));
           }
         },
       },

@@ -65,6 +65,7 @@
   "save": "Speichern",
   "editParamsTitle": "Parameter bearbeiten",
   "saveErrorTitle": "Speicherfehler",
+  "saveParamsError": "Projektparameter konnten nicht gespeichert werden.",
   "fieldGroupGeneral": "Allgemein",
   "fieldGroupSurfaces": "Flächen",
   "fieldGroupStructure": "Struktur",

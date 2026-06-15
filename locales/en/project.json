@@ -64,6 +64,7 @@
   "save": "Save",
   "editParamsTitle": "Edit parameters",
   "saveErrorTitle": "Save error",
+  "saveParamsError": "Could not save project parameters.",
   "fieldGroupGeneral": "General",
   "fieldGroupSurfaces": "Surfaces",
   "fieldGroupStructure": "Structure",

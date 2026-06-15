@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import {
   MAIN_STAGE_TIMELINE,
   isDoneStageStatus,
@@ -198,7 +199,7 @@ export default function WszystkieEtapyScreen() {
         setDraftStatuses({});
       } catch (e: any) {
         if (!alive) return;
-        setError(e?.message ?? t('errors.fetchFailed'));
+        setError(getFriendlyErrorMessage(e, t, 'errors.fetchFailed'));
         setProfile(null);
         setTemplates([]);
         setUserStages([]);
@@ -300,7 +301,7 @@ export default function WszystkieEtapyScreen() {
         router.replace('/(app)/(tabs)/postepy');
       }
     } catch (e: any) {
-      setError(e?.message ?? t('errors.updateFailed'));
+      setError(getFriendlyErrorMessage(e, t, 'errors.updateFailed'));
     } finally {
       setSavingAll(false);
     }
