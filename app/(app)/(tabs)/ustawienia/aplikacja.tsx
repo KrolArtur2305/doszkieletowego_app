@@ -23,6 +23,7 @@ import * as Notifications from 'expo-notifications';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { supabase } from '../../../../lib/supabase';
+import { getUserWithTimeout } from '../../../../lib/supabaseTimeout';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import {
   CURRENCY_OPTIONS,
@@ -33,6 +34,7 @@ import {
 import { getStoredUnits, setAppUnits, setUnitsForLanguage, type UnitSystem } from '../../../../lib/units';
 import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
+import { removePushToken } from '../../../../src/services/notifications/pushService';
 import { AppButton, AppInput } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
@@ -70,6 +72,7 @@ export default function UstawieniaAplikacjiScreen() {
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
   const [unitsModalOpen, setUnitsModalOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -180,6 +183,61 @@ export default function UstawieniaAplikacjiScreen() {
     } finally {
       setPwdSaving(false);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    if (deletingAccount) return;
+
+    Alert.alert(
+      t('appSettings.deleteAccount.confirmTitle'),
+      t('appSettings.deleteAccount.confirmMessage'),
+      [
+        { text: t('common:cancel'), style: 'cancel' },
+        {
+          text: t('appSettings.deleteAccount.confirmBtn'),
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingAccount(true);
+            try {
+              const user = await getUserWithTimeout();
+
+              if (user) {
+                await removePushToken(user.id);
+              }
+
+              const { data, error } = await supabase.functions.invoke('delete-account', {
+                method: 'POST',
+              });
+
+              if (error) throw error;
+              if (Array.isArray(data?.warnings) && data.warnings.length > 0) {
+                console.warn('Account deletion warnings:', data.warnings);
+                throw new Error(t('appSettings.deleteAccount.errorMessage'));
+              }
+
+              try {
+                await supabase.auth.signOut();
+              } catch (signOutError) {
+                console.warn('Sign out after account deletion failed:', signOutError);
+              }
+
+              Alert.alert(
+                t('appSettings.deleteAccount.successTitle'),
+                t('appSettings.deleteAccount.successMessage')
+              );
+              router.replace('/(auth)/welcome');
+            } catch (e: any) {
+              Alert.alert(
+                t('appSettings.deleteAccount.errorTitle'),
+                getFriendlyErrorMessage(e, t, 'appSettings.deleteAccount.errorMessage')
+              );
+            } finally {
+              setDeletingAccount(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const selectedLanguage = LANGUAGE_OPTIONS.find((lang) => lang.key === activeLang) ?? LANGUAGE_OPTIONS[0];
@@ -304,7 +362,7 @@ export default function UstawieniaAplikacjiScreen() {
             <TouchableOpacity
               onPress={() => setPwdModalOpen(true)}
               activeOpacity={0.85}
-              style={styles.row}
+              style={[styles.row, styles.rowBorder]}
             >
               <View style={styles.rowIconWrap}>
                 <Feather name="lock" size={18} color={ACCENT} />
@@ -316,6 +374,30 @@ export default function UstawieniaAplikacjiScreen() {
                 </Text>
                 <Text style={styles.rowSubtitle}>
                   {t('appSettings.password.subtitle')}
+                </Text>
+              </View>
+
+              <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.25)" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleDeleteAccount}
+              activeOpacity={0.85}
+              disabled={deletingAccount}
+              style={styles.row}
+            >
+              <View style={[styles.rowIconWrap, styles.dangerIconWrap]}>
+                <Feather name="trash-2" size={18} color="#FF5C5C" />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, styles.dangerText]}>
+                  {t('appSettings.deleteAccount.title')}
+                </Text>
+                <Text style={styles.rowSubtitle}>
+                  {deletingAccount
+                    ? t('appSettings.deleteAccount.deleting')
+                    : t('appSettings.deleteAccount.subtitle')}
                 </Text>
               </View>
 
@@ -375,13 +457,7 @@ export default function UstawieniaAplikacjiScreen() {
             <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/support')} activeOpacity={0.7}>
               <Text style={styles.linkText}>{t('appSettings.support')}</Text>
             </TouchableOpacity>
-
-            <Text style={styles.linkSep}>•</Text>
-
-            <TouchableOpacity onPress={() => Linking.openURL('https://www.mybuildiq.com/delete-account')} activeOpacity={0.7}>
-              <Text style={styles.linkText}>{t('appSettings.deleteAccountLink')}</Text>
-            </TouchableOpacity>
-          </View>
+</View>
         </View>
       </ScrollView>
 
@@ -637,9 +713,14 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(25,112,92,0.22)',
     alignItems: 'center', justifyContent: 'center',
   },
+  dangerIconWrap: {
+    backgroundColor: 'rgba(255,92,92,0.10)',
+    borderColor: 'rgba(255,92,92,0.22)',
+  },
   rowTitle: {
     color: 'rgba(255,255,255,0.80)', fontSize: 15.5, fontWeight: '700', letterSpacing: -0.1,
   },
+  dangerText: { color: '#FF8A8A' },
   rowSubtitle: {
     marginTop: 2, color: 'rgba(255,255,255,0.38)', fontSize: 12.5, fontWeight: '500',
   },

@@ -45,12 +45,11 @@ function storagePathFromValue(value: unknown, bucket: string): string | null {
   return decodeURIComponent(raw.slice(offset).split("?")[0]);
 }
 
-function linkedDocumentPathFromReceiptPath(ownerId: string, receiptPath: string | null) {
+function linkedDocumentPathFromReceiptPath(receiptPath: string | null) {
   const path = String(receiptPath ?? "").trim();
   if (!path) return null;
   if (path.startsWith("dokumenty/")) return path;
-  if (path.startsWith(`${ownerId}/`)) return `dokumenty/${path}`;
-  return path;
+  return `dokumenty/${path}`;
 }
 
 Deno.serve(async (req) => {
@@ -83,25 +82,45 @@ Deno.serve(async (req) => {
 
   const { data: expense, error: selectError } = await supabase
     .from("wydatki")
-    .select("id,user_id,plik")
+    .select("id,user_id,investment_id,plik")
     .eq("id", expenseId)
-    .eq("user_id", user.id)
     .maybeSingle();
 
   if (selectError) return json(500, { error: selectError.message });
   if (!expense) return json(404, { error: "Expense not found." });
 
+  const expenseUserId = String((expense as { user_id?: unknown }).user_id ?? "");
+  const expenseInvestmentId = String((expense as { investment_id?: unknown }).investment_id ?? "");
+  const isOwnExpense = expenseUserId === user.id;
+
+  let isOwnerOfInvestment = false;
+  if (!isOwnExpense && expenseInvestmentId) {
+    const { data: membership, error: membershipError } = await supabase
+      .from("investment_members")
+      .select("role")
+      .eq("investment_id", expenseInvestmentId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (membershipError) return json(500, { error: membershipError.message });
+    isOwnerOfInvestment = String((membership as { role?: unknown } | null)?.role ?? "") === "owner";
+  }
+
+  if (!isOwnExpense && !isOwnerOfInvestment) {
+    return json(403, { error: "You are not allowed to delete this expense." });
+  }
+
   const receiptPath = storagePathFromValue((expense as { plik?: unknown }).plik, RECEIPTS_BUCKET);
-  const documentPath = linkedDocumentPathFromReceiptPath(user.id, receiptPath);
+  const documentPath = linkedDocumentPathFromReceiptPath(receiptPath);
   const warnings: string[] = [];
 
   if (receiptPath || documentPath) {
     const documentPaths = Array.from(new Set([receiptPath, documentPath].filter(Boolean) as string[]));
-    const { error: documentDeleteError } = await supabase
-      .from("dokumenty")
-      .delete()
-      .eq("user_id", user.id)
-      .in("plik_url", documentPaths);
+    let documentQuery = supabase.from("dokumenty").delete().in("plik_url", documentPaths);
+    documentQuery = expenseInvestmentId
+      ? documentQuery.eq("investment_id", expenseInvestmentId)
+      : documentQuery.eq("user_id", user.id);
+    const { error: documentDeleteError } = await documentQuery;
     if (documentDeleteError) warnings.push(`dokumenty: ${documentDeleteError.message}`);
   }
 
@@ -130,8 +149,7 @@ Deno.serve(async (req) => {
   const { error: deleteError } = await supabase
     .from("wydatki")
     .delete()
-    .eq("id", expenseId)
-    .eq("user_id", user.id);
+    .eq("id", expenseId);
 
   if (deleteError) return json(500, { error: deleteError.message });
 

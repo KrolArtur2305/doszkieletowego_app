@@ -41,7 +41,6 @@ export default function UstawieniaScreen() {
   const subscriptionUiReadOnly = isSubscriptionUiReadOnly();
 
   const [loading, setLoading] = useState(true);
-  const [deletingAccount, setDeletingAccount] = useState(false);
   const [displayName, setDisplayName] = useState(t('settings:fallbackUser'));
   const [email, setEmail] = useState('');
 
@@ -97,11 +96,18 @@ export default function UstawieniaScreen() {
   }, [t]);
 
   const handleLogout = async () => {
+    const user = await getUserWithTimeout().catch((e) => {
+      console.warn('Failed to read user before logout:', e);
+      return null;
+    });
+
+    if (user) {
+      await removePushToken(user.id).catch((e) => {
+        console.warn('Failed to remove push token before logout:', e);
+      });
+    }
+
     try {
-      const user = await getUserWithTimeout();
-      if (user) {
-        await removePushToken(user.id);
-      }
       await supabase.auth.signOut();
       router.replace('/(auth)/welcome');
     } catch (e: any) {
@@ -110,57 +116,6 @@ export default function UstawieniaScreen() {
         getFriendlyErrorMessage(e, t, 'settings:logoutError')
       );
     }
-  };
-
-  const handleDeleteAccount = () => {
-    if (deletingAccount) return;
-
-    Alert.alert(
-      t('settings:appSettings.deleteAccount.confirmTitle'),
-      t('settings:appSettings.deleteAccount.confirmMessage'),
-      [
-        { text: t('common:cancel'), style: 'cancel' },
-        {
-          text: t('settings:appSettings.deleteAccount.confirmBtn'),
-          style: 'destructive',
-          onPress: async () => {
-            setDeletingAccount(true);
-            try {
-              const user = await getUserWithTimeout();
-
-              if (user) {
-                await removePushToken(user.id);
-              }
-
-              const { data, error } = await supabase.functions.invoke('delete-account', {
-                method: 'POST'});
-
-              if (error) throw error;
-              if (Array.isArray(data?.warnings) && data.warnings.length > 0) {
-                console.warn('Account deletion warnings:', data.warnings);
-                throw new Error(t('settings:appSettings.deleteAccount.errorMessage'));
-              }
-
-              try {
-                await supabase.auth.signOut();
-              } catch (signOutError) {
-                console.warn('Sign out after account deletion failed:', signOutError);
-              }
-              Alert.alert(
-                t('settings:appSettings.deleteAccount.successTitle'),
-                t('settings:appSettings.deleteAccount.successMessage')
-              );
-              router.replace('/(auth)/welcome');
-            } catch (e: any) {
-              Alert.alert(
-                t('settings:appSettings.deleteAccount.errorTitle'),
-                getFriendlyErrorMessage(e, t, 'settings:appSettings.deleteAccount.errorMessage')
-              );
-            } finally {
-              setDeletingAccount(false);
-            }
-          }}]
-    );
   };
 
   const menuItems: MenuItem[] = useMemo(
@@ -184,6 +139,12 @@ export default function UstawieniaScreen() {
         icon: 'cpu',
         onPress: () => router.push('/(app)/buddy-settings')},
       {
+        key: 'partner',
+        title: t('settings:items.partnerTitle'),
+        subtitle: t('settings:items.partnerSubtitle'),
+        icon: 'users',
+        onPress: () => router.push('/(app)/(tabs)/ustawienia/partner')},
+      {
         key: 'aplikacja',
         title: t('settings:items.appTitle'),
         subtitle: t('settings:items.appSubtitle'),
@@ -201,20 +162,12 @@ export default function UstawieniaScreen() {
               : '/(app)/(tabs)/ustawienia/subskrypcja'
           )},
       {
-        key: 'delete-account',
-        title: t('settings:appSettings.deleteAccount.title'),
-        subtitle: deletingAccount
-            ? t('settings:appSettings.deleteAccount.deleting')
-            : t('settings:appSettings.deleteAccount.subtitle'),
-        icon: 'trash-2',
-        onPress: handleDeleteAccount},
-      {
         key: 'logout',
         title: t('settings:logout'),
         icon: 'log-out',
         danger: true,
         onPress: handleLogout}],
-    [deletingAccount, router, subscriptionUiReadOnly, t]
+    [router, subscriptionUiReadOnly, t]
   );
 
   return (

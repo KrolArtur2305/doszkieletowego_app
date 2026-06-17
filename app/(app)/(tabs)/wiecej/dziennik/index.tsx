@@ -27,6 +27,7 @@ import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { supabase } from '../../../../../lib/supabase';
 import { getAppLocale } from '../../../../../lib/i18n';
 import { getFriendlyErrorMessage } from '../../../../../lib/errorMessages';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../../lib/buildAccess';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../../../src/ui/components';
 import { colors as uiColors, typography } from '../../../../../src/ui/theme';
@@ -61,6 +62,7 @@ const MAIN_STAGE_GROUP_ORDER: StageGroupCode[] = ['stan_zero', 'sso', 'ssz', 'in
 type Wpis = {
   id: string;
   user_id: string;
+  investment_id?: string | null;
   data: string;
   tresc: string;
   etap_id: string | null;
@@ -144,6 +146,8 @@ export default function DziennikScreen() {
 
   // â”€â”€ State â”€â”€
   const [wpisy, setWpisy] = useState<Wpis[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
   const [loading, setLoading] = useState(true);
   const [etapy, setEtapy] = useState<Etap[]>([]);
   const [legacyEtapToMainEtapId, setLegacyEtapToMainEtapId] = useState<Record<string, string>>({});
@@ -188,16 +192,20 @@ export default function DziennikScreen() {
   }, [fabAnim, headerAnim]);
 
   // â”€â”€ Load data â”€â”€
-  const loadWpisy = async () => {
-    const userId = session?.user?.id;
+  const loadWpisy = async (accessArg?: BuildAccess | null, userIdArg?: string | null) => {
+    const userId = userIdArg ?? session?.user?.id ?? null;
     if (!userId) return;
 
     setLoading(true);
     try {
+      const access = accessArg ?? buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      const scopeColumn = access?.investmentId ? 'investment_id' : 'user_id';
+      const scopeValue = access?.investmentId ?? userId;
+
       const { data } = await supabase
         .from('dziennik')
         .select('*, etapy(nazwa,nazwa_code,status,kolejnosc)')
-        .eq('user_id', userId);
+        .eq(scopeColumn, scopeValue);
 
       const mapped = await Promise.all(
         (data ?? []).map(async (w: any) => {
@@ -220,16 +228,19 @@ export default function DziennikScreen() {
     }
   };
 
-  const loadEtapy = async () => {
-    const userId = session?.user?.id;
+  const loadEtapy = async (accessArg?: BuildAccess | null, userIdArg?: string | null) => {
+    const userId = userIdArg ?? session?.user?.id ?? null;
     if (!userId) return;
     setEtapyLoading(true);
     try {
+      const access = accessArg ?? buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      const scopeUserId = access?.ownerUserId ?? userId;
+
       const [profileRes, templatesRes, userStagesRes, legacyRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('build_type, current_stage_code')
-          .eq('user_id', userId)
+          .eq('user_id', scopeUserId)
           .maybeSingle(),
         supabase
           .from('stage_templates')
@@ -239,12 +250,12 @@ export default function DziennikScreen() {
         supabase
           .from('user_stages')
           .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
-          .eq('user_id', userId)
+          .eq('user_id', scopeUserId)
           .order('order_index', { ascending: true }),
         supabase
           .from('etapy')
           .select('id, nazwa, nazwa_code, status, kolejnosc')
-          .eq('user_id', userId)
+          .eq('user_id', scopeUserId)
           .order('kolejnosc', { ascending: true }),
       ]);
 
@@ -307,8 +318,26 @@ export default function DziennikScreen() {
   };
 
   useEffect(() => {
-    loadWpisy();
-    loadEtapy();
+    (async () => {
+      const userId = session?.user?.id ?? null;
+      if (!userId) {
+        setCurrentUserId(null);
+        setBuildAccess(null);
+        setWpisy([]);
+        setLoading(false);
+        setEtapyLoading(false);
+        return;
+      }
+
+      let access = buildAccess;
+      if (!access) {
+        access = await fetchCurrentBuildAccess(userId);
+        setBuildAccess(access);
+      }
+
+      setCurrentUserId(userId);
+      await Promise.all([loadWpisy(access, userId), loadEtapy(access, userId)]);
+    })();
   }, [session?.user?.id]);
 
   const sortedWpisy = useMemo(() => {
@@ -458,6 +487,8 @@ export default function DziennikScreen() {
     setSaving(true);
 
     try {
+      const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      if (!buildAccess) setBuildAccess(access);
       let zdjecieUrl = formZdjecieStoredValue;
 
       if (formZdjecieUri) {
@@ -471,17 +502,22 @@ export default function DziennikScreen() {
 
       const payload = {
         user_id: userId,
+        investment_id: access?.investmentId ?? null,
         data: formData,
         tresc: formTresc.trim(),
         etap_id: null,
         zdjecie_url: zdjecieUrl || null};
 
       if (editingWpis) {
+        const canManageEntry = access?.role === 'owner' || editingWpis.user_id === userId;
+        if (!canManageEntry) {
+          throw new Error(t('alerts.saveError'));
+        }
         const { error } = await supabase
           .from('dziennik')
           .update(payload)
           .eq('id', editingWpis.id)
-          .eq('user_id', userId);
+          .eq(access?.role === 'owner' ? 'id' : 'user_id', access?.role === 'owner' ? editingWpis.id : userId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('dziennik').insert(payload);
@@ -489,7 +525,7 @@ export default function DziennikScreen() {
       }
 
       setModalOpen(false);
-      await loadWpisy();
+      await loadWpisy(access, userId);
     } catch (e: any) {
       Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveError'));
     } finally {
@@ -502,19 +538,28 @@ export default function DziennikScreen() {
     Alert.alert(t('detail.deleteTitle'), t('detail.deleteConfirm'), [
       { text: t('common:cancel'), style: 'cancel' },
       {
-        text: t('common:delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const userId = session?.user?.id;
-            if (!userId) return;
+          text: t('common:delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const userId = session?.user?.id;
+              if (!userId) return;
 
-            const { error } = await supabase
-              .from('dziennik')
-              .delete()
-              .eq('id', w.id)
-              .eq('user_id', userId);
-            if (error) throw error;
+              const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+              if (!buildAccess) setBuildAccess(access);
+
+              const canManageEntry = access?.role === 'owner' || w.user_id === userId;
+              if (!canManageEntry) {
+                throw new Error(t('alerts.saveError'));
+              }
+
+              let deleteQuery = supabase.from('dziennik').delete().eq('id', w.id);
+              if (access?.role !== 'owner') {
+                deleteQuery = deleteQuery.eq('user_id', userId);
+              }
+
+              const { error } = await deleteQuery;
+              if (error) throw error;
 
             const storagePath = String(w.zdjecie_url || '').trim() || null;
             if (storagePath) {
@@ -532,8 +577,8 @@ export default function DziennikScreen() {
               }
             }
 
-            setDetailOpen(false);
-            await loadWpisy();
+              setDetailOpen(false);
+              await loadWpisy(access, userId);
           } catch (e: any) {
             Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveError'));
           }

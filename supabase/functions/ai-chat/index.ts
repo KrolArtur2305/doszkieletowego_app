@@ -33,6 +33,7 @@ const corsHeaders = {
 
 type ChatRequestBody = {
   conversation_id?: string | null;
+  investment_id?: string | null;
   message?: string;
   assistant_name?: string | null;
   app_language?: string | null;
@@ -405,6 +406,62 @@ async function getAuthenticatedUser(
   return data.user;
 }
 
+async function resolveActiveInvestmentId(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  requestedInvestmentId?: string | null,
+): Promise<string | null> {
+  const cleanedRequested = normalizeText(requestedInvestmentId);
+
+  if (cleanedRequested) {
+    const { data, error } = await supabase
+      .from("investment_members")
+      .select("investment_id")
+      .eq("investment_id", cleanedRequested)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Nie udało się sprawdzić dostępu do budowy: ${error.message}`);
+    }
+
+    if (!data?.investment_id) {
+      throw new HttpError(403, "Brak dostępu do wskazanej budowy.");
+    }
+
+    return String(data.investment_id);
+  }
+
+  const { data: memberData, error: memberError } = await supabase
+    .from("investment_members")
+    .select("investment_id, role")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (memberError) {
+    throw new Error(`Nie udało się sprawdzić aktywnej budowy: ${memberError.message}`);
+  }
+
+  if (memberData?.investment_id) {
+    return String(memberData.investment_id);
+  }
+
+  const { data: ownerData, error: ownerError } = await supabase
+    .from("inwestycje")
+    .select("id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (ownerError) {
+    throw new Error(`Nie udało się pobrać aktywnej budowy: ${ownerError.message}`);
+  }
+
+  return ownerData?.id ? String(ownerData.id) : null;
+}
+
 async function getAccessPolicy(
   supabase: ReturnType<typeof createClient>,
 ): Promise<AccessPolicy> {
@@ -616,6 +673,8 @@ async function fetchProfileName(
 
 async function fetchInvestment(
   supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
 ): Promise<{
   projectName: string | null;
   location: string | null;
@@ -623,12 +682,13 @@ async function fetchInvestment(
   startDate: string | null;
   endDate: string | null;
 }> {
-  const { data } = await supabase
+  const query = supabase
     .from("inwestycje")
-    .select("nazwa, lokalizacja, place_name, location_city, location_country, budzet, data_start, data_koniec, created_at")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("nazwa, lokalizacja, place_name, location_city, location_country, budzet, data_start, data_koniec, created_at");
+
+  const { data } = investmentId
+    ? await query.eq("id", investmentId).maybeSingle()
+    : await query.eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
   const locationParts = [
     normalizeText(data?.place_name) || normalizeText(data?.lokalizacja),
@@ -647,11 +707,16 @@ async function fetchInvestment(
 
 async function fetchSpentBudget(
   supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
 ): Promise<number | null> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("wydatki")
-    .select("kwota, status")
-    .limit(5000);
+    .select("kwota, status");
+
+  const { data, error } = investmentId
+    ? await query.eq("investment_id", investmentId).limit(5000)
+    : await query.eq("user_id", userId).limit(5000);
 
   if (error || !Array.isArray(data)) return null;
 
@@ -672,12 +737,16 @@ async function fetchSpentBudget(
 
 async function fetchCurrentStage(
   supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
 ): Promise<string | null> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("etapy")
-    .select("nazwa, status, kolejnosc")
-    .order("kolejnosc", { ascending: true })
-    .limit(200);
+    .select("nazwa, status, kolejnosc");
+
+  const { data, error } = investmentId
+    ? await query.eq("investment_id", investmentId).order("kolejnosc", { ascending: true }).limit(200)
+    : await query.eq("user_id", userId).order("kolejnosc", { ascending: true }).limit(200);
 
   if (error || !Array.isArray(data) || data.length === 0) {
     return null;
@@ -705,17 +774,21 @@ async function fetchCurrentStage(
 
 async function fetchStageSummary(
   supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
 ): Promise<{
   currentStage: string | null;
   nextStage: string | null;
   stagesDone: number | null;
   stagesTotal: number | null;
 }> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("etapy")
-    .select("nazwa, status, kolejnosc")
-    .order("kolejnosc", { ascending: true })
-    .limit(200);
+    .select("nazwa, status, kolejnosc");
+
+  const { data, error } = investmentId
+    ? await query.eq("investment_id", investmentId).order("kolejnosc", { ascending: true }).limit(200)
+    : await query.eq("user_id", userId).order("kolejnosc", { ascending: true }).limit(200);
 
   if (error || !Array.isArray(data) || data.length === 0) {
     return {
@@ -745,8 +818,10 @@ async function fetchStageSummary(
 
 async function fetchUpcomingTasks(
   supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
 ): Promise<UserContext["upcomingTasks"]> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("zadania")
     .select("nazwa, opis, data, godzina, wykonane")
     .gte("data", toDateKey())
@@ -754,6 +829,10 @@ async function fetchUpcomingTasks(
     .order("data", { ascending: true })
     .order("godzina", { ascending: true, nullsFirst: false })
     .limit(5);
+
+  const { data, error } = investmentId
+    ? await query.eq("investment_id", investmentId)
+    : await query.eq("user_id", userId);
 
   if (error || !Array.isArray(data)) return [];
 
@@ -769,12 +848,18 @@ async function fetchUpcomingTasks(
 
 async function fetchRecentExpenses(
   supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
 ): Promise<UserContext["recentExpenses"]> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("wydatki")
     .select("nazwa, kategoria, kwota, data, status, created_at")
     .order("created_at", { ascending: false })
     .limit(5);
+
+  const { data, error } = investmentId
+    ? await query.eq("investment_id", investmentId)
+    : await query.eq("user_id", userId);
 
   if (error || !Array.isArray(data)) return [];
 
@@ -789,11 +874,17 @@ async function fetchRecentExpenses(
 
 async function fetchTopExpenseCategories(
   supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
 ): Promise<UserContext["topExpenseCategories"]> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("wydatki")
     .select("kategoria, kwota, status")
     .limit(500);
+
+  const { data, error } = investmentId
+    ? await query.eq("investment_id", investmentId)
+    : await query.eq("user_id", userId);
 
   if (error || !Array.isArray(data)) return [];
 
@@ -851,6 +942,8 @@ function buildRiskSignals(params: {
 
 async function getUserContext(
   supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
 ): Promise<UserContext> {
   const [
     firstName,
@@ -862,12 +955,12 @@ async function getUserContext(
     topExpenseCategories,
   ] = await Promise.all([
     fetchProfileName(supabase),
-    fetchInvestment(supabase),
-    fetchSpentBudget(supabase),
-    fetchStageSummary(supabase),
-    fetchUpcomingTasks(supabase),
-    fetchRecentExpenses(supabase),
-    fetchTopExpenseCategories(supabase),
+    fetchInvestment(supabase, userId, investmentId),
+    fetchSpentBudget(supabase, userId, investmentId),
+    fetchStageSummary(supabase, userId, investmentId),
+    fetchUpcomingTasks(supabase, userId, investmentId),
+    fetchRecentExpenses(supabase, userId, investmentId),
+    fetchTopExpenseCategories(supabase, userId, investmentId),
   ]);
 
   const timeProgressPct = computeTimeProgressPct(
@@ -1071,6 +1164,12 @@ serve(async (req) => {
       return jsonResponse({ error: "Wiadomość nie może być pusta." }, 400);
     }
 
+    const activeInvestmentId = await resolveActiveInvestmentId(
+      supabase,
+      user.id,
+      body.investment_id ?? null,
+    );
+
     await checkDailyUsage(supabase, user.id, accessPolicy.dailyLimit);
     await checkMinuteRateLimit(supabase);
 
@@ -1089,7 +1188,7 @@ serve(async (req) => {
       status: "completed",
     });
 
-    const userContext = await getUserContext(supabase);
+    const userContext = await getUserContext(supabase, user.id, activeInvestmentId);
     const history = await getRecentMessages(supabase, conversationId);
 
     const historyForModel = history

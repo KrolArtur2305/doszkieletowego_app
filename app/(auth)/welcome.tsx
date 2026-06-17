@@ -2,26 +2,31 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
+  Keyboard,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import type { ScrollView as ScrollViewType } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../lib/supabase';
 import { setCurrencyForLanguage } from '../../lib/currency';
 import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../lib/i18n';
-import { AppButton, AppCard, AppScreen } from '../../src/ui/components';
+import { AppButton, AppCard, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
 const { width: W } = Dimensions.get('window');
 const APP_LOGO = require('../../assets/logo.png');
+const PENDING_INVITE_CODE_KEY = 'pending_build_invite_code';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -29,6 +34,9 @@ export default function WelcomeScreen() {
 
   const sliderRef = useRef<ScrollViewType | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [joinError, setJoinError] = useState('');
 
   const slides = useMemo(
     () => [
@@ -110,6 +118,19 @@ export default function WelcomeScreen() {
     setActiveIndex(clampedIndex);
   };
 
+  const saveInviteCodeAndGo = async (target: '/(auth)/register' | '/(auth)/login') => {
+    const cleaned = inviteCode.trim().replace(/\s+/g, '').toUpperCase();
+    if (!cleaned) {
+      setJoinError(t('welcome.join.error'));
+      return;
+    }
+
+    await AsyncStorage.setItem(PENDING_INVITE_CODE_KEY, cleaned);
+    setJoinModalOpen(false);
+    setJoinError('');
+    router.push(target);
+  };
+
   return (
     <AppScreen scroll contentContainerStyle={styles.container}>
         <View style={styles.topBlock}>
@@ -168,8 +189,65 @@ export default function WelcomeScreen() {
               variant="secondary"
               style={styles.secondaryBtn}
             />
+
+            <Pressable
+              onPress={() => {
+                setJoinError('');
+                setJoinModalOpen(true);
+              }}
+              style={styles.joinLink}
+            >
+              <Text style={styles.joinLinkText}>{t('welcome.join.cta')}</Text>
+            </Pressable>
           </View>
         </AppCard>
+
+        <Modal
+          visible={joinModalOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setJoinModalOpen(false)}
+        >
+          <View style={styles.modalBackdrop}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+              <View style={styles.joinCard}>
+                <Text style={styles.joinTitle}>{t('welcome.join.title')}</Text>
+                <Text style={styles.joinSubtitle}>{t('welcome.join.subtitle')}</Text>
+
+                <AppInput
+                  value={inviteCode}
+                  onChangeText={(value) => {
+                    setInviteCode(value.toUpperCase());
+                    if (joinError) setJoinError('');
+                  }}
+                  placeholder={t('welcome.join.placeholder')}
+                  autoCapitalize="characters"
+                  containerStyle={styles.joinInputWrap}
+                  style={styles.joinInput}
+                />
+
+                {!!joinError && <Text style={styles.joinError}>{joinError}</Text>}
+
+                <AppButton
+                  title={t('welcome.join.registerAction')}
+                  onPress={() => saveInviteCodeAndGo('/(auth)/register')}
+                  style={styles.joinPrimary}
+                />
+
+                <AppButton
+                  title={t('welcome.join.loginAction')}
+                  onPress={() => saveInviteCodeAndGo('/(auth)/login')}
+                  variant="secondary"
+                  style={styles.joinSecondary}
+                />
+
+                <Pressable onPress={() => setJoinModalOpen(false)} style={styles.joinCancel}>
+                  <Text style={styles.joinCancelText}>{t('common:cancel')}</Text>
+                </Pressable>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </Modal>
     </AppScreen>
   );
 }
@@ -303,5 +381,75 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     width: '100%',
+  },
+  joinLink: {
+    alignItems: 'center',
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  joinLinkText: {
+    ...typography.button,
+    color: colors.accentBright,
+    textAlign: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.xl,
+    backgroundColor: 'rgba(0,0,0,0.78)',
+  },
+  joinCard: {
+    borderRadius: radius.xl + 2,
+    padding: spacing.xl,
+    backgroundColor: '#050505',
+    borderWidth: 1.5,
+    borderColor: colors.borderFocus,
+    shadowColor: '#000',
+    shadowOpacity: 0.7,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 18 },
+  },
+  joinTitle: {
+    ...typography.sectionTitle,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  joinSubtitle: {
+    ...typography.body,
+    color: colors.textSoft,
+    textAlign: 'center',
+    lineHeight: 21,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  joinInputWrap: {
+    marginBottom: spacing.sm,
+  },
+  joinInput: {
+    textAlign: 'center',
+    letterSpacing: 2,
+    fontWeight: '900',
+  },
+  joinError: {
+    ...typography.meta,
+    color: colors.danger,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  joinPrimary: {
+    width: '100%',
+    marginTop: spacing.sm,
+  },
+  joinSecondary: {
+    width: '100%',
+    marginTop: spacing.sm,
+  },
+  joinCancel: {
+    alignItems: 'center',
+    paddingTop: spacing.md,
+  },
+  joinCancelText: {
+    ...typography.button,
+    color: colors.textSoft,
   },
 });

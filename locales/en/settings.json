@@ -16,7 +16,9 @@
     "subscriptionTitle": "Manage subscription",
     "subscriptionSubtitle": "Plan and payment settings",
     "reportTitle": "Report a problem",
-    "reportSubtitle": "Send a bug description"
+    "reportSubtitle": "Send a bug description",
+    "partnerTitle": "Build partner",
+    "partnerSubtitle": "Invitation and permissions"
   },
   "report": {
     "title": "Report a problem",
@@ -154,6 +156,131 @@
       "tasks": "tasks",
       "model3d": "3D model",
       "ai": "AI assistant"
+    }
+  },
+  "partner": {
+    "title": "Build partner",
+    "heroTitle": "Add a companion",
+    "heroSubtitle": "Generate an invite code and decide what your partner can see or add in your build.",
+    "currentBuild": "Build: {{name}}",
+    "lockedTitle": "Available in the Expert plan",
+    "lockedSubtitle": "The build partner does not pay for an account. Only the build owner with an active Expert plan can generate an invitation.",
+    "upgradeAction": "View Expert plan",
+    "permissionsTitle": "Partner permissions",
+    "presets": {
+      "view": {
+        "label": "View only",
+        "title": "Read access only",
+        "text": "The partner can see the build but cannot add anything new.",
+        "summaryTitle": "View only",
+        "summaryText": "Budget and documents are visible. Adding new entries stays disabled."
+      },
+      "collab": {
+        "label": "Collaboration",
+        "title": "Can add items",
+        "text": "The partner can add photos, entries and expenses.",
+        "summaryTitle": "Collaboration",
+        "summaryText": "The partner can add photos, journal entries and expenses. They cannot mark progress or edit existing data."
+      }
+    },
+    "permissionOn": "On",
+    "permissionOff": "Off",
+    "generateAction": "Generate invitation",
+    "generating": "Generating...",
+    "inviteReady": "Invite code",
+    "inviteHint": "Share this code with your partner. The code is single-use and valid for 14 days.",
+    "revokeAction": "Revoke code",
+    "revoking": "Revoking...",
+    "revokeTitle": "Revoke this invite code?",
+    "revokeMessage": "This code will stop working immediately. The partner will need a new code.",
+    "converting": "Moving...",
+    "convertAction": "Leave current build and join",
+    "convertWarningTitle": "Warning: move to a partner account",
+    "convertWarningMessage": "If you continue, we will remove the saved data for this build from this account. Only partner access to another build will remain. This action cannot be undone.",
+    "leaveTitle": "Leave partner access",
+    "leaveMessage": "After leaving, you will lose access to the build you were invited to. The account will stay active.",
+    "leaveAction": "Leave",
+    "partnerMode": {
+      "title": "You are a build partner",
+      "message": "You have access to a shared build. You can leave partner access and return to a normal account.",
+      "leaveAction": "Leave partner mode",
+      "leaving": "Leaving partner mode..."
+    },
+    "partnerListTitle": "Active partners",
+    "partnerListItem": "Partner {{index}}",
+    "partnerListMeta": "You can remove partners from this build.",
+    "removeTitle": "Remove this partner?",
+    "removeMessage": "This person will lose access to the build immediately.",
+    "removeAction": "Remove",
+    "editTitle": "Edit partner permissions",
+    "editSubtitle": "Change access for the selected person.",
+    "savePermissions": "Save permissions",
+    "savingPermissions": "Saving...",
+    "removedTitle": "You were removed from the build",
+    "removedMessage": "You were removed from the build and are returning to a normal account.",
+    "removedMessageNamed": "You were removed from build \"{{name}}\" and are returning to a normal account.",
+    "note": "At this stage the partner is added without a separate payment. We will move data to a shared build model module by module to avoid regressions.",
+    "errors": {
+      "load": "Failed to load partner settings.",
+      "generate": "Failed to generate the invitation.",
+      "copyInvite": "Failed to copy the invite code.",
+      "convert": "Failed to move this account to partner mode.",
+      "leave": "Failed to leave partner mode.",
+      "remove": "Failed to remove this partner.",
+      "revoke": "Failed to revoke the invite code.",
+      "update": "Failed to update partner permissions."
+    },
+    "permissions": {
+      "view_budget": {
+        "title": "Budget view",
+        "subtitle": "Partner can see costs and summaries."
+      },
+      "view_documents": {
+        "title": "Document view",
+        "subtitle": "Partner can see documents added to the build."
+      },
+      "add_photos": {
+        "title": "Add photos",
+        "subtitle": "Partner can document progress with photos."
+      },
+      "add_journal": {
+        "title": "Journal entries",
+        "subtitle": "Partner can add notes from the build."
+      },
+      "add_expenses": {
+        "title": "Add expenses",
+        "subtitle": "Partner can add new expenses."
+      },
+      "manage_tasks": {
+        "title": "Tasks",
+        "subtitle": "Partner can create and update tasks."
+      }
+    },
+    "intro": {
+      "title": "Invite a partner to your build",
+      "subtitle": "Share the build with another person at no extra charge. Your partner helps document progress while you control their permissions.",
+      "configureAction": "Configure partner",
+      "previewAction": "See how it works",
+      "benefits": {
+        "sharedBuild": {
+          "title": "One build, two people",
+          "subtitle": "A shared project, progress and key information in one place."
+        },
+        "documentation": {
+          "title": "Documentation without chaos",
+          "subtitle": "Your partner can add photos and entries when you are not on site."
+        },
+        "permissions": {
+          "title": "Safe permissions",
+          "subtitle": "You decide whether your partner sees the budget, documents and tasks."
+        }
+      },
+      "nextAction": "Next"
+    },
+    "conflict": {
+      "title": "You already have an active role",
+      "message": "You cannot join as a partner and create your own build at the same time. Leave the current build first or use another account.",
+      "action": "Go back"
     }
   }
 }

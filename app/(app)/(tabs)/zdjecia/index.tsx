@@ -27,6 +27,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { getSessionWithTimeout } from '../../../../lib/supabaseTimeout';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import { getAppLocale } from '../../../../lib/i18n';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
@@ -57,6 +58,7 @@ type EtapZdjecia = {
 type Zdjecie = {
   id: string;
   user_id: string;
+  investment_id?: string | null;
   etap_zdjecia_id: string;
   file_path: string;
   created_at: string;
@@ -134,6 +136,8 @@ export default function ZdjeciaScreen() {
   const [etapy, setEtapy] = useState<EtapZdjecia[]>([]);
   const [legacyEtapyMap, setLegacyEtapyMap] = useState<Record<string, string>>({});
   const [selectedEtap, setSelectedEtap] = useState<string>('all');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -208,7 +212,27 @@ export default function ZdjeciaScreen() {
 
   useEffect(() => {
     (async () => {
-      await Promise.all([loadEtapy(), loadEtapUsage(true), loadZdjecia(true)]);
+      const userId = await getUserId();
+      if (!userId) {
+        setCurrentUserId(null);
+        setBuildAccess(null);
+        setEtapy([]);
+        setLegacyEtapyMap({});
+        setEtapUsageSet(new Set());
+        setZdjecia([]);
+        setLoading(false);
+        setStagesReady(true);
+        return;
+      }
+
+      let access = buildAccess;
+      if (!access) {
+        access = await fetchCurrentBuildAccess(userId);
+        setBuildAccess(access);
+      }
+
+      setCurrentUserId(userId);
+      await Promise.all([loadEtapy(access, userId), loadEtapUsage(true, access, userId), loadZdjecia(true, access, userId)]);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -229,21 +253,24 @@ export default function ZdjeciaScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEtap, sortOrder]);
 
-  const loadEtapy = async () => {
+  const loadEtapy = async (accessArg?: BuildAccess | null, userIdArg?: string | null) => {
     setStagesReady(false);
     try {
-      const userId = await getUserId();
+      const userId = userIdArg ?? (await getUserId());
       if (!userId) {
         setEtapy([]);
         setLegacyEtapyMap({});
         return;
       }
 
+      const access = accessArg ?? buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      const scopeUserId = access?.ownerUserId ?? userId;
+
       const [profileRes, templateRes, userStageRes, legacyEtapyRes, legacyPhotoStageRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('build_type, current_stage_code')
-          .eq('user_id', userId)
+          .eq('user_id', scopeUserId)
           .maybeSingle(),
         supabase
           .from('stage_templates')
@@ -253,12 +280,12 @@ export default function ZdjeciaScreen() {
         supabase
           .from('user_stages')
           .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
-          .eq('user_id', userId)
+          .eq('user_id', scopeUserId)
           .order('order_index', { ascending: true }),
         supabase
           .from('etapy')
           .select('id,nazwa,nazwa_code,status,kolejnosc')
-          .eq('user_id', userId)
+          .eq('user_id', scopeUserId)
           .order('kolejnosc', { ascending: true }),
         supabase
           .from('etapy_zdjecia')
@@ -355,15 +382,19 @@ export default function ZdjeciaScreen() {
   };
 
   // ✅ pobierz etapy realnie użyte w zdjęciach usera
-  const loadEtapUsage = async (isInitial: boolean) => {
+  const loadEtapUsage = async (isInitial: boolean, accessArg?: BuildAccess | null, userIdArg?: string | null) => {
     try {
-      const userId = await getUserId();
+      const userId = userIdArg ?? (await getUserId());
       if (!userId) {
         setEtapUsageSet(new Set());
         return;
       }
 
-      const { data, error } = await supabase.from('zdjecia').select('etap_zdjecia_id').eq('user_id', userId);
+      const access = accessArg ?? buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      const scopeColumn = access?.investmentId ? 'investment_id' : 'user_id';
+      const scopeValue = access?.investmentId ?? userId;
+
+      const { data, error } = await supabase.from('zdjecia').select('etap_zdjecia_id').eq(scopeColumn, scopeValue);
       if (error) throw error;
 
       const s = new Set<string>();
@@ -382,11 +413,11 @@ export default function ZdjeciaScreen() {
     }
   };
 
-  const loadZdjecia = async (isInitial: boolean) => {
+  const loadZdjecia = async (isInitial: boolean, accessArg?: BuildAccess | null, userIdArg?: string | null) => {
     try {
       if (isInitial) setLoading(true);
 
-      const userId = await getUserId();
+      const userId = userIdArg ?? (await getUserId());
 
       if (!userId) {
         setZdjecia([]);
@@ -395,10 +426,14 @@ export default function ZdjeciaScreen() {
         return;
       }
 
+      const access = accessArg ?? buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      const scopeColumn = access?.investmentId ? 'investment_id' : 'user_id';
+      const scopeValue = access?.investmentId ?? userId;
+
       let query = supabase
         .from('zdjecia')
-        .select('id,user_id,etap_zdjecia_id,file_path,created_at,taken_at,komentarz,tags')
-        .eq('user_id', userId)
+        .select('id,user_id,investment_id,etap_zdjecia_id,file_path,created_at,taken_at,komentarz,tags')
+        .eq(scopeColumn, scopeValue)
         .order('created_at', { ascending: sortOrder === 'oldest' });
 
       if (selectedEtap !== 'all') {
@@ -679,10 +714,6 @@ export default function ZdjeciaScreen() {
       }
 
       if (successCount === assets.length) {
-        Alert.alert(
-          tt('photos:alerts.successTitle'),
-          tt('photos:alerts.photoAdded'),
-        );
         return;
       }
 
@@ -734,6 +765,8 @@ export default function ZdjeciaScreen() {
     if (!etap) {
       throw new Error(tt('photos:alerts.stageNotFound'));
     }
+    const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+    if (!buildAccess) setBuildAccess(access);
     const etapFolder = etap ? sanitizeFolderName(etap.nazwa) : 'bez_etapu';
     const timestamp = Date.now() + Math.floor(Math.random() * 999);
 
@@ -777,6 +810,7 @@ export default function ZdjeciaScreen() {
 
     const { error: insertError } = await supabase.from('zdjecia').insert({
       user_id: userId,
+      investment_id: access?.investmentId ?? null,
       etap_zdjecia_id: etap.id,
       file_path,
       taken_at: takenAt ? takenAt.toISOString() : null,
@@ -793,6 +827,7 @@ export default function ZdjeciaScreen() {
   };
 
   const handleDeletePhoto = async (z: Zdjecie) => {
+    const canManagePhoto = buildAccess?.role === 'owner' || z.user_id === currentUserId;
     Alert.alert(
       tt('photos:alerts.deleteTitle'),
       tt('photos:alerts.deleteConfirm'),
@@ -805,12 +840,14 @@ export default function ZdjeciaScreen() {
             try {
               const userId = await getUserId();
               if (!userId) throw new Error(tt('photos:alerts.loginRequired'));
+              if (!canManagePhoto) throw new Error(tt('photos:alerts.deleteError'));
 
-              const { error: delError } = await supabase
-                .from('zdjecia')
-                .delete()
-                .eq('id', z.id)
-                .eq('user_id', userId);
+              let deleteQuery = supabase.from('zdjecia').delete().eq('id', z.id);
+              if (buildAccess?.role !== 'owner') {
+                deleteQuery = deleteQuery.eq('user_id', userId);
+              }
+
+              const { error: delError } = await deleteQuery;
               if (delError) throw delError;
 
               const { error: rmError } = await supabase.storage.from(bucketName).remove([z.file_path]);
@@ -1381,10 +1418,12 @@ export default function ZdjeciaScreen() {
                     </View>
                   ) : null}
 
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePhoto(selectedZdjecie)} activeOpacity={0.85}>
-                    <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
-                    <Text style={styles.deleteButtonText}>{tt('photos:preview.delete')}</Text>
-                  </TouchableOpacity>
+                  {(buildAccess?.role === 'owner' || selectedZdjecie.user_id === currentUserId) ? (
+                    <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePhoto(selectedZdjecie)} activeOpacity={0.85}>
+                      <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                      <Text style={styles.deleteButtonText}>{tt('photos:preview.delete')}</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </BlurView>
               </View>
             </>

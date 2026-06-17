@@ -30,6 +30,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { useTranslation } from 'react-i18next'
 
 import Model3DView from '../../../../components/Model3DView'
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess'
 import { AppButton, AppCard, AppHeader, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components'
 import { colors, radius, spacing, typography } from '../../../../src/ui/theme'
 const ACCENT = colors.accent
@@ -249,6 +250,7 @@ export default function ProjektScreen() {
   const [projekt, setProjekt] = useState<Projekt | null>(null)
   const [rzuty, setRzuty] = useState<Rzut[]>([])
   const [userId, setUserId] = useState<string | null>(null)
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null)
   const [userFirstName, setUserFirstName] = useState('')
   const [buddyDisplayName, setBuddyDisplayName] = useState('')
   const [lokalizacja, setLokalizacja] = useState<string | null>(null)
@@ -278,6 +280,8 @@ export default function ProjektScreen() {
   const setupModalOpenedRef = useRef(false)
   const projectNudgeCheckedRef = useRef(false)
 
+  const canEditProject = buildAccess?.role === 'owner' || !buildAccess
+
   useEffect(() => {
     let alive = true
 
@@ -287,6 +291,7 @@ export default function ProjektScreen() {
         if (!user?.id) {
           if (!alive) return
           setUserId(null)
+          setBuildAccess(null)
           setUserFirstName('')
           setBuddyDisplayName('')
           setProjekt(null)
@@ -298,11 +303,21 @@ export default function ProjektScreen() {
 
         if (!alive) return
         setUserId(user.id)
+        const access = await fetchCurrentBuildAccess(user.id)
+        if (!alive) return
+        setBuildAccess(access)
+
+        const scopeInvestmentId = access?.investmentId ?? null
+        const scopeUserId = access?.ownerUserId ?? user.id
 
         const [{ data: projData, error: projErr }, { data: invData, error: invErr }, { data: profileData, error: profileErr }] = await Promise.all([
-          supabase.from('projekty').select('*').eq('user_id', user.id).maybeSingle(),
-          supabase.from('inwestycje').select('lokalizacja').eq('user_id', user.id).maybeSingle(),
-          supabase.from('profiles').select('imie, ai_buddy_name').eq('user_id', user.id).maybeSingle()])
+          scopeInvestmentId
+            ? supabase.from('projekty').select('*').eq('investment_id', scopeInvestmentId).maybeSingle()
+            : supabase.from('projekty').select('*').eq('user_id', user.id).maybeSingle(),
+          scopeInvestmentId
+            ? supabase.from('inwestycje').select('lokalizacja').eq('id', scopeInvestmentId).maybeSingle()
+            : supabase.from('inwestycje').select('lokalizacja').eq('user_id', user.id).maybeSingle(),
+          supabase.from('profiles').select('imie, ai_buddy_name').eq('user_id', scopeUserId).maybeSingle()])
 
         if (projErr) throw projErr
         if (invErr) throw invErr
@@ -322,7 +337,7 @@ export default function ProjektScreen() {
           const { data: rzutyData, error: rzutyErr } = await supabase
             .from('rzuty_projektu')
             .select('id,user_id,projekt_id,url,nazwa,typ,created_at')
-            .eq('user_id', user.id)
+            .eq(scopeInvestmentId ? 'investment_id' : 'user_id', scopeInvestmentId ?? user.id)
             .eq('projekt_id', (projData as any).id)
             .order('created_at', { ascending: false })
 
@@ -351,12 +366,14 @@ export default function ProjektScreen() {
 
   useEffect(() => {
     if (!isSetupMode || loading || setupModalOpenedRef.current) return
+    if (!canEditProject) return
     setupModalOpenedRef.current = true
     openEditParams()
-  }, [isSetupMode, loading])
+  }, [isSetupMode, loading, canEditProject])
 
   useEffect(() => {
     if (isSetupMode || loading || !userId || projectNudgeCheckedRef.current) return
+    if (!canEditProject) return
     projectNudgeCheckedRef.current = true
 
     const hasAnyProjectDetails = [
@@ -416,10 +433,11 @@ export default function ProjektScreen() {
   const ensureProjektExists = async (): Promise<Projekt | null> => {
     if (!userId) return null
     if (projekt?.id) return projekt
+    if (!canEditProject) return null
 
     const { data: inserted, error } = await supabase
       .from('projekty')
-      .insert({ user_id: userId, nazwa: t('myProject'), model_url: DEFAULT_MODEL_URL })
+      .insert({ user_id: userId, ...(buildAccess?.investmentId ? { investment_id: buildAccess.investmentId } : {}), nazwa: t('myProject'), model_url: DEFAULT_MODEL_URL })
       .select('*')
       .single()
 
@@ -435,6 +453,7 @@ export default function ProjektScreen() {
   const handleChangeModel = async () => {
     try {
       if (modelUploading) return
+      if (!canEditProject) return
 
       if (!userId) {
         Alert.alert(
@@ -548,7 +567,7 @@ export default function ProjektScreen() {
       const { data: updated, error: updateError } = await supabase
         .from('projekty')
         .update({ model_url: publicUrl })
-        .eq('user_id', userId)
+        .eq(buildAccess?.investmentId ? 'investment_id' : 'user_id', buildAccess?.investmentId ?? userId)
         .eq('id', proj.id)
         .select('*')
         .single()
@@ -588,6 +607,7 @@ export default function ProjektScreen() {
 
   const uploadRzutAndSave = async (type: ProjectAssetType = 'plan') => {
     try {
+      if (!canEditProject) return
       if (!userId) {
         Alert.alert(
           t('notLoggedTitle'),
@@ -660,6 +680,7 @@ export default function ProjektScreen() {
 
   const savePendingRzut = async () => {
     try {
+      if (!canEditProject) return
       if (!userId || !pendingPlan?.uri) {
         Alert.alert(
           t('notLoggedTitle'),
@@ -715,6 +736,7 @@ export default function ProjektScreen() {
         .from('rzuty_projektu')
         .insert({
           user_id: userId,
+          ...(buildAccess?.investmentId ? { investment_id: buildAccess.investmentId } : {}),
           projekt_id: proj.id,
           url: path,
           typ: pendingPlanType,
@@ -757,6 +779,7 @@ export default function ProjektScreen() {
   }
 
   const deleteRzut = async (r: Rzut) => {
+    if (!canEditProject) return
     Alert.alert(t('deletePlanTitle'), t('deletePlanDesc'), [
       { text: t('cancel'), style: 'cancel' },
       {
@@ -770,7 +793,7 @@ export default function ProjektScreen() {
               .from('rzuty_projektu')
               .delete()
               .eq('id', r.id)
-              .eq('user_id', userId)
+              .eq(buildAccess?.investmentId ? 'investment_id' : 'user_id', buildAccess?.investmentId ?? userId)
 
             if (delDbErr) {
               Alert.alert(t('errorTitle'), t('deletePlanError'))
@@ -808,6 +831,7 @@ export default function ProjektScreen() {
   }
 
   const openEditParams = () => {
+    if (!canEditProject) return
     setForm({
       nazwa: projekt?.nazwa ?? '',
       powierzchnia_uzytkowa: projekt?.powierzchnia_uzytkowa?.toString() ?? '',
@@ -831,12 +855,13 @@ export default function ProjektScreen() {
 
   const handleProjectNudgeFill = async () => {
     await closeProjectNudge()
-    openEditParams()
+    if (canEditProject) openEditParams()
   }
 
   const saveParams = async () => {
     try {
       setSaving(true)
+      if (!canEditProject) return
 
       if (!userId) {
         Alert.alert(
@@ -864,7 +889,7 @@ export default function ProjektScreen() {
       const { data: updated, error } = await supabase
         .from('projekty')
         .update(payload)
-        .eq('user_id', userId)
+        .eq(buildAccess?.investmentId ? 'investment_id' : 'user_id', buildAccess?.investmentId ?? userId)
         .eq('id', proj.id)
         .select('*')
         .single()
@@ -892,10 +917,12 @@ export default function ProjektScreen() {
         <SectionHeader
           title={t(`projectAssetTypes.${type}.title`)}
           right={
-            <TouchableOpacity onPress={() => uploadRzutAndSave(type)} style={styles.editBtn} activeOpacity={0.9}>
-              <Feather name="plus" size={14} color={NEON} />
-              <Text style={styles.editBtnText}>{t(`projectAssetTypes.${type}.add`)}</Text>
-            </TouchableOpacity>
+            canEditProject ? (
+              <TouchableOpacity onPress={() => uploadRzutAndSave(type)} style={styles.editBtn} activeOpacity={0.9}>
+                <Feather name="plus" size={14} color={NEON} />
+                <Text style={styles.editBtnText}>{t(`projectAssetTypes.${type}.add`)}</Text>
+              </TouchableOpacity>
+            ) : null
           }
           style={styles.sectionHeaderRow}
         />
@@ -911,7 +938,7 @@ export default function ProjektScreen() {
         ) : (
           <View style={{ marginTop: 8, gap: 12 }}>
             {assets.map((r) => (
-              <Pressable key={r.id} onPress={() => openPreview(r)} onLongPress={() => deleteRzut(r)} style={styles.rzutCard}>
+              <Pressable key={r.id} onPress={() => openPreview(r)} onLongPress={canEditProject ? () => deleteRzut(r) : undefined} style={styles.rzutCard}>
                 <Image source={{ uri: getRzutRenderUrl(r) || undefined }} style={styles.rzutImg} resizeMode="cover" />
                 <View style={styles.rzutFooter}>
                   <View style={{ flex: 1, paddingRight: 10 }}>
@@ -922,9 +949,11 @@ export default function ProjektScreen() {
                       {t('planHint')}
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10} activeOpacity={0.85}>
-                    <Feather name="trash-2" size={16} color="#F8FAFC" />
-                  </TouchableOpacity>
+                  {canEditProject ? (
+                    <TouchableOpacity onPress={() => deleteRzut(r)} style={styles.trashBtn} hitSlop={10} activeOpacity={0.85}>
+                      <Feather name="trash-2" size={16} color="#F8FAFC" />
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               </Pressable>
             ))}
@@ -966,7 +995,9 @@ export default function ProjektScreen() {
               <Model3DView url={modelUrl} />
             </View>
 
-            <AppButton title={t('change3dModel')} onPress={handleChangeModel} loading={modelUploading} style={styles.modelCta} />
+            {canEditProject ? (
+              <AppButton title={t('change3dModel')} onPress={handleChangeModel} loading={modelUploading} style={styles.modelCta} />
+            ) : null}
 
           </View>
         </View>
@@ -976,10 +1007,12 @@ export default function ProjektScreen() {
             <SectionHeader
               title={t('buildingParams')}
               right={
-                <TouchableOpacity onPress={openEditParams} style={styles.editBtn} hitSlop={12} activeOpacity={0.85}>
-                  <Feather name="sliders" size={13} color={NEON} />
-                  <Text style={styles.editBtnText}>{t('edit')}</Text>
-                </TouchableOpacity>
+                canEditProject ? (
+                  <TouchableOpacity onPress={openEditParams} style={styles.editBtn} hitSlop={12} activeOpacity={0.85}>
+                    <Feather name="sliders" size={13} color={NEON} />
+                    <Text style={styles.editBtnText}>{t('edit')}</Text>
+                  </TouchableOpacity>
+                ) : null
               }
               style={styles.sectionHeaderRow}
             />
@@ -1045,13 +1078,17 @@ export default function ProjektScreen() {
                 {previewRzut?.nazwa || t(`projectAssetTypes.${normalizeProjectAssetType(previewRzut?.typ)}.defaultName`)}
               </Text>
 
-              <TouchableOpacity
-                onPress={() => previewRzut && deleteRzut(previewRzut)}
-                style={[styles.previewIconBtn, { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.45)' }]}
-                activeOpacity={0.85}
-              >
-                <Feather name="trash-2" size={18} color="#F8FAFC" />
-              </TouchableOpacity>
+              {canEditProject ? (
+                <TouchableOpacity
+                  onPress={() => previewRzut && deleteRzut(previewRzut)}
+                  style={[styles.previewIconBtn, { backgroundColor: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.45)' }]}
+                  activeOpacity={0.85}
+                >
+                  <Feather name="trash-2" size={18} color="#F8FAFC" />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.previewIconBtn} />
+              )}
             </View>
 
             <View style={styles.previewImgWrap}>

@@ -21,6 +21,7 @@ import { Feather } from '@expo/vector-icons';
 
 import { supabase } from '../../../../lib/supabase';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import { getAppLocale } from '../../../../lib/i18n';
 import {
@@ -94,7 +95,7 @@ const normalizeExpenseStatus = (status: any): typeof STATUS_PAID | typeof STATUS
 
 const normalizeExpenseType = (type: any): typeof TYPE_MATERIAL | typeof TYPE_SERVICE | typeof TYPE_MIXED | typeof TYPE_OTHER => {
   const value = normalize(type);
-  if (value === TYPE_SERVICE || value === 'usluga' || value === 'us≥uga' || value === 'service') return TYPE_SERVICE;
+  if (value === TYPE_SERVICE || value === 'usluga' || value === 'us≈Çuga' || value === 'service') return TYPE_SERVICE;
   if (value === TYPE_MIXED || value === 'mixed' || value === 'material + usluga' || value === 'material+usluga') return TYPE_MIXED;
   if (value === TYPE_OTHER || value === 'other' || value === 'inne') return TYPE_OTHER;
   return TYPE_MATERIAL;
@@ -121,9 +122,9 @@ const formatMonthLabel = (monthKey: string, locale: string) => {
 };
 
 const formatDateByLocale = (dateRaw: any, locale: string) => {
-  if (!dateRaw) return 'ó';
+  if (!dateRaw) return '‚Äî';
   const d = new Date(dateRaw);
-  if (Number.isNaN(d.getTime())) return 'ó';
+  if (Number.isNaN(d.getTime())) return '‚Äî';
   return d.toLocaleDateString(locale);
 };
 
@@ -140,6 +141,8 @@ function clamp01(n: number) {
 
 type WydatkiRow = {
   id: string;
+  user_id?: string | null;
+  investment_id?: string | null;
   nazwa: string | null;
   kategoria: string | null;
   expense_category_code?: string | null;
@@ -260,6 +263,7 @@ export default function BudzetScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
 
   const [plannedBudget, setPlannedBudget] = useState(0);
   const [dates, setDates] = useState<{ start?: string | null; end?: string | null }>({ start: null, end: null });
@@ -304,7 +308,7 @@ export default function BudzetScreen() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState<Date>(() => new Date());
 
-  // ¶¶ Computed totals ¶¶
+  // ¬¶¬¶ Computed totals ¬¶¬¶
   const spentTotal = useMemo(
     () => wydatki.filter((w) => normalizeExpenseStatus(w.status) === STATUS_PAID).reduce((a, w) => a + safeNumber(w.kwota), 0),
     [wydatki]
@@ -453,30 +457,57 @@ export default function BudzetScreen() {
     setLoading(true);
 
     try {
-      const invRes = await supabase
-        .from('inwestycje')
-        .select('budzet, data_start, data_koniec')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const authUserRes = await supabase.auth.getUser();
+      const authUser = authUserRes.data.user;
+      if (!authUser) throw new Error(t('errors.authRequired'));
+
+      const access = buildAccess ?? (await fetchCurrentBuildAccess(authUser.id));
+      if (access) setBuildAccess(access);
+
+      const scopeInvestmentId = access?.investmentId ?? null;
+      const ownerUserId = access?.ownerUserId ?? authUser.id;
+
+      const invRes = scopeInvestmentId
+        ? await supabase
+            .from('inwestycje')
+            .select('budzet, data_start, data_koniec, id, user_id, nazwa')
+            .eq('id', scopeInvestmentId)
+            .maybeSingle()
+        : await supabase
+            .from('inwestycje')
+            .select('budzet, data_start, data_koniec, id, user_id, nazwa')
+            .eq('user_id', userId)
+            .maybeSingle();
 
       if (invRes.error) throw invRes.error;
 
       setPlannedBudget(safeNumber((invRes.data as any)?.budzet));
       setDates({ start: (invRes.data as any)?.data_start ?? null, end: (invRes.data as any)?.data_koniec ?? null });
 
-      const expRes = await supabase
-        .from('wydatki')
-        .select('id, nazwa, kategoria, expense_category_code, kwota, data, status, typ, expense_type, etap_id, stage_group_code, stage_code, planowana_data, created_at, opis, sklep, plik, suggestion_key')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const expRes = scopeInvestmentId
+        ? await supabase
+            .from('wydatki')
+            .select('id, user_id, investment_id, nazwa, kategoria, expense_category_code, kwota, data, status, typ, expense_type, etap_id, stage_group_code, stage_code, planowana_data, created_at, opis, sklep, plik, suggestion_key')
+            .eq('investment_id', scopeInvestmentId)
+            .order('created_at', { ascending: false })
+        : await supabase
+            .from('wydatki')
+            .select('id, user_id, investment_id, nazwa, kategoria, expense_category_code, kwota, data, status, typ, expense_type, etap_id, stage_group_code, stage_code, planowana_data, created_at, opis, sklep, plik, suggestion_key')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
 
       if (expRes.error) throw expRes.error;
       setWydatki((expRes.data ?? []) as any);
 
-      const docsRes = await supabase
-        .from('dokumenty')
-        .select('plik_url, kategoria')
-        .eq('user_id', userId);
+      const docsRes = scopeInvestmentId
+        ? await supabase
+            .from('dokumenty')
+            .select('plik_url, kategoria, investment_id, user_id')
+            .eq('investment_id', scopeInvestmentId)
+        : await supabase
+            .from('dokumenty')
+            .select('plik_url, kategoria, investment_id, user_id')
+            .eq('user_id', userId);
 
       if (docsRes.error) throw docsRes.error;
       const nextReceiptKindByPath: Record<string, ReceiptDocKind> = {};
@@ -488,14 +519,10 @@ export default function BudzetScreen() {
       }
       setReceiptKindByPath(nextReceiptKindByPath);
 
-      const authUserRes = await supabase.auth.getUser();
-      const authUser = authUserRes.data.user;
-      if (!authUser) throw new Error(t('errors.authRequired'));
-
       const profileRes = await supabase
         .from('profiles')
         .select('build_type, current_stage_code, build_stage')
-        .eq('user_id', authUser.id)
+        .eq('user_id', ownerUserId)
         .maybeSingle();
       if (profileRes.error) throw profileRes.error;
 
@@ -513,34 +540,46 @@ export default function BudzetScreen() {
           .eq('workflow_code', normalizedBuildType === 'szkieletowy' ? 'timber_frame' : 'masonry')
           .eq('is_active', true)
           .order('order_index', { ascending: true }),
-        supabase
-          .from('user_stages')
-          .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
-          .eq('user_id', userId)
-          .order('order_index', { ascending: true })]);
+        scopeInvestmentId
+          ? supabase
+              .from('user_stages')
+              .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
+              .eq('investment_id', scopeInvestmentId)
+              .order('order_index', { ascending: true })
+          : supabase
+              .from('user_stages')
+              .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
+              .eq('user_id', userId)
+              .order('order_index', { ascending: true })]);
 
       if (templateRes.error) throw templateRes.error;
       if (userStageRes.error) throw userStageRes.error;
       setStageTemplates((templateRes.data ?? []) as StageTemplateLike[]);
       setUserStages((userStageRes.data ?? []) as UserStageLike[]);
 
-      const stageRes = await supabase
-        .from('etapy')
-        .select('id, nazwa, nazwa_code, status, kolejnosc')
-        .eq('user_id', userId)
-        .order('kolejnosc', { ascending: true });
+      const stageRes = scopeInvestmentId
+        ? await supabase
+            .from('etapy')
+            .select('id, user_id, investment_id, nazwa, nazwa_code, status, kolejnosc')
+            .eq('investment_id', scopeInvestmentId)
+            .order('kolejnosc', { ascending: true })
+        : await supabase
+            .from('etapy')
+            .select('id, user_id, investment_id, nazwa, nazwa_code, status, kolejnosc')
+            .eq('user_id', userId)
+            .order('kolejnosc', { ascending: true });
 
       if (stageRes.error) throw stageRes.error;
       const stageRows = (stageRes.data ?? []) as EtapRow[];
       setEtapy(stageRows);
 
-      const completedStatuses = new Set(['zrealizowany', 'wykonany', 'done', 'completed', 'ukoÒczony']);
+      const completedStatuses = new Set(['zrealizowany', 'wykonany', 'done', 'completed', 'uko≈Ñczony']);
       const activeStage = stageRows.find((row: any) => !completedStatuses.has(normalize(row?.status)));
       const fallbackStage = stageRows[0] ?? null;
       const currentStage = activeStage ?? fallbackStage ?? null;
       setActiveStageId(currentStage?.id ?? null);
       const usedSuggestionKeys = new Set(((expRes.data ?? []) as WydatkiRow[]).map((expense) => expense.suggestion_key).filter(Boolean));
-      const prefs = await loadExpenseSuggestionPrefs(userId);
+      const prefs = await loadExpenseSuggestionPrefs(ownerUserId);
       setSuggestionPrefs(prefs);
       const currentSuggestionStageKey = currentSuggestionStage(currentStageCode);
       const rawSuggestions = mergeSuggestionPrefs(
@@ -561,7 +600,7 @@ export default function BudzetScreen() {
     } finally {
       setLoading(false);
     }
-  }, [authLoading, userId]);
+  }, [authLoading, buildAccess, userId]);
 
   const updateSuggestionPrefs = useCallback(async (updater: (prefs: StoredExpenseSuggestionPrefs) => StoredExpenseSuggestionPrefs) => {
     if (!userId) return;
@@ -663,34 +702,39 @@ export default function BudzetScreen() {
     await Promise.all(targets.map(async ({ bucket, path }) => {
       const { error } = await supabase.storage.from(bucket).remove([path]);
       if (error && !String(error.message || '').includes('not found')) {
-        console.warn(`[Budøet] nie uda≥o siÍ usunπÊ pliku z bucketu ${bucket}:`, error.message);
+        console.warn(`[Bud≈ºet] nie uda≈Ço siƒô usunƒÖƒá pliku z bucketu ${bucket}:`, error.message);
       }
     }));
   }, []);
 
   const syncLinkedReceiptDocument = useCallback(async ({
     userIdValue,
+    investmentIdValue,
     filePath,
     title,
     note,
     kind,
     previousPath}: {
     userIdValue: string;
+    investmentIdValue?: string | null;
     filePath: string | null;
     title: string;
     note: string | null;
     kind: ReceiptDocKind;
     previousPath?: string | null;
   }) => {
+    const scopeColumn = investmentIdValue ? 'investment_id' : 'user_id';
+    const scopeValue = investmentIdValue ?? userIdValue;
+
     if (!filePath) {
       if (previousPath && previousPath !== filePath) {
         const { error: deleteError } = await supabase
           .from('dokumenty')
           .delete()
-          .eq('user_id', userIdValue)
+          .eq(scopeColumn, scopeValue)
           .eq('plik_url', previousPath);
         if (deleteError) {
-          console.warn('[Budøet] nie uda≥o siÍ usunπÊ powiπzanego dokumentu:', deleteError.message);
+          console.warn('[Bud≈ºet] nie uda≈Ço siƒô usunƒÖƒá powiƒÖzanego dokumentu:', deleteError.message);
         }
       }
       return;
@@ -698,6 +742,7 @@ export default function BudzetScreen() {
 
     const payload = {
       user_id: userIdValue,
+      ...(investmentIdValue ? { investment_id: investmentIdValue } : {}),
       tytul: title || t('expense.defaultName'),
       notatki: note,
       kategoria: kind,
@@ -707,17 +752,17 @@ export default function BudzetScreen() {
       const { error: deleteError } = await supabase
         .from('dokumenty')
         .delete()
-        .eq('user_id', userIdValue)
+        .eq(scopeColumn, scopeValue)
         .eq('plik_url', previousPath);
       if (deleteError) {
-        console.warn('[Budøet] nie uda≥o siÍ usunπÊ starego dokumentu po zmianie pliku:', deleteError.message);
+        console.warn('[Bud≈ºet] nie uda≈Ço siƒô usunƒÖƒá starego dokumentu po zmianie pliku:', deleteError.message);
       }
     }
 
     const { data: existing, error: selectError } = await supabase
       .from('dokumenty')
       .select('id')
-      .eq('user_id', userIdValue)
+      .eq(scopeColumn, scopeValue)
       .eq('plik_url', filePath)
       .maybeSingle();
 
@@ -726,7 +771,7 @@ export default function BudzetScreen() {
     }
 
     if (existing?.id) {
-      const { error: updateError } = await supabase.from('dokumenty').update(payload).eq('id', existing.id).eq('user_id', userIdValue);
+      const { error: updateError } = await supabase.from('dokumenty').update(payload).eq('id', existing.id).eq(scopeColumn, scopeValue);
       if (updateError) throw updateError;
       return;
     }
@@ -746,10 +791,12 @@ export default function BudzetScreen() {
     let uploadedReceipt: UploadedReceiptFile | null = null;
     try {
       const authUserRes = await supabase.auth.getUser();
-      const ownerId = authUserRes.data.user?.id ?? null;
+      const authUser = authUserRes.data.user ?? null;
+      const ownerId = authUser?.id ?? null;
       if (authUserRes.error || !ownerId) {
         throw new Error(t('errors.authRequired'));
       }
+      const investmentId = buildAccess?.investmentId ?? null;
       uploadedReceipt = await uploadOptionalFile(ownerId);
       const previousFilePath = editingExpense?.plik || null;
       const previousDocumentPath = linkedDocumentPathFromReceiptPath(ownerId, previousFilePath);
@@ -765,6 +812,7 @@ export default function BudzetScreen() {
         : null;
       const payload = {
         user_id: ownerId,
+        ...(investmentId ? { investment_id: investmentId } : {}),
         nazwa,
         kategoria: expenseCategoryLegacy,
         expense_category_code: expenseCategoryCode,
@@ -782,8 +830,8 @@ export default function BudzetScreen() {
         sklep: fSklep.trim() || null,
         ...(uploadedReceipt ? { plik: uploadedReceipt.receiptPath } : editingExpense ? {} : { plik: null })};
       const res = editingExpense
-        ? await supabase.from('wydatki').update(payload).eq('id', editingExpense.id).eq('user_id', ownerId).select('id').maybeSingle()
-        : await supabase.from('wydatki').insert({ ...payload, user_id: ownerId }).select('id').maybeSingle();
+        ? await supabase.from('wydatki').update(payload).eq('id', editingExpense.id).select('id').maybeSingle()
+        : await supabase.from('wydatki').insert({ ...payload, user_id: ownerId, ...(investmentId ? { investment_id: investmentId } : {}) }).select('id').maybeSingle();
       if (res.error) {
         if (uploadedReceipt) {
           await removeReceiptFileEverywhere(uploadedReceipt.receiptPath, uploadedReceipt.documentPath);
@@ -796,13 +844,14 @@ export default function BudzetScreen() {
         try {
           await syncLinkedReceiptDocument({
             userIdValue: ownerId,
+            investmentIdValue: investmentId,
             filePath: receiptFilePath,
             previousPath: previousDocumentPath && previousDocumentPath !== receiptFilePath ? previousDocumentPath : null,
             title: nazwa,
-            note: [fSklep.trim(), fOpis.trim()].filter(Boolean).join(' ï ') || null,
+            note: [fSklep.trim(), fOpis.trim()].filter(Boolean).join(' ‚Ä¢ ') || null,
             kind: fAttachmentKind});
         } catch (docError: any) {
-          console.warn('[Budøet] nie uda≥o siÍ zsynchronizowaÊ dokumentu wydatku:', docError?.message || docError);
+          console.warn('[Bud≈ºet] nie uda≈Ço siƒô zsynchronizowaƒá dokumentu wydatku:', docError?.message || docError);
           Alert.alert(
             t('errorTitle'),
             t('errors.documentSyncFailed')
@@ -980,7 +1029,7 @@ export default function BudzetScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* HEADER ó logo po lewej */}
+        {/* HEADER ‚Äî logo po lewej */}
         <View style={[styles.topBar, { paddingTop: topPad }]}>
           <View style={styles.headerSide}>
             <ExpoImage source={logo} style={styles.headerLogoLarge} contentFit="contain" cachePolicy="memory-disk" />
@@ -993,10 +1042,10 @@ export default function BudzetScreen() {
           <View style={styles.headerSide} />
         </View>
 
-        {/* B£ DY */}
+        {/* B≈ÅƒòDY */}
         {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
 
-        {/* PASEK CZASU ó delikatny */}
+        {/* PASEK CZASU ‚Äî delikatny */}
         {!loading && dates.start && dates.end && (
           <View style={styles.timeBarWrap}>
             <View style={styles.timeBarTrack}>
@@ -1194,7 +1243,12 @@ export default function BudzetScreen() {
             <Text style={styles.empty}>{t('empty.noExpenses')}</Text>
           ) : (
             topPaidExpenses.map((w, index) => (
-              <TouchableOpacity key={w.id} style={styles.compactRow} onPress={() => openEditExpense(w)} activeOpacity={0.9}>
+              <TouchableOpacity
+                key={w.id}
+                style={styles.compactRow}
+                onPress={buildAccess?.role === 'owner' || String(w.user_id ?? '') === String(userId ?? '') ? () => openEditExpense(w) : undefined}
+                activeOpacity={0.9}
+              >
                 <Text style={styles.rankText}>#{index + 1}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemName} numberOfLines={1}>{w.nazwa || t('expense.defaultName')}</Text>
@@ -1202,7 +1256,7 @@ export default function BudzetScreen() {
                     {resolveMainStageGroupLabel(w)}
                   </Text>
                   <Text style={styles.itemMeta} numberOfLines={1}>
-                    {w.data ? formatDateByLocale(w.data, datePickerLocale) : 'ó'}
+                    {w.data ? formatDateByLocale(w.data, datePickerLocale) : '‚Äî'}
                   </Text>
                 </View>
                 <View style={styles.topExpenseRight}>
@@ -1420,7 +1474,7 @@ export default function BudzetScreen() {
         <View style={{ height: 26 }} />
       </ScrollView>
 
-      {/* FAB ó przyklejony na dole po prawej, zawsze widoczny */}
+      {/* FAB ‚Äî przyklejony na dole po prawej, zawsze widoczny */}
       <FloatingAddButton onPress={openAddExpense} style={styles.budgetFab} />
     </AppScreen>
   );
@@ -1462,7 +1516,7 @@ const styles = StyleSheet.create({
 
   errorText: { color: '#FCA5A5', marginBottom: 10, textAlign: 'center', fontWeight: '800' },
 
-  // ¶¶ Pasek czasu ¶¶
+  // ¬¶¬¶ Pasek czasu ¬¶¬¶
   timeBarWrap: { marginBottom: 16 },
   timeBarLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 },
   timeBarText: { color: 'rgba(255,255,255,0.44)', fontSize: 13, fontWeight: '800' },
@@ -1473,7 +1527,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden'},
   timeBarFill: { height: 8, borderRadius: 99, backgroundColor: 'rgba(25,112,92,0.70)' },
 
-  // ¶¶ Finance overview ¶¶
+  // ¬¶¬¶ Finance overview ¬¶¬¶
   financeOverview: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1484,7 +1538,7 @@ const styles = StyleSheet.create({
   financeStatsCol: { width: 152, flexShrink: 0, gap: 6, alignItems: 'stretch', marginLeft: 'auto' },
   donutSubText: { marginTop: 1, color: 'rgba(255,255,255,0.46)', fontSize: 10.5, fontWeight: '700', textAlign: 'center' },
 
-  // ¶¶ Stats ¶¶
+  // ¬¶¬¶ Stats ¬¶¬¶
   statBox: {
     paddingVertical: 7,
     paddingHorizontal: 10,
@@ -1499,7 +1553,7 @@ const styles = StyleSheet.create({
   statLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '800' },
   statValue: { color: '#F8FAFC', fontSize: 12.5, fontWeight: '900', marginTop: 2, lineHeight: 14 },
 
-  // ¶¶ Buddy widget ¶¶
+  // ¬¶¬¶ Buddy widget ¬¶¬¶
   buddyWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 9,
     marginTop: 8, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14,
@@ -1529,7 +1583,7 @@ const styles = StyleSheet.create({
 
   vLabel: { marginTop: 8, color: 'rgba(255,255,255,0.78)', fontWeight: '900', fontSize: 11, textAlign: 'center' },
 
-  // ¶¶ Lista ¶¶
+  // ¬¶¬¶ Lista ¬¶¬¶
   card: {
     marginTop: 14, borderRadius: RADIUS.card, padding: 16, overflow: 'hidden',
     backgroundColor: 'rgba(25,112,92,0.08)',
@@ -1699,7 +1753,7 @@ const styles = StyleSheet.create({
   itemAmountPlanned: { color: 'rgba(255,255,255,0.40)' },
   fileLink: { color: 'rgba(120,255,220,0.9)', fontWeight: '800', fontSize: 12 },
 
-  // Pokaø wiÍcej
+  // Poka≈º wiƒôcej
   showMoreBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 14,
@@ -1713,7 +1767,7 @@ const styles = StyleSheet.create({
   trashIcon: { fontSize: 18, marginBottom: 4 },
   trashText: { color: '#FCA5A5', fontWeight: '900', fontSize: 12 },
 
-  // ¶¶ Modal ¶¶
+  // ¬¶¬¶ Modal ¬¶¬¶
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',

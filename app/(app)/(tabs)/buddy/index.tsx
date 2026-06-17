@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { publicConfig, supabase } from '../../../../lib/supabase';
 import { getAppLocale } from '../../../../lib/i18n';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
+import { fetchCurrentBuildAccess } from '../../../../lib/buildAccess';
 import {
   DEFAULT_BUDDY_AVATAR_ID,
   type BuddyAvatarId,
@@ -84,6 +85,7 @@ export default function BuddyChatScreen() {
   const [buddyName, setBuddyName] = useState(t('chat.fallbackName'));
   const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
   const [loadingInitial, setLoadingInitial] = useState(true);
+  const [activeInvestmentId, setActiveInvestmentId] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -162,6 +164,8 @@ export default function BuddyChatScreen() {
         const name = String(data?.ai_buddy_name ?? '').trim() || t('chat.fallbackName');
         setBuddyName(name);
         setAvatarId(await loadBuddyAvatarId(userId));
+        const access = await fetchCurrentBuildAccess(userId);
+        setActiveInvestmentId(access?.investmentId ?? null);
 
         await loadConversations();
       } catch {
@@ -330,6 +334,7 @@ export default function BuddyChatScreen() {
         signal: abortController.signal,
         body: JSON.stringify({
           conversation_id: currentConversationId,
+          investment_id: activeInvestmentId,
           message: trimmed,
           assistant_name: buddyName,
           app_language: i18n.resolvedLanguage || i18n.language || 'en'})});

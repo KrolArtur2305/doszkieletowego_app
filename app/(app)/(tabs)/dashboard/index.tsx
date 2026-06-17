@@ -21,6 +21,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import { getAppLocale } from '../../../../lib/i18n';
 import { getStageLabel } from '../../../../lib/localizedLabels';
@@ -345,6 +346,8 @@ export default function DashboardScreen() {
   const { t: tStages } = useTranslation('stages');
   const { currency } = useCurrency();
   const appLocale = useMemo(() => getAppLocale(i18n.resolvedLanguage || i18n.language), [i18n.resolvedLanguage, i18n.language]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
 
   // ── Hero ──
   const [imie, setImie] = useState<string>('');
@@ -408,6 +411,17 @@ export default function DashboardScreen() {
   const isDone = (status: string | null) =>
     (status ?? '').toLowerCase().trim() === STATUS_DONE;
 
+  const resolveDashboardScope = React.useCallback(async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user ?? null;
+    if (!user) return { user: null as any, access: null as BuildAccess | null };
+
+    const access = buildAccess ?? (await fetchCurrentBuildAccess(user.id));
+    if (!buildAccess) setBuildAccess(access);
+    if (!currentUserId) setCurrentUserId(user.id);
+    return { user, access };
+  }, [buildAccess, currentUserId]);
+
   const donutData: DonutItem[] = useMemo(
     () => [
       {
@@ -458,15 +472,14 @@ export default function DashboardScreen() {
   const loadTasksOverview = async () => {
     try {
       setTasksLoading(true);
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
+      const { user, access } = await resolveDashboardScope();
       if (!user) { setTodayTasks([]); setUpcomingTasks([]); return; }
 
       const todayYMD = toYMD(today);
       const { data, error } = await supabase
         .from(TASKS_TABLE)
         .select('id,user_id,data,godzina,nazwa,opis,utworzone_at')
-        .eq('user_id', user.id)
+        .eq(access?.investmentId ? 'investment_id' : 'user_id', access?.investmentId ?? user.id)
         .gte('data', todayYMD)
         .order('data', { ascending: true })
         .order('godzina', { ascending: true, nullsFirst: false })
@@ -520,9 +533,12 @@ export default function DashboardScreen() {
 
       const user = userData?.user;
       if (!user) throw new Error('NO_USER');
+      const access = buildAccess ?? (await fetchCurrentBuildAccess(user.id));
+      if (!buildAccess) setBuildAccess(access);
 
       const ins = await supabase.from(TASKS_TABLE).insert({
         user_id: user.id,
+        ...(access?.investmentId ? { investment_id: access.investmentId } : {}),
         nazwa: title,
         opis: newDesc.trim() || null,
         data: selectedYMD,
@@ -548,18 +564,23 @@ export default function DashboardScreen() {
     (async () => {
       try {
         setWeatherLoading(true);
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user;
+        const { user, access } = await resolveDashboardScope();
         if (!user) {
           if (alive) setWeather(null);
           return;
         }
 
-        const investmentRes = await supabase
-          .from('inwestycje')
-          .select('latitude, longitude')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        const investmentRes = access?.investmentId
+          ? await supabase
+              .from('inwestycje')
+              .select('latitude, longitude')
+              .eq('id', access.investmentId)
+              .maybeSingle()
+          : await supabase
+              .from('inwestycje')
+              .select('latitude, longitude')
+              .eq('user_id', user.id)
+              .maybeSingle();
 
         if (investmentRes.error) throw investmentRes.error;
 
@@ -613,7 +634,7 @@ export default function DashboardScreen() {
       }
     })();
     return () => { alive = false; };
-  }, [appLocale, t]);
+  }, [appLocale, resolveDashboardScope, t]);
 
   // ── Activity feed ──
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -623,27 +644,26 @@ export default function DashboardScreen() {
     let alive = true;
     (async () => {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user;
+        const { user, access } = await resolveDashboardScope();
         if (!user) { setActivity([]); return; }
 
         const [expRes, stageRes, taskRes] = await Promise.all([
           supabase
             .from('wydatki')
             .select('id,nazwa,kwota,created_at')
-            .eq('user_id', user.id)
+            .eq(access?.investmentId ? 'investment_id' : 'user_id', access?.investmentId ?? user.id)
             .order('created_at', { ascending: false })
             .limit(3),
           supabase
             .from('etapy')
             .select('id,nazwa,status,kolejnosc')
-            .eq('user_id', user.id)
+            .eq('user_id', access?.ownerUserId ?? user.id)
             .order('kolejnosc', { ascending: false })
             .limit(2),
           supabase
             .from(TASKS_TABLE)
             .select('id,nazwa,data,utworzone_at')
-            .eq('user_id', user.id)
+            .eq(access?.investmentId ? 'investment_id' : 'user_id', access?.investmentId ?? user.id)
             .order('utworzone_at', { ascending: false })
             .limit(2),
         ]);
@@ -692,7 +712,7 @@ export default function DashboardScreen() {
       }
     })();
     return () => { alive = false; };
-  }, [appLocale, currency, t, tStages]);
+  }, [appLocale, currency, resolveDashboardScope, t, tStages]);
 
   // ── Load profile + hero anim ──
   useEffect(() => {
@@ -728,13 +748,14 @@ export default function DashboardScreen() {
     (async () => {
       try {
         setStatusLoading(true);
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user;
+        const { user, access } = await resolveDashboardScope();
         if (!user) return;
 
         const [invRes, expRes] = await Promise.all([
-          supabase.from('inwestycje').select('budzet, data_start, data_koniec').eq('user_id', user.id).maybeSingle(),
-          supabase.from('wydatki').select('kwota, status').eq('user_id', user.id),
+          access?.investmentId
+            ? supabase.from('inwestycje').select('budzet, data_start, data_koniec').eq('id', access.investmentId).maybeSingle()
+            : supabase.from('inwestycje').select('budzet, data_start, data_koniec').eq('user_id', user.id).maybeSingle(),
+          supabase.from('wydatki').select('kwota, status').eq(access?.investmentId ? 'investment_id' : 'user_id', access?.investmentId ?? user.id),
         ]);
 
         if (!alive) return;
@@ -754,7 +775,7 @@ export default function DashboardScreen() {
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [resolveDashboardScope]);
 
   // ── Load progress ──
   useEffect(() => {
@@ -762,15 +783,16 @@ export default function DashboardScreen() {
     (async () => {
       try {
         setProgressLoading(true);
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user;
+        const { user, access } = await resolveDashboardScope();
         if (!user) return;
+
+        const scopeOwnerId = access?.ownerUserId ?? user.id;
 
         const [profileRes, templatesRes, userStagesRes] = await Promise.all([
           supabase
             .from('profiles')
             .select('build_type, current_stage_code')
-            .eq('user_id', user.id)
+            .eq('user_id', scopeOwnerId)
             .maybeSingle(),
           supabase
             .from('stage_templates')
@@ -780,7 +802,7 @@ export default function DashboardScreen() {
           supabase
             .from('user_stages')
             .select('id, user_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at')
-            .eq('user_id', user.id)
+            .eq('user_id', scopeOwnerId)
             .order('order_index', { ascending: true }),
         ]);
 
@@ -834,7 +856,7 @@ export default function DashboardScreen() {
       }
     })();
     return () => { alive = false; };
-  }, [t, tStages]);
+  }, [resolveDashboardScope, t, tStages]);
 
   // ── Load photos ──
   useEffect(() => {
@@ -842,36 +864,30 @@ export default function DashboardScreen() {
     (async () => {
       try {
         setPhotosLoading(true);
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user;
+        const { user, access } = await resolveDashboardScope();
         if (!user) { setPhotos([]); return; }
 
-        const { data: etapList } = await supabase.storage.from(PHOTOS_BUCKET).list(user.id, { limit: 100 });
-        const etapFolders = (etapList ?? []).map((x) => x.name).filter((n) => !!n && !n.includes('.'));
-
-        const allFiles: Array<{ path: string; name: string; created_at?: string; id?: string }> = [];
-        for (const etap of etapFolders) {
-          const prefix = `${user.id}/${etap}`;
-          const { data: files } = await supabase.storage.from(PHOTOS_BUCKET).list(prefix, {
-            limit: 40,
-            sortBy: { column: 'created_at', order: 'desc' },
-          });
-          for (const f of files ?? []) {
-            if (!f?.name || f.name.endsWith('/')) continue;
-            allFiles.push({ path: `${prefix}/${f.name}`, name: f.name, created_at: (f as any).created_at, id: (f as any).id });
-          }
-        }
-
-        allFiles.sort((a, b) => {
-          const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return tb - ta;
-        });
+        const photoQuery = supabase
+          .from('zdjecia')
+          .select('id,user_id,investment_id,file_path,created_at')
+          .order('created_at', { ascending: false })
+          .limit(3);
+        const { data: photoRows, error: photoError } = access?.investmentId
+          ? await photoQuery.eq('investment_id', access.investmentId)
+          : await photoQuery.eq('user_id', user.id);
+        if (photoError) throw photoError;
 
         const out: PhotoItem[] = [];
-        for (const f of allFiles.slice(0, 3)) {
-          const { data: signed } = await supabase.storage.from(PHOTOS_BUCKET).createSignedUrl(f.path, 60 * 30);
-          if (signed?.signedUrl) out.push({ key: f.id ?? f.path, url: signed.signedUrl, name: f.name, created_at: f.created_at });
+        for (const row of (photoRows ?? []) as Array<{ id: string; file_path: string; created_at?: string | null }>) {
+          const { data: signed } = await supabase.storage.from(PHOTOS_BUCKET).createSignedUrl(row.file_path, 60 * 30);
+          if (signed?.signedUrl) {
+            out.push({
+              key: row.id,
+              url: signed.signedUrl,
+              name: row.file_path.split('/').pop() ?? row.id,
+              created_at: row.created_at ?? undefined,
+            });
+          }
         }
 
         if (!alive) return;
@@ -883,7 +899,7 @@ export default function DashboardScreen() {
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [resolveDashboardScope]);
 
   // ── Derived ──
   const heroDateLine = useMemo(() => {

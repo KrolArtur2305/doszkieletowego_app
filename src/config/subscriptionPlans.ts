@@ -118,6 +118,21 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
 
 export const SUBSCRIPTION_PLAN_LIST = SUBSCRIPTION_PLAN_ORDER.map((key) => SUBSCRIPTION_PLANS[key])
 
+export function normalizeStoredPlanKey(plan: unknown): SubscriptionPlanKey {
+  const value = String(plan ?? '').trim().toLowerCase()
+  if (value === 'demo') return FREE_TRIAL_PLAN_KEY
+  if (value === 'pro_plus') return EXPERT_PLAN_KEY
+  if (value === FREE_PLAN_KEY || value === FREE_TRIAL_PLAN_KEY || value === PRO_PLAN_KEY || value === EXPERT_PLAN_KEY) {
+    return value as SubscriptionPlanKey
+  }
+  return FREE_PLAN_KEY
+}
+
+export function isExpertEquivalentPlan(plan: unknown): boolean {
+  const normalized = String(plan ?? '').trim().toLowerCase()
+  return normalized === EXPERT_PLAN_KEY || normalized === 'pro_plus'
+}
+
 export function getPlansWithFeature(feature: SubscriptionFeatureKey): SubscriptionPlanKey[] {
   return SUBSCRIPTION_PLAN_ORDER.filter((key) => SUBSCRIPTION_PLANS[key].features[feature])
 }

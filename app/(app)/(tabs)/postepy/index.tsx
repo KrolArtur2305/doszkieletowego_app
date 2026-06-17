@@ -12,6 +12,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import {
   MAIN_STAGE_TIMELINE,
@@ -58,6 +59,7 @@ export default function PostepyScreen() {
   const router = useRouter();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,10 +87,14 @@ export default function PostepyScreen() {
       }
 
       try {
+        const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+        if (!buildAccess) setBuildAccess(access);
+        const scopeUserId = access?.ownerUserId ?? userId;
+
         const { data: profileRes, error: profileError } = await supabase
           .from('profiles')
           .select('build_type, current_stage_code')
-          .eq('user_id', userId)
+          .eq('user_id', scopeUserId)
           .maybeSingle();
 
         if (profileError) throw profileError;
@@ -105,7 +111,7 @@ export default function PostepyScreen() {
           supabase
             .from('user_stages')
             .select(USER_STAGE_SELECT)
-            .eq('user_id', userId)
+            .eq('user_id', scopeUserId)
             .eq('workflow_code', workflowCode)
             .order('order_index', { ascending: true })]);
 
@@ -137,7 +143,7 @@ export default function PostepyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, userId, t]);
+  }, [authLoading, buildAccess, userId, t]);
 
   useFocusEffect(loadProgress);
 

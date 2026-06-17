@@ -1,8 +1,12 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import { ActivityIndicator, Animated, Dimensions, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
+import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildRole } from '../../lib/buildAccess';
 import { supabase } from '../../lib/supabase';
+import { acceptPendingInvestmentInvite } from '../../lib/investmentInvite';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 import { isAppleAuthUser } from '../../src/services/auth/appleAuth';
 import { GUIDED_SETUP_ENABLED, GUIDED_SETUP_VERSION } from '../../src/services/guidedSetup/launchMode';
@@ -62,6 +66,7 @@ type OnboardingStep =
 
 export default function AppLayout() {
   const { session, loading: authLoading } = useSupabaseAuth();
+  const { t } = useTranslation(['settings', 'common']);
   const pathname = usePathname();
   const router = useRouter();
   const { setup } = useLocalSearchParams<{ setup?: string | string[] }>();
@@ -73,8 +78,11 @@ export default function AppLayout() {
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [guidedSetupCompleted, setGuidedSetupCompleted] = useState<boolean | null>(null);
+  const [partnerRole, setPartnerRole] = useState<BuildRole | null>(null);
 
   const lastCheckKeyRef = useRef<string>('');
+  const inviteHandledForUserRef = useRef<string | null>(null);
+  const removalNoticeHandledRef = useRef<string | null>(null);
 
   // 1) Pobierz stan onboardingu i kompletności danych
   useEffect(() => {
@@ -92,6 +100,7 @@ export default function AppLayout() {
         setOnboardingStep(null);
         setOnboardingCompleted(null);
         setGuidedSetupCompleted(null);
+        setPartnerRole(null);
         return;
       }
 
@@ -103,6 +112,25 @@ export default function AppLayout() {
       setChecking(true);
 
       try {
+        const buildAccess = await withTimeout(
+          fetchCurrentBuildAccess(userId),
+          ONBOARDING_GATE_TIMEOUT_MS,
+          'Build access load timed out',
+        );
+
+        const currentRole = buildAccess?.role ?? null;
+        if (!alive) return;
+        setPartnerRole(currentRole);
+
+        if (isNonOwnerBuildRole(currentRole)) {
+          setProfileComplete(true);
+          setInvestmentComplete(true);
+          setOnboardingStep('done');
+          setOnboardingCompleted(true);
+          setGuidedSetupCompleted(true);
+          return;
+        }
+
         let guidedColumnsAvailable = true
         let profileRes = await withTimeout(
           supabase
@@ -186,6 +214,7 @@ export default function AppLayout() {
         setOnboardingStep('build_type');
         setOnboardingCompleted(false);
         setGuidedSetupCompleted(true);
+        setPartnerRole(null);
       } finally {
         if (alive) setChecking(false);
       }
@@ -203,6 +232,8 @@ export default function AppLayout() {
     if (!userId) {
       // Wylogowanie — anuluj wszystkie
       cancelAllNotifications();
+      inviteHandledForUserRef.current = null;
+      removalNoticeHandledRef.current = null;
       return;
     }
 
@@ -212,9 +243,152 @@ export default function AppLayout() {
     syncAllTaskReminders(userId);
   }, [session?.user?.id]);
 
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    const handledKey = `${userId}:invite`;
+    if (inviteHandledForUserRef.current === handledKey) return;
+    inviteHandledForUserRef.current = handledKey;
+
+    let alive = true;
+
+    (async () => {
+      try {
+        await acceptPendingInvestmentInvite();
+      } catch (error) {
+        if (!alive) return;
+        const message = String((error as any)?.message ?? '').toLowerCase();
+        if (
+          message.includes('already_has_active_build') ||
+          message.includes('partner_cannot_create_own_build')
+        ) {
+          Alert.alert(
+            'Partner budowy',
+            'Nie możesz połączyć budowy, bo masz już własną budowę albo aktywny udział w innej budowie.'
+          );
+          return;
+        }
+        console.warn('[PartnerInvite] failed to accept pending invite:', error);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId || isNonOwnerBuildRole(partnerRole)) return;
+
+    const handledKey = `${userId}:partner_removed_notice`;
+    if (removalNoticeHandledRef.current === handledKey) return;
+
+    let alive = true;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('investment_member_notices')
+        .select('id,payload,created_at')
+        .eq('user_id', userId)
+        .eq('notice_type', 'partner_removed')
+        .is('dismissed_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!alive || error || !data) return;
+
+      removalNoticeHandledRef.current = handledKey;
+      const buildName = String((data as any)?.payload?.investment_name ?? '').trim();
+      const message = buildName
+        ? t('settings:partner.removedMessageNamed', { name: buildName })
+        : t('settings:partner.removedMessage');
+
+      Alert.alert(t('settings:partner.removedTitle'), message, [
+        {
+          text: t('common:ok'),
+          onPress: async () => {
+            await supabase
+              .from('investment_member_notices')
+              .update({ dismissed_at: new Date().toISOString() })
+              .eq('id', data.id);
+          },
+        },
+      ]);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [session?.user?.id, partnerRole, t]);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId || !isNonOwnerBuildRole(partnerRole)) return;
+
+    let alive = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const checkMembership = async () => {
+      const { data, error } = await supabase
+        .from('investment_members')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('role', 'partner')
+        .maybeSingle();
+
+      if (!alive || error) return;
+      if (data) {
+        timeoutId = setTimeout(checkMembership, 12000);
+        return;
+      }
+
+      const { data: notice } = await supabase
+        .from('investment_member_notices')
+        .select('id,payload')
+        .eq('user_id', userId)
+        .eq('notice_type', 'partner_removed')
+        .is('dismissed_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const buildName = String((notice as any)?.payload?.investment_name ?? '').trim();
+      const message = buildName
+        ? t('settings:partner.removedMessageNamed', { name: buildName })
+        : t('settings:partner.removedMessage');
+
+      Alert.alert(t('settings:partner.removedTitle'), message, [
+        {
+          text: t('common:ok'),
+          onPress: async () => {
+            if (notice?.id) {
+              await supabase
+                .from('investment_member_notices')
+                .update({ dismissed_at: new Date().toISOString() })
+                .eq('id', notice.id);
+            }
+            await supabase.auth.signOut();
+            router.replace('/(auth)/welcome');
+          },
+        },
+      ]);
+    };
+
+    timeoutId = setTimeout(checkMembership, 4000);
+
+    return () => {
+      alive = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [partnerRole, router, session?.user?.id, t]);
+
   // 2) Gate (kolejność ma znaczenie!)
   const gateTarget = useMemo(() => {
     if (!session) return null;
+    if (isNonOwnerBuildRole(partnerRole)) return null;
     if (onboardingStep === null || onboardingCompleted === null) return null;
 
     const appleUser = isAppleAuthUser(session.user);
@@ -242,10 +416,15 @@ export default function AppLayout() {
     }
 
     return null;
-  }, [session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete, guidedSetupCompleted]);
+  }, [session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete, guidedSetupCompleted, partnerRole]);
 
   // 3) Routing
   useEffect(() => {
+    if (session && isNonOwnerBuildRole(partnerRole) && pathname !== '/(app)/(tabs)/dashboard') {
+      router.replace('/(app)/(tabs)/dashboard');
+      return;
+    }
+
     if (gateTarget) {
       const onAppRoot = pathname === '/' || pathname === '/(app)';
       const onOnboarding = pathname.startsWith('/onboarding') || pathname.startsWith('/(app)/onboarding');
@@ -283,7 +462,7 @@ export default function AppLayout() {
     ) {
       router.replace('/(app)/(tabs)/dashboard');
     }
-  }, [gateTarget, pathname, router, session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete, guidedSetupCompleted, setup]);
+  }, [gateTarget, pathname, router, session, onboardingStep, onboardingCompleted, profileComplete, investmentComplete, guidedSetupCompleted, setup, partnerRole]);
 
   const showOverlay =
     authLoading ||

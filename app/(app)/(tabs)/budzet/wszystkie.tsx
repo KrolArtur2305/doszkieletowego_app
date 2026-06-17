@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import { getAppLocale } from '../../../../lib/i18n';
 import {
@@ -93,6 +94,8 @@ type TabType = 'mine' | 'suggested';
 type CategoryValue = ExpenseCategoryCode;
 type WydatkiRow = {
   id: string;
+  user_id?: string | null;
+  investment_id?: string | null;
   nazwa: string | null;
   kategoria: string | null;
   expense_category_code?: string | null;
@@ -206,6 +209,7 @@ export default function WszystkieWydatkiScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
   const [wydatki, setWydatki] = useState<WydatkiRow[]>([]);
   const [etapy, setEtapy] = useState<EtapRow[]>([]);
   const [stageTemplates, setStageTemplates] = useState<StageTemplateLike[]>([]);
@@ -304,6 +308,30 @@ export default function WszystkieWydatkiScreen() {
     setExpandedExpenseGroups((prev) => new Set([...prev, stageFilter]));
   }, [stageFilter]);
 
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data: authUserData } = await supabase.auth.getUser();
+        const authUser = authUserData.user;
+        if (!authUser) {
+          if (alive) setBuildAccess(null);
+          return;
+        }
+
+        const access = await fetchCurrentBuildAccess(authUser.id);
+        if (!alive) return;
+        setBuildAccess(access);
+      } catch {
+        if (alive) setBuildAccess(null);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
+
   const visibleSuggestionStages = useMemo(() => {
     return SUGGESTION_STAGE_ORDER;
   }, []);
@@ -325,21 +353,32 @@ export default function WszystkieWydatkiScreen() {
         return;
       }
 
-      const expRes = await supabase
+      const access = buildAccess ?? (await fetchCurrentBuildAccess(authUser.id));
+      const scopeInvestmentId = access?.investmentId ?? null;
+      const ownerUserId = access?.ownerUserId ?? authUser.id;
+
+      const expQuery = supabase
         .from('wydatki')
-        .select('id, nazwa, kategoria, expense_category_code, kwota, data, status, typ, expense_type, etap_id, stage_group_code, stage_code, planowana_data, created_at, plik, suggestion_key, opis, sklep')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .select('id, user_id, investment_id, nazwa, kategoria, expense_category_code, kwota, data, status, typ, expense_type, etap_id, stage_group_code, stage_code, planowana_data, created_at, plik, suggestion_key, opis, sklep');
+      const expRes = scopeInvestmentId
+        ? await expQuery.eq('investment_id', scopeInvestmentId).order('created_at', { ascending: false })
+        : await expQuery.eq('user_id', userId).order('created_at', { ascending: false });
 
       if (expRes.error) throw expRes.error;
       const expenseRows = (expRes.data ?? []) as WydatkiRow[];
       setWydatki(expenseRows);
 
-      const stageRes = await supabase
-        .from('etapy')
-        .select('id, nazwa, nazwa_code, status, kolejnosc')
-        .eq('user_id', userId)
-        .order('kolejnosc', { ascending: true });
+      const stageRes = scopeInvestmentId
+        ? await supabase
+            .from('etapy')
+            .select('id, user_id, investment_id, nazwa, nazwa_code, status, kolejnosc')
+            .eq('investment_id', scopeInvestmentId)
+            .order('kolejnosc', { ascending: true })
+        : await supabase
+            .from('etapy')
+            .select('id, user_id, investment_id, nazwa, nazwa_code, status, kolejnosc')
+            .eq('user_id', userId)
+            .order('kolejnosc', { ascending: true });
 
       if (stageRes.error) throw stageRes.error;
       const stageRows = (stageRes.data ?? []) as EtapRow[];
@@ -353,7 +392,7 @@ export default function WszystkieWydatkiScreen() {
       const profileRes = await supabase
         .from('profiles')
         .select('build_type, current_stage_code')
-        .eq('user_id', authUser.id)
+        .eq('user_id', ownerUserId)
         .maybeSingle();
 
       if (profileRes.error) throw profileRes.error;
@@ -373,7 +412,13 @@ export default function WszystkieWydatkiScreen() {
           .eq('workflow_code', normalizedBuildType === 'szkieletowy' ? 'timber_frame' : 'masonry')
           .eq('is_active', true)
           .order('order_index', { ascending: true }),
-        supabase
+        scopeInvestmentId
+          ? supabase
+              .from('user_stages')
+              .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
+              .eq('investment_id', scopeInvestmentId)
+              .order('order_index', { ascending: true })
+          : supabase
           .from('user_stages')
           .select('id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index')
           .eq('user_id', authUser.id)
@@ -384,7 +429,7 @@ export default function WszystkieWydatkiScreen() {
       setStageTemplates((templateRes.data ?? []) as StageTemplateLike[]);
       setUserStages((userStageRes.data ?? []) as UserStageLike[]);
 
-      const prefs = await loadExpenseSuggestionPrefs(authUser.id);
+      const prefs = await loadExpenseSuggestionPrefs(ownerUserId);
       setSuggestionPrefs(prefs);
       setStageSuggestions(
         mergeSuggestionPrefs(getAllSystemExpenseSuggestions(normalizedBuildType), prefs, normalizedBuildType)
@@ -403,7 +448,7 @@ export default function WszystkieWydatkiScreen() {
     } finally {
       setLoading(false);
     }
-  }, [authLoading, userId, t]);
+  }, [authLoading, buildAccess, t, userId]);
 
   useEffect(() => {
     loadExpenses();
@@ -678,8 +723,10 @@ export default function WszystkieWydatkiScreen() {
       const plannedDate = fStatus === STATUS_PLANNED
         ? (fPlanowanaData.trim() || fData.trim() || null)
         : null;
+      const investmentId = buildAccess?.investmentId ?? null;
       const payload = {
         user_id: userId,
+        ...(investmentId ? { investment_id: investmentId } : {}),
         nazwa,
         kategoria: expenseCategoryLegacy,
         expense_category_code: expenseCategoryCode,
@@ -697,7 +744,7 @@ export default function WszystkieWydatkiScreen() {
         sklep: fSklep.trim() || null,
         ...(editingExpense ? {} : { plik: null })};
       const result = editingExpense
-        ? await supabase.from('wydatki').update(payload).eq('id', editingExpense.id).eq('user_id', userId)
+        ? await supabase.from('wydatki').update(payload).eq('id', editingExpense.id)
         : await supabase.from('wydatki').insert(payload);
       const { error } = result;
       if (error) throw error;
@@ -758,6 +805,11 @@ export default function WszystkieWydatkiScreen() {
     return 'Wydatki';
   }, []);
 
+  const canManageExpense = useCallback((row: WydatkiRow) => {
+    if (buildAccess?.role === 'owner') return true;
+    return String(row.user_id ?? '') === String(userId ?? '');
+  }, [buildAccess?.role, userId]);
+
   const renderRightActions = (row: WydatkiRow) => (
     <TouchableOpacity style={styles.trashAction} onPress={() => confirmDeleteExpense(row)} activeOpacity={0.85}>
       <Feather name="trash-2" size={18} color="#FCA5A5" />
@@ -774,12 +826,13 @@ export default function WszystkieWydatkiScreen() {
       resolveExpenseStageGroup(item),
       t('fallback.stage')
     );
+    const canEdit = canManageExpense(item);
     return (
-      <Swipeable renderRightActions={() => renderRightActions(item)} overshootRight={false} rightThreshold={40}>
+      <Swipeable renderRightActions={canEdit ? () => renderRightActions(item) : undefined} overshootRight={false} rightThreshold={40}>
         <TouchableOpacity
           activeOpacity={0.9}
-          onPress={() => openEditExpense(item)}
-          onLongPress={() => confirmDeleteExpense(item)}
+          onPress={canEdit ? () => openEditExpense(item) : undefined}
+          onLongPress={canEdit ? () => confirmDeleteExpense(item) : undefined}
           delayLongPress={350}
           style={[styles.itemRow, status === STATUS_PLANNED && styles.itemRowPlanned]}
         >

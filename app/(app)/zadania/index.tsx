@@ -21,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../lib/buildAccess';
 import { getAppLocale } from '../../../lib/i18n';
 import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { syncAllTaskReminders } from '../../../lib/notifications';
@@ -34,6 +35,7 @@ const NEON = '#25F0C8';
 type Task = {
   id: string;
   user_id: string;
+  investment_id?: string | null;
   data: string;
   godzina: string | null;
   nazwa: string;
@@ -135,6 +137,8 @@ export default function ZadaniaScreen() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -184,10 +188,16 @@ export default function ZadaniaScreen() {
     setLoading(true);
 
     try {
+      const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      if (!buildAccess) setBuildAccess(access);
+      if (!currentUserId) setCurrentUserId(userId);
+      const scopeColumn = access?.investmentId ? 'investment_id' : 'user_id';
+      const scopeValue = access?.investmentId ?? userId;
+
       const { data, error } = await supabase
         .from('zadania')
-        .select('*')
-        .eq('user_id', userId)
+        .select('id,user_id,investment_id,data,godzina,nazwa,opis,utworzone_at,wykonane,zakonczone_at,caly_dzien')
+        .eq(scopeColumn, scopeValue)
         .order('data', { ascending: true })
         .order('godzina', { ascending: true, nullsFirst: false });
 
@@ -199,7 +209,7 @@ export default function ZadaniaScreen() {
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id, t]);
+  }, [buildAccess, currentUserId, session?.user?.id, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -310,8 +320,11 @@ export default function ZadaniaScreen() {
     setSaving(true);
 
     try {
+      const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      if (!buildAccess) setBuildAccess(access);
       const payload = {
         user_id: userId,
+        ...(access?.investmentId ? { investment_id: access.investmentId } : {}),
         nazwa: form.nazwa.trim(),
         opis: form.opis.trim() || null,
         data: form.data,
@@ -323,7 +336,7 @@ export default function ZadaniaScreen() {
           .from('zadania')
           .update(payload)
           .eq('id', editingTask.id)
-          .eq('user_id', userId);
+          .eq(buildAccess?.role === 'owner' ? 'id' : 'user_id', buildAccess?.role === 'owner' ? editingTask.id : userId);
 
         if (error) throw error;
       } else {
@@ -348,6 +361,10 @@ export default function ZadaniaScreen() {
   const toggleDone = async (task: Task) => {
     try {
       const nextDone = !task.wykonane;
+      const access = buildAccess ?? (await fetchCurrentBuildAccess(session?.user?.id ?? ''));
+      const userId = session?.user?.id;
+      if (!userId) throw new Error('NO_USER');
+      if (access?.role !== 'owner' && task.user_id !== userId) throw new Error('FORBIDDEN');
       const { error } = await supabase
         .from('zadania')
         .update({
@@ -355,7 +372,7 @@ export default function ZadaniaScreen() {
           zakonczone_at: nextDone ? new Date().toISOString() : null,
         })
         .eq('id', task.id)
-        .eq('user_id', task.user_id);
+        .eq(access?.role === 'owner' ? 'id' : 'user_id', access?.role === 'owner' ? task.id : userId);
 
       if (error) throw error;
       if (session?.user?.id) {
@@ -379,11 +396,16 @@ export default function ZadaniaScreen() {
             const userId = session?.user?.id;
             if (!userId) return;
 
+            const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+            if (!buildAccess) setBuildAccess(access);
+            const canManageTask = access?.role === 'owner' || task.user_id === userId;
+            if (!canManageTask) throw new Error('FORBIDDEN');
+
             const { error } = await supabase
               .from('zadania')
               .delete()
               .eq('id', task.id)
-              .eq('user_id', userId);
+              .eq(access?.role === 'owner' ? 'id' : 'user_id', access?.role === 'owner' ? task.id : userId);
             if (error) throw error;
             if (userId) {
               await Promise.all([loadTasks(), syncAllTaskReminders(userId)]);
@@ -478,6 +500,7 @@ export default function ZadaniaScreen() {
                     task={task}
                     onToggleDone={() => toggleDone(task)}
                     onEdit={() => openEdit(task)}
+                    canManage={buildAccess?.role === 'owner' || task.user_id === currentUserId}
                   />
                 ))
               )}
@@ -497,6 +520,7 @@ export default function ZadaniaScreen() {
                     task={task}
                     onToggleDone={() => toggleDone(task)}
                     onEdit={() => openEdit(task)}
+                    canManage={buildAccess?.role === 'owner' || task.user_id === currentUserId}
                   />
                 ))
               )}
@@ -529,6 +553,7 @@ export default function ZadaniaScreen() {
                   onEdit={() => openEdit(task)}
                   onDelete={() => deleteTask(task)}
                   onToggleDone={() => toggleDone(task)}
+                  canManage={buildAccess?.role === 'owner' || task.user_id === currentUserId}
                 />
               ))}
             </View>
@@ -626,6 +651,7 @@ export default function ZadaniaScreen() {
                   onEdit={() => openEdit(task)}
                   onDelete={() => deleteTask(task)}
                   onToggleDone={() => toggleDone(task)}
+                  canManage={buildAccess?.role === 'owner' || task.user_id === currentUserId}
                 />
               ))}
             </View>
@@ -827,16 +853,18 @@ function TaskCard({
   onEdit,
   onDelete,
   onToggleDone,
+  canManage,
 }: {
   task: Task;
   onEdit: () => void;
   onDelete: () => void;
   onToggleDone: () => void;
+  canManage: boolean;
 }) {
   const { t } = useTranslation('tasks');
   return (
     <BlurView intensity={14} tint="dark" style={[cardStyles.card, !!task.wykonane && cardStyles.cardDone]}>
-      <TouchableOpacity onPress={onToggleDone} style={cardStyles.checkBtn} activeOpacity={0.85}>
+      <TouchableOpacity onPress={canManage ? onToggleDone : undefined} style={cardStyles.checkBtn} activeOpacity={0.85}>
         <Feather
           name={task.wykonane ? 'check-circle' : 'circle'}
           size={20}
@@ -865,12 +893,16 @@ function TaskCard({
       </View>
 
       <View style={cardStyles.cardActions}>
-        <TouchableOpacity onPress={onEdit} style={cardStyles.iconBtn} activeOpacity={0.8}>
-          <Feather name="edit-2" size={15} color="rgba(255,255,255,0.55)" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onDelete} style={cardStyles.iconBtn} activeOpacity={0.8}>
-          <Feather name="trash-2" size={15} color="rgba(239,68,68,0.70)" />
-        </TouchableOpacity>
+        {canManage ? (
+          <>
+            <TouchableOpacity onPress={onEdit} style={cardStyles.iconBtn} activeOpacity={0.8}>
+              <Feather name="edit-2" size={15} color="rgba(255,255,255,0.55)" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onDelete} style={cardStyles.iconBtn} activeOpacity={0.8}>
+              <Feather name="trash-2" size={15} color="rgba(239,68,68,0.70)" />
+            </TouchableOpacity>
+          </>
+        ) : null}
       </View>
     </BlurView>
   );
@@ -880,15 +912,17 @@ function TaskListItem({
   task,
   onToggleDone,
   onEdit,
+  canManage,
 }: {
   task: Task;
   onToggleDone: () => void;
   onEdit: () => void;
+  canManage: boolean;
 }) {
   const { t } = useTranslation('tasks');
   return (
     <View style={[listStyles.row, !!task.wykonane && listStyles.rowDone]}>
-      <TouchableOpacity onPress={onToggleDone} style={listStyles.checkBtn} activeOpacity={0.85}>
+      <TouchableOpacity onPress={canManage ? onToggleDone : undefined} style={listStyles.checkBtn} activeOpacity={0.85}>
         <Feather
           name={task.wykonane ? 'check-circle' : 'circle'}
           size={20}
@@ -896,7 +930,7 @@ function TaskListItem({
         />
       </TouchableOpacity>
 
-      <TouchableOpacity style={listStyles.content} onPress={onEdit} activeOpacity={0.82}>
+      <TouchableOpacity style={listStyles.content} onPress={canManage ? onEdit : undefined} activeOpacity={0.82}>
         <Text style={[listStyles.name, !!task.wykonane && listStyles.textDone]} numberOfLines={1}>
           {task.nazwa}
         </Text>
@@ -905,9 +939,13 @@ function TaskListItem({
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={onEdit} style={listStyles.editBtn} activeOpacity={0.82}>
-        <Feather name="edit-2" size={15} color="rgba(255,255,255,0.55)" />
-      </TouchableOpacity>
+      {canManage ? (
+        <TouchableOpacity onPress={onEdit} style={listStyles.editBtn} activeOpacity={0.82}>
+          <Feather name="edit-2" size={15} color="rgba(255,255,255,0.55)" />
+        </TouchableOpacity>
+      ) : (
+        <View style={listStyles.editBtnSpacer} />
+      )}
     </View>
   );
 }
@@ -1393,6 +1431,10 @@ const listStyles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editBtnSpacer: {
+    width: 32,
+    height: 32,
   },
 });
 

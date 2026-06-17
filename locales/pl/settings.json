@@ -16,7 +16,9 @@
     "subscriptionTitle": "Zarządzaj subskrypcją",
     "subscriptionSubtitle": "Ustawienia planu i płatności",
     "reportTitle": "Zgłoś problem",
-    "reportSubtitle": "Wyślij opis błędu"
+    "reportSubtitle": "Wyślij opis błędu",
+    "partnerTitle": "Partner budowy",
+    "partnerSubtitle": "Zaproszenie i uprawnienia"
   },
   "report": {
     "title": "Zgłoś problem",
@@ -154,6 +156,131 @@
       "tasks": "zadań",
       "model3d": "Model 3D",
       "ai": "Asystent AI"
+    }
+  },
+  "partner": {
+    "title": "Partner budowy",
+    "heroTitle": "Dodaj osobę towarzyszącą",
+    "heroSubtitle": "Wygeneruj kod zaproszenia i zdecyduj, co partner może widzieć lub dodawać w Twojej budowie.",
+    "currentBuild": "Budowa: {{name}}",
+    "lockedTitle": "Dostępne w planie Expert",
+    "lockedSubtitle": "Partner budowy nie płaci za konto. Zaproszenie może wygenerować tylko właściciel budowy z aktywnym planem Expert.",
+    "upgradeAction": "Zobacz plan Expert",
+    "permissionsTitle": "Uprawnienia partnera",
+    "presets": {
+      "view": {
+        "label": "Podgląd",
+        "title": "Tylko oglądanie",
+        "text": "Partner widzi budowę, ale nie dodaje nowych rzeczy.",
+        "summaryTitle": "Podgląd",
+        "summaryText": "Budżet i dokumenty są dostępne do wglądu. Dodawanie nowych wpisów pozostaje wyłączone."
+      },
+      "collab": {
+        "label": "Współpraca",
+        "title": "Dodawanie rzeczy",
+        "text": "Partner może dodawać zdjęcia, wpisy i wydatki.",
+        "summaryTitle": "Współpraca",
+        "summaryText": "Partner może dodawać zdjęcia, wpisy do dziennika i wydatki. Nie może odznaczać postępów ani edytować istniejących danych."
+      }
+    },
+    "permissionOn": "Włączone",
+    "permissionOff": "Wyłączone",
+    "generateAction": "Wygeneruj zaproszenie",
+    "generating": "Generowanie...",
+    "inviteReady": "Kod zaproszenia",
+    "inviteHint": "Przekaż ten kod partnerowi. Kod jest jednorazowy i ważny przez 14 dni.",
+    "revokeAction": "Unieważnij kod",
+    "revoking": "Unieważnianie...",
+    "revokeTitle": "Unieważnić kod zaproszenia?",
+    "revokeMessage": "Ten kod przestanie działać natychmiast. Partner będzie musiał użyć nowego kodu.",
+    "converting": "Przenoszenie...",
+    "convertAction": "Opuść obecną budowę i dołącz",
+    "convertWarningTitle": "Uwaga: przeniesienie na konto partnera",
+    "convertWarningMessage": "Po przejściu dalej usuniemy zapisane dane tej budowy z tego konta. Zostanie tylko dostęp partnera do cudzej budowy. To działanie jest nieodwracalne.",
+    "leaveTitle": "Rezygnacja z partnerstwa",
+    "leaveMessage": "Po rezygnacji utracisz dostęp do budowy, do której zostałeś zaproszony. Konto pozostanie aktywne.",
+    "leaveAction": "Rezygnuję",
+    "partnerMode": {
+      "title": "Jesteś partnerem budowy",
+      "message": "Masz dostęp do wspólnej budowy. Możesz zrezygnować z partnerstwa i wrócić do zwykłego konta.",
+      "leaveAction": "Rezygnuj z bycia partnerem",
+      "leaving": "Wylogowywanie partnera..."
+    },
+    "partnerListTitle": "Aktywni partnerzy",
+    "partnerListItem": "Partner {{index}}",
+    "partnerListMeta": "Możesz usuwać partnerów z tej budowy.",
+    "removeTitle": "Usunąć partnera?",
+    "removeMessage": "Ta osoba straci dostęp do budowy. Uprawnienia zostaną cofnięte natychmiast.",
+    "removeAction": "Usuń",
+    "editTitle": "Edytuj uprawnienia partnera",
+    "editSubtitle": "Zmień dostęp dla wybranej osoby.",
+    "savePermissions": "Zapisz uprawnienia",
+    "savingPermissions": "Zapisywanie...",
+    "removedTitle": "Usunięto Cię z budowy",
+    "removedMessage": "Zostałeś usunięty z budowy i wracasz do zwykłego konta.",
+    "removedMessageNamed": "Zostałeś usunięty z budowy \"{{name}}\" i wracasz do zwykłego konta.",
+    "note": "Na tym etapie partner będzie dodawany bez osobnej płatności. Pełne przepinanie danych na wspólną budowę wdrażamy modułami, żeby nie ryzykować regresji.",
+    "errors": {
+      "load": "Nie udało się wczytać ustawień partnera.",
+      "generate": "Nie udało się wygenerować zaproszenia.",
+      "copyInvite": "Nie udało się skopiować kodu zaproszenia.",
+      "convert": "Nie udało się przenieść konta na partnera.",
+      "leave": "Nie udało się zrezygnować z partnerstwa.",
+      "remove": "Nie udało się usunąć partnera.",
+      "revoke": "Nie udało się unieważnić kodu zaproszenia.",
+      "update": "Nie udało się zaktualizować uprawnień partnera."
+    },
+    "permissions": {
+      "view_budget": {
+        "title": "Podgląd budżetu",
+        "subtitle": "Partner widzi koszty i podsumowania."
+      },
+      "view_documents": {
+        "title": "Podgląd dokumentów",
+        "subtitle": "Partner widzi dokumenty dodane do budowy."
+      },
+      "add_photos": {
+        "title": "Dodawanie zdjęć",
+        "subtitle": "Partner może dokumentować postępy zdjęciami."
+      },
+      "add_journal": {
+        "title": "Wpisy w dzienniku",
+        "subtitle": "Partner może dodawać notatki z budowy."
+      },
+      "add_expenses": {
+        "title": "Dodawanie wydatków",
+        "subtitle": "Partner może dopisywać nowe wydatki."
+      },
+      "manage_tasks": {
+        "title": "Zadania",
+        "subtitle": "Partner może tworzyć i aktualizować zadania."
+      }
+    },
+    "intro": {
+      "title": "Zaproś partnera do swojej budowy",
+      "subtitle": "Udostępnij budowę drugiej osobie bez dodatkowej opłaty. Partner pomaga dokumentować postępy, a Ty kontrolujesz jego uprawnienia.",
+      "configureAction": "Skonfiguruj partnera",
+      "previewAction": "Zobacz, jak to działa",
+      "benefits": {
+        "sharedBuild": {
+          "title": "Jedna budowa, dwie osoby",
+          "subtitle": "Wspólny projekt, postępy i najważniejsze informacje w jednym miejscu."
+        },
+        "documentation": {
+          "title": "Dokumentowanie bez chaosu",
+          "subtitle": "Partner może dodawać zdjęcia i wpisy, gdy Ciebie nie ma na budowie."
+        },
+        "permissions": {
+          "title": "Bezpieczne uprawnienia",
+          "subtitle": "Sam decydujesz, czy partner widzi budżet, dokumenty i zadania."
+        }
+      },
+      "nextAction": "Dalej"
+    },
+    "conflict": {
+      "title": "Masz już aktywny udział",
+      "message": "Nie możesz jednocześnie dołączać jako partner i tworzyć własnej budowy. Najpierw opuść obecną budowę albo użyj innego konta.",
+      "action": "Wróć"
     }
   }
 }

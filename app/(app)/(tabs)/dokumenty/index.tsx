@@ -28,6 +28,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { getSessionWithTimeout } from '../../../../lib/supabaseTimeout';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { getAppLocale } from '../../../../lib/i18n';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppInput } from '../../../../src/ui/components';
@@ -55,6 +56,7 @@ type PreviewKind = 'image' | 'pdf' | 'file';
 type DbDoc = {
   id: string;
   user_id: string | null;
+  investment_id?: string | null;
   tytul: string;
   notatki?: string | null;
   kategoria?: string | null;
@@ -109,7 +111,7 @@ function isAllowedDocument(file?: { name?: string; mimeType?: string } | null) {
 }
 
 function formatDateLocale(iso: string | null | undefined, locale: string) {
-  if (!iso) return '—';
+  if (!iso) return 'â€”';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return String(iso);
   return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -204,6 +206,8 @@ export default function DokumentyScreen() {
 
   const [docs, setDocs] = useState<DbDoc[]>([]);
   const [selectedType, setSelectedType] = useState<DocTypeKey>('all');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -258,21 +262,29 @@ export default function DokumentyScreen() {
         const userId = await getUserId();
         if (!userId) {
           setDocs([]);
+          setCurrentUserId(null);
           setLoading(false);
           setRefreshing(false);
           return;
         }
 
-        const { data, error } = await supabase
+        setCurrentUserId(userId);
+
+        const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+        if (access) setBuildAccess(access);
+        const scopeInvestmentId = access?.investmentId ?? null;
+
+        const query = supabase
           .from('dokumenty')
-          .select('id,user_id,tytul,notatki,kategoria,document_date,created_at,plik_url')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: sortOrder === 'oldest' });
+          .select('id,user_id,investment_id,tytul,notatki,kategoria,document_date,created_at,plik_url');
+        const { data, error } = scopeInvestmentId
+          ? await query.eq('investment_id', scopeInvestmentId).order('created_at', { ascending: sortOrder === 'oldest' })
+          : await query.eq('user_id', userId).order('created_at', { ascending: sortOrder === 'oldest' });
 
         if (error) throw error;
         setDocs((data || []) as DbDoc[]);
       } catch (e: any) {
-        console.error('Błąd ładowania dokumentów:', e);
+        console.error('BĹ‚Ä…d Ĺ‚adowania dokumentĂłw:', e);
         Alert.alert(
           tt('common:errorTitle'),
           tt('documents:alerts.loadDocsError'),
@@ -282,7 +294,7 @@ export default function DokumentyScreen() {
         setRefreshing(false);
       }
     },
-    [getUserId, sortOrder, tt],
+    [buildAccess, getUserId, sortOrder, tt],
   );
 
   useEffect(() => {
@@ -304,6 +316,11 @@ export default function DokumentyScreen() {
     if (selectedType === 'all') return docs;
     return docs.filter((d) => normalizeType(d.kategoria) === selectedType);
   }, [docs, selectedType]);
+
+  const canManageDoc = useCallback((doc: DbDoc) => {
+    if (buildAccess?.role === 'owner') return true;
+    return String(doc.user_id ?? '') === String(currentUserId ?? '');
+  }, [buildAccess?.role, currentUserId]);
 
   const closeAllDropdowns = () => {
     setFilterDropdownOpen(false);
@@ -394,7 +411,7 @@ export default function DokumentyScreen() {
         if (!canOpen) throw new Error('CANNOT_OPEN_DOCUMENT_URL');
         await Linking.openURL(url);
       } catch (e: any) {
-        console.error('Błąd otwierania dokumentu:', e);
+        console.error('BĹ‚Ä…d otwierania dokumentu:', e);
         Alert.alert(
           tt('common:errorTitle'),
           tt('documents:alerts.openError'),
@@ -418,7 +435,7 @@ export default function DokumentyScreen() {
         setPreviewUrl(url);
       }
     } catch (e: any) {
-      console.error('Błąd preview dokumentu:', e);
+      console.error('BĹ‚Ä…d preview dokumentu:', e);
       Alert.alert(
         tt('common:errorTitle'),
         tt('documents:alerts.openError'),
@@ -452,12 +469,13 @@ export default function DokumentyScreen() {
             try {
               const userId = await getUserId();
               if (!userId) throw new Error('NO_USER');
+              const canManage = buildAccess?.role === 'owner' || String(doc.user_id ?? '') === String(userId);
+              if (!canManage) throw new Error('FORBIDDEN');
 
               const { error: deleteError } = await supabase
                 .from('dokumenty')
                 .delete()
-                .eq('id', doc.id)
-                .eq('user_id', userId);
+                .eq('id', doc.id);
               if (deleteError) throw deleteError;
 
               const { error: removeError } = await supabase.storage.from(bucketName).remove([doc.plik_url]);
@@ -470,7 +488,7 @@ export default function DokumentyScreen() {
               if (previewDoc?.id === doc.id) closePreview();
               onRefresh();
             } catch (e: any) {
-              console.error('Błąd usuwania dokumentu:', e);
+              console.error('BĹ‚Ä…d usuwania dokumentu:', e);
               Alert.alert(
                 tt('common:errorTitle'),
                 tt('documents:alerts.deleteError'),
@@ -560,10 +578,11 @@ export default function DokumentyScreen() {
         title.trim() ||
         (file.name
           ? file.name.replace(/\.[^/.]+$/, '')
-          : `${getTypeLabel(selectedTypeForUpload)} • ${Date.now()}`);
+          : `${getTypeLabel(selectedTypeForUpload)} â€˘ ${Date.now()}`);
 
       const { error } = await supabase.from('dokumenty').insert({
         user_id: userId,
+        ...(buildAccess?.investmentId ? { investment_id: buildAccess.investmentId } : {}),
         tytul: finalTitle,
         notatki: desc.trim() ? desc.trim() : null,
         kategoria: selectedTypeForUpload,
@@ -573,7 +592,7 @@ export default function DokumentyScreen() {
       if (error) {
         const { error: rollbackError } = await supabase.storage.from(bucketName).remove([filePath]);
         if (rollbackError) {
-          console.warn('Rollback dokumentu nie powiódł się:', rollbackError);
+          console.warn('Rollback dokumentu nie powiĂłdĹ‚ siÄ™:', rollbackError);
         }
         throw error;
       }
@@ -581,9 +600,8 @@ export default function DokumentyScreen() {
       setAddModalVisible(false);
       resetAddForm();
       onRefresh();
-      Alert.alert(tt('documents:alerts.successTitle'), tt('documents:alerts.docAdded'));
     } catch (e: any) {
-      console.error('Błąd dodawania dokumentu:', e);
+      console.error('BĹ‚Ä…d dodawania dokumentu:', e);
       Alert.alert(
         tt('common:errorTitle'),
         tt('documents:alerts.addError'),
@@ -617,7 +635,7 @@ export default function DokumentyScreen() {
       <TouchableOpacity
         style={styles.gridCard}
         onPress={() => openPreview(item)}
-        onLongPress={() => deleteDoc(item)}
+        onLongPress={canManageDoc(item) ? () => deleteDoc(item) : undefined}
         activeOpacity={0.85}
       >
         <BlurView intensity={25} tint="dark" style={styles.cardBlur}>
@@ -664,7 +682,7 @@ export default function DokumentyScreen() {
       <TouchableOpacity
         style={styles.listRow}
         onPress={() => openPreview(item)}
-        onLongPress={() => deleteDoc(item)}
+        onLongPress={canManageDoc(item) ? () => deleteDoc(item) : undefined}
         activeOpacity={0.85}
       >
         <BlurView intensity={22} tint="dark" style={styles.listBlur}>
@@ -679,7 +697,7 @@ export default function DokumentyScreen() {
               {item.tytul}
             </Text>
             <Text style={styles.listMeta} numberOfLines={1}>
-              {getTypeLabel(type)} • {dateTxt}
+              {getTypeLabel(type)} â€˘ {dateTxt}
             </Text>
             {!!item.notatki && (
               <Text style={styles.listDesc} numberOfLines={2}>
@@ -919,7 +937,7 @@ export default function DokumentyScreen() {
                 </Text>
 
                 <Text style={styles.previewFallbackMeta}>
-                  {previewDoc ? getTypeLabel(normalizeType(previewDoc.kategoria)) : '—'} •{' '}
+                  {previewDoc ? getTypeLabel(normalizeType(previewDoc.kategoria)) : 'â€”'} â€˘{' '}
                   {formatDateLocale(previewDoc?.created_at || null, dateLocale)}
                 </Text>
 
