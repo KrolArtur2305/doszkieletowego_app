@@ -23,6 +23,7 @@ import { publicConfig, supabase } from '../../../../lib/supabase';
 import { getAppLocale } from '../../../../lib/i18n';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { fetchCurrentBuildAccess } from '../../../../lib/buildAccess';
+import { loadSharedBuddyName } from '../../../../src/services/buddy/name';
 import {
   DEFAULT_BUDDY_AVATAR_ID,
   type BuddyAvatarId,
@@ -153,19 +154,11 @@ export default function BuddyChatScreen() {
           return;
         }
 
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('ai_buddy_name, ai_buddy_avatar')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        const name = String(data?.ai_buddy_name ?? '').trim() || t('chat.fallbackName');
-        setBuddyName(name);
-        setAvatarId(await loadBuddyAvatarId(userId));
         const access = await fetchCurrentBuildAccess(userId);
         setActiveInvestmentId(access?.investmentId ?? null);
+        const name = await loadSharedBuddyName(userId, access?.ownerUserId);
+        setBuddyName(name || t('chat.fallbackName'));
+        setAvatarId(await loadBuddyAvatarId(userId));
 
         await loadConversations();
       } catch {

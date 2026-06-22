@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
+import { fetchCurrentBuildAccess } from '../../../../lib/buildAccess';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import {
   MAIN_STAGE_TIMELINE,
@@ -27,6 +28,7 @@ import {
   type UserStageRow} from '../../../../lib/postepyModel';
 import { getStageDisplayName, getStageGroupDisplayName } from '../../../../lib/stageModel';
 import { getBuddyAvatarSource } from '../../../../src/services/buddy/avatar';
+import { loadSharedBuddyName } from '../../../../src/services/buddy/name';
 
 type ProfileRow = {
   build_type: string | null;
@@ -166,9 +168,10 @@ export default function WszystkieEtapyScreen() {
           return;
         }
 
+        const access = await fetchCurrentBuildAccess(user.id).catch(() => null);
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('build_type, current_stage_code, ai_buddy_name, ai_buddy_avatar')
+          .select('build_type, current_stage_code, ai_buddy_avatar')
           .eq('user_id', user.id)
           .maybeSingle();
         if (profileError) throw profileError;
@@ -193,7 +196,11 @@ export default function WszystkieEtapyScreen() {
 
         if (!alive) return;
         setCurrentUserId(user.id);
-        setProfile((profileData as ProfileRow | null) ?? null);
+        const nextProfile = (profileData as ProfileRow | null) ?? null;
+        setProfile({
+          ...(nextProfile ?? {}),
+          ai_buddy_name: await loadSharedBuddyName(user.id, access?.ownerUserId ?? user.id),
+        } as ProfileRow);
         setTemplates((templateRes.data ?? []) as StageTemplateRow[]);
         setUserStages((userStageRes.data ?? []) as UserStageRow[]);
         setDraftStatuses({});

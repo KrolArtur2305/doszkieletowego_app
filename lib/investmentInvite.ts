@@ -2,22 +2,44 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
 export const PENDING_INVITE_CODE_KEY = 'pending_build_invite_code';
+let pendingInviteCodeCache: string | null = null;
 
 export async function getPendingInviteCode(): Promise<string | null> {
+  if (pendingInviteCodeCache) return pendingInviteCodeCache;
   const raw = await AsyncStorage.getItem(PENDING_INVITE_CODE_KEY);
   const code = String(raw ?? '').trim().replace(/\s+/g, '').toUpperCase();
+  pendingInviteCodeCache = code || null;
   return code || null;
 }
 
 export async function clearPendingInviteCode(): Promise<void> {
+  pendingInviteCodeCache = null;
   await AsyncStorage.removeItem(PENDING_INVITE_CODE_KEY);
+}
+
+export async function setPendingInviteCode(code: string): Promise<void> {
+  const cleaned = String(code ?? '').trim().replace(/\s+/g, '').toUpperCase();
+  pendingInviteCodeCache = cleaned || null;
+  if (cleaned) {
+    await AsyncStorage.setItem(PENDING_INVITE_CODE_KEY, cleaned);
+  } else {
+    await AsyncStorage.removeItem(PENDING_INVITE_CODE_KEY);
+  }
+}
+
+export async function resolvePostAuthLandingPath(): Promise<'/(app)' | '/(auth)/invite-join'> {
+  try {
+    const code = await getPendingInviteCode();
+    return code ? '/(auth)/invite-join' : '/(app)';
+  } catch (error) {
+    console.warn('[Invite] failed to resolve post-auth landing path:', error);
+    return '/(app)';
+  }
 }
 
 function isNonRetryableInviteError(error: any): boolean {
   const message = String(error?.message ?? '').toLowerCase();
   return [
-    'already_has_active_build',
-    'partner_cannot_create_own_build',
     'invalid_or_expired_invite',
     'not_investment_owner',
     'expert_plan_required',

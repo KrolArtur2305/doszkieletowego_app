@@ -43,19 +43,6 @@ export default function RegisterScreen() {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      if (data.session) router.replace('/(app)');
-    });
-
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
-
-  useEffect(() => {
-    let mounted = true;
-
     isAppleSignInAvailable()
       .then((available) => {
         if (mounted) setAppleAvailable(available);

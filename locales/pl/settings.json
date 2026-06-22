@@ -9,12 +9,14 @@
     "profileSubtitle": "Dane właściciela konta",
     "investmentTitle": "Inwestycja",
     "investmentSubtitle": "Szczegóły projektu / budowy",
+    "ownerOnlySubtitle": "Tylko właściciel budowy może to zmienić.",
     "buddyTitle": "Kierownik budowy AI",
     "buddySubtitle": "Zmień imię i ustawienia",
     "appTitle": "Aplikacja",
     "appSubtitle": "Ustawienia aplikacji",
     "subscriptionTitle": "Zarządzaj subskrypcją",
     "subscriptionSubtitle": "Ustawienia planu i płatności",
+    "subscriptionLockedSubtitle": "Subskrypcję opłaca właściciel budowy.",
     "reportTitle": "Zgłoś problem",
     "reportSubtitle": "Wyślij opis błędu",
     "partnerTitle": "Partner budowy",
@@ -90,6 +92,7 @@
     "security": {
       "groupLabel": "Bezpieczeństwo"
     },
+    "partnerReadOnlyNotice": "Jako partner nie możesz zmieniać waluty ani jednostek. Te ustawienia należą do właściciela budowy.",
     "password": {
       "title": "Zmień hasło",
       "subtitle": "Zaktualizuj hasło do konta",

@@ -11,6 +11,7 @@
       "preview": "Vorschau",
       "avatar": "Avatar"
     },
+    "readOnlyNameNotice": "Als Partner kannst du den Namen des Bauleiters nicht ändern. Du kannst nur den Avatar auswählen.",
     "placeholder": "z. B. Andreas, Max, Adam...",
     "previewRole": "Ihr digitaler Bauleiter",
     "previewBubble": "Hallo, ich bin {{name}}. Ich helfe Ihnen dabei, Budget, Bauphasen und die wichtigsten Dinge auf der Baustelle im Blick zu behalten.",

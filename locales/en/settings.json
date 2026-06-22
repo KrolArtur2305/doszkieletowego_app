@@ -9,12 +9,14 @@
     "profileSubtitle": "Account owner details",
     "investmentTitle": "Investment",
     "investmentSubtitle": "Project / build details",
+    "ownerOnlySubtitle": "Only the build owner can change this.",
     "buddyTitle": "AI Construction Manager",
     "buddySubtitle": "Change the name and settings",
     "appTitle": "App",
     "appSubtitle": "App settings",
     "subscriptionTitle": "Manage subscription",
     "subscriptionSubtitle": "Plan and payment settings",
+    "subscriptionLockedSubtitle": "The build owner pays for the subscription.",
     "reportTitle": "Report a problem",
     "reportSubtitle": "Send a bug description",
     "partnerTitle": "Build partner",
@@ -90,6 +92,7 @@
     "security": {
       "groupLabel": "Security"
     },
+    "partnerReadOnlyNotice": "As a partner, you cannot change currency or units. These settings belong to the build owner.",
     "password": {
       "title": "Change password",
       "subtitle": "Update your account password",

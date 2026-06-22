@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { getFriendlyErrorMessage } from '../../lib/errorMessages';
+import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildAccess } from '../../lib/buildAccess';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../src/ui/components';
 import {
@@ -32,6 +33,7 @@ import {
   loadBuddyAvatarId,
   saveBuddyAvatarId,
 } from '../../src/services/buddy/avatar';
+import { loadSharedBuddyName } from '../../src/services/buddy/name';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -50,6 +52,7 @@ export default function BuddySettingsScreen() {
   const [initialName, setInitialName] = useState('');
   const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
   const [initialAvatarId, setInitialAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export default function BuddySettingsScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
+  const partnerRestricted = buildAccess ? isNonOwnerBuildRole(buildAccess.role) : false;
 
   useEffect(() => {
     Animated.parallel([
@@ -102,16 +106,15 @@ export default function BuddySettingsScreen() {
           return;
         }
 
-        const { data, error: dbError } = await supabase
-          .from('profiles')
-          .select('ai_buddy_name, ai_buddy_avatar')
-          .eq('user_id', userId)
-          .single();
+        const access = await fetchCurrentBuildAccess(userId).catch((e) => {
+          console.warn('build access load error:', e);
+          return null;
+        });
+        if (!mounted) return;
+        setBuildAccess(access);
 
-        if (dbError) throw dbError;
         const savedAvatarId = await loadBuddyAvatarId(userId);
-
-        const savedName = data?.ai_buddy_name?.trim?.() || '';
+        const savedName = await loadSharedBuddyName(userId, access?.ownerUserId ?? userId);
         if (!mounted) return;
 
         setBuddyName(savedName);
@@ -132,7 +135,6 @@ export default function BuddySettingsScreen() {
       mounted = false;
     };
   }, [session?.user?.id, t]);
-
   const trimmedName = buddyName.trim();
   const previewName = trimmedName || t('settings.fallbackName');
   const hasChanges = trimmedName !== initialName.trim() || avatarId !== initialAvatarId;
@@ -272,6 +274,7 @@ export default function BuddySettingsScreen() {
                   <AppInput
                     value={buddyName}
                     onChangeText={(v) => {
+                      if (partnerRestricted) return;
                       setBuddyName(v);
                       if (error) setError(null);
                     }}
@@ -280,12 +283,19 @@ export default function BuddySettingsScreen() {
                     maxLength={30}
                     autoCapitalize="words"
                     returnKeyType="done"
-                    onSubmitEditing={handleSave}
+                    onSubmitEditing={partnerRestricted ? undefined : handleSave}
+                    editable={!partnerRestricted}
                     style={styles.inputField}
                   />
 
                   <Text style={styles.inputCount}>{buddyName.length}/30</Text>
                 </BlurView>
+
+                {partnerRestricted ? (
+                  <Text style={styles.readOnlyNote}>
+                    {t('settings.readOnlyNameNotice')}
+                  </Text>
+                ) : null}
 
                 {error ? <Text style={styles.errorText}>{error}</Text> : null}
               </Animated.View>
@@ -535,6 +545,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.24)',
     fontSize: 11,
     fontWeight: '700',
+  },
+  readOnlyNote: {
+    marginTop: 8,
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 17,
   },
 
   errorText: {

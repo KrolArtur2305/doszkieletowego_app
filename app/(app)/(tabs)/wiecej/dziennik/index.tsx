@@ -397,6 +397,8 @@ export default function DziennikScreen() {
     }, 300);
   };
 
+  const canManageDetailWpis = !!detailWpis && (buildAccess?.role === 'owner' || detailWpis.user_id === currentUserId);
+
   // â”€â”€ Pick image â”€â”€
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -899,21 +901,25 @@ export default function DziennikScreen() {
               </View>
 
               <View style={styles.detailActionsRow}>
-                <TouchableOpacity
-                  onPress={() => openEdit(detailWpis)}
-                  style={styles.detailActionBtn}
-                  activeOpacity={0.8}
-                >
-                  <Feather name="edit-2" size={16} color={NEON} />
-                </TouchableOpacity>
+                {canManageDetailWpis ? (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => openEdit(detailWpis)}
+                      style={styles.detailActionBtn}
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="edit-2" size={16} color={NEON} />
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => deleteWpis(detailWpis)}
-                  style={[styles.detailActionBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}
-                  activeOpacity={0.8}
-                >
-                  <Feather name="trash-2" size={16} color="rgba(239,68,68,0.80)" />
-                </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => deleteWpis(detailWpis)}
+                      style={[styles.detailActionBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="trash-2" size={16} color="rgba(239,68,68,0.80)" />
+                    </TouchableOpacity>
+                  </>
+                ) : null}
 
                 <TouchableOpacity onPress={() => setDetailOpen(false)} activeOpacity={0.88}>
                   <Feather name="x" size={22} color="rgba(255,255,255,0.55)" />

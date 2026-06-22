@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../../../lib/supabase';
 import { getUserWithTimeout } from '../../../../lib/supabaseTimeout';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
+import { forceLoggedOutAuthSnapshot } from '../../../../hooks/useSupabaseAuth';
+import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildAccess } from '../../../../lib/buildAccess';
 import { removePushToken } from '../../../../src/services/notifications/pushService';
 import { isSubscriptionUiReadOnly } from '../../../../src/services/subscription/launchMode';
 import { AppCard, AppHeader, AppScreen } from '../../../../src/ui/components';
@@ -32,6 +34,7 @@ type MenuItem = {
   icon: keyof typeof Feather.glyphMap;
   onPress: () => void;
   danger?: boolean;
+  disabled?: boolean;
 };
 
 export default function UstawieniaScreen() {
@@ -43,6 +46,7 @@ export default function UstawieniaScreen() {
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState(t('settings:fallbackUser'));
   const [email, setEmail] = useState('');
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -62,6 +66,13 @@ export default function UstawieniaScreen() {
 
         if (!alive) return;
         setEmail(user.email ?? '');
+
+        const access = await fetchCurrentBuildAccess(user.id).catch((e) => {
+          console.warn('build access load error:', e);
+          return null;
+        });
+        if (!alive) return;
+        setBuildAccess(access);
 
         const { data: profile, error: profErr } = await supabase
           .from('profiles')
@@ -95,6 +106,8 @@ export default function UstawieniaScreen() {
     };
   }, [t]);
 
+  const isPartnerLike = buildAccess ? isNonOwnerBuildRole(buildAccess.role) : false;
+
   const handleLogout = async () => {
     const user = await getUserWithTimeout().catch((e) => {
       console.warn('Failed to read user before logout:', e);
@@ -108,6 +121,7 @@ export default function UstawieniaScreen() {
     }
 
     try {
+      forceLoggedOutAuthSnapshot();
       await supabase.auth.signOut();
       router.replace('/(auth)/welcome');
     } catch (e: any) {
@@ -129,9 +143,13 @@ export default function UstawieniaScreen() {
       {
         key: 'inwestycja',
         title: t('settings:items.investmentTitle'),
-        subtitle: t('settings:items.investmentSubtitle'),
+        subtitle: isPartnerLike ? t('settings:items.ownerOnlySubtitle') : t('settings:items.investmentSubtitle'),
         icon: 'home',
-        onPress: () => router.push('/(app)/inwestycja')},
+        disabled: isPartnerLike,
+        onPress: () => {
+          if (isPartnerLike) return;
+          router.push('/(app)/inwestycja');
+        }},
       {
         key: 'buddy',
         title: t('settings:items.buddyTitle'),
@@ -153,21 +171,22 @@ export default function UstawieniaScreen() {
       {
         key: 'sub',
         title: t('settings:items.subscriptionTitle'),
-        subtitle: t('settings:items.subscriptionSubtitle'),
+        subtitle: isPartnerLike || subscriptionUiReadOnly
+          ? t('settings:items.subscriptionLockedSubtitle')
+          : t('settings:items.subscriptionSubtitle'),
         icon: 'credit-card',
-        onPress: () =>
-          router.push(
-            subscriptionUiReadOnly
-              ? '/(app)/(tabs)/ustawienia/subskrypcja'
-              : '/(app)/(tabs)/ustawienia/subskrypcja'
-          )},
+        disabled: isPartnerLike || subscriptionUiReadOnly,
+        onPress: () => {
+          if (isPartnerLike || subscriptionUiReadOnly) return;
+          router.push('/(app)/(tabs)/ustawienia/subskrypcja');
+        }},
       {
         key: 'logout',
         title: t('settings:logout'),
         icon: 'log-out',
         danger: true,
         onPress: handleLogout}],
-    [router, subscriptionUiReadOnly, t]
+    [isPartnerLike, router, subscriptionUiReadOnly, t]
   );
 
   return (
@@ -191,8 +210,13 @@ export default function UstawieniaScreen() {
           {menuItems.map((item) => (
             <Pressable
               key={item.key}
+              disabled={item.disabled}
               onPress={item.onPress}
-              style={({ pressed }) => [styles.tileOuter, pressed && styles.tileOuterPressed]}
+              style={({ pressed }) => [
+                styles.tileOuter,
+                item.disabled && styles.tileOuterDisabled,
+                pressed && !item.disabled && styles.tileOuterPressed,
+              ]}
             >
               <AppCard style={styles.tileFrame} contentStyle={styles.tile} withShadow={false}>
                 <View style={styles.iconRing}>
@@ -203,10 +227,16 @@ export default function UstawieniaScreen() {
 
                 <View style={styles.tileTextWrap}>
                   <Text style={[styles.tileTitle, item.danger && styles.tileTitleDanger]}>{item.title}</Text>
-                  {!!item.subtitle && <Text style={styles.tileSubtitle}>{item.subtitle}</Text>}
+                  {!!item.subtitle && (
+                    <Text style={[styles.tileSubtitle, item.disabled && styles.tileSubtitleDisabled]}>{item.subtitle}</Text>
+                  )}
                 </View>
 
-                <Feather name="chevron-right" size={20} color={colors.textFaint} />
+                <Feather
+                  name={item.disabled ? 'lock' : 'chevron-right'}
+                  size={20}
+                  color={item.disabled ? colors.textMuted : colors.textFaint}
+                />
               </AppCard>
             </Pressable>
           ))}
@@ -261,6 +291,9 @@ const styles = StyleSheet.create({
   tileOuter: {
     borderRadius: radius.lg,
     ...shadows.card},
+  tileOuterDisabled: {
+    opacity: 0.55,
+  },
   tileOuterPressed: { transform: [{ scale: 1.005 }] },
 
   tileFrame: {
@@ -302,4 +335,7 @@ const styles = StyleSheet.create({
   tileSubtitle: {
     marginTop: spacing.xs,
     color: colors.textMuted,
-    ...typography.meta}});
+    ...typography.meta},
+  tileSubtitleDisabled: {
+    color: colors.textFaint,
+  }});

@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { supabase } from '../../lib/supabase'
+import { forceLoggedOutAuthSnapshot } from '../../hooks/useSupabaseAuth'
 import { getUserWithTimeout } from '../../lib/supabaseTimeout'
 import { getFriendlyErrorMessage } from '../../lib/errorMessages'
 import { AppButton, AppScreen } from '../../src/ui/components'
@@ -145,11 +146,12 @@ export default function GuidedSetupScreen() {
             <AppButton
               title={t('onboarding:alerts.logoutAction')}
               variant="secondary"
-              onPress={async () => {
-                try {
-                  await supabase.auth.signOut()
-                } finally {
-                  router.replace('/(auth)/welcome')
+                onPress={async () => {
+                  try {
+                    forceLoggedOutAuthSnapshot()
+                    await supabase.auth.signOut()
+                  } finally {
+                    router.replace('/(auth)/welcome')
                 }
               }}
               style={styles.secondaryBtn}

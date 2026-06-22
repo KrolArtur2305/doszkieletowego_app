@@ -2,6 +2,7 @@
   "screen": {
     "title": "Projekt"
   },
+  "readOnlyNotice": "Als Partner kannst du nur die Daten dieses Bauprojekts ansehen.",
   "loading": "Projekt wird geladen...",
   "alerts": {
     "completeDataTitle": "Bitte ausfüllen",
@@ -12,6 +13,8 @@
     "changeBuildTypeMsg": "Wenn du die Bauart änderst, wird die aktuelle Phase neu berechnet und der Fortschritt an den neuen Workflow angepasst.",
     "invalidBudgetTitle": "Ungültiges Budget",
     "invalidBudgetMsg": "Das Budget darf nicht negativ sein.",
+    "readOnlyTitle": "Nur anzeigen",
+    "readOnlyMessage": "Dies ist ein Partnerkonto. Nur der Bauinhaber kann die Investitionseinstellungen ändern.",
     "errorTitle": "Fehler",
     "loadFailed": "Projekt konnte nicht geladen werden.",
     "noSession": "Kein Benutzer. Bitte erneut anmelden.",

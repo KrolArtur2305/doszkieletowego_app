@@ -19,6 +19,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { forceLoggedOutAuthSnapshot } from '../../../../hooks/useSupabaseAuth';
 import * as Notifications from 'expo-notifications';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
@@ -33,6 +34,7 @@ import {
 } from '../../../../lib/currency';
 import { getStoredUnits, setAppUnits, setUnitsForLanguage, type UnitSystem } from '../../../../lib/units';
 import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
+import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildAccess } from '../../../../lib/buildAccess';
 import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
 import { removePushToken } from '../../../../src/services/notifications/pushService';
 import { AppButton, AppInput } from '../../../../src/ui/components';
@@ -69,6 +71,7 @@ export default function UstawieniaAplikacjiScreen() {
   const [notifLoading, setNotifLoading] = useState(true);
   const [activeCurrency, setActiveCurrency] = useState<AppCurrency>('PLN');
   const [activeUnits, setActiveUnits] = useState<UnitSystem>('metric');
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
   const [unitsModalOpen, setUnitsModalOpen] = useState(false);
@@ -97,6 +100,30 @@ export default function UstawieniaAplikacjiScreen() {
     getStoredUnits().then((units) => {
       if (alive) setActiveUnits(units);
     });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes?.user;
+      if (!user) {
+        if (alive) setBuildAccess(null);
+        return;
+      }
+
+      const access = await fetchCurrentBuildAccess(user.id).catch((e) => {
+        console.warn('build access load error:', e);
+        return null;
+      });
+
+      if (alive) setBuildAccess(access);
+    })();
+
     return () => {
       alive = false;
     };
@@ -215,10 +242,11 @@ export default function UstawieniaAplikacjiScreen() {
                 throw new Error(t('appSettings.deleteAccount.errorMessage'));
               }
 
-              try {
-                await supabase.auth.signOut();
-              } catch (signOutError) {
-                console.warn('Sign out after account deletion failed:', signOutError);
+                try {
+                  forceLoggedOutAuthSnapshot();
+                  await supabase.auth.signOut();
+                } catch (signOutError) {
+                  console.warn('Sign out after account deletion failed:', signOutError);
               }
 
               Alert.alert(
@@ -242,6 +270,7 @@ export default function UstawieniaAplikacjiScreen() {
 
   const selectedLanguage = LANGUAGE_OPTIONS.find((lang) => lang.key === activeLang) ?? LANGUAGE_OPTIONS[0];
   const selectedCurrency = CURRENCY_OPTIONS.find((option) => option.code === activeCurrency) ?? CURRENCY_OPTIONS[0];
+  const isPartnerLike = buildAccess ? isNonOwnerBuildRole(buildAccess.role) : false;
 
   return (
     <View style={styles.screen}>
@@ -267,6 +296,15 @@ export default function UstawieniaAplikacjiScreen() {
 
         <View style={styles.cardOuter}>
           <View style={styles.card}>
+            {isPartnerLike ? (
+              <View style={styles.noticeBox}>
+                <Feather name="lock" size={16} color={ACCENT} />
+                <Text style={styles.noticeText}>
+                  {t('appSettings.partnerReadOnlyNotice')}
+                </Text>
+              </View>
+            ) : null}
+
             <TouchableOpacity
               activeOpacity={0.86}
               onPress={() => setLanguageModalOpen(true)}
@@ -286,8 +324,12 @@ export default function UstawieniaAplikacjiScreen() {
 
             <TouchableOpacity
               activeOpacity={0.86}
-              onPress={() => setCurrencyModalOpen(true)}
-              style={[styles.selectRow, styles.selectRowBorder]}
+              onPress={() => {
+                if (isPartnerLike) return;
+                setCurrencyModalOpen(true);
+              }}
+              disabled={isPartnerLike}
+              style={[styles.selectRow, styles.selectRowBorder, isPartnerLike && styles.selectRowDisabled]}
             >
               <View style={styles.rowIconWrap}>
                 <Feather name="dollar-sign" size={18} color={ACCENT} />
@@ -298,13 +340,17 @@ export default function UstawieniaAplikacjiScreen() {
                   {selectedCurrency.code} · {selectedCurrency.symbol}
                 </Text>
               </View>
-              <Feather name="chevron-down" size={18} color="rgba(255,255,255,0.36)" />
+              <Feather name={isPartnerLike ? 'lock' : 'chevron-down'} size={18} color="rgba(255,255,255,0.36)" />
             </TouchableOpacity>
 
             <TouchableOpacity
               activeOpacity={0.86}
-              onPress={() => setUnitsModalOpen(true)}
-              style={styles.selectRow}
+              onPress={() => {
+                if (isPartnerLike) return;
+                setUnitsModalOpen(true);
+              }}
+              disabled={isPartnerLike}
+              style={[styles.selectRow, isPartnerLike && styles.selectRowDisabled]}
             >
               <View style={styles.rowIconWrap}>
                 <Feather name="sliders" size={18} color={ACCENT} />
@@ -315,7 +361,7 @@ export default function UstawieniaAplikacjiScreen() {
                   {t(`appSettings.units.options.${activeUnits}`)}
                 </Text>
               </View>
-              <Feather name="chevron-down" size={18} color="rgba(255,255,255,0.36)" />
+              <Feather name={isPartnerLike ? 'lock' : 'chevron-down'} size={18} color="rgba(255,255,255,0.36)" />
             </TouchableOpacity>
           </View>
         </View>
@@ -724,6 +770,23 @@ const styles = StyleSheet.create({
   rowSubtitle: {
     marginTop: 2, color: 'rgba(255,255,255,0.38)', fontSize: 12.5, fontWeight: '500',
   },
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(25,112,92,0.08)',
+  },
+  noticeText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
 
   selectRow: {
     flexDirection: 'row',
@@ -735,6 +798,9 @@ const styles = StyleSheet.create({
   selectRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.07)',
+  },
+  selectRowDisabled: {
+    opacity: 0.52,
   },
   selectLabel: {
     color: 'rgba(255,255,255,0.38)',

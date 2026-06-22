@@ -11,6 +11,7 @@
       "preview": "Podgląd",
       "avatar": "Avatar"
     },
+    "readOnlyNameNotice": "Jako partner nie możesz zmieniać imienia kierownika. Możesz tylko wybrać avatar.",
     "placeholder": "np. Andrzej, Max, Adam...",
     "previewRole": "Twój cyfrowy kierownik budowy",
     "previewBubble": "Cześć, jestem {{name}}. Pomogę Ci pilnować budżetu, etapów i najważniejszych rzeczy na budowie.",

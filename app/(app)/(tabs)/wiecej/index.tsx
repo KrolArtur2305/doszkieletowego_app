@@ -1,14 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
-  Dimensions,
   Platform,
   Pressable,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -18,12 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
-const { width: W, height: SCREEN_H } = Dimensions.get('window');
-const H_PAD = 18;
-const TILE_GAP = 14;
-const TILE_W = (W - H_PAD * 2 - TILE_GAP) / 2;
-const TILE_H = Math.min(148, Math.max(124, Math.min(TILE_W * 0.84, (SCREEN_H - 282) / 3)));
-const WIDE_TILE_W = W - H_PAD * 2;
 
 type Tile = {
   key: string;
@@ -40,7 +33,35 @@ export default function WiecejScreen() {
   const router = useRouter();
   const { t } = useTranslation('navigation');
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const topPad = Platform.OS === 'android' ? Math.max((StatusBar.currentHeight ?? 0) - 4, 0) : 8;
+  const compact = width < 390;
+  const layout = useMemo(() => {
+    const pad = compact ? 14 : 18;
+    const gap = compact ? 10 : 14;
+    const tileRadius = compact ? 22 : 26;
+    const wideRadius = compact ? 24 : 28;
+    const tilePad = compact ? 14 : 16;
+    const tileIcon = compact ? 24 : 26;
+    const tileLabel = compact ? 14.2 : 15.2;
+    const wideLabel = compact ? 15 : 16;
+    const wideHeight = compact ? 82 : 92;
+    const tileAspect = compact ? 1.24 : 1.29;
+    return {
+      pad,
+      gap,
+      tileRadius,
+      wideRadius,
+      tilePad,
+      tileIcon,
+      tileLabel,
+      wideLabel,
+      wideHeight,
+      tileAspect,
+      tileWidth: (width - pad * 2 - gap) / 2,
+      wideWidth: width - pad * 2,
+    };
+  }, [compact, width]);
 
   const anims = useRef(Array.from({ length: 7 }, () => new Animated.Value(0))).current;
 
@@ -111,124 +132,146 @@ export default function WiecejScreen() {
     },
   ];
 
+  const regularTiles = tiles.filter((tile) => !tile.wide);
+  const rowTiles = [
+    regularTiles.slice(0, 2),
+    regularTiles.slice(2, 4),
+    regularTiles.slice(4, 6),
+  ];
+  const wideTile = tiles.find((tile) => tile.wide) ?? null;
+
   return (
     <View style={styles.screen}>
       <View pointerEvents="none" style={styles.bg} />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
+      <View
+        style={[
           styles.content,
           {
             paddingTop: topPad,
-            paddingBottom: Math.max(16, insets.bottom + 88),
+            paddingBottom: Math.max(14, insets.bottom + (compact ? 14 : 20)),
+            paddingHorizontal: layout.pad,
           },
         ]}
-        scrollIndicatorInsets={{ bottom: insets.bottom + 76 }}
-        alwaysBounceVertical
-        showsVerticalScrollIndicator={false}
       >
         <AppHeader title={t('more.title')} style={styles.screenHeader} />
 
-        <View style={styles.mainTiles}>
-          {tiles.filter((tile) => !tile.wide).map((tile, i) => {
-            const anim = anims[i];
-            const scale = anim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.85, 1],
-            });
+        <View style={styles.grid}>
+          {rowTiles.map((row, rowIndex) => (
+            <View key={`row-${rowIndex}`} style={[styles.row, { gap: layout.gap }]}>
+              {row.map((tile, colIndex) => {
+                const anim = anims[rowIndex * 2 + colIndex];
+                const scale = anim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.88, 1],
+                });
 
-            return (
-              <Animated.View
-                key={tile.key}
-                style={[
-                  styles.tileWrap,
-                  {
-                    opacity: anim,
-                    transform: [{ scale }],
-                  },
-                ]}
-              >
-                <Pressable
-                  onPress={tile.onPress}
-                  style={({ pressed }) => [
-                    styles.tile,
-                    pressed && styles.tilePressed,
-                  ]}
-                >
-                  {!hasGreenGlow(tile.color) && (
-                    <View pointerEvents="none" style={[styles.tileGlow, { backgroundColor: tile.color }]} />
-                  )}
-                  <View style={styles.tileInner}>
-                    <View
-                      style={[
-                        styles.tileIconWrap,
+                return (
+                  <Animated.View
+                    key={tile.key}
+                    style={[
+                      styles.tileWrap,
+                      {
+                        flex: 1,
+                        opacity: anim,
+                        transform: [{ scale }],
+                      },
+                    ]}
+                  >
+                    <Pressable
+                      onPress={tile.onPress}
+                      style={({ pressed }) => [
+                        styles.tile,
                         {
-                          backgroundColor: `${tile.color}18`,
-                          borderColor: `${tile.color}35`,
+                          borderRadius: layout.tileRadius,
+                          aspectRatio: layout.tileAspect,
                         },
+                        pressed && styles.tilePressed,
                       ]}
                     >
-                      <Feather name={tile.icon} size={26} color={tile.color} />
-                    </View>
+                      {!hasGreenGlow(tile.color) && (
+                        <View pointerEvents="none" style={[styles.tileGlow, { backgroundColor: tile.color }]} />
+                      )}
+                      <View style={[styles.tileInner, { padding: layout.tilePad }]}>
+                        <View
+                          style={[
+                            styles.tileIconWrap,
+                            {
+                              width: compact ? 48 : 52,
+                              height: compact ? 48 : 52,
+                              borderRadius: compact ? 16 : 18,
+                              backgroundColor: `${tile.color}18`,
+                              borderColor: `${tile.color}35`,
+                            },
+                          ]}
+                        >
+                          <Feather name={tile.icon} size={layout.tileIcon} color={tile.color} />
+                        </View>
 
-                    <Text style={styles.tileLabel}>{tile.label}</Text>
-                  </View>
-                </Pressable>
-              </Animated.View>
-            );
-          })}
+                        <Text style={[styles.tileLabel, { fontSize: layout.tileLabel }]}>{tile.label}</Text>
+                      </View>
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          ))}
         </View>
 
-        <View style={styles.settingsSlot}>
-          {tiles.filter((tile) => tile.wide).map((tile, i) => {
-            const anim = anims[i + 6] ?? anims[6];
-            const translateY = anim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [12, 0],
-            });
-
-            return (
-              <Animated.View
-                key={tile.key}
-                style={[
-                  styles.wideTileWrap,
+        {wideTile ? (
+          <Animated.View
+            style={[
+              styles.wideTileWrap,
+              {
+                width: layout.wideWidth,
+                marginTop: layout.gap,
+                opacity: anims[6],
+                transform: [
                   {
-                    opacity: anim,
-                    transform: [{ translateY }],
+                    translateY: anims[6].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [10, 0],
+                    }),
                   },
-                ]}
-              >
-                <Pressable
-                  onPress={tile.onPress}
-                  style={({ pressed }) => [
-                    styles.wideTile,
-                    pressed && styles.tilePressed,
+                ],
+              },
+            ]}
+          >
+            <Pressable
+              onPress={wideTile.onPress}
+              style={({ pressed }) => [
+                styles.wideTile,
+                {
+                  height: layout.wideHeight,
+                  borderRadius: layout.wideRadius,
+                },
+                pressed && styles.tilePressed,
+              ]}
+            >
+              {!hasGreenGlow(wideTile.color) && (
+                <View pointerEvents="none" style={[styles.wideTileGlow, { backgroundColor: wideTile.color }]} />
+              )}
+              <View style={styles.wideTileContent}>
+                <View
+                  style={[
+                    styles.tileIconWrap,
+                    {
+                      width: compact ? 46 : 52,
+                      height: compact ? 46 : 52,
+                      borderRadius: compact ? 16 : 18,
+                      backgroundColor: `${wideTile.color}18`,
+                      borderColor: `${wideTile.color}35`,
+                    },
                   ]}
                 >
-                  {!hasGreenGlow(tile.color) && (
-                    <View pointerEvents="none" style={[styles.wideTileGlow, { backgroundColor: tile.color }]} />
-                  )}
-                  <View style={styles.wideTileContent}>
-                    <View
-                      style={[
-                        styles.tileIconWrap,
-                        {
-                          backgroundColor: `${tile.color}18`,
-                          borderColor: `${tile.color}35`,
-                        },
-                      ]}
-                    >
-                      <Feather name={tile.icon} size={24} color={tile.color} />
-                    </View>
-                    <Text style={styles.wideTileLabel}>{tile.label}</Text>
-                  </View>
-                </Pressable>
-              </Animated.View>
-            );
-          })}
-        </View>
-      </ScrollView>
+                  <Feather name={wideTile.icon} size={compact ? 22 : 24} color={wideTile.color} />
+                </View>
+                <Text style={[styles.wideTileLabel, { fontSize: layout.wideLabel }]}>{wideTile.label}</Text>
+              </View>
+            </Pressable>
+          </Animated.View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -246,34 +289,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: H_PAD,
+    flex: 1,
   },
   screenHeader: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  mainTiles: {
+  grid: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: TILE_GAP,
-  },
-  tileWrap: {
-    width: TILE_W,
-    alignItems: 'center',
   },
   wideTileWrap: {
-    width: WIDE_TILE_W,
     alignItems: 'center',
   },
-  settingsSlot: {
-    marginTop: 'auto',
-    paddingTop: 0,
-    transform: [{ translateY: -16 }],
+  tileWrap: {
+    alignItems: 'stretch',
   },
   tile: {
-    width: TILE_W,
-    height: TILE_H,
-    borderRadius: 26,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.15)',
@@ -284,9 +318,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   wideTile: {
-    width: WIDE_TILE_W,
-    height: 92,
-    borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',
@@ -304,8 +335,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    padding: 16,
+    gap: 10,
     backgroundColor: 'rgba(0,0,0,0.72)',
   },
   tileGlow: {
@@ -327,16 +357,12 @@ const styles = StyleSheet.create({
     opacity: 0.14,
   },
   tileIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tileLabel: {
     color: 'rgba(255,255,255,0.88)',
-    fontSize: 15.2,
     lineHeight: 18.5,
     fontWeight: '900',
     textAlign: 'center',
@@ -347,12 +373,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
-    gap: 10,
+    gap: 8,
     backgroundColor: 'rgba(0,0,0,0.68)',
   },
   wideTileLabel: {
     color: '#FFFFFF',
-    fontSize: 16,
     fontWeight: '900',
     textAlign: 'center',
   },

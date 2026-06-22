@@ -2,6 +2,7 @@
   "screen": {
     "title": "Inwestycja"
   },
+  "readOnlyNotice": "Jako partner możesz tylko przeglądać dane tej budowy.",
   "loading": "Ładowanie inwestycji...",
   "alerts": {
     "completeDataTitle": "Uzupełnij dane",
@@ -12,6 +13,8 @@
     "changeBuildTypeMsg": "Zmiana typu budowy przeliczy aktualny etap i dopasuje postęp do nowego workflow.",
     "invalidBudgetTitle": "Nieprawidłowy budżet",
     "invalidBudgetMsg": "Budżet nie może być ujemny.",
+    "readOnlyTitle": "Tylko do odczytu",
+    "readOnlyMessage": "To konto partnera. Ustawienia inwestycji może zmieniać tylko właściciel budowy.",
     "errorTitle": "Błąd",
     "loadFailed": "Nie udało się pobrać inwestycji.",
     "noSession": "Brak użytkownika. Zaloguj się ponownie.",

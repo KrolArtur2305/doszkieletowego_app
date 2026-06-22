@@ -2,6 +2,7 @@
   "screen": {
     "title": "Investment"
   },
+  "readOnlyNotice": "As a partner, you can only view this build's data.",
   "loading": "Loading investment...",
   "alerts": {
     "completeDataTitle": "Complete the details",
@@ -12,6 +13,8 @@
     "changeBuildTypeMsg": "Changing the build type will recalculate the current stage and adapt progress to the new workflow.",
     "invalidBudgetTitle": "Invalid budget",
     "invalidBudgetMsg": "Budget cannot be negative.",
+    "readOnlyTitle": "Read only",
+    "readOnlyMessage": "This is a partner account. Only the build owner can change investment settings.",
     "errorTitle": "Error",
     "loadFailed": "Could not load the investment.",
     "noSession": "No user. Please sign in again.",

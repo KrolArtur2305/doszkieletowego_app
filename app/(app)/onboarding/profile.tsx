@@ -19,6 +19,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { forceLoggedOutAuthSnapshot } from '../../../hooks/useSupabaseAuth';
 import { supabase } from '../../../lib/supabase';
 import { getUserWithTimeout } from '../../../lib/supabaseTimeout';
 import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
@@ -137,11 +138,12 @@ export default function OnboardingProfileScreen() {
             <AppButton
               title={t('alerts.logoutAction', { ns: 'onboarding' })}
               variant="secondary"
-              onPress={async () => {
-                try {
-                  await supabase.auth.signOut();
-                } finally {
-                  router.replace('/(auth)/welcome');
+                onPress={async () => {
+                  try {
+                    forceLoggedOutAuthSnapshot();
+                    await supabase.auth.signOut();
+                  } finally {
+                    router.replace('/(auth)/welcome');
                 }
               }}
               style={styles.primaryBtn}

@@ -14,11 +14,10 @@ import {
   View,
 } from 'react-native';
 import type { ScrollView as ScrollViewType } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { supabase } from '../../lib/supabase';
+import { clearPendingInviteCode, setPendingInviteCode } from '../../lib/investmentInvite';
 import { setCurrencyForLanguage } from '../../lib/currency';
 import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../lib/i18n';
 import { AppButton, AppCard, AppInput, AppScreen } from '../../src/ui/components';
@@ -26,7 +25,6 @@ import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
 const { width: W } = Dimensions.get('window');
 const APP_LOGO = require('../../assets/logo.png');
-const PENDING_INVITE_CODE_KEY = 'pending_build_invite_code';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -74,24 +72,6 @@ export default function WelcomeScreen() {
     [i18n.language, t]
   );
 
-  useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      if (data.session) router.replace('/(app)');
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) router.replace('/(app)');
-    });
-
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
-  }, [router]);
-
   const activeLang = (i18n.resolvedLanguage || i18n.language) as AppLanguage;
 
   const renderLangButton = (lng: AppLanguage, label: string) => {
@@ -99,6 +79,7 @@ export default function WelcomeScreen() {
 
     return (
       <Pressable
+        key={lng}
         onPress={async () => {
           await setAppLanguage(lng);
           await setCurrencyForLanguage(lng);
@@ -125,7 +106,7 @@ export default function WelcomeScreen() {
       return;
     }
 
-    await AsyncStorage.setItem(PENDING_INVITE_CODE_KEY, cleaned);
+    await setPendingInviteCode(cleaned);
     setJoinModalOpen(false);
     setJoinError('');
     router.push(target);
@@ -179,13 +160,19 @@ export default function WelcomeScreen() {
           <View style={styles.actions}>
             <AppButton
               title={t('welcome.loginCta')}
-              onPress={() => router.push('/(auth)/login')}
+              onPress={async () => {
+                await clearPendingInviteCode();
+                router.push('/(auth)/login');
+              }}
               style={styles.primaryBtn}
             />
 
             <AppButton
               title={t('welcome.registerCta')}
-              onPress={() => router.push('/(auth)/register')}
+              onPress={async () => {
+                await clearPendingInviteCode();
+                router.push('/(auth)/register');
+              }}
               variant="secondary"
               style={styles.secondaryBtn}
             />

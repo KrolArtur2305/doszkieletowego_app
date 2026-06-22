@@ -19,6 +19,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { forceLoggedOutAuthSnapshot } from '../../../hooks/useSupabaseAuth';
 import { supabase } from '../../../lib/supabase';
 import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
@@ -225,10 +226,11 @@ export default function OnboardingScreen() {
         {
           text: t('alerts.logoutAction'),
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await supabase.auth.signOut();
-              router.replace('/(auth)/welcome');
+            onPress: async () => {
+              try {
+                forceLoggedOutAuthSnapshot();
+                await supabase.auth.signOut();
+                router.replace('/(auth)/welcome');
             } catch (e: any) {
               Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.logoutError'));
             }

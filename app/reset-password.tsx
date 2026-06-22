@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../lib/supabase';
 import { getFriendlyErrorMessage } from '../lib/errorMessages';
+import { forceLoggedOutAuthSnapshot } from '../hooks/useSupabaseAuth';
 import { AppButton, AppHeader, AppInput, AppScreen } from '../src/ui/components';
 import { colors, spacing, typography } from '../src/ui/theme';
 
@@ -127,7 +128,8 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  const goToLogin = async () => {
+    const goToLogin = async () => {
+    forceLoggedOutAuthSnapshot();
     await supabase.auth.signOut();
     router.replace('/(auth)/welcome');
   };

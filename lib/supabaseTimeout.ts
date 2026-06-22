@@ -2,7 +2,7 @@ import type { Session, User } from '@supabase/supabase-js';
 
 import { supabase } from './supabase';
 
-const DEFAULT_TIMEOUT_MS = 8000;
+const DEFAULT_TIMEOUT_MS = 20000;
 
 export function withTimeout<T>(promise: PromiseLike<T>, timeoutMs = DEFAULT_TIMEOUT_MS, label = 'Supabase request timed out'): Promise<T> {
   return new Promise<T>((resolve, reject) => {

@@ -108,15 +108,9 @@ export default function RootLayout() {
                 style={{ width: '72%', maxWidth: 260, height: 120 }}
               />
             </View>
-          ) : !session ? (
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="auth/callback" />
-              <Stack.Screen name="auth-callback" />
-              <Stack.Screen name="reset-password" />
-            </Stack>
           ) : (
             <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
               <Stack.Screen name="(app)" />
               <Stack.Screen name="auth/callback" />
               <Stack.Screen name="auth-callback" />

@@ -22,6 +22,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../../lib/supabase';
 import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
+import { loadSharedBuddyName } from '../../../../src/services/buddy/name';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
 import { getAppLocale } from '../../../../lib/i18n';
 import { getStageLabel } from '../../../../lib/localizedLabels';
@@ -723,8 +724,10 @@ export default function DashboardScreen() {
         const user = userData?.user;
         if (!user) return;
         const prof = await supabase.from('profiles').select('imie').eq('user_id', user.id).maybeSingle();
+        const access = await fetchCurrentBuildAccess(user.id).catch(() => null);
+        const buddyName = await loadSharedBuddyName(user.id, access?.ownerUserId ?? user.id);
         if (!alive) return;
-        setImie((prof.data as any)?.imie ?? '');
+        setImie(buddyName || ((prof.data as any)?.imie ?? ''));
       } catch { /* ignore */ } finally {
         Animated.parallel([
           Animated.timing(subtitleOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),

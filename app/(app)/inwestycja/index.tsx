@@ -21,9 +21,12 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../lib/supabase';
 import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { getAppLocale, getDefaultCountry } from '../../../lib/i18n';
+import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildAccess } from '../../../lib/buildAccess';
 import { AppButton, AppHeader, AppInput, PlaceAutocomplete } from '../../../src/ui/components';
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
 import { normalizeBuildType, remapStageCodeForBuildType } from '../../../lib/buildWorkflow';
+
+const ACCENT = '#19705C';
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -63,6 +66,7 @@ export default function InwestycjaScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
 
   const [nazwa, setNazwa] = useState('');
   const [buildType, setBuildType] = useState('murowany');
@@ -96,6 +100,7 @@ export default function InwestycjaScreen() {
   // ✅ tylko UI pickera: modal + tymczasowa data
   const [pickerOpen, setPickerOpen] = useState<null | 'start' | 'koniec'>(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
+  const partnerRestricted = buildAccess ? isNonOwnerBuildRole(buildAccess.role) : false;
 
   useEffect(() => {
     let alive = true;
@@ -113,18 +118,32 @@ export default function InwestycjaScreen() {
         }
 
         const user = userRes.user;
+        const access = await fetchCurrentBuildAccess(user.id).catch((e) => {
+          console.warn('build access load error:', e);
+          return null;
+        });
+        if (!alive) return;
+        setBuildAccess(access);
+        const scopeInvestmentId = access?.investmentId ?? null;
+        const scopeUserId = access?.ownerUserId ?? user.id;
 
         const [investmentRes, profileRes] = await Promise.all([
-          supabase
-            .from('inwestycje')
-            .select('nazwa, lokalizacja, place_name, location_city, location_country, latitude, longitude, data_start, data_koniec, budzet, inwestycja_wypelniona')
-            .eq('user_id', user.id)
-            .limit(1)
-            .maybeSingle(),
+          scopeInvestmentId
+            ? supabase
+                .from('inwestycje')
+                .select('nazwa, lokalizacja, place_name, location_city, location_country, latitude, longitude, data_start, data_koniec, budzet, inwestycja_wypelniona')
+                .eq('id', scopeInvestmentId)
+                .maybeSingle()
+            : supabase
+                .from('inwestycje')
+                .select('nazwa, lokalizacja, place_name, location_city, location_country, latitude, longitude, data_start, data_koniec, budzet, inwestycja_wypelniona')
+                .eq('user_id', user.id)
+                .limit(1)
+                .maybeSingle(),
           supabase
             .from('profiles')
             .select('build_type, current_stage_code')
-            .eq('user_id', user.id)
+            .eq('user_id', scopeUserId)
             .maybeSingle(),
         ]);
 
@@ -134,7 +153,7 @@ export default function InwestycjaScreen() {
           const fallback = await supabase
             .from('inwestycje')
             .select('nazwa, lokalizacja, data_start, data_koniec, budzet, inwestycja_wypelniona')
-            .eq('user_id', user.id)
+            .eq(scopeInvestmentId ? 'id' : 'user_id', scopeInvestmentId ?? user.id)
             .limit(1)
             .maybeSingle();
 
@@ -180,6 +199,13 @@ export default function InwestycjaScreen() {
   const handleSaveAndContinue = async () => {
     try {
       if (saving) return;
+      if (partnerRestricted) {
+        Alert.alert(
+          t('alerts.readOnlyTitle'),
+          t('alerts.readOnlyMessage')
+        );
+        return;
+      }
 
       const n = nazwa.trim();
 
@@ -350,6 +376,15 @@ export default function InwestycjaScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <AppHeader title={t('screen.title')} style={styles.screenHeader} />
 
+          {partnerRestricted ? (
+            <View style={styles.readOnlyNotice}>
+              <Feather name="lock" size={16} color={ACCENT} />
+              <Text style={styles.readOnlyNoticeText}>
+                {t('readOnlyNotice')}
+              </Text>
+            </View>
+          ) : null}
+
           <BlurView intensity={70} tint="dark" style={styles.card}>
               <View style={styles.form}>
                 <View style={styles.field}>
@@ -358,7 +393,7 @@ export default function InwestycjaScreen() {
                   value={nazwa}
                   onChangeText={setNazwa}
                   placeholder={t('form.namePlaceholder')}
-                  editable={!loading && !saving}
+                  editable={!loading && !saving && !partnerRestricted}
                   style={styles.input}
                   />
                 </View>
@@ -371,8 +406,11 @@ export default function InwestycjaScreen() {
                       return (
                         <TouchableOpacity
                           key={value}
-                          onPress={() => setBuildType(value)}
-                          disabled={loading || saving}
+                          onPress={() => {
+                            if (partnerRestricted) return;
+                            setBuildType(value);
+                          }}
+                          disabled={loading || saving || partnerRestricted}
                           activeOpacity={0.85}
                           style={[styles.buildTypeChip, active && styles.buildTypeChipActive]}
                         >
@@ -403,7 +441,7 @@ export default function InwestycjaScreen() {
                   countryLabel={t('form.countryLabel')}
                   defaultCountryCode={defaultCountryCode}
                   placeholder={t('form.locationPlaceholder')}
-                  disabled={loading || saving}
+                  disabled={loading || saving || partnerRestricted}
                   error={locationError}
                   showSelectedDetails={false}
                 />
@@ -417,8 +455,11 @@ export default function InwestycjaScreen() {
                       {startDisplay || t('form.datePlaceholder')}
                     </Text>
                     <TouchableOpacity
-                      onPress={() => openPicker('start')}
-                      disabled={loading || saving}
+                      onPress={() => {
+                        if (partnerRestricted) return;
+                        openPicker('start');
+                      }}
+                      disabled={loading || saving || partnerRestricted}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={styles.iconBtn}
                     >
@@ -436,8 +477,11 @@ export default function InwestycjaScreen() {
                       {koniecDisplay || t('form.datePlaceholder')}
                     </Text>
                     <TouchableOpacity
-                      onPress={() => openPicker('koniec')}
-                      disabled={loading || saving}
+                      onPress={() => {
+                        if (partnerRestricted) return;
+                        openPicker('koniec');
+                      }}
+                      disabled={loading || saving || partnerRestricted}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={styles.iconBtn}
                     >
@@ -453,7 +497,7 @@ export default function InwestycjaScreen() {
                   value={budzet}
                   onChangeText={setBudzet}
                   placeholder={t('form.plannedBudgetPlaceholder')}
-                  editable={!loading && !saving}
+                  editable={!loading && !saving && !partnerRestricted}
                   keyboardType="numeric"
                   style={[styles.input, { fontWeight: '800' }]}
                 />
@@ -463,7 +507,7 @@ export default function InwestycjaScreen() {
             <AppButton
               title={saving ? t('actions.saving') : t('actions.saveAndContinue')}
               onPress={handleSaveAndContinue}
-              disabled={loading || saving}
+              disabled={loading || saving || partnerRestricted}
               loading={saving}
               style={styles.ctaButton}
             />
@@ -522,6 +566,26 @@ const styles = StyleSheet.create({
 
   content: { paddingTop: 22, paddingHorizontal: 16, paddingBottom: 140 },
   screenHeader: { marginBottom: 12 },
+
+  readOnlyNotice: {
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.25)',
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  readOnlyNoticeText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
 
   card: {
     borderRadius: 28,

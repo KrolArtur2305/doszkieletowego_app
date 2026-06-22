@@ -11,6 +11,7 @@
       "preview": "Preview",
       "avatar": "Avatar"
     },
+    "readOnlyNameNotice": "As a partner, you cannot change the supervisor name. You can only choose the avatar.",
     "placeholder": "e.g. Andrew, Max, Adam...",
     "previewRole": "Your digital site supervisor",
     "previewBubble": "Hi, I’m {{name}}. I’ll help you keep track of the budget, stages, and the most important things on site.",

@@ -310,15 +310,11 @@ Deno.serve(async (req) => {
     }
 
     if (warnings.length > 0) {
-      await supabase
-        .from("investment_members")
-        .delete()
-        .eq("investment_id", inviteRow.investment_id)
-        .eq("user_id", user.id)
-        .eq("role", "partner");
-
-      return json(500, {
-        error: "Partner conversion was stopped because not all linked files could be removed.",
+      return json(200, {
+        converted: true,
+        investmentId: inviteRow.investment_id,
+        role: "partner",
+        cleanup_incomplete: true,
         warnings,
       });
     }
@@ -337,15 +333,11 @@ Deno.serve(async (req) => {
     if (buildDeleteError) warnings.push(`inwestycje: ${buildDeleteError.message}`);
 
     if (warnings.length > 0) {
-      await supabase
-        .from("investment_members")
-        .delete()
-        .eq("investment_id", inviteRow.investment_id)
-        .eq("user_id", user.id)
-        .eq("role", "partner");
-
-      return json(500, {
-        error: "Partner conversion was stopped because not all build data could be removed.",
+      return json(200, {
+        converted: true,
+        investmentId: inviteRow.investment_id,
+        role: "partner",
+        cleanup_incomplete: true,
         warnings,
       });
     }

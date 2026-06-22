@@ -19,6 +19,7 @@ import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
+import { forceLoggedOutAuthSnapshot } from '../../../hooks/useSupabaseAuth';
 import { supabase } from '../../../lib/supabase';
 import { getUserWithTimeout } from '../../../lib/supabaseTimeout';
 import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
@@ -194,11 +195,12 @@ export default function OnboardingInvestmentScreen() {
             <AppButton
               title={t('alerts.logoutAction', { ns: 'onboarding' })}
               variant="secondary"
-              onPress={async () => {
-                try {
-                  await supabase.auth.signOut();
-                } finally {
-                  router.replace('/(auth)/welcome');
+                onPress={async () => {
+                  try {
+                    forceLoggedOutAuthSnapshot();
+                    await supabase.auth.signOut();
+                  } finally {
+                    router.replace('/(auth)/welcome');
                 }
               }}
               style={styles.primaryBtn}
@@ -381,11 +383,12 @@ export default function OnboardingInvestmentScreen() {
       >
         <View pointerEvents="none" style={styles.bg} />
         {appleUser ? (
-          <TouchableOpacity
-            onPress={async () => {
-              await supabase.auth.signOut();
-              router.replace('/(auth)/welcome');
-            }}
+            <TouchableOpacity
+              onPress={async () => {
+                forceLoggedOutAuthSnapshot();
+                await supabase.auth.signOut();
+                router.replace('/(auth)/welcome');
+              }}
             activeOpacity={0.88}
             style={styles.logoutBadge}
           >

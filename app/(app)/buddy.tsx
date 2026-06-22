@@ -19,8 +19,10 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { getFriendlyErrorMessage } from '../../lib/errorMessages';
+import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildAccess } from '../../lib/buildAccess';
 import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../src/ui/components';
+import { loadSharedBuddyName } from '../../src/services/buddy/name';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -58,6 +60,7 @@ export default function BuddyOnboardingScreen() {
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
 
   const [buddyName, setBuddyName] = useState('');
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,6 +88,34 @@ export default function BuddyOnboardingScreen() {
     return () => float.stop();
   }, [avatarAnim, avatarScale, contentAnim, floatAnim]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      const userId = session?.user?.id;
+      if (!userId) {
+        return;
+      }
+
+      const access = await fetchCurrentBuildAccess(userId).catch((e) => {
+        console.warn('build access load error:', e);
+        return null;
+      });
+      if (!mounted) return;
+      setBuildAccess(access);
+
+      const sharedName = await loadSharedBuddyName(userId, access?.ownerUserId ?? userId);
+      if (!mounted) return;
+      setBuddyName(sharedName);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [session?.user?.id]);
+
+  const partnerRestricted = buildAccess ? isNonOwnerBuildRole(buildAccess.role) : false;
+
   const handleSave = async () => {
     const name = buddyName.trim();
     if (!name) {
@@ -99,6 +130,10 @@ export default function BuddyOnboardingScreen() {
     setSaving(true);
     setError(null);
     try {
+      if (partnerRestricted) {
+        setError(t('settings.readOnlyNameNotice'));
+        return;
+      }
       const userId = session?.user?.id;
       if (!userId) throw new Error(t('settings.errors.noSession'));
 
@@ -192,6 +227,7 @@ export default function BuddyOnboardingScreen() {
                 <AppInput
                   value={buddyName}
                   onChangeText={(v) => {
+                    if (partnerRestricted) return;
                     setBuddyName(v);
                     setError(null);
                   }}
@@ -200,9 +236,13 @@ export default function BuddyOnboardingScreen() {
                   maxLength={30}
                   autoCapitalize="words"
                   returnKeyType="done"
-                  onSubmitEditing={handleSave}
+                  onSubmitEditing={partnerRestricted ? undefined : handleSave}
+                  editable={!partnerRestricted}
                   style={styles.inputField}
                 />
+                {partnerRestricted ? (
+                  <Text style={styles.readOnlyNote}>{t('settings.readOnlyNameNotice')}</Text>
+                ) : null}
                 {buddyName.length > 0 && (
                   <Text style={styles.inputCount}>{buddyName.length}/30</Text>
                 )}
@@ -337,6 +377,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   inputCount: { color: 'rgba(255,255,255,0.25)', fontSize: 11, fontWeight: '700' },
+  readOnlyNote: { marginTop: 8, color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', lineHeight: 17, textAlign: 'center' },
   errorText: { color: '#FCA5A5', fontSize: 12, fontWeight: '700', marginTop: 8, textAlign: 'center' },
 
   featuresWrap: { width: '100%', marginBottom: 16 },

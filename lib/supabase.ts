@@ -1,5 +1,5 @@
 import 'react-native-url-polyfill/auto';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -12,6 +12,7 @@ export const supabaseConfigError = isSupabaseConfigured
 
 const resolvedSupabaseUrl = supabaseUrl ?? 'https://placeholder.supabase.co';
 const resolvedSupabaseAnonKey = supabaseAnonKey ?? 'placeholder-anon-key';
+const resolvedSupabaseStorageKey = `sb-${new URL(resolvedSupabaseUrl).hostname.split('.')[0]}-auth-token`;
 
 export const publicConfig = {
   supabaseUrl: resolvedSupabaseUrl,
@@ -30,12 +31,28 @@ export const publicConfig = {
 export const supabase = createClient(resolvedSupabaseUrl, resolvedSupabaseAnonKey, {
   auth: {
     storage: {
-      getItem: (key: string) => SecureStore.getItemAsync(key),
-      setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
-      removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+      getItem: (key: string) => AsyncStorage.getItem(key),
+      setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
+      removeItem: (key: string) => AsyncStorage.removeItem(key),
     },
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: false,
   },
 });
+
+export async function clearSupabaseAuthStorage(): Promise<void> {
+  await Promise.allSettled([
+    AsyncStorage.removeItem(resolvedSupabaseStorageKey),
+    AsyncStorage.removeItem(`${resolvedSupabaseStorageKey}-user`),
+    AsyncStorage.removeItem(`${resolvedSupabaseStorageKey}-code-verifier`),
+  ]);
+}
+
+export function triggerLocalSupabaseSignOut(): void {
+  setTimeout(() => {
+    void supabase.auth.signOut({ scope: 'local' }).catch((error) => {
+      console.warn('[auth] local signOut after storage clear failed:', (error as any)?.message ?? error);
+    });
+  }, 0);
+}

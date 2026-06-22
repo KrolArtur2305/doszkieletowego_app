@@ -9,12 +9,14 @@
     "profileSubtitle": "Daten des Kontoinhabers",
     "investmentTitle": "Investition",
     "investmentSubtitle": "Projekt- / Baudetails",
+    "ownerOnlySubtitle": "Nur der Bauinhaber kann das ändern.",
     "buddyTitle": "KI-Bauleiter",
     "buddySubtitle": "Name und Einstellungen Ä‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąÄľĂ„â€šĂ‹ÂÄ‚ËĂ˘â‚¬ĹˇĂ‚Â¬Ă„Ä…Ă‹â€ˇÄ‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ˘â‚¬ĹˇÄ‚â€šĂ‚Â¤ndern",
     "appTitle": "App",
     "appSubtitle": "App-Einstellungen",
     "subscriptionTitle": "Abonnement verwalten",
     "subscriptionSubtitle": "Plan- und Zahlungseinstellungen",
+    "subscriptionLockedSubtitle": "Das Abonnement wird vom Bauinhaber bezahlt.",
     "reportTitle": "Problem melden",
     "reportSubtitle": "Fehlerbeschreibung senden",
     "partnerTitle": "Baupartner",
@@ -90,6 +92,7 @@
     "security": {
       "groupLabel": "Sicherheit"
     },
+    "partnerReadOnlyNotice": "Als Partner kannst du Währung und Einheiten nicht ändern. Diese Einstellungen gehören dem Bauinhaber.",
     "password": {
       "title": "Passwort Ä‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąÄľĂ„â€šĂ‹ÂÄ‚ËĂ˘â‚¬ĹˇĂ‚Â¬Ă„Ä…Ă‹â€ˇÄ‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ˘â‚¬ĹˇÄ‚â€šĂ‚Â¤ndern",
       "subtitle": "Aktualisiere dein Kontopasswort",

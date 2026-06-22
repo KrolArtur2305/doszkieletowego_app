@@ -6,8 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildRole } from '../../lib/buildAccess';
 import { supabase } from '../../lib/supabase';
-import { acceptPendingInvestmentInvite } from '../../lib/investmentInvite';
-import { useSupabaseAuth } from '../../hooks/useSupabaseAuth';
+import { forceLoggedOutAuthSnapshot, useSupabaseAuth } from '../../hooks/useSupabaseAuth';
 import { isAppleAuthUser } from '../../src/services/auth/appleAuth';
 import { GUIDED_SETUP_ENABLED, GUIDED_SETUP_VERSION } from '../../src/services/guidedSetup/launchMode';
 import {
@@ -23,7 +22,7 @@ configureNotifications();
 const BG = '#000000';
 const NEON = '#25F0C8';
 const BRAND = '#19705C';
-const ONBOARDING_GATE_TIMEOUT_MS = 8000;
+const ONBOARDING_GATE_TIMEOUT_MS = 20000;
 
 function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -81,7 +80,6 @@ export default function AppLayout() {
   const [partnerRole, setPartnerRole] = useState<BuildRole | null>(null);
 
   const lastCheckKeyRef = useRef<string>('');
-  const inviteHandledForUserRef = useRef<string | null>(null);
   const removalNoticeHandledRef = useRef<string | null>(null);
 
   // 1) Pobierz stan onboardingu i kompletności danych
@@ -93,6 +91,7 @@ export default function AppLayout() {
 
       const userId = session?.user?.id;
       if (!userId) {
+        lastCheckKeyRef.current = '';
         if (!alive) return;
         setChecking(false);
         setProfileComplete(null);
@@ -104,11 +103,17 @@ export default function AppLayout() {
         return;
       }
 
-      const checkKey = `${userId}::${pathname}`;
+      const checkKey = `${userId}`;
       if (lastCheckKeyRef.current === checkKey) return;
       lastCheckKeyRef.current = checkKey;
 
       if (!alive) return;
+      setProfileComplete(null);
+      setInvestmentComplete(null);
+      setOnboardingStep(null);
+      setOnboardingCompleted(null);
+      setGuidedSetupCompleted(null);
+      setPartnerRole(null);
       setChecking(true);
 
       try {
@@ -224,7 +229,14 @@ export default function AppLayout() {
     return () => {
       alive = false;
     };
-  }, [authLoading, session?.user?.id, pathname]);
+  }, [authLoading, session?.user?.id]);
+
+  useEffect(() => {
+    if (authLoading || session) return;
+    if (pathname === '/' || pathname.startsWith('/(app)')) {
+      router.replace('/(auth)/welcome');
+    }
+  }, [authLoading, pathname, router, session]);
 
   // ── Powiadomienia ──
   useEffect(() => {
@@ -232,7 +244,6 @@ export default function AppLayout() {
     if (!userId) {
       // Wylogowanie — anuluj wszystkie
       cancelAllNotifications();
-      inviteHandledForUserRef.current = null;
       removalNoticeHandledRef.current = null;
       return;
     }
@@ -241,41 +252,6 @@ export default function AppLayout() {
     // Jeśli zgoda już istnieje, zsynchronizuj token bez pytania.
     registerPushToken(userId, { requestPermission: false });
     syncAllTaskReminders(userId);
-  }, [session?.user?.id]);
-
-  useEffect(() => {
-    const userId = session?.user?.id;
-    if (!userId) return;
-
-    const handledKey = `${userId}:invite`;
-    if (inviteHandledForUserRef.current === handledKey) return;
-    inviteHandledForUserRef.current = handledKey;
-
-    let alive = true;
-
-    (async () => {
-      try {
-        await acceptPendingInvestmentInvite();
-      } catch (error) {
-        if (!alive) return;
-        const message = String((error as any)?.message ?? '').toLowerCase();
-        if (
-          message.includes('already_has_active_build') ||
-          message.includes('partner_cannot_create_own_build')
-        ) {
-          Alert.alert(
-            'Partner budowy',
-            'Nie możesz połączyć budowy, bo masz już własną budowę albo aktywny udział w innej budowie.'
-          );
-          return;
-        }
-        console.warn('[PartnerInvite] failed to accept pending invite:', error);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
   }, [session?.user?.id]);
 
   useEffect(() => {
@@ -370,6 +346,7 @@ export default function AppLayout() {
                 .update({ dismissed_at: new Date().toISOString() })
                 .eq('id', notice.id);
             }
+            forceLoggedOutAuthSnapshot();
             await supabase.auth.signOut();
             router.replace('/(auth)/welcome');
           },
@@ -420,8 +397,7 @@ export default function AppLayout() {
 
   // 3) Routing
   useEffect(() => {
-    if (session && isNonOwnerBuildRole(partnerRole) && pathname !== '/(app)/(tabs)/dashboard') {
-      router.replace('/(app)/(tabs)/dashboard');
+    if (!session) {
       return;
     }
 
@@ -467,13 +443,13 @@ export default function AppLayout() {
   const showOverlay =
     authLoading ||
     checking ||
-    (session && (
-      onboardingStep === null ||
-      onboardingCompleted === null ||
-      profileComplete === null ||
-      investmentComplete === null ||
-      guidedSetupCompleted === null
-    ));
+      (session && (
+        onboardingStep === null ||
+        onboardingCompleted === null ||
+        profileComplete === null ||
+        investmentComplete === null ||
+        guidedSetupCompleted === null
+      ));
 
   return (
     <View style={styles.root}>

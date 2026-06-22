@@ -42,24 +42,6 @@ export default function LoginScreen() {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      if (data.session) router.replace('/(app)');
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) router.replace('/(app)');
-    });
-
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
-  }, [router]);
-
-  useEffect(() => {
-    let mounted = true;
-
     isAppleSignInAvailable()
       .then((available) => {
         if (mounted) setAppleAvailable(available);
