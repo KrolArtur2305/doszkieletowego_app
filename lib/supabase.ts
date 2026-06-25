@@ -18,6 +18,7 @@ export const publicConfig = {
   supabaseUrl: resolvedSupabaseUrl,
   supabaseAnonKey: resolvedSupabaseAnonKey,
   aiChatEndpoint: `${resolvedSupabaseUrl}/functions/v1/ai-chat`,
+  budgetScanOcrEndpoint: `${resolvedSupabaseUrl}/functions/v1/budget-scan-ocr`,
   revenueCat: {
     iosApiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? null,
     androidApiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? null,

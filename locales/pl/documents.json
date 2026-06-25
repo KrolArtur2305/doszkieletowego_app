@@ -20,7 +20,21 @@
   "empty": {
     "title": "Brak dokumentów",
     "subtitle": "Dodaj pierwsze dokumenty do projektu.",
-    "cta": "Dodaj dokument"
+    "cta": "Dodaj dokument",
+    "suggestedLink": "Proponowane dokumenty ({{count}}) →"
+  },
+  "missingBanner": "Brakuje jeszcze {{count}} ważnych dokumentów →",
+  "suggestedSheet": {
+    "title": "Proponowane dokumenty",
+    "subtitle": "Najczęściej dodawane dokumenty na tym etapie budowy."
+  },
+  "suggestedDocuments": {
+    "buildingPermit": "Pozwolenie na budowę",
+    "buildingProject": "Projekt budowlany",
+    "plotPlan": "Plan działki",
+    "zoningConditions": "Warunki zabudowy",
+    "contractorAgreement": "Umowa z wykonawcą",
+    "insurancePolicy": "Polisa ubezpieczeniowa"
   },
   "addModal": {
     "title": "Dodaj dokument",
@@ -56,8 +70,8 @@
     "deleteStorageError": "Dokument usunięto z listy, ale nie udało się usunąć pliku ze storage."
   },
   "preview": {
-    "pdfInfo": "Podgląd PDF otworzysz przyciskiem poniżej.",
-    "fileInfo": "Ten typ pliku otworzysz w aplikacji systemowej przyciskiem poniżej.",
+    "pdfInfo": "Nie udało się wyświetlić podglądu PDF w aplikacji.",
+    "fileInfo": "Ten typ pliku nie ma jeszcze podglądu w aplikacji.",
     "openPdf": "Otwórz PDF",
     "openFile": "Otwórz plik"
   }

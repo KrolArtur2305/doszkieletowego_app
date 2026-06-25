@@ -2,6 +2,7 @@
   "common": {
     "cancel": "Cancel",
     "delete": "Delete",
+    "ok": "OK",
     "seeAll": "See all",
     "save": "Save",
     "saving": "Saving..."
@@ -176,6 +177,45 @@
   },
   "actions": {
     "addExpense": "+ ADD EXPENSE"
+  },
+  "scanner": {
+    "accessibilityLabel": "Scan an invoice or receipt",
+    "cameraPermissionDenied": "Allow camera access to scan invoices and receipts.",
+    "cameraOpenFailed": "Could not open the camera.",
+    "previewTitle": "Check the photo",
+    "previewHint": "Make sure the full invoice or receipt is readable.",
+    "defaultStageLabel": "Default stage",
+    "defaultStageHint": "You can change it before saving the expense.",
+    "manualDraftBadge": "Document scan",
+    "draftTitle": "Scan items",
+    "draftEmptyTitle": "No items yet",
+    "draftEmptyHint": "If OCR misses something, add or fix the items manually.",
+    "processingTitle": "Reading items",
+    "processingHint": "Processing the photo and building the item list. This may take a moment.",
+    "addItem": "Add item",
+    "itemName": "Item",
+    "itemNamePlaceholder": "e.g. Concrete",
+    "unit": "Unit",
+    "unitPlaceholder": "e.g. pcs",
+    "amount": "Price",
+    "amountPlaceholder": "e.g. 1500",
+    "stage": "Stage",
+    "removeItem": "Trash",
+    "saveExpenses": "Save expenses",
+    "savingExpenses": "Saving...",
+    "noValidItems": "Add at least one item with a name and amount.",
+    "tooManyItems": "A single scan can contain up to {{count}} items.",
+    "invalidItems": "Every filled item must have a name and an amount greater than 0.",
+    "maxItemsReached": "Reached the {{count}} item limit for one scan.",
+    "savedTitle": "Saved",
+    "savedMessage": "Added {{count}} expenses from the scan.",
+    "saveDraftFailed": "Could not save the scanned items.",
+    "ocrFailed": "Could not read the image.",
+    "scannedInvoiceTitle": "Scanned invoice - {{date}}",
+    "scannedInvoiceNote": "Created from {{count}} scanned items.",
+    "cancel": "Cancel",
+    "retake": "Retake",
+    "usePhoto": "Use photo"
   },
   "time": {
     "progress": "Build timeline"

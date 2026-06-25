@@ -113,8 +113,25 @@ Deno.serve(async (req) => {
   const receiptPath = storagePathFromValue((expense as { plik?: unknown }).plik, RECEIPTS_BUCKET);
   const documentPath = linkedDocumentPathFromReceiptPath(receiptPath);
   const warnings: string[] = [];
+  let linkedFileStillUsed = false;
 
-  if (receiptPath || documentPath) {
+  if (receiptPath) {
+    let sharedFileQuery = supabase
+      .from("wydatki")
+      .select("id", { count: "exact", head: true })
+      .neq("id", expenseId)
+      .eq("plik", (expense as { plik?: unknown }).plik);
+
+    sharedFileQuery = expenseInvestmentId
+      ? sharedFileQuery.eq("investment_id", expenseInvestmentId)
+      : sharedFileQuery.eq("user_id", expenseUserId);
+
+    const { count: sharedFileCount, error: sharedFileError } = await sharedFileQuery;
+    if (sharedFileError) return json(500, { error: sharedFileError.message });
+    linkedFileStillUsed = (sharedFileCount ?? 0) > 0;
+  }
+
+  if (!linkedFileStillUsed && (receiptPath || documentPath)) {
     const documentPaths = Array.from(new Set([receiptPath, documentPath].filter(Boolean) as string[]));
     let documentQuery = supabase.from("dokumenty").delete().in("plik_url", documentPaths);
     documentQuery = expenseInvestmentId
@@ -124,12 +141,12 @@ Deno.serve(async (req) => {
     if (documentDeleteError) warnings.push(`dokumenty: ${documentDeleteError.message}`);
   }
 
-  if (receiptPath) {
+  if (!linkedFileStillUsed && receiptPath) {
     const { error: storageError } = await supabase.storage.from(RECEIPTS_BUCKET).remove([receiptPath]);
     if (storageError) warnings.push(`${RECEIPTS_BUCKET}: ${storageError.message}`);
   }
 
-  if (documentPath) {
+  if (!linkedFileStillUsed && documentPath) {
     const normalizedDocumentPath = storagePathFromValue(documentPath, DOCUMENTS_BUCKET);
     if (normalizedDocumentPath) {
       const { error: documentStorageError } = await supabase.storage

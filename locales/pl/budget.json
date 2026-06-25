@@ -2,6 +2,7 @@
   "common": {
     "cancel": "Anuluj",
     "delete": "Usuń",
+    "ok": "OK",
     "seeAll": "Zobacz wszystkie",
     "save": "Zapisz",
     "saving": "Zapisywanie..."
@@ -176,6 +177,45 @@
   },
   "actions": {
     "addExpense": "+ DODAJ WYDATEK"
+  },
+  "scanner": {
+    "accessibilityLabel": "Skanuj fakture lub paragon",
+    "cameraPermissionDenied": "Aby skanowac faktury i paragony, zezwol aplikacji na dostep do aparatu.",
+    "cameraOpenFailed": "Nie udalo sie otworzyc aparatu.",
+    "previewTitle": "Sprawdz zdjecie",
+    "previewHint": "Upewnij sie, ze cala faktura lub paragon jest czytelny.",
+    "defaultStageLabel": "Domyslny etap",
+    "defaultStageHint": "Mozesz go zmienic przed zapisem wydatku.",
+    "manualDraftBadge": "Skan dokumentu",
+    "draftTitle": "Pozycje ze skanu",
+    "draftEmptyTitle": "Brak pozycji",
+    "draftEmptyHint": "Jesli OCR nie wyłapie wszystkiego, dopisz albo popraw pozycje recznie.",
+    "processingTitle": "Odczytuję pozycje",
+    "processingHint": "Przetwarzam zdjęcie i buduję listę pozycji. To może chwilę potrwać.",
+    "addItem": "Dodaj pozycje",
+    "itemName": "Co",
+    "itemNamePlaceholder": "np. Beton",
+    "unit": "Jednostka",
+    "unitPlaceholder": "np. szt",
+    "amount": "Cena",
+    "amountPlaceholder": "np. 1500",
+    "stage": "Etap",
+    "removeItem": "Kosz",
+    "saveExpenses": "Zapisz wydatki",
+    "savingExpenses": "Zapisywanie...",
+    "noValidItems": "Dodaj przynajmniej jedna pozycje z nazwa i kwota.",
+    "tooManyItems": "Maksymalnie {{count}} pozycji z jednego skanu.",
+    "invalidItems": "Kazda wypelniona pozycja musi miec nazwe i kwote wieksza od 0.",
+    "maxItemsReached": "Osiagnieto limit {{count}} pozycji z jednego skanu.",
+    "savedTitle": "Zapisano",
+    "savedMessage": "Dodano {{count}} wydatkow ze skanu.",
+    "saveDraftFailed": "Nie udalo sie zapisac pozycji ze skanu.",
+    "ocrFailed": "Nie udalo sie odczytac zdjecia.",
+    "scannedInvoiceTitle": "Skan faktury - {{date}}",
+    "scannedInvoiceNote": "Utworzono z {{count}} pozycji skanu.",
+    "cancel": "Anuluj",
+    "retake": "Zrob ponownie",
+    "usePhoto": "Uzyj zdjecia"
   },
   "time": {
     "progress": "Czas budowy"

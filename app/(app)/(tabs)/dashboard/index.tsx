@@ -193,6 +193,33 @@ function dayOfYear(date: Date) {
   return Math.floor(diff / 86400000);
 }
 
+function parseYmdToUtcDate(value?: string | null) {
+  const raw = String(value ?? '').trim();
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (![year, month, day].every(Number.isFinite)) return null;
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function getConstructionDayInfo(startRaw?: string | null, endRaw?: string | null) {
+  const start = parseYmdToUtcDate(startRaw);
+  const end = parseYmdToUtcDate(endRaw);
+  if (!start || !end || end.getTime() < start.getTime()) return null;
+
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const startUtc = start.getTime();
+  const endUtc = end.getTime();
+  const totalDays = Math.floor((endUtc - startUtc) / 86400000) + 1;
+  const rawDay = Math.floor((todayUtc - startUtc) / 86400000) + 1;
+  const currentDay = Math.max(1, Math.min(totalDays, rawDay));
+
+  return { currentDay, totalDays };
+}
+
 function isWindyForecast(day: Pick<WeatherDay, 'windSpeed'>) {
   return safeNumber(day.windSpeed) >= 35;
 }
@@ -408,6 +435,10 @@ export default function DashboardScreen() {
     [heroDisplayName, t]
   );
   const splitHeroGreeting = heroGreeting.length > 16;
+  const constructionDayInfo = useMemo(
+    () => getConstructionDayInfo(dates.start, dates.end),
+    [dates.end, dates.start]
+  );
 
   const isDone = (status: string | null) =>
     (status ?? '').toLowerCase().trim() === STATUS_DONE;
@@ -906,7 +937,6 @@ export default function DashboardScreen() {
 
   // ── Derived ──
   const heroDateLine = useMemo(() => {
-    const date = formatDateDayMonthByLocale(new Date(), appLocale);
     const messageKey = pickHeroMessageKey({
       todayTaskCount,
       budgetUtil,
@@ -914,8 +944,16 @@ export default function DashboardScreen() {
       timeUtil,
     });
 
+    if (constructionDayInfo) {
+      return `${t('hero.buildDayPrefix', {
+        day: constructionDayInfo.currentDay,
+        total: constructionDayInfo.totalDays,
+      })} ${t(messageKey)}`;
+    }
+
+    const date = formatDateDayMonthByLocale(new Date(), appLocale);
     return `${t('hero.datePrefix', { date })} ${t(messageKey)}`;
-  }, [t, appLocale, todayTaskCount, budgetUtil, progressValue, timeUtil]);
+  }, [appLocale, budgetUtil, constructionDayInfo, progressValue, t, timeUtil, todayTaskCount]);
 
   const estimatedCompletionText = useMemo(() => {
     return t('progress.estimatedCompletionPlaceholder');

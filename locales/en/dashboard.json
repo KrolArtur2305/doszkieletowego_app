@@ -7,6 +7,7 @@
     "welcome": "Welcome",
     "fallbackName": "Builder",
     "datePrefix": "Today is {{date}},",
+    "buildDayPrefix": "Today is build day {{day}},",
     "messages": {
       "busyDay": "you have a full day ahead and a few things are ready to be wrapped up.",
       "budgetCritical": "the budget is already tight, so it is worth staying disciplined on costs.",

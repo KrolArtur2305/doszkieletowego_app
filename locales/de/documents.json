@@ -20,7 +20,21 @@
   "empty": {
     "title": "Keine Dokumente",
     "subtitle": "Füge die ersten Dokumente zum Projekt hinzu.",
-    "cta": "Dokument hinzufügen"
+    "cta": "Dokument hinzufügen",
+    "suggestedLink": "Vorgeschlagene Dokumente ({{count}}) →"
+  },
+  "missingBanner": "Es fehlen noch {{count}} wichtige Dokumente →",
+  "suggestedSheet": {
+    "title": "Vorgeschlagene Dokumente",
+    "subtitle": "Die Dokumente, die in dieser Bauphase am häufigsten hinzugefügt werden."
+  },
+  "suggestedDocuments": {
+    "buildingPermit": "Baugenehmigung",
+    "buildingProject": "Bauprojekt",
+    "plotPlan": "Grundstücksplan",
+    "zoningConditions": "Bauauflagen",
+    "contractorAgreement": "Vertrag mit Auftragnehmer",
+    "insurancePolicy": "Versicherungspolice"
   },
   "addModal": {
     "title": "Dokument hinzufügen",
@@ -56,8 +70,8 @@
     "deleteStorageError": "Das Dokument wurde aus der Liste entfernt, aber die Datei konnte nicht aus dem Speicher gelöscht werden."
   },
   "preview": {
-    "pdfInfo": "Die PDF-Vorschau öffnest du über die Schaltfläche unten.",
-    "fileInfo": "Diesen Dateityp öffnest du über die Schaltfläche unten in einer System-App.",
+    "pdfInfo": "Die PDF-Vorschau konnte in der App nicht angezeigt werden.",
+    "fileInfo": "Für diesen Dateityp gibt es noch keine Vorschau in der App.",
     "openPdf": "PDF öffnen",
     "openFile": "Datei öffnen"
   }

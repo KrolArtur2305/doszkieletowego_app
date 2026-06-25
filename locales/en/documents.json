@@ -20,7 +20,21 @@
   "empty": {
     "title": "No documents",
     "subtitle": "Add your first documents to the project.",
-    "cta": "Add document"
+    "cta": "Add document",
+    "suggestedLink": "Suggested documents ({{count}}) →"
+  },
+  "missingBanner": "There are still {{count}} important documents missing →",
+  "suggestedSheet": {
+    "title": "Suggested documents",
+    "subtitle": "The documents most often added at this stage of the build."
+  },
+  "suggestedDocuments": {
+    "buildingPermit": "Building permit",
+    "buildingProject": "Construction project",
+    "plotPlan": "Site plan",
+    "zoningConditions": "Zoning conditions",
+    "contractorAgreement": "Contractor agreement",
+    "insurancePolicy": "Insurance policy"
   },
   "addModal": {
     "title": "Add document",
@@ -56,8 +70,8 @@
     "deleteStorageError": "The document was removed from the list, but the storage file could not be deleted."
   },
   "preview": {
-    "pdfInfo": "PDF preview opens with the button below.",
-    "fileInfo": "This file type opens in a system app with the button below.",
+    "pdfInfo": "The PDF preview could not be displayed in the app.",
+    "fileInfo": "This file type does not have an in-app preview yet.",
     "openPdf": "Open PDF",
     "openFile": "Open file"
   }

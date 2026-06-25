@@ -318,6 +318,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   wideTile: {
+    width: '100%',
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.22)',

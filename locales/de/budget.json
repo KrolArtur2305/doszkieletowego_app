@@ -2,6 +2,7 @@
   "common": {
     "cancel": "Abbrechen",
     "delete": "Löschen",
+    "ok": "OK",
     "seeAll": "Alle anzeigen",
     "save": "Speichern",
     "saving": "Wird gespeichert..."
@@ -176,6 +177,45 @@
   },
   "actions": {
     "addExpense": "+ AUSGABE HINZUFÜGEN"
+  },
+  "scanner": {
+    "accessibilityLabel": "Rechnung oder Beleg scannen",
+    "cameraPermissionDenied": "Erlaube den Kamerazugriff, um Rechnungen und Belege zu scannen.",
+    "cameraOpenFailed": "Die Kamera konnte nicht geoeffnet werden.",
+    "previewTitle": "Foto pruefen",
+    "previewHint": "Stelle sicher, dass die ganze Rechnung oder der Beleg lesbar ist.",
+    "defaultStageLabel": "Standardphase",
+    "defaultStageHint": "Du kannst sie vor dem Speichern der Ausgabe aendern.",
+    "manualDraftBadge": "Dokumentenscan",
+    "draftTitle": "Positionen aus dem Scan",
+    "draftEmptyTitle": "Noch keine Positionen",
+    "draftEmptyHint": "Wenn OCR etwas uebersieht, fuege Positionen manuell hinzu oder korrigiere sie.",
+    "processingTitle": "Positionen werden gelesen",
+    "processingHint": "Das Foto wird verarbeitet und die Positionsliste erstellt. Das kann einen Moment dauern.",
+    "addItem": "Position hinzufuegen",
+    "itemName": "Was",
+    "itemNamePlaceholder": "z. B. Beton",
+    "unit": "Einheit",
+    "unitPlaceholder": "z. B. Stk.",
+    "amount": "Preis",
+    "amountPlaceholder": "z. B. 1500",
+    "stage": "Phase",
+    "removeItem": "Papierkorb",
+    "saveExpenses": "Ausgaben speichern",
+    "savingExpenses": "Wird gespeichert...",
+    "noValidItems": "Fuege mindestens eine Position mit Name und Betrag hinzu.",
+    "tooManyItems": "Ein Scan kann maximal {{count}} Positionen enthalten.",
+    "invalidItems": "Jede ausgefuellte Position braucht einen Namen und einen Betrag groesser als 0.",
+    "maxItemsReached": "Limit von {{count}} Positionen pro Scan erreicht.",
+    "savedTitle": "Gespeichert",
+    "savedMessage": "{{count}} Ausgaben aus dem Scan hinzugefuegt.",
+    "saveDraftFailed": "Die gescannten Positionen konnten nicht gespeichert werden.",
+    "ocrFailed": "Das Bild konnte nicht gelesen werden.",
+    "scannedInvoiceTitle": "Gescannte Rechnung - {{date}}",
+    "scannedInvoiceNote": "Aus {{count}} Scan-Positionen erstellt.",
+    "cancel": "Abbrechen",
+    "retake": "Neu aufnehmen",
+    "usePhoto": "Foto verwenden"
   },
   "time": {
     "progress": "Bauzeit"

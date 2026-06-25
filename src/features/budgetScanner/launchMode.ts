@@ -1,0 +1,5 @@
+export const BUDGET_SCANNER_ENTRY_ENABLED =
+  process.env.EXPO_PUBLIC_BUDGET_SCANNER_ENTRY_ENABLED !== 'false';
+
+export const BUDGET_SCANNER_AI_ENABLED =
+  process.env.EXPO_PUBLIC_BUDGET_SCANNER_AI_ENABLED === 'true';

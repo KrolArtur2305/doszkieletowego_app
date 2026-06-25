@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,17 +15,17 @@ import {
   Pressable,
   StatusBar,
   Keyboard,
-  KeyboardAvoidingView,
-  Linking} from 'react-native';
+  KeyboardAvoidingView} from 'react-native';
 import { Image } from 'expo-image';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import * as WebBrowser from 'expo-web-browser';
+import * as FileSystem from 'expo-file-system/legacy';
 import { WebView } from 'react-native-webview';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
 import { supabase } from '../../../../lib/supabase';
 import { getSessionWithTimeout } from '../../../../lib/supabaseTimeout';
 import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
@@ -52,6 +52,11 @@ type DocTypeKey =
   | 'inne';
 
 type PreviewKind = 'image' | 'pdf' | 'file';
+type SuggestedDocumentItem = {
+  key: string;
+  type: DocTypeKey;
+  labelKey: string;
+};
 
 type DbDoc = {
   id: string;
@@ -133,6 +138,19 @@ function normalizeType(cat?: string | null): DocTypeKey {
   return 'inne';
 }
 
+function normalizeMatchText(value?: string | null) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeStoragePath(path?: string | null) {
+  return String(path || '').trim().replace(/^\/+/, '').split('?')[0].split('#')[0];
+}
+
 function toISODate(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -160,6 +178,22 @@ function getUploadContentType(file: { name?: string; mimeType?: string } | null)
   if (ext === 'xls') return 'application/vnd.ms-excel';
   if (ext === 'xlsx') return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   return file?.mimeType || undefined;
+}
+
+async function readPickedFileAsArrayBuffer(file: { uri: string }): Promise<ArrayBuffer> {
+  const info = await FileSystem.getInfoAsync(file.uri);
+  if (!info.exists) {
+    throw new Error('DOCUMENT_FILE_NOT_FOUND');
+  }
+
+  const base64 = await FileSystem.readAsStringAsync(file.uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  if (!base64) {
+    throw new Error('DOCUMENT_FILE_EMPTY');
+  }
+
+  return decodeBase64(base64);
 }
 
 function getPreviewKind(path?: string | null): PreviewKind {
@@ -193,6 +227,15 @@ const DOC_TYPES: { key: DocTypeKey; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'pozwolenia', icon: 'shield-checkmark-outline' },
   { key: 'inne', icon: 'archive-outline' }];
 
+const SUGGESTED_DOCUMENTS: SuggestedDocumentItem[] = [
+  { key: 'buildingPermit', type: 'pozwolenia', labelKey: 'documents:suggestedDocuments.buildingPermit' },
+  { key: 'buildingProject', type: 'projekt', labelKey: 'documents:suggestedDocuments.buildingProject' },
+  { key: 'plotPlan', type: 'projekt', labelKey: 'documents:suggestedDocuments.plotPlan' },
+  { key: 'zoningConditions', type: 'pozwolenia', labelKey: 'documents:suggestedDocuments.zoningConditions' },
+  { key: 'contractorAgreement', type: 'umowa', labelKey: 'documents:suggestedDocuments.contractorAgreement' },
+  { key: 'insurancePolicy', type: 'inne', labelKey: 'documents:suggestedDocuments.insurancePolicy' },
+];
+
 export default function DokumentyScreen() {
   const { t, i18n } = useTranslation(['documents', 'common']);
   const params = useLocalSearchParams<{ openAdd?: string }>();
@@ -219,6 +262,7 @@ export default function DokumentyScreen() {
 
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
+  const [suggestionsSheetVisible, setSuggestionsSheetVisible] = useState(false);
 
   const [selectedTypeForUpload, setSelectedTypeForUpload] = useState<DocTypeKey>('umowa');
   const [title, setTitle] = useState('');
@@ -233,9 +277,18 @@ export default function DokumentyScreen() {
   const [previewDoc, setPreviewDoc] = useState<DbDoc | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewImageFailed, setPreviewImageFailed] = useState(false);
   const [previewWebFailed, setPreviewWebFailed] = useState(false);
+  const previewFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const topPad = 0;
+
+  const clearPreviewFallbackTimer = useCallback(() => {
+    if (previewFallbackTimerRef.current) {
+      clearTimeout(previewFallbackTimerRef.current);
+      previewFallbackTimerRef.current = null;
+    }
+  }, []);
 
   const getUserId = useCallback(async (): Promise<string | null> => {
     const session = await getSessionWithTimeout();
@@ -317,6 +370,70 @@ export default function DokumentyScreen() {
     return docs.filter((d) => normalizeType(d.kategoria) === selectedType);
   }, [docs, selectedType]);
 
+  const localizedSuggestedDocuments = useMemo(() => {
+    const localeCandidates = Array.from(
+      new Set(
+        [i18n.resolvedLanguage, i18n.language, 'pl', 'en', 'de'].filter(Boolean) as string[],
+      ),
+    );
+
+    return SUGGESTED_DOCUMENTS.map((item) => {
+      const aliases = Array.from(
+        new Set(
+          localeCandidates
+            .flatMap((lng) => [
+              tt(item.labelKey, { lng }),
+              item.key,
+            ])
+            .map((value) => normalizeMatchText(value))
+            .filter(Boolean),
+        ),
+      );
+
+      return {
+        ...item,
+        label: tt(item.labelKey),
+        aliases,
+      };
+    });
+  }, [i18n.language, i18n.resolvedLanguage, tt]);
+
+  const existingDocumentTitles = useMemo(() => {
+    const titles = new Set<string>();
+    docs.forEach((doc) => {
+      const normalizedTitle = normalizeMatchText(doc.tytul);
+      if (normalizedTitle) titles.add(normalizedTitle);
+    });
+    return titles;
+  }, [docs]);
+
+  const existingDocumentTypeCounts = useMemo(() => {
+    const counts = new Map<DocTypeKey, number>();
+    docs.forEach((doc) => {
+      const type = normalizeType(doc.kategoria);
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    });
+    return counts;
+  }, [docs]);
+
+  const missingSuggestedDocuments = useMemo(() => {
+    return localizedSuggestedDocuments.filter((item) => {
+      const titleMatch = item.aliases.some((alias) =>
+        Array.from(existingDocumentTitles).some(
+          (existingTitle) => existingTitle === alias || existingTitle.includes(alias) || alias.includes(existingTitle),
+        ),
+      );
+      if (titleMatch) return false;
+
+      const useTypeFallback = item.type === 'umowa';
+      if (useTypeFallback && (existingDocumentTypeCounts.get(item.type) ?? 0) > 0) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [existingDocumentTitles, existingDocumentTypeCounts, localizedSuggestedDocuments]);
+
   const canManageDoc = useCallback((doc: DbDoc) => {
     if (buildAccess?.role === 'owner') return true;
     return String(doc.user_id ?? '') === String(currentUserId ?? '');
@@ -325,6 +442,31 @@ export default function DokumentyScreen() {
   const closeAllDropdowns = () => {
     setFilterDropdownOpen(false);
     setAddDropdownOpen(false);
+  };
+
+  const openAddDocumentModal = () => {
+    resetAddForm();
+    setAddModalVisible(true);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearPreviewFallbackTimer();
+    };
+  }, [clearPreviewFallbackTimer]);
+
+  const openSuggestedDocumentsSheet = () => {
+    closeAllDropdowns();
+    setSuggestionsSheetVisible(true);
+  };
+
+  const openSuggestedDocument = (item: SuggestedDocumentItem) => {
+    closeAllDropdowns();
+    setSuggestionsSheetVisible(false);
+    resetAddForm();
+    setSelectedTypeForUpload(item.type);
+    setTitle(tt(item.labelKey));
+    setAddModalVisible(true);
   };
 
   const openDatePicker = () => {
@@ -386,53 +528,37 @@ export default function DokumentyScreen() {
   };
 
   const getDocSignedUrl = useCallback(async (doc: DbDoc) => {
-    const path = doc.plik_url;
-    if (path.startsWith('http')) return path;
+    const path = normalizeStoragePath(doc.plik_url);
+    if (!path) return null;
+    if (/^https?:\/\//i.test(path)) return path;
 
     const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(path, 60 * 60);
     if (error) throw error;
     return data?.signedUrl || null;
   }, []);
 
-  const openDocExternally = useCallback(
-    async (doc: DbDoc) => {
-      try {
-        const url = await getDocSignedUrl(doc);
-        if (!url) throw new Error('NO_DOCUMENT_URL');
-
-        if (Platform.OS === 'ios' && /^https?:\/\//i.test(url)) {
-          await WebBrowser.openBrowserAsync(url, {
-            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-          });
-          return;
-        }
-
-        const canOpen = await Linking.canOpenURL(url);
-        if (!canOpen) throw new Error('CANNOT_OPEN_DOCUMENT_URL');
-        await Linking.openURL(url);
-      } catch (e: any) {
-        console.error('BĹ‚Ä…d otwierania dokumentu:', e);
-        Alert.alert(
-          tt('common:errorTitle'),
-          tt('documents:alerts.openError'),
-        );
-      }
-    },
-    [getDocSignedUrl, tt],
-  );
-
   const openPreview = async (doc: DbDoc) => {
     try {
+      clearPreviewFallbackTimer();
       setPreviewDoc(doc);
       setPreviewVisible(true);
       setPreviewLoading(true);
       setPreviewUrl(null);
+      setPreviewImageFailed(false);
       setPreviewWebFailed(false);
 
       const kind = getPreviewKind(doc.plik_url);
       if (kind === 'image' || kind === 'pdf') {
         const url = await getDocSignedUrl(doc);
         setPreviewUrl(url);
+        previewFallbackTimerRef.current = setTimeout(() => {
+          if (kind === 'image') {
+            setPreviewImageFailed(true);
+          } else {
+            setPreviewWebFailed(true);
+          }
+          setPreviewLoading(false);
+        }, 4500);
       }
     } catch (e: any) {
       console.error('BĹ‚Ä…d preview dokumentu:', e);
@@ -443,16 +569,19 @@ export default function DokumentyScreen() {
       setPreviewVisible(false);
       setPreviewDoc(null);
       setPreviewUrl(null);
+      setPreviewImageFailed(false);
     } finally {
       setPreviewLoading(false);
     }
   };
 
   const closePreview = () => {
+    clearPreviewFallbackTimer();
     setPreviewVisible(false);
     setPreviewDoc(null);
     setPreviewUrl(null);
     setPreviewLoading(false);
+    setPreviewImageFailed(false);
     setPreviewWebFailed(false);
   };
 
@@ -554,6 +683,12 @@ export default function DokumentyScreen() {
       const userId = await getUserId();
       if (!userId) throw new Error('NO_USER');
 
+      const access = buildAccess ?? (await fetchCurrentBuildAccess(userId));
+      if (access && !buildAccess) {
+        setBuildAccess(access);
+      }
+      const scopeInvestmentId = access?.investmentId ?? null;
+
       const ext = (() => {
         const parts = (file.name || '').split('.');
         return parts.length > 1 ? parts.pop()!.toLowerCase() : '';
@@ -561,18 +696,31 @@ export default function DokumentyScreen() {
 
       const filePath = `dokumenty/${userId}/${Date.now()}-${randomFileToken()}${ext ? '.' + ext : ''}`;
 
-      const blob = await (await fetch(file.uri)).blob();
-      if (!blob || blob.size <= 0) {
+      const fileBytes = await readPickedFileAsArrayBuffer(file);
+      if (!fileBytes || fileBytes.byteLength <= 0) {
         throw new Error(tt('documents:alerts.emptyFile'));
       }
-      if (blob.size > MAX_DOCUMENT_UPLOAD_BYTES) {
+      if (fileBytes.byteLength > MAX_DOCUMENT_UPLOAD_BYTES) {
         throw new Error(tt('documents:alerts.fileTooLarge'));
       }
 
-      const { error: upErr } = await supabase.storage.from(bucketName).upload(filePath, blob, {
+      const { error: upErr } = await supabase.storage.from(bucketName).upload(filePath, fileBytes, {
         contentType: getUploadContentType(file),
         upsert: false});
       if (upErr) throw upErr;
+
+      const lastSlash = filePath.lastIndexOf('/');
+      const storageFolder = lastSlash >= 0 ? filePath.slice(0, lastSlash) : '';
+      const storageName = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath;
+      const uploadedList = await supabase.storage
+        .from(bucketName)
+        .list(storageFolder, { limit: 1, search: storageName });
+      const uploadedObject = uploadedList.data?.find((item) => item.name === storageName);
+      const uploadedSize = Number((uploadedObject?.metadata as any)?.size ?? NaN);
+      if (Number.isFinite(uploadedSize) && uploadedSize <= 0) {
+        await supabase.storage.from(bucketName).remove([filePath]);
+        throw new Error(tt('documents:alerts.emptyFile'));
+      }
 
       const finalTitle =
         title.trim() ||
@@ -580,14 +728,20 @@ export default function DokumentyScreen() {
           ? file.name.replace(/\.[^/.]+$/, '')
           : `${getTypeLabel(selectedTypeForUpload)} â€˘ ${Date.now()}`);
 
-      const { error } = await supabase.from('dokumenty').insert({
+      const payload = {
         user_id: userId,
-        ...(buildAccess?.investmentId ? { investment_id: buildAccess.investmentId } : {}),
+        ...(scopeInvestmentId ? { investment_id: scopeInvestmentId } : {}),
         tytul: finalTitle,
         notatki: desc.trim() ? desc.trim() : null,
         kategoria: selectedTypeForUpload,
         document_date: documentDate ? toISODate(documentDate) : null,
-        plik_url: filePath});
+        plik_url: filePath};
+
+      const { data: inserted, error } = await supabase
+        .from('dokumenty')
+        .insert(payload)
+        .select('id,user_id,investment_id,tytul,notatki,kategoria,document_date,created_at,plik_url')
+        .single();
 
       if (error) {
         const { error: rollbackError } = await supabase.storage.from(bucketName).remove([filePath]);
@@ -599,6 +753,9 @@ export default function DokumentyScreen() {
 
       setAddModalVisible(false);
       resetAddForm();
+      if (inserted) {
+        setDocs((prev) => [inserted as DbDoc, ...prev.filter((doc) => doc.id !== inserted.id)]);
+      }
       onRefresh();
     } catch (e: any) {
       console.error('BĹ‚Ä…d dodawania dokumentu:', e);
@@ -617,10 +774,17 @@ export default function DokumentyScreen() {
         <Ionicons name="document-text-outline" size={64} color="rgba(255,255,255,0.25)" />
         <Text style={styles.emptyTitle}>{tt('documents:empty.title')}</Text>
         <Text style={styles.emptySubtitle}>{tt('documents:empty.subtitle')}</Text>
-        <TouchableOpacity style={styles.emptyButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.emptyButton} onPress={openAddDocumentModal} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color={COLORS.bg} />
           <Text style={styles.emptyButtonText}>{tt('documents:empty.cta')}</Text>
         </TouchableOpacity>
+        {docs.length === 0 && missingSuggestedDocuments.length > 0 ? (
+          <TouchableOpacity style={styles.suggestedLinkButton} onPress={openSuggestedDocumentsSheet} activeOpacity={0.85}>
+            <Text style={styles.suggestedLinkText}>
+              {tt('documents:empty.suggestedLink', { count: missingSuggestedDocuments.length })}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </BlurView>
     </View>
   );
@@ -852,6 +1016,19 @@ export default function DokumentyScreen() {
         </View>
       </View>
 
+      {docs.length > 0 && missingSuggestedDocuments.length > 0 ? (
+        <TouchableOpacity
+          style={styles.missingBannerButton}
+          activeOpacity={0.85}
+          onPress={openSuggestedDocumentsSheet}
+        >
+          <Text style={styles.missingBannerText}>
+            {tt('documents:missingBanner', { count: missingSuggestedDocuments.length })}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.brand} />
+        </TouchableOpacity>
+      ) : null}
+
       {filteredDocs.length === 0 ? (
         renderEmptyState()
       ) : viewMode === 'grid' ? (
@@ -876,7 +1053,7 @@ export default function DokumentyScreen() {
         />
       )}
 
-      <FloatingAddButton onPress={() => setAddModalVisible(true)} />
+      <FloatingAddButton onPress={openAddDocumentModal} />
 
       <Modal visible={previewVisible} transparent animationType="fade" onRequestClose={closePreview}>
         <View style={styles.previewOverlay}>
@@ -888,14 +1065,6 @@ export default function DokumentyScreen() {
             <Text style={styles.previewTitleTop} numberOfLines={1}>
               {previewDoc?.tytul || ''}
             </Text>
-
-            <TouchableOpacity
-              style={styles.previewIconButton}
-              onPress={() => previewDoc && openDocExternally(previewDoc)}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="open-outline" size={20} color={COLORS.brand} />
-            </TouchableOpacity>
           </View>
 
           <View style={styles.previewBody}>
@@ -903,8 +1072,14 @@ export default function DokumentyScreen() {
               <View style={styles.previewLoadingWrap}>
                 <ActivityIndicator size="large" color={COLORS.brand} />
               </View>
-            ) : previewKind === 'image' && previewUrl ? (
-              <Image source={{ uri: previewUrl }} style={styles.previewImage} contentFit="contain" />
+            ) : previewKind === 'image' && previewUrl && !previewImageFailed ? (
+              <Image
+                source={{ uri: previewUrl }}
+                style={styles.previewImage}
+                contentFit="contain"
+                onLoadEnd={clearPreviewFallbackTimer}
+                onError={() => setPreviewImageFailed(true)}
+              />
             ) : previewKind === 'pdf' && previewUrl && Platform.OS === 'ios' && !previewWebFailed ? (
               <View style={styles.previewPdfWrap}>
                 <WebView
@@ -918,6 +1093,7 @@ export default function DokumentyScreen() {
                       <ActivityIndicator size="large" color={COLORS.brand} />
                     </View>
                   )}
+                  onLoadEnd={clearPreviewFallbackTimer}
                   onError={() => setPreviewWebFailed(true)}
                   onHttpError={() => setPreviewWebFailed(true)}
                 />
@@ -951,16 +1127,6 @@ export default function DokumentyScreen() {
                     : tt('documents:preview.fileInfo')}
                 </Text>
 
-                <TouchableOpacity
-                  style={styles.previewOpenButton}
-                  onPress={() => previewDoc && openDocExternally(previewDoc)}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="open-outline" size={18} color={THEME_COLORS.neon} />
-                  <Text style={styles.previewOpenButtonText}>
-                    {previewKind === 'pdf' ? tt('documents:preview.openPdf') : tt('documents:preview.openFile')}
-                  </Text>
-                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -1137,6 +1303,47 @@ export default function DokumentyScreen() {
             </Pressable>
           </KeyboardAvoidingView>
         </Pressable>
+      </Modal>
+
+      <Modal
+        visible={suggestionsSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSuggestionsSheetVisible(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSuggestionsSheetVisible(false)} />
+          <View style={styles.sheetPanel}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{tt('documents:suggestedSheet.title')}</Text>
+              <TouchableOpacity
+                style={styles.sheetCloseButton}
+                onPress={() => setSuggestionsSheetVisible(false)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="close" size={18} color="rgba(255,255,255,0.68)" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.sheetSubtitle}>{tt('documents:suggestedSheet.subtitle')}</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetList}>
+              {missingSuggestedDocuments.map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={styles.sheetItem}
+                  activeOpacity={0.85}
+                  onPress={() => openSuggestedDocument(item)}
+                >
+                  <Text style={styles.sheetItemText} numberOfLines={1}>
+                    {item.label}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.45)" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -1439,12 +1646,121 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.38)'},
   emptyButtonText: { fontSize: 14, fontWeight: '900', color: THEME_COLORS.neon, letterSpacing: 0.5 },
+  suggestedLinkButton: {
+    marginTop: 12,
+    alignSelf: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  suggestedLinkText: {
+    color: COLORS.brand,
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  missingBannerButton: {
+    marginHorizontal: 18,
+    marginTop: 2,
+    marginBottom: 8,
+    minHeight: 36,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    backgroundColor: 'rgba(25,112,92,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(25,112,92,0.32)',
+  },
+  missingBannerText: {
+    flex: 1,
+    color: COLORS.brand,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  sheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.56)',
+  },
+  sheetPanel: {
+    maxHeight: '72%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: '#050B0A',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(37,240,200,0.18)',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 18,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 42,
+    height: 4,
+    borderRadius: 99,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    marginBottom: 14,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  sheetTitle: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  sheetCloseButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  sheetSubtitle: {
+    marginTop: 8,
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  sheetList: {
+    paddingTop: 14,
+    paddingBottom: 4,
+    gap: 8,
+  },
+  sheetItem: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sheetItemText: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
 
   previewOverlay: { flex: 1, backgroundColor: '#000000' },
   previewTopBar: {
-    paddingTop: (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 6,
+    paddingTop: (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 18,
     paddingHorizontal: 14,
-    paddingBottom: 10,
+    paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -1454,31 +1770,37 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
+    marginTop: 8,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center',
     justifyContent: 'center'},
   previewTitleTop: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '900' },
-  previewBody: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18 },
-  previewLoadingWrap: { alignItems: 'center', justifyContent: 'center' },
+  previewBody: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18, backgroundColor: '#000000' },
+  previewLoadingWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+  },
   previewImage: { width: '100%', height: SCREEN_HEIGHT * 0.72, borderRadius: 20 },
   previewPdfWrap: {
     flex: 1,
     alignSelf: 'stretch',
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#111827',
+    backgroundColor: '#000000',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)'},
   previewPdf: {
     flex: 1,
-    backgroundColor: '#111827'},
+    backgroundColor: '#000000'},
   previewWebLoading: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#111827'},
+    backgroundColor: '#000000'},
   previewFallbackCard: {
     width: '100%',
     maxWidth: 460,
@@ -1522,19 +1844,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     textAlign: 'center'},
-  previewOpenButton: {
-    marginTop: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 13,
-    borderRadius: 16,
-    backgroundColor: 'rgba(37,240,200,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.38)'},
-  previewOpenButtonText: { color: THEME_COLORS.neon, fontWeight: '900', fontSize: 14 },
-
   modalBlackOverlay: {
     flex: 1,
     backgroundColor: '#000000',

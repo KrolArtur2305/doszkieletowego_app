@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Linking,
   Modal,
   Platform,
   RefreshControl,
@@ -15,15 +16,17 @@ import {
 import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
-import { Feather } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { supabase } from '../../../../lib/supabase';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { formatAppCurrency, useCurrency } from '../../../../lib/currency';
-import { getAppLocale } from '../../../../lib/i18n';
+import { getAppLocale, normalizeAppLanguage } from '../../../../lib/i18n';
 import {
   getBudgetCategoryLabel} from '../../../../lib/localizedLabels';
 import {
@@ -57,6 +60,22 @@ import { getSuggestionDisplayName } from '../../../../lib/suggestionLabels';
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppCard, AppInput, AppScreen } from '../../../../src/ui/components';
+import { BudgetScanFab } from '../../../../src/features/budgetScanner/BudgetScanFab';
+import { BudgetScanDraftModal } from '../../../../src/features/budgetScanner/BudgetScanDraftModal';
+import {
+  BUDGET_SCAN_MAX_ITEMS,
+  createManualBudgetScanDraft,
+  type BudgetScanDraft,
+  type BudgetScanDraftItem,
+  type BudgetScanStageRef,
+} from '../../../../src/features/budgetScanner/draftTypes';
+import {
+  BUDGET_SCANNER_AI_ENABLED,
+  BUDGET_SCANNER_ENTRY_ENABLED,
+} from '../../../../src/features/budgetScanner/launchMode';
+import { optimizeBudgetScanImage } from '../../../../src/features/budgetScanner/scannerImage';
+import { runBudgetScanOcr } from '../../../../src/features/budgetScanner/scanOcr';
+import type { BudgetScanFile } from '../../../../src/features/budgetScanner/types';
 import { colors, spacing, typography } from '../../../../src/ui/theme';
 import { RADIUS } from '../../../../theme';
 
@@ -255,9 +274,14 @@ export default function BudzetScreen() {
     () => getAppLocale(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage],
   );
+  const appLanguage = useMemo(
+    () => normalizeAppLanguage(i18n.resolvedLanguage || i18n.language),
+    [i18n.language, i18n.resolvedLanguage],
+  );
 
   const scrollRef = useRef<ScrollView>(null);
   const openedFromParamRef = useRef(false);
+  const activeScanDraftIdRef = useRef<string | null>(null);
   const topPad = 0;
 
   const [loading, setLoading] = useState(true);
@@ -300,6 +324,7 @@ export default function BudzetScreen() {
   const [fOpis, setFOpis] = useState('');
   const [fSklep, setFSklep] = useState('');
   const [picked, setPicked] = useState<PickedFile | null>(null);
+  const [scanDraft, setScanDraft] = useState<BudgetScanDraft | null>(null);
   const [fAttachmentKind, setFAttachmentKind] = useState<ReceiptDocKind>('paragon');
   const [receiptKindByPath, setReceiptKindByPath] = useState<Record<string, ReceiptDocKind>>({});
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
@@ -376,6 +401,42 @@ export default function BudzetScreen() {
     );
     return selected?.label ?? t('modal.noStage');
   }, [fEtapId, fStageKey, modalStageOptions, stageGroupOptions.length, t]);
+
+  const defaultCurrentStageOption = useMemo(() => {
+    const normalizedCurrentStageCode = String(currentStageCode ?? '').trim().toUpperCase();
+    return (
+      (normalizedCurrentStageCode
+        ? modalStageOptions.find((option) => String(option.stageCode ?? '').trim().toUpperCase() === normalizedCurrentStageCode)
+        : null) ??
+      (activeStageId
+        ? modalStageOptions.find((option) => option.legacyId === activeStageId)
+        : null) ??
+      modalStageOptions[0] ??
+      null
+    );
+  }, [activeStageId, currentStageCode, modalStageOptions]);
+
+  const defaultCurrentScanStage = useMemo(() => {
+    if (!defaultCurrentStageOption) return null;
+    return {
+      key: defaultCurrentStageOption.key ?? null,
+      legacyId: defaultCurrentStageOption.legacyId ?? null,
+      stageCode: defaultCurrentStageOption.stageCode ?? null,
+      stageGroupCode: defaultCurrentStageOption.stageGroupCode ?? null,
+      label: defaultCurrentStageOption.label,
+    };
+  }, [defaultCurrentStageOption]);
+
+  const scanStageOptions = useMemo<BudgetScanStageRef[]>(
+    () => modalStageOptions.map((option) => ({
+      key: option.key ?? null,
+      legacyId: option.legacyId ?? null,
+      stageCode: option.stageCode ?? null,
+      stageGroupCode: option.stageGroupCode ?? null,
+      label: option.label,
+    })),
+    [modalStageOptions],
+  );
 
   const plannedExpenses = useMemo(
     () => wydatki.filter((w) => normalizeExpenseStatus(w.status) === STATUS_PLANNED),
@@ -673,27 +734,52 @@ export default function BudzetScreen() {
     setPicked(nextPicked);
   };
 
-  const uploadOptionalFile = async (ownerId: string): Promise<UploadedReceiptFile | null> => {
-    if (!picked) return null;
-    if (typeof picked.size === 'number' && picked.size <= 0) throw new Error(t('errors.emptyFile'));
-    if (typeof picked.size === 'number' && picked.size > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge'));
-    if (!isAllowedReceiptFile(picked)) throw new Error(t('errors.invalidFileType'));
-    const safeName = (picked.name || 'plik').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const uploadReceiptFile = async (ownerId: string, file: PickedFile | BudgetScanFile): Promise<UploadedReceiptFile> => {
+    if (typeof file.size === 'number' && file.size <= 0) throw new Error(t('errors.emptyFile'));
+    if (typeof file.size === 'number' && file.size > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge'));
+    if (!isAllowedReceiptFile(file)) throw new Error(t('errors.invalidFileType'));
+    const safeName = (file.name || 'plik').replace(/[^a-zA-Z0-9._-]/g, '_');
     const stamp = Date.now();
     const receiptPath = `${ownerId}/wydatki/${stamp}_${safeName}`;
     const documentPath = `dokumenty/${ownerId}/wydatki/${stamp}_${safeName}`;
-    const ab = await uriToArrayBuffer(picked.uri, t('errors.readFileFailed'));
+    const ab = await uriToArrayBuffer(file.uri, t('errors.readFileFailed'));
     if (!ab || ab.byteLength <= 0) throw new Error(t('errors.emptyFile'));
     if (ab.byteLength > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge'));
-    const up = await supabase.storage.from(RECEIPT_BUCKET).upload(receiptPath, ab, { contentType: picked.mimeType, upsert: false });
+    const up = await supabase.storage.from(RECEIPT_BUCKET).upload(receiptPath, ab, { contentType: file.mimeType, upsert: false });
     if (up.error) throw up.error;
-    const docCopy = await supabase.storage.from(DOCUMENT_RECEIPT_BUCKET).upload(documentPath, ab, { contentType: picked.mimeType, upsert: false });
+    const docCopy = await supabase.storage.from(DOCUMENT_RECEIPT_BUCKET).upload(documentPath, ab, { contentType: file.mimeType, upsert: false });
     if (docCopy.error) {
       await removeReceiptFileEverywhere(receiptPath, documentPath);
       throw docCopy.error;
     }
     return { receiptPath, documentPath };
   };
+
+  const uploadOptionalFile = async (ownerId: string): Promise<UploadedReceiptFile | null> => {
+    if (!picked) return null;
+    return uploadReceiptFile(ownerId, picked);
+  };
+
+  const openReceipt = useCallback(async (storageKey: string) => {
+    for (const bucket of [RECEIPT_BUCKET, DOCUMENT_RECEIPT_BUCKET] as const) {
+      const normalizedKey = String(storageKey || '').trim().replace(/^\/+/, '').split('?')[0].split('#')[0];
+      const signed = await supabase.storage.from(bucket).createSignedUrl(normalizedKey, 60 * 60);
+      if (signed.error || !signed.data?.signedUrl) continue;
+      try {
+        if (Platform.OS === 'ios') {
+          await WebBrowser.openBrowserAsync(signed.data.signedUrl, {
+            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+          });
+        } else {
+          await Linking.openURL(signed.data.signedUrl);
+        }
+      } catch {
+        await WebBrowser.openBrowserAsync(signed.data.signedUrl);
+      }
+      return;
+    }
+    Alert.alert(t('errorTitle'), t('errors.openReceiptFailed'));
+  }, [t]);
 
   const removeReceiptFileEverywhere = useCallback(async (receiptPath: string, documentPath = receiptPath) => {
     const targets: Array<{ bucket: typeof RECEIPT_BUCKETS[number]; path: string }> = [
@@ -865,7 +951,7 @@ export default function BudzetScreen() {
 
       setFNazwa(''); setFKategoria('other'); setFKwota('');
       setFStatus(STATUS_PAID); setFTyp(TYPE_MATERIAL); setFData(''); setFPlanowanaData(''); setFEtapId(null); setFSuggestionKey(null); setFOpis('');
-      setFSklep(''); setPicked(null); setEditingExpense(null);
+      setFSklep(''); setPicked(null); setEditingExpense(null); setScanDraft(null); activeScanDraftIdRef.current = null;
       setFAttachmentKind('paragon');
       setFStageKey(null);
       setStageMenuOpen(false);
@@ -873,6 +959,132 @@ export default function BudzetScreen() {
       await loadBudget();
     } catch (e: any) {
       Alert.alert(t('errorTitle'), t('errors.saveFailed'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveScanDraftExpenses = async (items: BudgetScanDraftItem[]) => {
+    if (saving || !userId || !scanDraft) return;
+
+    if (items.length > BUDGET_SCAN_MAX_ITEMS) {
+      Alert.alert(t('errorTitle'), t('scanner.tooManyItems', { count: BUDGET_SCAN_MAX_ITEMS }));
+      return;
+    }
+
+    const selectedItems = items.filter((item) => item.selected !== false);
+
+    const validItems = selectedItems
+      .map((item) => ({
+        ...item,
+        name: item.name.trim(),
+        total: safeNumber(item.total),
+      }))
+      .filter((item) => item.name && item.total > 0);
+
+    const hasInvalidPartialItem = selectedItems.some((item) => {
+      const hasAnyValue =
+        !!item.name.trim() ||
+        safeNumber(item.total) > 0 ||
+        !!item.description?.trim() ||
+        !!item.store?.trim() ||
+        !!item.date?.trim();
+      const isValid = !!item.name.trim() && safeNumber(item.total) > 0;
+      return hasAnyValue && !isValid;
+    });
+
+    if (hasInvalidPartialItem) {
+      Alert.alert(t('errorTitle'), t('scanner.invalidItems'));
+      return;
+    }
+
+    if (validItems.length === 0) {
+      Alert.alert(t('errorTitle'), t('scanner.noValidItems'));
+      return;
+    }
+
+    setSaving(true);
+    let uploadedReceipt: UploadedReceiptFile | null = null;
+    try {
+      const authUserRes = await supabase.auth.getUser();
+      const authUser = authUserRes.data.user ?? null;
+      const ownerId = authUser?.id ?? null;
+      if (authUserRes.error || !ownerId) {
+        throw new Error(t('errors.authRequired'));
+      }
+
+      const investmentId = buildAccess?.investmentId ?? null;
+      uploadedReceipt = await uploadReceiptFile(ownerId, scanDraft.file);
+      const today = toYYYYMMDD(new Date());
+
+      const expensePayloads = validItems.map((item) => {
+        const expenseCategoryCode = item.categoryCode ?? 'other';
+        const expenseCategoryLegacy = expenseCategoryCodeToLegacyLabel(expenseCategoryCode);
+        const expenseType = normalizeExpenseTypeCode(item.expenseType);
+        const noteParts = [
+          item.description?.trim() ?? '',
+          item.store?.trim() ?? '',
+          item.sourceText ?? '',
+        ].filter(Boolean);
+        const selectedDate = item.date?.trim() || today;
+        const normalizedStatus = item.status === STATUS_PLANNED ? STATUS_PLANNED : STATUS_PAID;
+
+        return {
+          user_id: ownerId,
+          ...(investmentId ? { investment_id: investmentId } : {}),
+          nazwa: item.name,
+          kategoria: expenseCategoryLegacy,
+          expense_category_code: expenseCategoryCode,
+          kwota: item.total,
+          status: normalizedStatus,
+          data: normalizedStatus === STATUS_PLANNED ? null : selectedDate,
+          typ: expenseType,
+          expense_type: expenseType,
+          etap_id: item.stage?.legacyId ?? null,
+          stage_group_code: item.stage?.stageGroupCode ?? null,
+          stage_code: item.stage?.stageCode ?? null,
+          suggestion_key: null,
+          planowana_data: normalizedStatus === STATUS_PLANNED ? selectedDate : null,
+          opis: noteParts.join(' | ') || null,
+          sklep: scanDraft.supplierName,
+          plik: uploadedReceipt!.receiptPath,
+        };
+      });
+
+      const { error: insertError } = await supabase.from('wydatki').insert(expensePayloads);
+      if (insertError) {
+        await removeReceiptFileEverywhere(uploadedReceipt.receiptPath, uploadedReceipt.documentPath);
+        uploadedReceipt = null;
+        throw insertError;
+      }
+
+      try {
+        await syncLinkedReceiptDocument({
+          userIdValue: ownerId,
+          investmentIdValue: investmentId,
+          filePath: uploadedReceipt.documentPath,
+          title: t('scanner.scannedInvoiceTitle', { date: today }),
+          note: t('scanner.scannedInvoiceNote', { count: validItems.length }),
+          kind: 'faktura',
+        });
+      } catch (docError: any) {
+        console.warn('[BudgetScanner] document sync failed:', docError?.message || docError);
+        Alert.alert(t('errorTitle'), t('errors.documentSyncFailed'));
+      }
+
+      setScanDraft(null);
+      activeScanDraftIdRef.current = null;
+      setPicked(null);
+      setAddOpen(false);
+      setStageMenuOpen(false);
+      await loadBudget();
+      Alert.alert(t('scanner.savedTitle'), t('scanner.savedMessage', { count: validItems.length }));
+    } catch (error: any) {
+      if (uploadedReceipt) {
+        await removeReceiptFileEverywhere(uploadedReceipt.receiptPath, uploadedReceipt.documentPath);
+      }
+      console.warn('[BudgetScanner] save draft failed:', error?.message ?? error);
+      Alert.alert(t('errorTitle'), t('scanner.saveDraftFailed'));
     } finally {
       setSaving(false);
     }
@@ -900,8 +1112,108 @@ export default function BudzetScreen() {
     setFOpis('');
     setFSklep('');
     setPicked(null);
+    setScanDraft(null);
+    activeScanDraftIdRef.current = null;
     setFAttachmentKind('paragon');
     setAddOpen(true);
+  };
+
+  const openBudgetScanner = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(t('errorTitle'), t('scanner.cameraPermissionDenied'));
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.88,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+
+      const optimizedScan = await optimizeBudgetScanImage(asset);
+      if (!optimizedScan) return;
+
+      const nextDraft = createManualBudgetScanDraft({
+        file: optimizedScan,
+        defaultStage: defaultCurrentScanStage,
+      });
+      activeScanDraftIdRef.current = nextDraft.id;
+      if (!BUDGET_SCANNER_AI_ENABLED) {
+        setScanDraft(nextDraft);
+        return;
+      }
+
+      setScanDraft({ ...nextDraft, status: 'processing', errorMessage: null });
+      try {
+        const ocrResult = await runBudgetScanOcr(optimizedScan, appLanguage);
+        if (activeScanDraftIdRef.current !== nextDraft.id) return;
+
+        const today = toYYYYMMDD(new Date());
+        const ocrItems = ocrResult.items.map((item) => ({
+          id: `scan_item_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          name: item.name.trim(),
+          total: item.amount ?? 0,
+          currency: ocrResult.currency,
+          date: ocrResult.documentDate ?? today,
+          status: STATUS_PAID as typeof STATUS_PAID,
+          expenseType: TYPE_MATERIAL as typeof TYPE_MATERIAL,
+          categoryCode: 'other' as const,
+          stage: defaultCurrentScanStage,
+          description: item.rawText,
+          store: ocrResult.supplierName,
+          confidence: item.confidence,
+          selected: true,
+          sourceText: item.rawText,
+        }));
+
+        setScanDraft({
+          ...nextDraft,
+          status: 'ready',
+          validation: {
+            documentDetected: ocrResult.documentType !== 'unknown',
+            documentType: ocrResult.documentType,
+            readable: ocrResult.readable,
+            confidence: ocrResult.confidence,
+            issues: [],
+            message: ocrResult.message ?? null,
+          },
+          supplierName: ocrResult.supplierName,
+          documentNumber: ocrResult.documentNumber,
+          documentDate: ocrResult.documentDate,
+          totalAmount: ocrResult.totalAmount,
+          currency: ocrResult.currency,
+          items: ocrItems,
+          rawText: ocrResult.rawText,
+          errorMessage: null,
+        });
+      } catch (ocrError: any) {
+        if (activeScanDraftIdRef.current !== nextDraft.id) return;
+        console.warn('[BudgetScanner] OCR failed:', ocrError?.message ?? ocrError);
+        setScanDraft({
+          ...nextDraft,
+          status: 'error',
+          errorMessage: getFriendlyErrorMessage(ocrError, t, 'scanner.ocrFailed'),
+        });
+      }
+    } catch (error: any) {
+      console.warn('[BudgetScanner] camera open failed:', error?.message ?? error);
+      Alert.alert(t('errorTitle'), t('scanner.cameraOpenFailed'));
+    }
+  };
+
+  const closeExpenseModal = () => {
+    setStageMenuOpen(false);
+    setAddOpen(false);
+    setEditingExpense(null);
+    setScanDraft(null);
+    activeScanDraftIdRef.current = null;
   };
 
   useEffect(() => {
@@ -932,6 +1244,8 @@ export default function BudzetScreen() {
     setFOpis(expense.opis || '');
     setFSklep(expense.sklep || '');
     setPicked(null);
+    setScanDraft(null);
+    activeScanDraftIdRef.current = null;
     setFAttachmentKind(expense.plik ? (receiptKindByPath[expense.plik] ?? 'paragon') : 'paragon');
     setAddOpen(true);
   };
@@ -1017,6 +1331,8 @@ export default function BudzetScreen() {
     setFOpis('');
     setFSklep('');
     setPicked(null);
+    setScanDraft(null);
+    activeScanDraftIdRef.current = null;
     setAddOpen(true);
   }, [activeStageId, stageGroupOptions, suggestionName]);
 
@@ -1311,6 +1627,12 @@ export default function BudzetScreen() {
             <Pressable onPress={Keyboard.dismiss}>
             <AppCard contentStyle={styles.modalCard} style={styles.modalCardOuter} withShadow={false}>
               <Text style={styles.modalTitle}>{editingExpense ? t('modal.editTitle') : t('modal.title')}</Text>
+              {scanDraft ? (
+                <View style={styles.scanDraftBadge}>
+                  <MaterialCommunityIcons name="scanner" size={14} color={NEON} />
+                  <Text style={styles.scanDraftBadgeText}>{t('scanner.manualDraftBadge')}</Text>
+                </View>
+              ) : null}
 
               <Text style={styles.lbl}>{t('modal.nameLabel')}</Text>
               <AppInput value={fNazwa} onChangeText={setFNazwa} style={[styles.input, styles.compactInput]} placeholder={t('modal.namePlaceholder')} />
@@ -1462,8 +1784,15 @@ export default function BudzetScreen() {
                 </Text>
               </TouchableOpacity>
 
+              {editingExpense?.plik ? (
+                <TouchableOpacity style={styles.previewReceiptBtn} onPress={() => openReceipt(editingExpense.plik!)} activeOpacity={0.85}>
+                  <Text style={styles.previewReceiptText}>{t('expense.receiptLink')}</Text>
+                  <Feather name="external-link" size={14} color={NEON} />
+                </TouchableOpacity>
+              ) : null}
+
               <View style={styles.modalActions}>
-                <AppButton title={t('common.cancel')} variant="secondary" onPress={() => { setStageMenuOpen(false); setAddOpen(false); setEditingExpense(null); }} disabled={saving} style={styles.modalBtn} />
+                <AppButton title={t('common.cancel')} variant="secondary" onPress={closeExpenseModal} disabled={saving} style={styles.modalBtn} />
                 <AppButton title={saving ? t('common.saving') : t('common.save')} onPress={saveExpense} disabled={saving} style={styles.modalBtn} />
               </View>
             </AppCard>
@@ -1471,10 +1800,47 @@ export default function BudzetScreen() {
           </View>
         </Modal>
 
+        <BudgetScanDraftModal
+          draft={scanDraft}
+          stageOptions={scanStageOptions}
+          saving={saving}
+          labels={{
+            title: t('scanner.draftTitle'),
+            emptyTitle: t('scanner.draftEmptyTitle'),
+            emptyHint: t('scanner.draftEmptyHint'),
+            processingTitle: t('scanner.processingTitle'),
+            processingHint: t('scanner.processingHint'),
+            addItem: t('scanner.addItem'),
+            itemName: t('scanner.itemName'),
+            itemNamePlaceholder: t('scanner.itemNamePlaceholder'),
+            amount: t('scanner.amount'),
+            amountPlaceholder: t('scanner.amountPlaceholder'),
+            stage: t('scanner.stage'),
+            noStage: t('modal.noStage'),
+            selected: t('common.ok'),
+            remove: t('scanner.removeItem'),
+            maxItemsReached: t('scanner.maxItemsReached', { count: BUDGET_SCAN_MAX_ITEMS }),
+            cancel: t('scanner.cancel'),
+            save: t('scanner.saveExpenses'),
+            saving: t('scanner.savingExpenses'),
+          }}
+          onCancel={() => {
+            activeScanDraftIdRef.current = null;
+            setScanDraft(null);
+          }}
+          onSave={saveScanDraftExpenses}
+        />
+
         <View style={{ height: 26 }} />
       </ScrollView>
 
       {/* FAB — przyklejony na dole po prawej, zawsze widoczny */}
+      {BUDGET_SCANNER_ENTRY_ENABLED ? (
+        <BudgetScanFab
+          onPress={openBudgetScanner}
+          accessibilityLabel={t('scanner.accessibilityLabel')}
+        />
+      ) : null}
       <FloatingAddButton onPress={openAddExpense} style={styles.budgetFab} />
     </AppScreen>
   );
@@ -1796,6 +2162,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -6 },
     elevation: 10},
   modalTitle: { color: NEON, fontWeight: '900', fontSize: 16, marginBottom: 8, textAlign: 'center' },
+  scanDraftBadge: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    backgroundColor: 'rgba(37,240,200,0.08)'},
+  scanDraftBadgeText: {
+    color: 'rgba(220,255,245,0.90)',
+    fontSize: 11,
+    fontWeight: '900'},
   lbl: { color: '#94A3B8', fontSize: 11, marginTop: 6, marginBottom: 4, fontWeight: '800' },
   input: {},
   compactInput: {
@@ -1964,6 +2346,21 @@ const styles = StyleSheet.create({
     fontSize: 12},
   receiptKindChipTextOn: {
     color: NEON},
+  previewReceiptBtn: {
+    marginTop: 8,
+    minHeight: 40,
+    borderRadius: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  previewReceiptText: { color: NEON, fontWeight: '900', fontSize: 12 },
   modalActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   modalBtn: { flex: 1 },
   budgetFab: { bottom: 28 }});

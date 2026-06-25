@@ -25,6 +25,7 @@
       },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "BuildIQ needs photo library access so you can add construction photos and project images.",
+        "NSCameraUsageDescription": "BuildIQ needs camera access so you can scan invoices and receipts.",
         "UIBackgroundModes": [
           "remote-notification"
         ],
@@ -34,6 +35,9 @@
     "android": {
       "versionCode": 2,
       "package": "com.buildiq.app",
+      "permissions": [
+        "CAMERA"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo-square.png",
         "backgroundColor": "#000000"
