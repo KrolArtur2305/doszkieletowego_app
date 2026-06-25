@@ -1,4 +1,5 @@
 import * as ImageManipulator from 'expo-image-manipulator';
+import { File } from 'expo-file-system';
 import type { ImagePickerAsset } from 'expo-image-picker';
 
 import type { BudgetScanFile } from './types';
@@ -8,9 +9,8 @@ const SCANNED_RECEIPT_JPEG_QUALITY = 0.86;
 
 async function getLocalFileSize(uri: string): Promise<number | undefined> {
   try {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    return blob.size;
+    const file = new File(uri);
+    return file.exists && typeof file.size === 'number' ? file.size : undefined;
   } catch {
     return undefined;
   }

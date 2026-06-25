@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +28,12 @@ import {
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { AppHeader } from '../../../../src/ui/components';
+import { BuildGuidesCarousel } from '../../../../src/features/guides/BuildGuidesCarousel';
+import {
+  BUILD_GUIDES,
+  selectBuildGuidesForStage,
+  type BuildGuide,
+} from '../../../../src/features/guides/buildGuides';
 import { colors } from '../../../../src/ui/theme';
 
 type ProfileRow = {
@@ -199,6 +206,16 @@ export default function PostepyScreen() {
   }, [profile?.build_type, profile?.current_stage_code, templates, t, userStages]);
 
   const onOpenAll = () => router.push('/(app)/(tabs)/postepy/wszystkie');
+  const selectedGuides = useMemo(
+    () => selectBuildGuidesForStage(BUILD_GUIDES, viewModel.currentGroupCode),
+    [viewModel.currentGroupCode],
+  );
+  const onOpenAllGuides = () => {
+    Linking.openURL('https://www.mybuildiq.com/pl/poradniki').catch(() => undefined);
+  };
+  const onOpenGuide = (guide: BuildGuide) => {
+    Linking.openURL(guide.url).catch(() => undefined);
+  };
 
   return (
     <ScrollView
@@ -281,6 +298,12 @@ export default function PostepyScreen() {
           </View>
         </BlurView>
       </TouchableOpacity>
+
+      <BuildGuidesCarousel
+        guides={selectedGuides}
+        onOpenAll={onOpenAllGuides}
+        onOpenGuide={onOpenGuide}
+      />
 
       <BlurView intensity={16} tint="dark" style={styles.card}>
         <Text style={styles.cardLabel}>{t('upcoming.cardLabel')}</Text>

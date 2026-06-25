@@ -6,10 +6,11 @@ const NEON = '#25F0C8';
 
 type BudgetScanFabProps = {
   accessibilityLabel: string;
+  menuOpen?: boolean;
   onPress: () => void;
 };
 
-export function BudgetScanFab({ accessibilityLabel, onPress }: BudgetScanFabProps) {
+export function BudgetScanFab({ accessibilityLabel, menuOpen = false, onPress }: BudgetScanFabProps) {
   return (
     <TouchableOpacity
       style={styles.scanFab}
@@ -18,7 +19,7 @@ export function BudgetScanFab({ accessibilityLabel, onPress }: BudgetScanFabProp
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      <MaterialCommunityIcons name="scanner" size={22} color={NEON} />
+      <MaterialCommunityIcons name={menuOpen ? 'close' : 'scanner'} size={22} color={NEON} />
     </TouchableOpacity>
   );
 }

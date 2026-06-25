@@ -328,6 +328,7 @@ export default function BudzetScreen() {
   const [fAttachmentKind, setFAttachmentKind] = useState<ReceiptDocKind>('paragon');
   const [receiptKindByPath, setReceiptKindByPath] = useState<Record<string, ReceiptDocKind>>({});
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
+  const [scanMenuOpen, setScanMenuOpen] = useState(false);
 
   // date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -1099,6 +1100,7 @@ export default function BudzetScreen() {
   const openAddExpense = () => {
     setEditingExpense(null);
     setStageMenuOpen(false);
+    setScanMenuOpen(false);
     setFNazwa('');
     setFKwota('');
     setFKategoria('other');
@@ -1118,7 +1120,83 @@ export default function BudzetScreen() {
     setAddOpen(true);
   };
 
-  const openBudgetScanner = async () => {
+  const runBudgetScannerFromAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    const optimizedScan = await optimizeBudgetScanImage(asset);
+    if (!optimizedScan) return;
+
+    const nextDraft = createManualBudgetScanDraft({
+      file: optimizedScan,
+      defaultStage: defaultCurrentScanStage,
+    });
+    activeScanDraftIdRef.current = nextDraft.id;
+    if (!BUDGET_SCANNER_AI_ENABLED) {
+      setScanDraft(nextDraft);
+      return;
+    }
+
+    setScanDraft({ ...nextDraft, status: 'processing', errorMessage: null });
+    try {
+      const ocrResult = await runBudgetScanOcr(optimizedScan, appLanguage);
+      if (activeScanDraftIdRef.current !== nextDraft.id) return;
+
+      const today = toYYYYMMDD(new Date());
+      const ocrItems = ocrResult.items.map((item) => ({
+        id: `scan_item_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: item.name.trim(),
+        total: item.amount ?? 0,
+        currency: ocrResult.currency,
+        date: ocrResult.documentDate ?? today,
+        status: STATUS_PAID as typeof STATUS_PAID,
+        expenseType: TYPE_MATERIAL as typeof TYPE_MATERIAL,
+        categoryCode: 'other' as const,
+        stage: defaultCurrentScanStage,
+        description: item.rawText,
+        store: ocrResult.supplierName,
+        confidence: item.confidence,
+        selected: true,
+        sourceText: item.rawText,
+      }));
+
+      setScanDraft({
+        ...nextDraft,
+        status: 'ready',
+        validation: {
+          documentDetected: ocrResult.documentType !== 'unknown',
+          documentType: ocrResult.documentType,
+          readable: ocrResult.readable,
+          confidence: ocrResult.confidence,
+          issues: [],
+          message: ocrResult.message ?? null,
+        },
+        supplierName: ocrResult.supplierName,
+        documentNumber: ocrResult.documentNumber,
+        documentDate: ocrResult.documentDate,
+        totalAmount: ocrResult.totalAmount,
+        currency: ocrResult.currency,
+        items: ocrItems,
+        rawText: ocrResult.rawText,
+        errorMessage: null,
+      });
+    } catch (ocrError: any) {
+      if (activeScanDraftIdRef.current !== nextDraft.id) return;
+      console.warn('[BudgetScanner] OCR failed:', ocrError?.message ?? ocrError);
+      const ocrDebugMessage = __DEV__
+        ? [
+            ocrError?.message,
+            ocrError?.status ? `status: ${ocrError.status}` : null,
+            ocrError?.details,
+          ].filter(Boolean).join('\n')
+        : null;
+      setScanDraft({
+        ...nextDraft,
+        status: 'error',
+        errorMessage: ocrDebugMessage || getFriendlyErrorMessage(ocrError, t, 'scanner.ocrFailed'),
+      });
+    }
+  };
+
+  const openBudgetScannerFromCamera = async () => {
+    setScanMenuOpen(false);
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
@@ -1137,79 +1215,43 @@ export default function BudzetScreen() {
       const asset = result.assets?.[0];
       if (!asset?.uri) return;
 
-      const optimizedScan = await optimizeBudgetScanImage(asset);
-      if (!optimizedScan) return;
-
-      const nextDraft = createManualBudgetScanDraft({
-        file: optimizedScan,
-        defaultStage: defaultCurrentScanStage,
-      });
-      activeScanDraftIdRef.current = nextDraft.id;
-      if (!BUDGET_SCANNER_AI_ENABLED) {
-        setScanDraft(nextDraft);
-        return;
-      }
-
-      setScanDraft({ ...nextDraft, status: 'processing', errorMessage: null });
-      try {
-        const ocrResult = await runBudgetScanOcr(optimizedScan, appLanguage);
-        if (activeScanDraftIdRef.current !== nextDraft.id) return;
-
-        const today = toYYYYMMDD(new Date());
-        const ocrItems = ocrResult.items.map((item) => ({
-          id: `scan_item_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          name: item.name.trim(),
-          total: item.amount ?? 0,
-          currency: ocrResult.currency,
-          date: ocrResult.documentDate ?? today,
-          status: STATUS_PAID as typeof STATUS_PAID,
-          expenseType: TYPE_MATERIAL as typeof TYPE_MATERIAL,
-          categoryCode: 'other' as const,
-          stage: defaultCurrentScanStage,
-          description: item.rawText,
-          store: ocrResult.supplierName,
-          confidence: item.confidence,
-          selected: true,
-          sourceText: item.rawText,
-        }));
-
-        setScanDraft({
-          ...nextDraft,
-          status: 'ready',
-          validation: {
-            documentDetected: ocrResult.documentType !== 'unknown',
-            documentType: ocrResult.documentType,
-            readable: ocrResult.readable,
-            confidence: ocrResult.confidence,
-            issues: [],
-            message: ocrResult.message ?? null,
-          },
-          supplierName: ocrResult.supplierName,
-          documentNumber: ocrResult.documentNumber,
-          documentDate: ocrResult.documentDate,
-          totalAmount: ocrResult.totalAmount,
-          currency: ocrResult.currency,
-          items: ocrItems,
-          rawText: ocrResult.rawText,
-          errorMessage: null,
-        });
-      } catch (ocrError: any) {
-        if (activeScanDraftIdRef.current !== nextDraft.id) return;
-        console.warn('[BudgetScanner] OCR failed:', ocrError?.message ?? ocrError);
-        setScanDraft({
-          ...nextDraft,
-          status: 'error',
-          errorMessage: getFriendlyErrorMessage(ocrError, t, 'scanner.ocrFailed'),
-        });
-      }
+      await runBudgetScannerFromAsset(asset);
     } catch (error: any) {
       console.warn('[BudgetScanner] camera open failed:', error?.message ?? error);
       Alert.alert(t('errorTitle'), t('scanner.cameraOpenFailed'));
     }
   };
 
+  const openBudgetScannerFromLibrary = async () => {
+    setScanMenuOpen(false);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(t('errorTitle'), t('scanner.photoLibraryPermissionDenied'));
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.88,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+
+      await runBudgetScannerFromAsset(asset);
+    } catch (error: any) {
+      console.warn('[BudgetScanner] library open failed:', error?.message ?? error);
+      Alert.alert(t('errorTitle'), t('scanner.photoLibraryOpenFailed'));
+    }
+  };
+
   const closeExpenseModal = () => {
     setStageMenuOpen(false);
+    setScanMenuOpen(false);
     setAddOpen(false);
     setEditingExpense(null);
     setScanDraft(null);
@@ -1837,11 +1879,46 @@ export default function BudzetScreen() {
       {/* FAB — przyklejony na dole po prawej, zawsze widoczny */}
       {BUDGET_SCANNER_ENTRY_ENABLED ? (
         <BudgetScanFab
-          onPress={openBudgetScanner}
+          onPress={() => setScanMenuOpen((value) => !value)}
           accessibilityLabel={t('scanner.accessibilityLabel')}
+          menuOpen={scanMenuOpen}
         />
       ) : null}
       <FloatingAddButton onPress={openAddExpense} style={styles.budgetFab} />
+
+      <Modal
+        visible={scanMenuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setScanMenuOpen(false)}
+      >
+        <Pressable style={styles.scanMenuBackdrop} onPress={() => setScanMenuOpen(false)}>
+          <View style={styles.scanMenuBubble}>
+            <View style={styles.scanMenuPointer} />
+            <Text style={styles.scanMenuTitle}>{t('scanner.scanMenuTitle')}</Text>
+
+            <TouchableOpacity style={styles.scanMenuOption} onPress={openBudgetScannerFromLibrary} activeOpacity={0.86}>
+              <View style={styles.scanMenuIconWrap}>
+                <MaterialCommunityIcons name="receipt-text-outline" size={18} color={NEON} />
+              </View>
+              <View style={styles.scanMenuTextWrap}>
+                <Text style={styles.scanMenuOptionTitle}>{t('scanner.scanMenuReceipt')}</Text>
+                <Text style={styles.scanMenuOptionHint}>{t('scanner.scanMenuReceiptHint')}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.scanMenuOption} onPress={openBudgetScannerFromCamera} activeOpacity={0.86}>
+              <View style={styles.scanMenuIconWrap}>
+                <MaterialCommunityIcons name="camera" size={18} color={NEON} />
+              </View>
+              <View style={styles.scanMenuTextWrap}>
+                <Text style={styles.scanMenuOptionTitle}>{t('scanner.scanMenuCamera')}</Text>
+                <Text style={styles.scanMenuOptionHint}>{t('scanner.scanMenuCameraHint')}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </AppScreen>
   );
 }
@@ -2363,4 +2440,83 @@ const styles = StyleSheet.create({
   previewReceiptText: { color: NEON, fontWeight: '900', fontSize: 12 },
   modalActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   modalBtn: { flex: 1 },
+  scanMenuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  scanMenuBubble: {
+    position: 'absolute',
+    right: 18,
+    bottom: 150,
+    width: 238,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    backgroundColor: '#07110F',
+    padding: 12,
+    shadowColor: '#25F0C8',
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 12,
+  },
+  scanMenuPointer: {
+    position: 'absolute',
+    right: 20,
+    bottom: -6,
+    width: 12,
+    height: 12,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    backgroundColor: '#07110F',
+    transform: [{ rotate: '45deg' }],
+  },
+  scanMenuTitle: {
+    color: 'rgba(220,255,245,0.88)',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+  scanMenuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 58,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  scanMenuOptionTop: {
+    marginBottom: 8,
+  },
+  scanMenuIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.12)',
+  },
+  scanMenuTextWrap: {
+    flex: 1,
+  },
+  scanMenuOptionTitle: {
+    color: '#F8FAFC',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  scanMenuOptionHint: {
+    marginTop: 2,
+    color: 'rgba(148,163,184,0.78)',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   budgetFab: { bottom: 28 }});

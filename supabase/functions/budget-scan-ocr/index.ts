@@ -5,6 +5,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const OPENAI_MODEL = "gpt-5.4-mini";
+const OPENAI_TIMEOUT_MS = 60_000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,55 @@ type BudgetScanOcrRequestBody = {
 };
 
 type AppLanguage = "pl" | "en" | "de";
+
+const budgetScanOcrSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    readable: { type: "boolean" },
+    confidence: { type: "number" },
+    documentType: { type: "string", enum: ["invoice", "receipt", "unknown"] },
+    supplierName: { type: ["string", "null"] },
+    documentNumber: { type: ["string", "null"] },
+    documentDate: { type: ["string", "null"] },
+    currency: { type: ["string", "null"] },
+    totalAmount: { type: ["number", "null"] },
+    rawText: { type: ["string", "null"] },
+    issues: {
+      type: "array",
+      items: { type: "string" },
+    },
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          name: { type: "string" },
+          amount: { type: ["number", "null"] },
+          confidence: { type: "number" },
+          rawText: { type: ["string", "null"] },
+        },
+        required: ["name", "amount", "confidence", "rawText"],
+      },
+    },
+    message: { type: ["string", "null"] },
+  },
+  required: [
+    "readable",
+    "confidence",
+    "documentType",
+    "supplierName",
+    "documentNumber",
+    "documentDate",
+    "currency",
+    "totalAmount",
+    "rawText",
+    "issues",
+    "items",
+    "message",
+  ],
+};
 
 function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -113,6 +163,30 @@ function stripJsonFence(text: string): string {
   return trimmed;
 }
 
+async function fetchOpenAIResponse(body: Record<string, unknown>): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+
+  try {
+    return await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("OpenAI request timed out.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -160,6 +234,8 @@ serve(async (req) => {
       "Return JSON only. No markdown, no commentary.",
       "Do not infer category, business meaning, or product identity beyond what is visibly written.",
       "Only extract line items and basic read quality.",
+      "A line item is a row from the invoice or receipt with a product/service/material name and its row amount.",
+      "Ignore tax summaries, payment method rows, subtotal rows, total-only rows, seller bank/account rows, and buyer/seller address lines unless they are actual item rows.",
       "For each line item, return name, amount, confidence, and rawText.",
       "If amount is unclear, set it to null.",
       "Return documentDate as ISO date YYYY-MM-DD when it can be determined confidently, otherwise null.",
@@ -185,13 +261,9 @@ serve(async (req) => {
       "If the document has multiple repeated items, keep them as separate rows.",
     ].join(" ");
 
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    let response: Response;
+    try {
+      response = await fetchOpenAIResponse({
         model: OPENAI_MODEL,
         input: [
           {
@@ -216,17 +288,35 @@ serve(async (req) => {
         store: false,
         stream: false,
         truncation: "auto",
-        temperature: 0,
         max_output_tokens: 1200,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
+        text: {
+          format: {
+            type: "json_schema",
+            name: "budget_scan_ocr",
+            strict: true,
+            schema: budgetScanOcrSchema,
+          },
+        },
+      });
+    } catch (error) {
+      const details = error instanceof Error ? error.message : "OpenAI request failed.";
+      console.error("OpenAI budget-scan-ocr request failed:", details);
       return jsonResponse(
         {
           error: localizedMessage(appLanguage, "generic_error"),
-          details: `OpenAI error ${response.status}: ${errorText.slice(0, 200) || "unknown"}`,
+          details,
+        },
+        details.includes("timed out") ? 504 : 500,
+      );
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      console.error("OpenAI budget-scan-ocr error:", response.status, errorText);
+      return jsonResponse(
+        {
+          error: localizedMessage(appLanguage, "generic_error"),
+          details: `OpenAI error ${response.status}: ${errorText.slice(0, 600) || "unknown"}`,
         },
         500,
       );
