@@ -1,7 +1,7 @@
 {
   "eyebrow": "BuildIQ plans",
   "title": "Choose your BuildIQ plan",
-  "subtitle": "Start with a full-access trial, then choose the plan that fits your build.",
+  "subtitle": "Start with a 14-day trial with 5 AI messages/day, then choose the plan that fits your build.",
   "currentPlan": "Current plan",
   "launchInfo": "Prices are loaded from the App Store when store products are available. Subscriptions renew automatically unless cancelled, and the Terms of Use and Privacy Policy links are shown below.",
   "popular": "Popular",
@@ -28,9 +28,9 @@
     },
     "free_trial": {
       "name": "Free Trial",
-      "desc": "14 days of full access",
+      "desc": "14 days with 5 AI messages/day",
       "badge": "TRIAL",
-      "forever": "full access for 14 days"
+      "forever": "5 AI messages/day for 14 days"
     },
     "pro": {
       "name": "BuildIQ Pro",
@@ -39,7 +39,7 @@
     },
     "expert": {
       "name": "BuildIQ Expert",
-      "desc": "Everything unlimited",
+      "desc": "Highest BuildIQ limits",
       "badge": "EXPERT"
     }
   },
@@ -69,7 +69,7 @@
   },
   "checkout": {
     "title": "Choose your BuildIQ plan",
-    "subtitle": "Start with a full-access trial, then choose the plan that fits your build.",
+    "subtitle": "Start with a 14-day trial with 5 AI messages/day, then choose the plan that fits your build.",
     "selectBtn": "Continue",
     "trialCta": "Continue",
     "freeCta": "Current free access",
@@ -94,7 +94,7 @@
     "eyebrow": "BuildIQ Premium",
     "title": "Choose your BuildIQ plan",
     "heroTitle": "BuildIQ Pro Trial",
-    "heroSubtitle": "Start with 14 days of full access",
+    "heroSubtitle": "Start with 14 days with 5 AI messages/day",
     "trialDaysRemaining": "{{count}} days remaining",
     "monthly": "Monthly",
     "yearly": "Yearly",
@@ -135,12 +135,13 @@
       "free_trial": {
         "name": "Free Trial",
         "badge": "14 DAYS",
-        "description": "Unlimited access during trial",
+        "description": "5 AI messages/day during trial",
         "price": "Free",
         "priceSub": "for 14 days",
         "details": [
-          "Full AI access",
-          "Unlimited photos",
+          "5 AI messages/day",
+          "Photos and documents like Free",
+          "Unlimited tasks",
           "No commitment"
         ]
       },
@@ -160,10 +161,10 @@
       "expert": {
         "name": "Expert",
         "badge": "",
-        "description": "Unlimited everything",
+        "description": "Highest BuildIQ limits",
         "samplePrice": "$19.99",
         "details": [
-          "Unlimited AI",
+          "50 AI messages/day",
           "Unlimited photos",
           "Unlimited documents",
           "Priority AI",
@@ -175,11 +176,11 @@
     "selected": {
       "free_trial": {
         "title": "Explore BuildIQ with full access",
-        "desc": "Try the premium workspace before choosing the plan for your project.",
+        "desc": "Try the app with 5 AI messages/day before choosing the plan for your project.",
         "benefits": [
-          "Full AI",
-          "All documents",
-          "All photos",
+          "5 AI/day",
+          "Photos and documents on Free limits",
+          "Unlimited tasks",
           "No commitment"
         ]
       },
@@ -197,7 +198,7 @@
         "title": "Unlimited control for demanding builds",
         "desc": "Designed for heavier documentation, frequent AI workflows, and long-running construction records.",
         "benefits": [
-          "Unlimited AI",
+          "50 AI/day",
           "Unlimited photos",
           "Unlimited docs",
           "Priority AI"
@@ -241,7 +242,7 @@
       "name": "BuildIQ Expert",
       "tagline": "Unlimited workspace for demanding builds",
       "features": {
-        "ai": "Unlimited AI",
+        "ai": "50 AI messages/day",
         "photos": "Unlimited photos",
         "docs": "Unlimited documents",
         "priorityAi": "Priority AI"

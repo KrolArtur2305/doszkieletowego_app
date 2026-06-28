@@ -4,6 +4,63 @@
   "projectLocationPlaceholder": "—",
   "buildingParams": "Building parameters",
   "projectPlans": "Project floor plans",
+  "installationsSection": {
+    "title": "Installations and equipment",
+    "add": "+ Add installations",
+    "summaryTitle": "Saved setup",
+    "allTitle": "All installations in the project",
+    "whyTitle": "Why does this matter?",
+    "infoLead": "Based on these details, we will tailor:",
+    "infoItems": {
+      "tasks": "Tasks",
+      "expenses": "Expenses",
+      "schedule": "Progress",
+      "ai": "AI tips"
+    }
+  },
+  "installationWizard": {
+    "title": "Installation setup",
+    "heatingQuestion": "What will be the main heating system?",
+    "heatPumpQuestion": "Are you planning a heat pump?",
+    "recuperationQuestion": "Are you planning heat recovery ventilation?",
+    "extraQuestion": "Which additional installations are you planning?",
+    "answers": {
+      "yes": "Yes",
+      "no": "No",
+      "notSelected": "Not selected"
+    },
+    "summaryLabels": {
+      "heatingSystem": "Heating system",
+      "heatPump": "Heat pump",
+      "recuperation": "Heat recovery ventilation"
+    },
+    "heatingOptions": {
+      "heat_pump": "Heat pump",
+      "gas": "Gas",
+      "pellet": "Pellet",
+      "electric": "Electric heating",
+      "other": "Other"
+    },
+    "extraOptions": {
+      "air_conditioning": "Air conditioning",
+      "photovoltaics": "Solar panels",
+      "battery_storage": "Battery storage",
+      "underfloor_heating": "Underfloor heating",
+      "fireplace": "Fireplace",
+      "external_blinds": "External blinds",
+      "smart_home": "Smart home",
+      "ev_charger": "EV charger",
+      "alarm": "Alarm",
+      "monitoring": "Monitoring",
+      "water_softener": "Water softener",
+      "central_vacuum": "Central vacuum"
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next",
+      "save": "Save"
+    }
+  },
   "projectAssetTypes": {
     "plan": {
       "title": "Project floor plans",
@@ -32,8 +89,8 @@
   "tileHeight": "Building height",
   "tileRoofAngle": "Roof angle",
   "tileRoofArea": "Roof area",
-  "tileFacadeWidth": "Facade width",
-  "tileFacadeLength": "Facade length",
+  "tileHouseLength": "House length",
+  "tileHouseWidth": "House width",
   "addPlan": "Add floor plan",
   "planDefaultName": "Floor plan",
   "planNameModalTitle": "Name the floor plan",
@@ -77,8 +134,8 @@
   "fieldHeight": "Height (m)",
   "fieldRoofAngle": "Roof angle (°)",
   "fieldRoofArea": "Roof area (m²)",
-  "fieldFacadeWidth": "Facade width (m)",
-  "fieldFacadeLength": "Facade length (m)",
+  "fieldHouseLength": "House length (m)",
+  "fieldHouseWidth": "House width (m)",
   "model3dTitle": "3D model",
   "model3dNextStep": "Next step: upload .glb/.gltf and update projekty.model_url.",
   "model3dEmptyFile": "The selected file is empty.",
@@ -103,6 +160,7 @@
   "skip": "Skip",
   "projectNudgeBuddyFallback": "Manager",
   "projectNudgeTitle": "Fill in the most important project details now.",
+  "projectNudgeTitleWithName": "{{name}}, fill in the most important project details now.",
   "projectNudgeText": "This way everything stays at hand and my suggestions will be better tailored.",
   "projectNudgeCta": "Fill in",
   "planTooLarge": "The image is too large. Maximum size is 15 MB.",

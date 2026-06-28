@@ -84,6 +84,19 @@
       "fetchMessages": "Nie udało się pobrać wiadomości.",
       "aiConnection": "Błąd połączenia z AI"
     },
+    "limitModal": {
+      "trialTitle": "Kierownik AI w trialu osiągnął limit",
+      "trialMessage": "Wykorzystałeś plan free trial. Przejdź na wyższy plan, aby w pełni korzystać z BuildIQ.",
+      "freeTitle": "Darmowy limit AI został wykorzystany",
+      "freeMessage": "Wykorzystałeś dzienny limit darmowego dostępu do AI. Przejdź na wyższy plan, aby w pełni korzystać z BuildIQ.",
+      "proTitle": "Limit Pro został wykorzystany",
+      "proMessage": "Wykorzystałeś dzienny limit Pro. Przejdź na Expert, aby zwiększyć limit kierownika AI.",
+      "expertTitle": "Dzienny limit Expert został wykorzystany",
+      "expertMessage": "Osiągnięto dzienny limit Expert. Limit odświeży się jutro.",
+      "upgradeCta": "Przejdź na wyższy plan",
+      "expertCta": "Przejdź na Expert",
+      "manageCta": "Zarządzaj subskrypcją"
+    },
     "loading": {
       "conversation": "Ładuję rozmowę...",
       "history": "Ładuję historię..."

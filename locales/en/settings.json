@@ -58,6 +58,7 @@
   "appSettings": {
     "title": "App settings",
     "version": "App version",
+    "versionUnknown": "unknown",
     "terms": "Terms of Use / EULA",
     "privacy": "Privacy policy",
     "support": "Support",
@@ -166,9 +167,9 @@
     "heroTitle": "Add a companion",
     "heroSubtitle": "Generate an invite code and decide what your partner can see or add in your build.",
     "currentBuild": "Build: {{name}}",
-    "lockedTitle": "Available in the Expert plan",
-    "lockedSubtitle": "The build partner does not pay for an account. Only the build owner with an active Expert plan can generate an invitation.",
-    "upgradeAction": "View Expert plan",
+    "lockedTitle": "Expert plan required",
+    "lockedSubtitle": "To generate a partner invite, you need an active Expert plan.",
+    "upgradeAction": "Upgrade to Expert",
     "permissionsTitle": "Partner permissions",
     "presets": {
       "view": {

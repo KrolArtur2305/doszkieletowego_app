@@ -50,7 +50,7 @@ export const VIEW_ONLY_BUILD_PERMISSIONS: BuildPermissions = {
   add_photos: false,
   add_journal: false,
   add_expenses: false,
-  manage_tasks: false,
+  manage_tasks: true,
 };
 
 export const COLLABORATION_BUILD_PERMISSIONS: BuildPermissions = {
@@ -59,7 +59,7 @@ export const COLLABORATION_BUILD_PERMISSIONS: BuildPermissions = {
   add_photos: true,
   add_journal: true,
   add_expenses: true,
-  manage_tasks: false,
+  manage_tasks: true,
 };
 
 export function normalizeBuildPermissions(raw: unknown): BuildPermissions {
@@ -104,33 +104,40 @@ export async function fetchCurrentBuildAccess(userId: string): Promise<BuildAcce
   const normalizedUserId = String(userId ?? '').trim();
   if (!normalizedUserId) return null;
 
-  const [memberRes, ownerRes] = await Promise.all([
-    supabase
-      .from('investment_members')
-      .select('investment_id,role,permissions')
-      .eq('user_id', normalizedUserId)
-      .maybeSingle(),
-    supabase
-      .from('inwestycje')
-      .select('id,nazwa,user_id')
-      .eq('user_id', normalizedUserId)
-      .maybeSingle(),
-  ]);
-
+  const memberRes = await supabase
+    .from('investment_members')
+    .select('investment_id,role,permissions')
+    .eq('user_id', normalizedUserId)
+    .maybeSingle();
   if (memberRes.error) throw memberRes.error;
-  if (ownerRes.error) throw ownerRes.error;
 
   const memberRole = normalizeBuildRole(memberRes.data?.role);
   if (memberRes.data?.investment_id && memberRole) {
+    const investmentRes = await supabase
+      .from('inwestycje')
+      .select('id,nazwa,user_id')
+      .eq('id', memberRes.data.investment_id)
+      .maybeSingle();
+
+    if (investmentRes.error) throw investmentRes.error;
+
     return {
       role: memberRole,
       investmentId: String(memberRes.data.investment_id),
-      investmentName: null,
+      investmentName: String(investmentRes.data?.nazwa ?? '') || null,
       permissions: normalizeBuildPermissions(memberRes.data.permissions),
       source: 'member',
-      ownerUserId: String(ownerRes.data?.user_id ?? '') || null,
+      ownerUserId: String(investmentRes.data?.user_id ?? '') || null,
     };
   }
+
+  const ownerRes = await supabase
+    .from('inwestycje')
+    .select('id,nazwa,user_id')
+    .eq('user_id', normalizedUserId)
+    .maybeSingle();
+
+  if (ownerRes.error) throw ownerRes.error;
 
   if (ownerRes.data?.id) {
     return {

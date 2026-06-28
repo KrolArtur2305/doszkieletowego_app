@@ -1,7 +1,7 @@
 {
   "eyebrow": "Plany BuildIQ",
   "title": "Wybierz plan BuildIQ",
-  "subtitle": "Zacznij od triala z pełnym dostępem, a potem wybierz plan dopasowany do budowy.",
+  "subtitle": "Zacznij od 14-dniowego triala z 5 wiadomościami AI dziennie, a potem wybierz plan dopasowany do budowy.",
   "currentPlan": "Aktualny plan",
   "launchInfo": "Ceny są pobierane z App Store, gdy produkty sklepu są dostępne. Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane, a linki do Regulaminu i Polityki prywatności są poniżej.",
   "popular": "Popularny",
@@ -28,9 +28,9 @@
     },
     "free_trial": {
       "name": "Free Trial",
-      "desc": "14 dni pełnego dostępu",
+      "desc": "14 dni z 5 wiadomościami AI dziennie",
       "badge": "TRIAL",
-      "forever": "pełny dostęp na 14 dni"
+      "forever": "5 wiadomości AI dziennie przez 14 dni"
     },
     "pro": {
       "name": "BuildIQ Pro",
@@ -39,7 +39,7 @@
     },
     "expert": {
       "name": "BuildIQ Expert",
-      "desc": "Wszystko bez limitów",
+      "desc": "Najwyższe limity BuildIQ",
       "badge": "EXPERT"
     }
   },
@@ -69,7 +69,7 @@
   },
   "checkout": {
     "title": "Odblokuj pełną kontrolę nad swoją budową",
-    "subtitle": "Zacznij od triala z pełnym dostępem, a potem wybierz plan dopasowany do budowy.",
+    "subtitle": "Zacznij od 14-dniowego triala z 5 wiadomościami AI dziennie, a potem wybierz plan dopasowany do budowy.",
     "selectBtn": "Kontynuuj",
     "trialCta": "Kontynuuj",
     "freeCta": "Aktualny dostęp Free",
@@ -94,7 +94,7 @@
     "eyebrow": "BuildIQ Premium",
     "title": "Wybierz plan BuildIQ",
     "heroTitle": "BuildIQ Pro Trial",
-    "heroSubtitle": "Zacznij od 14 dni pełnego dostępu",
+    "heroSubtitle": "Zacznij od 14 dni z 5 wiadomościami AI dziennie",
     "trialDaysRemaining": "Pozostało dni: {{count}}",
     "monthly": "Miesięcznie",
     "yearly": "Rocznie",
@@ -135,12 +135,13 @@
       "free_trial": {
         "name": "Free Trial",
         "badge": "14 DNI",
-        "description": "Pełny dostęp w czasie triala",
+        "description": "5 wiadomości AI dziennie w czasie triala",
         "price": "Free",
         "priceSub": "przez 14 dni",
         "details": [
-          "Pełny dostęp AI",
-          "Zdjęcia bez limitu",
+          "5 wiadomości AI dziennie",
+          "Zdjęcia i dokumenty jak w Free",
+          "Zadania bez limitu",
           "Bez zobowiązań"
         ]
       },
@@ -160,11 +161,11 @@
       "expert": {
         "name": "Expert",
         "badge": "",
-        "description": "Maksymalne możliwości BuildIQ",
+        "description": "Najwyższe limity BuildIQ",
         "samplePrice": "19,99 $",
         "details": [
           "Wszystkie funkcje planu Pro",
-          "AI bez limitów",
+          "50 wiadomości AI dziennie",
           "Zdjęcia bez limitów",
           "Dokumenty bez limitów",
           "Wczesny dostęp do nowych funkcji",
@@ -175,11 +176,11 @@
     "selected": {
       "free_trial": {
         "title": "Sprawdź BuildIQ z pełnym dostępem",
-        "desc": "Przetestuj przestrzeń premium przed wyborem planu dla swojej budowy.",
+        "desc": "Przetestuj aplikację z 5 wiadomościami AI dziennie przed wyborem planu dla swojej budowy.",
         "benefits": [
-          "Pełne AI",
-          "Wszystkie dokumenty",
-          "Wszystkie zdjęcia",
+          "5 AI/dzień",
+          "Zdjęcia i dokumenty w limicie",
+          "Zadania bez limitu",
           "Bez zobowiązań"
         ]
       },
@@ -197,7 +198,7 @@
         "title": "Pełna kontrola dla wymagających budów",
         "desc": "Dla intensywnej dokumentacji, częstej pracy z AI i długiego archiwum budowy.",
         "benefits": [
-          "AI bez limitu",
+          "50 AI/dzień",
           "Zdjęcia bez limitu",
           "Dokumenty bez limitu",
           "Priorytet AI"
@@ -241,7 +242,7 @@
       "name": "BuildIQ Expert",
       "tagline": "Nieograniczona przestrzeń dla wymagających budów",
       "features": {
-        "ai": "AI bez limitu",
+        "ai": "50 wiadomości AI dziennie",
         "photos": "Zdjęcia bez limitu",
         "docs": "Dokumenty bez limitu",
         "priorityAi": "Priorytetowe AI"

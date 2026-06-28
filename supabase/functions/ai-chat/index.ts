@@ -8,7 +8,7 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const OPENAI_MODEL = "gpt-5.4-mini";
 const FREE_TRIAL_MESSAGES_PER_DAY = 5;
 const PAID_MESSAGES_PER_DAY = 50;
-const LAUNCH_AI_OPEN_ACCESS = true;
+const LAUNCH_AI_OPEN_ACCESS = false;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const MAX_HISTORY_MESSAGES = 16;
 const PAID_PLANS = new Set(["standard", "pro", "pro_plus"]);
@@ -74,15 +74,18 @@ type UserContext = {
 
 type AccessPolicy = {
   dailyLimit: number;
+  plan: string;
 };
 
 class HttpError extends Error {
   status: number;
+  code: string | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code: string | null = null) {
     super(message);
     this.name = "HttpError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -468,6 +471,7 @@ async function getAccessPolicy(
   if (LAUNCH_AI_OPEN_ACCESS) {
     return {
       dailyLimit: PAID_MESSAGES_PER_DAY,
+      plan: "free",
     };
   }
 
@@ -499,6 +503,14 @@ async function getAccessPolicy(
   if (isPaidPlan && hasTrustedSource && !isExpired) {
     return {
       dailyLimit: PAID_MESSAGES_PER_DAY,
+      plan,
+    };
+  }
+
+  if (plan === "free_trial" && hasTrustedSource && !isExpired) {
+    return {
+      dailyLimit: 5,
+      plan,
     };
   }
 
@@ -506,11 +518,21 @@ async function getAccessPolicy(
     throw new HttpError(
       403,
       "Dostęp do AI wymaga aktywnej i zweryfikowanej subskrypcji.",
+      "subscription_required",
+    );
+  }
+
+  if (plan === "free_trial" && isExpired) {
+    throw new HttpError(
+      403,
+      "Trial wygasł. Przejdź na wyższy plan, aby dalej korzystać z kierownika AI.",
+      "trial_expired",
     );
   }
 
   return {
-    dailyLimit: FREE_TRIAL_MESSAGES_PER_DAY,
+    dailyLimit: 0,
+    plan: "free",
   };
 }
 
@@ -548,7 +570,7 @@ async function ensureConversation(
 async function checkDailyUsage(
   supabase: ReturnType<typeof createClient>,
   userId: string,
-  dailyLimit: number,
+  accessPolicy: AccessPolicy,
 ) {
   const { data, error } = await supabase.rpc("get_ai_daily_usage", {
     p_user_id: userId,
@@ -560,18 +582,26 @@ async function checkDailyUsage(
 
   const row = Array.isArray(data) ? data[0] : data;
   const used = Number(row?.messages_count ?? 0);
-  const remaining = Math.max(dailyLimit - used, 0);
 
-  if (used >= dailyLimit) {
+  if (used >= accessPolicy.dailyLimit) {
+    const isTrial = accessPolicy.plan === "free_trial";
+    const isFree = accessPolicy.plan === "free";
     throw new HttpError(
       403,
-      dailyLimit <= FREE_TRIAL_MESSAGES_PER_DAY
-        ? "Wykorzystano dzienny limit darmowego dostępu do AI."
-        : "Osiągnięto dzienny limit wiadomości AI.",
+      isTrial
+        ? "Wykorzystałeś plan free trial. Przejdź na wyższy plan, aby w pełni korzystać z BuildIQ."
+        : isFree
+          ? "Wykorzystałeś dzienny limit darmowego dostępu do AI. Przejdź na wyższy plan, aby w pełni korzystać z BuildIQ."
+          : "Osiągnięto dzienny limit wiadomości AI. Przejdź na wyższy plan, aby dalej korzystać z kierownika AI.",
+      isTrial
+        ? "trial_ai_limit_reached"
+        : isFree
+          ? "free_ai_limit_reached"
+          : "paid_ai_limit_reached",
     );
   }
 
-  return { used, remaining };
+  return { used, remaining: Math.max(accessPolicy.dailyLimit - used, 0) };
 }
 
 async function incrementDailyUsage(
@@ -1170,7 +1200,7 @@ serve(async (req) => {
       body.investment_id ?? null,
     );
 
-    await checkDailyUsage(supabase, user.id, accessPolicy.dailyLimit);
+    await checkDailyUsage(supabase, user.id, accessPolicy);
     await checkMinuteRateLimit(supabase);
 
     const conversationId = await ensureConversation(
@@ -1246,6 +1276,12 @@ serve(async (req) => {
         ? "Nie udało się obsłużyć wiadomości AI. Spróbuj ponownie później."
         : message;
 
-    return jsonResponse({ error: publicMessage }, status);
+    return jsonResponse(
+      {
+        error: publicMessage,
+        code: error instanceof HttpError ? error.code : null,
+      },
+      status,
+    );
   }
 });

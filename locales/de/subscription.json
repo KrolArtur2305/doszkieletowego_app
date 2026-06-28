@@ -1,7 +1,7 @@
 {
   "eyebrow": "BuildIQ-Pläne",
   "title": "Wähle deinen BuildIQ-Plan",
-  "subtitle": "Starte mit einem Trial mit vollem Zugriff und wähle danach den passenden Plan.",
+  "subtitle": "Starte mit einem 14-Tage-Trial mit 5 KI-Nachrichten pro Tag und wähle danach den passenden Plan.",
   "currentPlan": "Aktueller Plan",
   "launchInfo": "Preise werden aus dem App Store geladen, sobald Store-Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden, und die Links zu Nutzungsbedingungen und Datenschutz stehen unten.",
   "popular": "Beliebt",
@@ -28,9 +28,9 @@
     },
     "free_trial": {
       "name": "Free Trial",
-      "desc": "14 Tage voller Zugriff",
+      "desc": "14 Tage mit 5 KI-Nachrichten pro Tag",
       "badge": "TRIAL",
-      "forever": "voller Zugriff für 14 Tage"
+      "forever": "5 KI-Nachrichten pro Tag für 14 Tage"
     },
     "pro": {
       "name": "BuildIQ Pro",
@@ -39,7 +39,7 @@
     },
     "expert": {
       "name": "BuildIQ Expert",
-      "desc": "Alles unbegrenzt",
+      "desc": "Höchste BuildIQ-Limits",
       "badge": "EXPERT"
     }
   },
@@ -69,7 +69,7 @@
   },
   "checkout": {
     "title": "Wähle deinen BuildIQ-Plan",
-    "subtitle": "Starte mit einem Trial mit vollem Zugriff und wähle danach den passenden Plan.",
+    "subtitle": "Starte mit einem 14-Tage-Trial mit 5 KI-Nachrichten pro Tag und wähle danach den passenden Plan.",
     "selectBtn": "Weiter",
     "trialCta": "Weiter",
     "freeCta": "Aktueller Free-Zugriff",
@@ -94,7 +94,7 @@
     "eyebrow": "BuildIQ Premium",
     "title": "Wähle deinen BuildIQ-Plan",
     "heroTitle": "BuildIQ Pro Trial",
-    "heroSubtitle": "Starte mit 14 Tagen vollem Zugriff",
+    "heroSubtitle": "Starte mit 14 Tagen mit 5 KI-Nachrichten pro Tag",
     "trialDaysRemaining": "{{count}} Tage verbleibend",
     "monthly": "Monatlich",
     "yearly": "Jährlich",
@@ -135,12 +135,13 @@
       "free_trial": {
         "name": "Free Trial",
         "badge": "14 TAGE",
-        "description": "Unbegrenzter Zugriff während des Trials",
+        "description": "5 KI-Nachrichten pro Tag während des Trials",
         "price": "Free",
         "priceSub": "für 14 Tage",
         "details": [
-          "Voller KI-Zugriff",
-          "Unbegrenzte Fotos",
+          "5 KI-Nachrichten pro Tag",
+          "Fotos und Dokumente wie Free",
+          "Unbegrenzte Aufgaben",
           "Keine Verpflichtung"
         ]
       },
@@ -160,10 +161,10 @@
       "expert": {
         "name": "Expert",
         "badge": "",
-        "description": "Alles unbegrenzt",
+        "description": "Höchste BuildIQ-Limits",
         "samplePrice": "19,99 $",
         "details": [
-          "Unbegrenzte KI",
+          "50 KI-Nachrichten pro Tag",
           "Unbegrenzte Fotos",
           "Unbegrenzte Dokumente",
           "Priorisierte KI",
@@ -175,11 +176,11 @@
     "selected": {
       "free_trial": {
         "title": "Teste BuildIQ mit vollem Zugriff",
-        "desc": "Probiere den Premium-Arbeitsbereich aus, bevor du den passenden Plan wählst.",
+        "desc": "Probiere die App mit 5 KI-Nachrichten pro Tag aus, bevor du den passenden Plan wählst.",
         "benefits": [
-          "Volle KI",
-          "Alle Dokumente",
-          "Alle Fotos",
+          "5 KI/Tag",
+          "Fotos und Dokumente auf Free-Niveau",
+          "Unbegrenzte Aufgaben",
           "Keine Verpflichtung"
         ]
       },
@@ -197,7 +198,7 @@
         "title": "Volle Kontrolle für anspruchsvolle Bauprojekte",
         "desc": "Für umfangreiche Dokumentation, häufige KI-Workflows und lange Bauarchive.",
         "benefits": [
-          "Unbegrenzte KI",
+          "50 KI/Tag",
           "Unbegrenzte Fotos",
           "Unbegrenzte Dokumente",
           "Priorisierte KI"
@@ -241,7 +242,7 @@
       "name": "BuildIQ Expert",
       "tagline": "Unbegrenzter Arbeitsbereich für anspruchsvolle Bauprojekte",
       "features": {
-        "ai": "Unbegrenzte KI",
+        "ai": "50 KI-Nachrichten pro Tag",
         "photos": "Unbegrenzte Fotos",
         "docs": "Unbegrenzte Dokumente",
         "priorityAi": "Priorisierte KI"

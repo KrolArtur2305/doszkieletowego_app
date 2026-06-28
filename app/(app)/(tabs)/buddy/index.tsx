@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,12 +17,14 @@ import {
   View} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { publicConfig, supabase } from '../../../../lib/supabase';
 import { getAppLocale } from '../../../../lib/i18n';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
+import { useSubscription } from '../../../../hooks/useSubscription';
+import type { SubscriptionPlanKey } from '../../../../src/config/subscriptionPlans';
 import { fetchCurrentBuildAccess } from '../../../../lib/buildAccess';
 import { loadSharedBuddyName } from '../../../../src/services/buddy/name';
 import {
@@ -76,8 +79,72 @@ function displayAssistantText(value: string) {
     .trim();
 }
 
+type LimitNotice = {
+  title: string;
+  message: string;
+  ctaLabel: string;
+  targetPlan: SubscriptionPlanKey | null;
+};
+
+function parseLimitError(raw: string): { code: string | null; message: string | null } | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    return {
+      code: typeof parsed.code === 'string' ? parsed.code : null,
+      message: typeof parsed.error === 'string' ? parsed.error : null,
+    };
+  } catch {
+    return { code: null, message: trimmed };
+  }
+}
+
+function buildLimitNotice(
+  plan: SubscriptionPlanKey,
+  code: string | null,
+  t: (key: string, params?: Record<string, unknown>) => string,
+): LimitNotice {
+  if (code === 'trial_ai_limit_reached' || plan === 'free_trial') {
+    return {
+      title: t('limitModal.trialTitle'),
+      message: t('limitModal.trialMessage'),
+      ctaLabel: t('limitModal.upgradeCta'),
+      targetPlan: 'pro',
+    };
+  }
+
+  if (code === 'free_ai_limit_reached' || plan === 'free') {
+    return {
+      title: t('limitModal.freeTitle'),
+      message: t('limitModal.freeMessage'),
+      ctaLabel: t('limitModal.upgradeCta'),
+      targetPlan: 'pro',
+    };
+  }
+
+  if (plan === 'pro') {
+    return {
+      title: t('limitModal.proTitle'),
+      message: t('limitModal.proMessage'),
+      ctaLabel: t('limitModal.expertCta'),
+      targetPlan: 'expert',
+    };
+  }
+
+  return {
+    title: t('limitModal.expertTitle'),
+    message: t('limitModal.expertMessage'),
+    ctaLabel: t('limitModal.manageCta'),
+    targetPlan: null,
+  };
+}
+
 export default function BuddyChatScreen() {
   const { session } = useSupabaseAuth();
+  const { access } = useSubscription();
+  const router = useRouter();
   const { t, i18n } = useTranslation('buddy');
   const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 44) + 8;
@@ -96,6 +163,7 @@ export default function BuddyChatScreen() {
   const [historyVisible, setHistoryVisible] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [limitNotice, setLimitNotice] = useState<LimitNotice | null>(null);
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -281,9 +349,20 @@ export default function BuddyChatScreen() {
 
     let requestTimedOut = false;
 
+    const clearPendingUserMessage = () => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.pending && m.role === 'user'
+            ? { ...m, pending: false }
+            : m
+        )
+      );
+    };
+
     try {
       setSending(true);
       setError(null);
+      setLimitNotice(null);
 
       const {
         data: { session: activeSession }} = await supabase.auth.getSession();
@@ -339,7 +418,19 @@ export default function BuddyChatScreen() {
         } catch {
           errorText = '';
         }
-        throw new Error(errorText || t('chat.errors.aiConnection'));
+        const parsed = parseLimitError(errorText);
+        if (
+          response.status === 403 &&
+          parsed?.code &&
+          (parsed.code.includes('limit') ||
+            parsed.code === 'trial_expired' ||
+            parsed.code === 'subscription_required')
+        ) {
+          clearPendingUserMessage();
+          setLimitNotice(buildLimitNotice(access.currentPlan, parsed.code, t));
+          return;
+        }
+        throw new Error(parsed?.message || errorText || t('chat.errors.aiConnection'));
       }
 
       let payload: {
@@ -385,6 +476,9 @@ export default function BuddyChatScreen() {
         await loadMessages(resolvedConversationId);
       }
     } catch (e: any) {
+      if (limitNotice) {
+        return;
+      }
       const isAbortError = e?.name === 'AbortError';
       const msg = requestTimedOut
         ? t('chat.messages.timeoutError')
@@ -392,13 +486,7 @@ export default function BuddyChatScreen() {
         ? t('chat.messages.requestCancelled')
         : t('chat.messages.connectionError');
 
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.pending && m.role === 'user'
-            ? { ...m, pending: false }
-            : m
-        )
-      );
+      clearPendingUserMessage();
 
       setError(msg);
     } finally {
@@ -410,6 +498,21 @@ export default function BuddyChatScreen() {
       setSending(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     }
+  };
+
+  const handleLimitNoticeAction = () => {
+    const targetPlan = limitNotice?.targetPlan;
+    setLimitNotice(null);
+
+    if (targetPlan) {
+      router.push({
+        pathname: '/(app)/(tabs)/ustawienia/subskrypcja',
+        params: { planKey: targetPlan },
+      });
+      return;
+    }
+
+    router.push('/(app)/(tabs)/ustawienia/subskrypcja');
   };
 
   return (
@@ -581,6 +684,47 @@ export default function BuddyChatScreen() {
           </BlurView>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={!!limitNotice}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLimitNotice(null)}
+      >
+        <View style={styles.limitBackdrop}>
+          <Pressable style={styles.limitBackdropPressable} onPress={() => setLimitNotice(null)} />
+          <View style={styles.limitCardWrap}>
+            <BlurView intensity={22} tint="dark" style={styles.limitCard}>
+              <View style={styles.limitTopRow}>
+                <View style={styles.limitIconWrap}>
+                  <Feather name="zap" size={22} color={NEON} />
+                </View>
+                <TouchableOpacity
+                  style={styles.limitCloseBtn}
+                  activeOpacity={0.85}
+                  onPress={() => setLimitNotice(null)}
+                >
+                  <Feather name="x" size={18} color="rgba(255,255,255,0.72)" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.limitTitle}>{limitNotice?.title}</Text>
+              <Text style={styles.limitMessage}>{limitNotice?.message}</Text>
+
+              <TouchableOpacity
+                style={styles.limitCta}
+                activeOpacity={0.9}
+                onPress={handleLimitNoticeAction}
+              >
+                <Text style={styles.limitCtaText}>
+                  {limitNotice?.ctaLabel}
+                </Text>
+                <Feather name="arrow-right" size={16} color="#07120F" />
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={historyVisible}
@@ -791,6 +935,72 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     marginTop: 8},
+
+  limitBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.64)',
+    justifyContent: 'flex-end'},
+  limitBackdropPressable: {
+    ...StyleSheet.absoluteFillObject},
+  limitCardWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 18},
+  limitCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.20)',
+    backgroundColor: 'rgba(5,10,14,0.96)',
+    padding: 18,
+    overflow: 'hidden'},
+  limitTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 14},
+  limitIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.26)'},
+  limitCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)'},
+  limitTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '900',
+    marginBottom: 8},
+  limitMessage: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '600'},
+  limitCta: {
+    marginTop: 16,
+    minHeight: 48,
+    borderRadius: 16,
+    backgroundColor: NEON,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16},
+  limitCtaText: {
+    color: '#07120F',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0},
 
   quickScroll: { maxHeight: 52 },
   quickWrap: { paddingHorizontal: 14, paddingVertical: 8, gap: 8 },

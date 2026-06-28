@@ -14,15 +14,16 @@ import {
   TouchableOpacity,
   View,
   KeyboardAvoidingView,
+  useWindowDimensions,
   StatusBar} from 'react-native'
 import { BlurView } from 'expo-blur'
-import { Feather } from '@expo/vector-icons'
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../../../../lib/supabase'
 import { getUserWithTimeout } from '../../../../lib/supabaseTimeout'
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages'
-import { formatAreaUnit, formatDegreeUnit, formatLengthUnit, useUnits } from '../../../../lib/units'
+import { formatAreaUnit, formatLengthUnit, useUnits } from '../../../../lib/units'
 import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
@@ -30,6 +31,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { useTranslation } from 'react-i18next'
 
 import Model3DView from '../../../../components/Model3DView'
+import { InstallationsIllustration } from '../../../../components/InstallationsIllustration'
 import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess'
 import { AppButton, AppCard, AppHeader, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components'
 import { colors, radius, spacing, typography } from '../../../../src/ui/theme'
@@ -60,6 +62,7 @@ type Projekt = {
   powierzchnia_dachu?: number | null
   szerokosc_elewacji?: number | null
   dlugosc_elewacji?: number | null
+  installations_config?: InstallationDraft | null
 }
 
 type Rzut = {
@@ -79,6 +82,144 @@ type PendingPlan = {
   fileName?: string | null
   mimeType?: string | null
   fileSize?: number | null
+}
+
+type InstallationHeatingSystem = 'heat_pump' | 'gas' | 'pellet' | 'electric' | 'other' | null
+type InstallationExtraKey =
+  | 'air_conditioning'
+  | 'photovoltaics'
+  | 'battery_storage'
+  | 'underfloor_heating'
+  | 'fireplace'
+  | 'external_blinds'
+  | 'smart_home'
+  | 'ev_charger'
+  | 'alarm'
+  | 'monitoring'
+  | 'water_softener'
+  | 'central_vacuum'
+
+type InstallationDraft = {
+  heatingSystem: InstallationHeatingSystem
+  heatPump: boolean | null
+  recuperation: boolean | null
+  additional: InstallationExtraKey[]
+}
+
+type StoredInstallationConfig = {
+  heatingSystem?: InstallationHeatingSystem
+  heatPump?: boolean | null
+  recuperation?: boolean | null
+  additional?: unknown
+}
+
+type InstallationStepKey = 'heating' | 'heatPump' | 'recuperation' | 'additional'
+
+type InstallationListItem = {
+  key: string
+  icon: keyof typeof MaterialCommunityIcons.glyphMap
+  label: string
+}
+
+const HEATING_SYSTEM_OPTIONS: Array<{
+  key: Exclude<InstallationHeatingSystem, null>;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  labelKey: string;
+}> = [
+  { key: 'heat_pump', icon: 'heat-pump-outline', labelKey: 'installationWizard.heatingOptions.heat_pump' },
+  { key: 'gas', icon: 'gas-burner', labelKey: 'installationWizard.heatingOptions.gas' },
+  { key: 'pellet', icon: 'stove', labelKey: 'installationWizard.heatingOptions.pellet' },
+  { key: 'electric', icon: 'thermostat-box', labelKey: 'installationWizard.heatingOptions.electric' },
+  { key: 'other', icon: 'heating-coil', labelKey: 'installationWizard.heatingOptions.other' },
+]
+
+const INSTALLATION_EXTRA_OPTIONS: Array<{
+  key: InstallationExtraKey;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  labelKey: string;
+}> = [
+  { key: 'air_conditioning', icon: 'air-conditioner', labelKey: 'installationWizard.extraOptions.air_conditioning' },
+  { key: 'photovoltaics', icon: 'solar-power-variant-outline', labelKey: 'installationWizard.extraOptions.photovoltaics' },
+  { key: 'battery_storage', icon: 'battery-charging-outline', labelKey: 'installationWizard.extraOptions.battery_storage' },
+  { key: 'underfloor_heating', icon: 'floor-plan', labelKey: 'installationWizard.extraOptions.underfloor_heating' },
+  { key: 'fireplace', icon: 'fireplace', labelKey: 'installationWizard.extraOptions.fireplace' },
+  { key: 'external_blinds', icon: 'window-shutter-open', labelKey: 'installationWizard.extraOptions.external_blinds' },
+  { key: 'smart_home', icon: 'home-automation', labelKey: 'installationWizard.extraOptions.smart_home' },
+  { key: 'ev_charger', icon: 'ev-station', labelKey: 'installationWizard.extraOptions.ev_charger' },
+  { key: 'alarm', icon: 'alarm-panel-outline', labelKey: 'installationWizard.extraOptions.alarm' },
+  { key: 'monitoring', icon: 'cctv', labelKey: 'installationWizard.extraOptions.monitoring' },
+  { key: 'water_softener', icon: 'water-check-outline', labelKey: 'installationWizard.extraOptions.water_softener' },
+  { key: 'central_vacuum', icon: 'vacuum-outline', labelKey: 'installationWizard.extraOptions.central_vacuum' },
+]
+
+const INSTALLATION_INFO_ITEMS: Array<{
+  key: 'tasks' | 'expenses' | 'schedule' | 'ai';
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  labelKey: string;
+}> = [
+  { key: 'tasks', icon: 'format-list-checkbox', labelKey: 'installationsSection.infoItems.tasks' },
+  { key: 'expenses', icon: 'cash-multiple', labelKey: 'installationsSection.infoItems.expenses' },
+  { key: 'schedule', icon: 'calendar-month-outline', labelKey: 'installationsSection.infoItems.schedule' },
+  { key: 'ai', icon: 'brain', labelKey: 'installationsSection.infoItems.ai' },
+]
+
+function createEmptyInstallationDraft(): InstallationDraft {
+  return {
+    heatingSystem: null,
+    heatPump: null,
+    recuperation: null,
+    additional: [],
+  }
+}
+
+function normalizeInstallationConfig(value: unknown): InstallationDraft | null {
+  if (!value || typeof value !== 'object') return null
+
+  const data = value as StoredInstallationConfig
+  const heatingSystem = data.heatingSystem ?? null
+  const validHeatingSystem: InstallationHeatingSystem =
+    heatingSystem === 'heat_pump' ||
+    heatingSystem === 'gas' ||
+    heatingSystem === 'pellet' ||
+    heatingSystem === 'electric' ||
+    heatingSystem === 'other'
+      ? heatingSystem
+      : null
+
+  const additional = Array.isArray(data.additional)
+    ? data.additional.filter((item): item is InstallationExtraKey =>
+        item === 'air_conditioning' ||
+        item === 'photovoltaics' ||
+        item === 'battery_storage' ||
+        item === 'underfloor_heating' ||
+        item === 'fireplace' ||
+        item === 'external_blinds' ||
+        item === 'smart_home' ||
+        item === 'ev_charger' ||
+        item === 'alarm' ||
+        item === 'monitoring' ||
+        item === 'water_softener' ||
+        item === 'central_vacuum'
+      )
+    : []
+
+  return {
+    heatingSystem: validHeatingSystem,
+    heatPump: data.heatPump === true ? true : data.heatPump === false ? false : null,
+    recuperation: data.recuperation === true ? true : data.recuperation === false ? false : null,
+    additional,
+  }
+}
+
+function isEmptyInstallationDraft(draft: InstallationDraft) {
+  return !draft.heatingSystem && draft.heatPump === null && draft.recuperation === null && draft.additional.length === 0
+}
+
+function getInstallationSteps(draft: InstallationDraft): InstallationStepKey[] {
+  const steps: InstallationStepKey[] = ['heating']
+  if (draft.heatingSystem !== 'heat_pump') steps.push('heatPump')
+  steps.push('recuperation', 'additional')
+  return steps
 }
 
 const PLAN_NAME_PRESETS = [
@@ -241,6 +382,7 @@ function base64ToUint8Array(base64: string) {
 export default function ProjektScreen() {
   const { t, i18n } = useTranslation('project')
   const { units } = useUnits()
+  const { width } = useWindowDimensions()
   const router = useRouter()
   const { setup, guidedStep } = useLocalSearchParams<{ setup?: string | string[]; guidedStep?: string | string[] }>()
   const isSetupMode = Array.isArray(setup) ? setup[0] === '1' : setup === '1'
@@ -263,7 +405,6 @@ export default function ProjektScreen() {
     pomieszczenia: '',
     powierzchnia_zabudowy: '',
     wysokosc_budynku: '',
-    kat_dachu: '',
     powierzchnia_dachu: '',
     szerokosc_elewacji: '',
     dlugosc_elewacji: ''})
@@ -277,10 +418,175 @@ export default function ProjektScreen() {
   const [planUploading, setPlanUploading] = useState(false)
   const [modelUploading, setModelUploading] = useState(false)
   const [projectNudgeOpen, setProjectNudgeOpen] = useState(false)
+  const [installationsOpen, setInstallationsOpen] = useState(false)
+  const [installationsStep, setInstallationsStep] = useState(0)
+  const [installationsConfig, setInstallationsConfig] = useState<InstallationDraft | null>(null)
+  const [installationsDraft, setInstallationsDraft] = useState<InstallationDraft>(createEmptyInstallationDraft())
   const setupModalOpenedRef = useRef(false)
   const projectNudgeCheckedRef = useRef(false)
 
   const canEditProject = buildAccess?.role === 'owner' || !buildAccess
+  const installationSteps = useMemo(() => getInstallationSteps(installationsDraft), [installationsDraft])
+  const currentInstallationStepKey = installationSteps[installationsStep] ?? installationSteps[installationSteps.length - 1]
+  const installationColumns = width < 390 ? 1 : 2
+
+  useEffect(() => {
+    setInstallationsStep((current) => Math.min(current, Math.max(0, installationSteps.length - 1)))
+  }, [installationSteps.length])
+
+  const openInstallationsConfigurator = () => {
+    setInstallationsDraft(
+      installationsConfig
+        ? {
+            heatingSystem: installationsConfig.heatingSystem,
+            heatPump: installationsConfig.heatPump,
+            recuperation: installationsConfig.recuperation,
+            additional: [...installationsConfig.additional],
+          }
+        : createEmptyInstallationDraft()
+    )
+    setInstallationsStep(0)
+    setInstallationsOpen(true)
+  }
+
+  const closeInstallationsConfigurator = () => {
+    setInstallationsOpen(false)
+    setInstallationsStep(0)
+    setInstallationsDraft(
+      installationsConfig
+        ? {
+            heatingSystem: installationsConfig.heatingSystem,
+            heatPump: installationsConfig.heatPump,
+            recuperation: installationsConfig.recuperation,
+            additional: [...installationsConfig.additional],
+          }
+        : createEmptyInstallationDraft()
+    )
+  }
+
+  const toggleInstallationExtra = (key: InstallationExtraKey) => {
+    setInstallationsDraft((current) => ({
+      ...current,
+      additional: current.additional.includes(key)
+        ? current.additional.filter((item) => item !== key)
+        : [...current.additional, key],
+    }))
+  }
+
+  const goToNextInstallationStep = () => {
+    setInstallationsStep((current) => Math.min(installationSteps.length - 1, current + 1))
+  }
+
+  const goToPreviousInstallationStep = () => {
+    setInstallationsStep((current) => Math.max(0, current - 1))
+  }
+
+  const saveInstallations = () => {
+    const nextConfig: InstallationDraft = {
+      heatingSystem: installationsDraft.heatingSystem,
+      heatPump: installationsDraft.heatPump,
+      recuperation: installationsDraft.recuperation,
+      additional: [...installationsDraft.additional],
+    }
+
+    const persist = async () => {
+      try {
+        const proj = await ensureProjektExists()
+        if (!proj?.id) return
+
+        const payload = {
+          installations_config: nextConfig,
+        }
+
+        const { error } = await supabase
+          .from('projekty')
+          .update(payload)
+          .eq(buildAccess?.investmentId ? 'investment_id' : 'user_id', buildAccess?.investmentId ?? userId)
+          .eq('id', proj.id)
+
+        if (error) {
+          Alert.alert(t('saveErrorTitle'), getFriendlyErrorMessage(error, t, 'saveParamsError'))
+          return
+        }
+
+        setInstallationsConfig(nextConfig)
+        closeInstallationsConfigurator()
+      } catch (error) {
+        Alert.alert(t('saveErrorTitle'), getFriendlyErrorMessage(error as any, t, 'saveParamsError'))
+      }
+    }
+
+    persist()
+  }
+
+  const installationsSummary = useMemo(() => {
+    if (!installationsConfig) return null
+
+    const heatingSystemLabel = HEATING_SYSTEM_OPTIONS.find((item) => item.key === installationsConfig.heatingSystem)?.labelKey
+    return {
+      heatingSystem: heatingSystemLabel ? t(heatingSystemLabel) : t('installationWizard.answers.notSelected'),
+      heatPump: installationsConfig.heatPump === true
+        ? t('installationWizard.answers.yes')
+        : installationsConfig.heatPump === false
+          ? t('installationWizard.answers.no')
+          : t('installationWizard.answers.notSelected'),
+      recuperation: installationsConfig.recuperation === true
+        ? t('installationWizard.answers.yes')
+        : installationsConfig.recuperation === false
+          ? t('installationWizard.answers.no')
+          : t('installationWizard.answers.notSelected'),
+      additional: installationsConfig.additional,
+    }
+  }, [installationsConfig, t])
+
+  const installationListItems = useMemo<InstallationListItem[]>(() => {
+    if (!installationsConfig) return []
+
+    const items: InstallationListItem[] = []
+    const selectedHeating = HEATING_SYSTEM_OPTIONS.find((item) => item.key === installationsConfig.heatingSystem)
+    if (selectedHeating) {
+      items.push({
+        key: `heating:${selectedHeating.key}`,
+        icon: selectedHeating.icon,
+        label: t(selectedHeating.labelKey),
+      })
+    }
+
+    if (installationsConfig.heatingSystem !== 'heat_pump' && installationsConfig.heatPump) {
+      items.push({
+        key: 'heat_pump',
+        icon: 'heat-pump-outline',
+        label: t('installationWizard.summaryLabels.heatPump'),
+      })
+    }
+
+    if (installationsConfig.recuperation) {
+      items.push({
+        key: 'recuperation',
+        icon: 'air-filter',
+        label: t('installationWizard.summaryLabels.recuperation'),
+      })
+    }
+
+    installationsConfig.additional.forEach((key) => {
+      const option = INSTALLATION_EXTRA_OPTIONS.find((item) => item.key === key)
+      if (!option) return
+      items.push({
+        key,
+        icon: option.icon,
+        label: t(option.labelKey),
+      })
+    })
+
+    return items
+  }, [installationsConfig, t])
+
+  const openInstallationDetails = (item: InstallationListItem) => {
+    router.push({
+      pathname: '/(app)/(tabs)/projekt/instalacje',
+      params: { title: item.label, icon: item.icon },
+    })
+  }
 
   useEffect(() => {
     let alive = true
@@ -324,8 +630,11 @@ export default function ProjektScreen() {
         if (profileErr) throw profileErr
         if (!alive) return
 
-        setProjekt((projData as any) ?? null)
+        const nextProjekt = (projData as any) ?? null
+        setProjekt(nextProjekt)
         setLokalizacja((invData as any)?.lokalizacja ?? null)
+        const nextInstallationsConfig = normalizeInstallationConfig(nextProjekt?.installations_config)
+        setInstallationsConfig(nextInstallationsConfig && isEmptyInstallationDraft(nextInstallationsConfig) ? null : nextInstallationsConfig)
         setUserFirstName(
           String((profileData as any)?.imie ?? user.user_metadata?.given_name ?? user.user_metadata?.full_name ?? '')
             .trim()
@@ -346,6 +655,7 @@ export default function ProjektScreen() {
           setRzuty(await withSignedUrls(((rzutyData as any) ?? []) as Rzut[]))
         } else {
           setRzuty([])
+          setInstallationsConfig(null)
         }
 
         if (!alive) return
@@ -383,7 +693,6 @@ export default function ProjektScreen() {
       projekt?.pomieszczenia,
       projekt?.powierzchnia_zabudowy,
       projekt?.wysokosc_budynku,
-      projekt?.kat_dachu,
       projekt?.powierzchnia_dachu,
       projekt?.szerokosc_elewacji,
       projekt?.dlugosc_elewacji].some((value) => value !== null && value !== undefined && String(value).trim() !== '')
@@ -408,7 +717,6 @@ export default function ProjektScreen() {
   const modelUrl = useMemo(() => projekt?.model_url || DEFAULT_MODEL_URL, [projekt?.model_url])
   const areaUnit = formatAreaUnit(units)
   const lengthUnit = formatLengthUnit(units)
-  const degreeUnit = formatDegreeUnit()
   const projectAssetsByType = useMemo(
     () => ({
       plan: rzuty.filter((asset) => normalizeProjectAssetType(asset.typ) === 'plan'),
@@ -418,16 +726,15 @@ export default function ProjektScreen() {
 
   const tiles = useMemo(
     () => [
+      { id: 'dl', label: t('tileHouseLength'), value: fmtNum(projekt?.dlugosc_elewacji, ` ${lengthUnit}`) },
+      { id: 'szer', label: t('tileHouseWidth'), value: fmtNum(projekt?.szerokosc_elewacji, ` ${lengthUnit}`) },
       { id: 'pow_u', label: t('tilePowU'), value: fmtNum(projekt?.powierzchnia_uzytkowa, ` ${areaUnit}`) },
+      { id: 'pow_z', label: t('tilePowZ'), value: fmtNum(projekt?.powierzchnia_zabudowy, ` ${areaUnit}`) },
       { id: 'kond', label: t('tileFloors'), value: String(projekt?.kondygnacje ?? '—') },
       { id: 'pom', label: t('tileRooms'), value: String(projekt?.pomieszczenia ?? '—') },
-      { id: 'pow_z', label: t('tilePowZ'), value: fmtNum(projekt?.powierzchnia_zabudowy, ` ${areaUnit}`) },
       { id: 'wys', label: t('tileHeight'), value: fmtNum(projekt?.wysokosc_budynku, ` ${lengthUnit}`) },
-      { id: 'kat', label: t('tileRoofAngle'), value: fmtNum(projekt?.kat_dachu, degreeUnit) },
-      { id: 'pow_d', label: t('tileRoofArea'), value: fmtNum(projekt?.powierzchnia_dachu, ` ${areaUnit}`) },
-      { id: 'szer', label: t('tileFacadeWidth'), value: fmtNum(projekt?.szerokosc_elewacji, ` ${lengthUnit}`) },
-      { id: 'dl', label: t('tileFacadeLength'), value: fmtNum(projekt?.dlugosc_elewacji, ` ${lengthUnit}`) }],
-    [areaUnit, degreeUnit, lengthUnit, projekt, t]
+      { id: 'pow_d', label: t('tileRoofArea'), value: fmtNum(projekt?.powierzchnia_dachu, ` ${areaUnit}`) }],
+    [areaUnit, lengthUnit, projekt, t]
   )
 
   const ensureProjektExists = async (): Promise<Projekt | null> => {
@@ -839,7 +1146,6 @@ export default function ProjektScreen() {
       pomieszczenia: projekt?.pomieszczenia?.toString() ?? '',
       powierzchnia_zabudowy: projekt?.powierzchnia_zabudowy?.toString() ?? '',
       wysokosc_budynku: projekt?.wysokosc_budynku?.toString() ?? '',
-      kat_dachu: projekt?.kat_dachu?.toString() ?? '',
       powierzchnia_dachu: projekt?.powierzchnia_dachu?.toString() ?? '',
       szerokosc_elewacji: projekt?.szerokosc_elewacji?.toString() ?? '',
       dlugosc_elewacji: projekt?.dlugosc_elewacji?.toString() ?? ''})
@@ -881,7 +1187,6 @@ export default function ProjektScreen() {
         pomieszczenia: safeNumberOrNull(form.pomieszczenia),
         powierzchnia_zabudowy: safeNumberOrNull(form.powierzchnia_zabudowy),
         wysokosc_budynku: safeNumberOrNull(form.wysokosc_budynku),
-        kat_dachu: safeNumberOrNull(form.kat_dachu),
         powierzchnia_dachu: safeNumberOrNull(form.powierzchnia_dachu),
         szerokosc_elewacji: safeNumberOrNull(form.szerokosc_elewacji),
         dlugosc_elewacji: safeNumberOrNull(form.dlugosc_elewacji)}
@@ -1031,6 +1336,88 @@ export default function ProjektScreen() {
 
         <View style={styles.sectionOuter}>
           <AppCard contentStyle={styles.sectionGlass}>
+            <SectionHeader
+              title={t('installationsSection.title')}
+              right={
+                canEditProject ? (
+                  <TouchableOpacity onPress={openInstallationsConfigurator} style={styles.editBtn} hitSlop={12} activeOpacity={0.85}>
+                    <Feather name="sliders" size={13} color={NEON} />
+                    <Text style={styles.editBtnText}>{t('edit')}</Text>
+                  </TouchableOpacity>
+                ) : null
+              }
+              style={styles.sectionHeaderRow}
+            />
+
+            {loading ? (
+              <ActivityIndicator color={NEON} style={{ marginVertical: 16 }} />
+            ) : (
+              <>
+                <View style={styles.installationsIllustrationCard}>
+                  <InstallationsIllustration style={styles.installationsIllustration} />
+                </View>
+
+                {!installationsSummary ? (
+                  <AppButton
+                    title={t('installationsSection.add')}
+                    onPress={openInstallationsConfigurator}
+                    style={styles.installationsCta}
+                  />
+                ) : null}
+
+                {installationsSummary ? (
+                  <>
+                    <Text style={styles.installationsListTitle}>
+                      {t('installationsSection.allTitle')}
+                    </Text>
+                    <View style={styles.installationsListGrid}>
+                      {installationListItems.map((item) => (
+                        <Pressable
+                          key={item.key}
+                          onPress={() => openInstallationDetails(item)}
+                          android_ripple={{ color: 'rgba(255,255,255,0.06)' }}
+                          style={({ pressed }) => [
+                            styles.installationsListItem,
+                            installationColumns === 1 && styles.installationsListItemFull,
+                            pressed && styles.installationsListItemPressed,
+                          ]}
+                        >
+                          <View style={styles.installationsListIcon}>
+                            <MaterialCommunityIcons name={item.icon} size={17} color="rgba(248,250,252,0.88)" />
+                          </View>
+                          <Text style={styles.installationsListText} numberOfLines={1}>
+                            {item.label}
+                          </Text>
+                          <Feather name="chevron-right" size={15} color="rgba(248,250,252,0.30)" />
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                ) : null}
+
+                <View style={styles.installationsInfoCard}>
+                  <View style={styles.installationsInfoHeader}>
+                    <Text style={styles.installationsInfoTitle}>{t('installationsSection.whyTitle')}</Text>
+                  </View>
+                  <Text style={styles.installationsInfoLead}>{t('installationsSection.infoLead')}</Text>
+                  <View style={styles.installationsInfoRow}>
+                    {INSTALLATION_INFO_ITEMS.map((item) => (
+                      <View key={item.key} style={styles.installationsInfoItem}>
+                        <View style={styles.installationsInfoIcon}>
+                          <MaterialCommunityIcons name={item.icon} size={18} color={NEON} />
+                        </View>
+                        <Text style={styles.installationsInfoItemText}>{t(item.labelKey)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </>
+            )}
+          </AppCard>
+        </View>
+
+        <View style={styles.sectionOuter}>
+          <AppCard contentStyle={styles.sectionGlass}>
             {renderProjectAssetSection('plan')}
             {renderProjectAssetSection('visualization')}
           </AppCard>
@@ -1051,7 +1438,7 @@ export default function ProjektScreen() {
               </Text>
               <Text style={styles.nudgeTitle}>
                 {userFirstName
-                  ? `${userFirstName}, uzupełnij teraz najważniejsze informacje o projekcie.`
+                  ? t('projectNudgeTitleWithName', { name: userFirstName })
                   : t('projectNudgeTitle')}
               </Text>
               <Text style={styles.nudgeText}>
@@ -1065,6 +1452,110 @@ export default function ProjektScreen() {
               />
             </View>
           </View>
+        </Modal>
+
+        <Modal visible={installationsOpen} transparent animationType="slide" onRequestClose={closeInstallationsConfigurator}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <View style={styles.modalBackdrop}>
+              <Pressable style={styles.modalSheet} onPress={Keyboard.dismiss}>
+                <View style={styles.modalHandle} />
+
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{t('installationWizard.title')}</Text>
+                  <TouchableOpacity
+                    onPress={closeInstallationsConfigurator}
+                    style={styles.modalCloseBtn}
+                    activeOpacity={0.85}
+                  >
+                    <Feather name="x" size={18} color="rgba(255,255,255,0.6)" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                >
+                  <Text style={styles.fieldGroupLabel}>{t('installationWizard.heatingQuestion')}</Text>
+                  <View style={styles.installationsOptionList}>
+                    {HEATING_SYSTEM_OPTIONS.map((option) => {
+                      const active = installationsDraft.heatingSystem === option.key
+                      return (
+                        <TouchableOpacity
+                          key={option.key}
+                          onPress={() => {
+                            setInstallationsDraft((current) => ({
+                              ...current,
+                              heatingSystem: option.key,
+                              heatPump: option.key === 'heat_pump',
+                            }))
+                          }}
+                          style={[styles.installationsOptionCard, active && styles.installationsOptionCardActive]}
+                          activeOpacity={0.86}
+                        >
+                          <View style={[styles.installationsOptionIcon, active && styles.installationsOptionIconActive]}>
+                            <MaterialCommunityIcons name={option.icon} size={18} color={active ? NEON : 'rgba(255,255,255,0.78)'} />
+                          </View>
+                          <Text style={styles.installationsOptionText}>{t(option.labelKey)}</Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+
+                  <Text style={styles.fieldGroupLabel}>{t('installationWizard.recuperationQuestion')}</Text>
+                  <View style={styles.installationsChoiceRow}>
+                    {[
+                      { key: true, label: t('installationWizard.answers.yes') },
+                      { key: false, label: t('installationWizard.answers.no') },
+                    ].map((choice) => {
+                      const active = installationsDraft.recuperation === choice.key
+                      return (
+                        <TouchableOpacity
+                          key={String(choice.key)}
+                          onPress={() => setInstallationsDraft((current) => ({ ...current, recuperation: choice.key }))}
+                          style={[styles.installationsChoiceCard, active && styles.installationsChoiceCardActive]}
+                          activeOpacity={0.86}
+                        >
+                          <Text style={styles.installationsChoiceText}>{choice.label}</Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+
+                  <Text style={styles.fieldGroupLabel}>{t('installationWizard.extraQuestion')}</Text>
+                  <View style={styles.installationsExtraGridWizard}>
+                    {INSTALLATION_EXTRA_OPTIONS.map((option) => {
+                      const active = installationsDraft.additional.includes(option.key)
+                      return (
+                        <TouchableOpacity
+                          key={option.key}
+                          onPress={() => toggleInstallationExtra(option.key)}
+                          style={[styles.installationsExtraOption, active && styles.installationsExtraOptionActive]}
+                          activeOpacity={0.86}
+                        >
+                          <View style={[styles.installationsExtraOptionIcon, active && styles.installationsExtraOptionIconActive]}>
+                            <MaterialCommunityIcons name={option.icon} size={16} color={active ? NEON : 'rgba(255,255,255,0.72)'} />
+                          </View>
+                          <Text style={styles.installationsExtraOptionText}>{t(option.labelKey)}</Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+                </ScrollView>
+
+                <View style={styles.installationsActions}>
+                  <AppButton title={t('cancel')} variant="secondary" onPress={closeInstallationsConfigurator} style={styles.installationsActionBtn} />
+                  <AppButton
+                    title={t('installationWizard.actions.save')}
+                    onPress={saveInstallations}
+                    disabled={!installationsDraft.heatingSystem || installationsDraft.recuperation === null}
+                    style={styles.installationsActionBtn}
+                  />
+                </View>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
@@ -1234,12 +1725,27 @@ export default function ProjektScreen() {
                   keyboardDismissMode="on-drag"
                   contentContainerStyle={{ paddingBottom: 24 }}
                 >
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupGeneral')}</Text>
+                  <Text style={[styles.fieldGroupLabel, styles.fieldGroupLabelCentered]}>{t('fieldGroupGeneral')}</Text>
                   <FieldText
                     label={t('fieldProjectName')}
                     value={form.nazwa}
                     onChange={(txt) => setForm((p) => ({ ...p, nazwa: txt }))}
+                    centered
                   />
+
+                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupFacade')}</Text>
+                  <View style={styles.row2}>
+                    <FieldNum
+                      label={labelWithUnit(t('fieldHouseLength'), lengthUnit)}
+                      value={form.dlugosc_elewacji}
+                      onChange={(txt) => setForm((p) => ({ ...p, dlugosc_elewacji: txt }))}
+                    />
+                    <FieldNum
+                      label={labelWithUnit(t('fieldHouseWidth'), lengthUnit)}
+                      value={form.szerokosc_elewacji}
+                      onChange={(txt) => setForm((p) => ({ ...p, szerokosc_elewacji: txt }))}
+                    />
+                  </View>
 
                   <Text style={styles.fieldGroupLabel}>{t('fieldGroupSurfaces')}</Text>
                   <View style={styles.row2}>
@@ -1281,25 +1787,7 @@ export default function ProjektScreen() {
                       value={form.wysokosc_budynku}
                       onChange={(txt) => setForm((p) => ({ ...p, wysokosc_budynku: txt }))}
                     />
-                    <FieldNum
-                      label={labelWithUnit(t('fieldRoofAngle'), degreeUnit)}
-                      value={form.kat_dachu}
-                      onChange={(txt) => setForm((p) => ({ ...p, kat_dachu: txt }))}
-                    />
-                  </View>
-
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupFacade')}</Text>
-                  <View style={styles.row2}>
-                    <FieldNum
-                      label={labelWithUnit(t('fieldFacadeWidth'), lengthUnit)}
-                      value={form.szerokosc_elewacji}
-                      onChange={(txt) => setForm((p) => ({ ...p, szerokosc_elewacji: txt }))}
-                    />
-                    <FieldNum
-                      label={labelWithUnit(t('fieldFacadeLength'), lengthUnit)}
-                      value={form.dlugosc_elewacji}
-                      onChange={(txt) => setForm((p) => ({ ...p, dlugosc_elewacji: txt }))}
-                    />
+                    <View style={{ flex: 1 }} />
                   </View>
                 </ScrollView>
 
@@ -1383,12 +1871,12 @@ function AnimatedDataCell({ tile, index }: { tile: { id: string; label: string; 
   )
 }
 
-function FieldText({ label, value, onChange }: { label: string; value: string; onChange: (t: string) => void }) {
+function FieldText({ label, value, onChange, centered }: { label: string; value: string; onChange: (t: string) => void; centered?: boolean }) {
   const { t } = useTranslation();
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <AppInput value={value} onChangeText={onChange} placeholder={t('common:dash')} style={styles.input} />
+      <Text style={[styles.fieldLabel, centered && styles.fieldLabelCentered]}>{label}</Text>
+      <AppInput value={value} onChangeText={onChange} placeholder={t('common:dash')} style={[styles.input, centered && styles.inputCentered]} />
     </View>
   )
 }
@@ -1491,6 +1979,220 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 18,
     backgroundColor: 'transparent'},
+
+  installationsIllustrationCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(24,229,194,0.14)',
+    backgroundColor: '#05080D',
+    shadowColor: NEON,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+    marginBottom: 14},
+
+  installationsIllustration: {
+    width: '100%'},
+
+  installationsCta: {
+    marginBottom: 14},
+
+  installationsInfoCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 2},
+
+  installationsInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 10},
+
+  installationsInfoTitle: {
+    color: NEON,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: -0.15,
+    flexShrink: 0},
+
+  installationsInfoLead: {
+    color: '#F8FAFC',
+    fontSize: 13.25,
+    lineHeight: 18,
+    fontWeight: '700',
+    textAlign: 'left',
+    marginTop: 6},
+
+  installationsListTitle: {
+    marginTop: 4,
+    marginBottom: 12,
+    color: '#F8FAFC',
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '900',
+    letterSpacing: -0.15},
+
+  installationsListGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12},
+
+  installationsListItem: {
+    flexBasis: '48.5%',
+    flexGrow: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.09)',
+    backgroundColor: '#090B10',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2},
+
+  installationsListItemPressed: {
+    transform: [{ translateY: -1 }],
+    backgroundColor: '#0C0F15',
+    borderColor: 'rgba(255,255,255,0.14)',
+    shadowOpacity: 0.26,
+    elevation: 4},
+
+  installationsListItemFull: {
+    flexBasis: '100%'},
+
+  installationsListIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)'},
+
+  installationsListText: {
+    flex: 1,
+    color: '#F8FAFC',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800'},
+
+  installationsInfoRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 0,
+    marginBottom: 0,
+    flexWrap: 'nowrap'},
+
+  installationsInfoItem: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(24,229,194,0.12)',
+    backgroundColor: 'rgba(24,229,194,0.05)'},
+
+  installationsInfoIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(24,229,194,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(24,229,194,0.18)',
+    marginBottom: 8},
+
+  installationsInfoItemText: {
+    color: '#F8FAFC',
+    fontSize: 11.5,
+    lineHeight: 15,
+    fontWeight: '800',
+    textAlign: 'center'},
+
+  installationsSummaryCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(24,229,194,0.16)',
+    backgroundColor: 'rgba(24,229,194,0.05)',
+    padding: 16,
+    marginBottom: 14},
+
+  installationsSummaryTitle: {
+    color: '#F8FAFC',
+    fontSize: 14.5,
+    fontWeight: '900',
+    letterSpacing: -0.15,
+    marginBottom: 12},
+
+  installationsSummaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10},
+
+  installationsSummaryItem: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: '30%',
+    borderRadius: 16,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)'},
+
+  installationsSummaryLabel: {
+    color: 'rgba(255,255,255,0.42)',
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase'},
+
+  installationsSummaryValue: {
+    marginTop: 7,
+    color: '#F8FAFC',
+    fontSize: 13.5,
+    lineHeight: 18,
+    fontWeight: '800'},
+
+  installationsExtraGrid: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8},
+
+  installationsExtraChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(24,229,194,0.16)',
+    backgroundColor: 'rgba(24,229,194,0.07)'},
+
+  installationsExtraChipText: {
+    color: 'rgba(255,255,255,0.86)',
+    fontSize: 11.5,
+    fontWeight: '700'},
 
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -1713,6 +2415,134 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 18},
 
+  installationsStepBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 16},
+
+  installationsStepDot: {
+    width: 18,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.10)'},
+
+  installationsStepDotActive: {
+    backgroundColor: NEON,
+    width: 28},
+
+  installationsOptionList: {
+    gap: 10},
+
+  installationsOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)'},
+
+  installationsOptionCardActive: {
+    borderColor: 'rgba(24,229,194,0.30)',
+    backgroundColor: 'rgba(24,229,194,0.08)'},
+
+  installationsOptionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)'},
+
+  installationsOptionIconActive: {
+    borderColor: 'rgba(24,229,194,0.22)',
+    backgroundColor: 'rgba(24,229,194,0.08)'},
+
+  installationsOptionText: {
+    flex: 1,
+    color: '#F8FAFC',
+    fontSize: 14.5,
+    fontWeight: '800'},
+
+  installationsChoiceRow: {
+    flexDirection: 'row',
+    gap: 10},
+
+  installationsChoiceCard: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)'},
+
+  installationsChoiceCardActive: {
+    borderColor: 'rgba(24,229,194,0.32)',
+    backgroundColor: 'rgba(24,229,194,0.08)'},
+
+  installationsChoiceText: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '800'},
+
+  installationsExtraGridWizard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10},
+
+  installationsExtraOption: {
+    width: '48%',
+    minHeight: 64,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)'},
+
+  installationsExtraOptionActive: {
+    borderColor: 'rgba(24,229,194,0.30)',
+    backgroundColor: 'rgba(24,229,194,0.08)'},
+
+  installationsExtraOptionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)'},
+
+  installationsExtraOptionIconActive: {
+    borderColor: 'rgba(24,229,194,0.22)',
+    backgroundColor: 'rgba(24,229,194,0.08)'},
+
+  installationsExtraOptionText: {
+    flex: 1,
+    color: '#F8FAFC',
+    fontSize: 12.5,
+    fontWeight: '800',
+    lineHeight: 16},
+
+  installationsActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8},
+
+  installationsActionBtn: {
+    flex: 1},
+
   previewTopBar: {
     paddingTop: 54,
     paddingHorizontal: 14,
@@ -1858,6 +2688,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     opacity: 0.8},
 
+  fieldGroupLabelCentered: {
+    textAlign: 'center'},
+
   field: {
     marginBottom: 10},
 
@@ -1869,9 +2702,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase'},
 
+  fieldLabelCentered: {
+    textAlign: 'center'},
+
   input: {
     fontWeight: '700',
     fontSize: 15},
+
+  inputCentered: {
+    textAlign: 'center'},
 
   row2: {
     flexDirection: 'row',
@@ -1888,3 +2727,6 @@ const styles = StyleSheet.create({
 
   modalBtnPrimary: {
     flex: 1}})
+
+
+

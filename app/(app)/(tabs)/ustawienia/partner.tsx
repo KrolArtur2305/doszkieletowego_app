@@ -7,7 +7,6 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Switch,
   Text,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -15,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
@@ -27,15 +27,12 @@ import { supabase } from '../../../../lib/supabase';
 import { getUserWithTimeout } from '../../../../lib/supabaseTimeout';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import {
-  BUILD_PERMISSION_ITEMS,
   COLLABORATION_BUILD_PERMISSIONS,
-  DEFAULT_BUILD_PERMISSIONS,
   getPermissionPreset,
   isNonOwnerBuildRole,
   normalizeBuildPermissions,
   normalizeBuildRole,
   VIEW_ONLY_BUILD_PERMISSIONS,
-  type BuildPermissionKey,
   type BuildPermissions,
   type BuildRole,
 } from '../../../../lib/buildAccess';
@@ -69,9 +66,12 @@ type IntroSlide = {
 type PartnerMember = {
   id: string;
   user_id: string;
+  displayName: string | null;
   permissions: BuildPermissions;
   created_at: string;
 };
+
+type PartnerPreset = 'view' | 'collab' | null;
 
 export default function BuildPartnerScreen() {
   const router = useRouter();
@@ -91,24 +91,40 @@ export default function BuildPartnerScreen() {
   const [investmentId, setInvestmentId] = useState<string | null>(null);
   const [investmentName, setInvestmentName] = useState('');
   const [membershipRole, setMembershipRole] = useState<BuildRole | null>(null);
-  const [permissions, setPermissions] = useState<BuildPermissions>(DEFAULT_BUILD_PERMISSIONS);
+  const [permissions, setPermissions] = useState<BuildPermissions>(VIEW_ONLY_BUILD_PERMISSIONS);
   const [invite, setInvite] = useState<InviteRow | null>(null);
+  const [inviteVisible, setInviteVisible] = useState(false);
   const [copiedInviteCode, setCopiedInviteCode] = useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(null);
   const [partnerMembers, setPartnerMembers] = useState<PartnerMember[]>([]);
-  const [selectedPartner, setSelectedPartner] = useState<PartnerMember | null>(null);
-  const [editingPermissions, setEditingPermissions] = useState<BuildPermissions>(DEFAULT_BUILD_PERMISSIONS);
-  const [savingPartnerId, setSavingPartnerId] = useState<string | null>(null);
   const [introSeen, setIntroSeen] = useState<boolean | null>(null);
   const [introIndex, setIntroIndex] = useState(0);
+  const [upgradeNoticeVisible, setUpgradeNoticeVisible] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<PartnerPreset>(null);
 
   const isExpert = isExpertEquivalentPlan(plan);
-
-  const permissionItems = BUILD_PERMISSION_ITEMS as { key: BuildPermissionKey; icon: keyof typeof Feather.glyphMap }[];
-
-  const activePreset = useMemo(() => {
-    return getPermissionPreset(permissions);
-  }, [permissions]);
+  const selectedPresetCopy =
+    selectedPreset === 'view'
+      ? {
+          title: 'Tryb: podgląd',
+          text: 'Dobry wybór, gdy chcesz dać dostęp do informacji bez ryzyka przypadkowych zmian.',
+          bullets: [
+            'Pełny podgląd budżetu, dokumentów i zadań',
+            'Idealny do kontroli postępu i bieżącego wglądu',
+            'Bez dodawania zdjęć, dokumentów, wpisów i wydatków',
+          ],
+        }
+      : selectedPreset === 'collab'
+        ? {
+            title: 'Tryb: aktywna współpraca',
+            text: 'Najmocniejszy wariant współpracy dla partnera, który ma realnie pomagać w budowie.',
+            bullets: [
+              'Dodawanie zdjęć, dokumentów, wpisów i wydatków',
+              'Zadania są dostępne po obu stronach',
+              'Budżet, dokumenty i postęp są pod kontrolą właściciela',
+            ],
+          }
+        : null;
 
   const introSlides = useMemo(
     () => ([
@@ -224,10 +240,32 @@ export default function BuildPartnerScreen() {
 
           if (membersRes.error) throw membersRes.error;
 
+          const memberUserIds = (membersRes.data ?? [])
+            .map((row: any) => String(row.user_id ?? '').trim())
+            .filter(Boolean);
+
+          let memberNameById = new Map<string, string>();
+          if (memberUserIds.length > 0) {
+            const profilesRes = await supabase
+              .from('profiles')
+              .select('user_id,imie')
+              .in('user_id', memberUserIds);
+
+            if (profilesRes.error) throw profilesRes.error;
+
+            memberNameById = new Map(
+              (profilesRes.data ?? []).map((row: any) => [
+                String(row.user_id),
+                String(row.imie ?? '').trim(),
+              ])
+            );
+          }
+
           setPartnerMembers(
             (membersRes.data ?? []).map((row: any) => ({
               id: String(row.id),
               user_id: String(row.user_id),
+              displayName: memberNameById.get(String(row.user_id)) || null,
               permissions: normalizeBuildPermissions(row.permissions),
               created_at: String(row.created_at ?? ''),
             }))
@@ -250,58 +288,9 @@ export default function BuildPartnerScreen() {
     };
   }, [t]);
 
-  const togglePermission = (key: BuildPermissionKey) => {
-    setPermissions((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
-  };
-
   const applyPreset = (preset: 'view' | 'collab') => {
     setPermissions(preset === 'view' ? VIEW_ONLY_BUILD_PERMISSIONS : COLLABORATION_BUILD_PERMISSIONS);
-  };
-
-  const openPartnerEditor = (member: PartnerMember) => {
-    setSelectedPartner(member);
-    setEditingPermissions({
-      ...DEFAULT_BUILD_PERMISSIONS,
-      ...(member.permissions ?? {}),
-    });
-  };
-
-  const closePartnerEditor = () => {
-    setSelectedPartner(null);
-  };
-
-  const toggleEditingPermission = (key: BuildPermissionKey) => {
-    setEditingPermissions((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
-  };
-
-  const savePartnerPermissions = async () => {
-    if (!selectedPartner || savingPartnerId) return;
-
-    setSavingPartnerId(selectedPartner.id);
-    try {
-      const { error } = await supabase
-        .from('investment_members')
-        .update({ permissions: editingPermissions, updated_at: new Date().toISOString() })
-        .eq('id', selectedPartner.id);
-
-      if (error) throw error;
-
-      await refreshPartnerMembers();
-      closePartnerEditor();
-    } catch (e: any) {
-      Alert.alert(
-        t('common:errorTitle'),
-        getFriendlyErrorMessage(e, t, 'settings:partner.errors.update')
-      );
-    } finally {
-      setSavingPartnerId(null);
-    }
+    setSelectedPreset(preset);
   };
 
   const refreshPartnerMembers = async (targetInvestmentId = investmentId) => {
@@ -319,10 +308,32 @@ export default function BuildPartnerScreen() {
 
     if (membersRes.error) throw membersRes.error;
 
+    const memberUserIds = (membersRes.data ?? [])
+      .map((row: any) => String(row.user_id ?? '').trim())
+      .filter(Boolean);
+
+    let memberNameById = new Map<string, string>();
+    if (memberUserIds.length > 0) {
+      const profilesRes = await supabase
+        .from('profiles')
+        .select('user_id,imie')
+        .in('user_id', memberUserIds);
+
+      if (profilesRes.error) throw profilesRes.error;
+
+      memberNameById = new Map(
+        (profilesRes.data ?? []).map((row: any) => [
+          String(row.user_id),
+          String(row.imie ?? '').trim(),
+        ])
+      );
+    }
+
     setPartnerMembers(
       (membersRes.data ?? []).map((row: any) => ({
         id: String(row.id),
         user_id: String(row.user_id),
+        displayName: memberNameById.get(String(row.user_id)) || null,
         permissions: normalizeBuildPermissions(row.permissions),
         created_at: String(row.created_at ?? ''),
       }))
@@ -419,7 +430,12 @@ export default function BuildPartnerScreen() {
   };
 
   const generateInvite = async () => {
-    if (!investmentId || generating || !isExpert) return;
+    if (!investmentId || generating) return;
+
+    if (!isExpert) {
+      setUpgradeNoticeVisible(true);
+      return;
+    }
 
     setGenerating(true);
     try {
@@ -445,6 +461,7 @@ export default function BuildPartnerScreen() {
         expires_at: String(row.expires_at),
         revoked_at: null,
       });
+      setInviteVisible(true);
       setCopiedInviteCode(false);
     } catch (e: any) {
       const rawMessage = String(e?.message ?? e?.error_description ?? e?.error ?? '').trim();
@@ -576,7 +593,7 @@ export default function BuildPartnerScreen() {
             ) : null}
 
             <View style={styles.introHero}>
-              <View style={styles.heroIcon}>
+              <View style={styles.heroIconCenter}>
                 <Feather name="users" size={24} color={NEON} />
               </View>
               <Text style={styles.introTitle}>{t('settings:partner.intro.title')}</Text>
@@ -612,21 +629,6 @@ export default function BuildPartnerScreen() {
               ))}
             </View>
 
-            {!isExpert && (
-              <View style={styles.lockedCard}>
-                <View style={styles.lockedHeader}>
-                  <Feather name="lock" size={18} color={NEON} />
-                  <Text style={styles.lockedTitle}>{t('settings:partner.lockedTitle')}</Text>
-                </View>
-                <Text style={styles.lockedText}>{t('settings:partner.lockedSubtitle')}</Text>
-                <AppButton
-                  title={t('settings:partner.upgradeAction')}
-                  onPress={() => router.push('/(app)/(tabs)/ustawienia/subskrypcja')}
-                  style={styles.actionButton}
-                />
-              </View>
-            )}
-
             <AppButton
               title={
                 introIndex < introSlides.length - 1
@@ -640,10 +642,9 @@ export default function BuildPartnerScreen() {
         ) : (
           <>
             <View style={styles.heroCard}>
-              <View style={styles.heroIcon}>
+              <View style={styles.heroIconCenter}>
                 <Feather name="users" size={24} color={NEON} />
               </View>
-              <Text style={styles.heroTitle}>{t('settings:partner.heroTitle')}</Text>
               <Text style={styles.heroSubtitle}>
                 {t('settings:partner.heroSubtitle')}
               </Text>
@@ -675,93 +676,49 @@ export default function BuildPartnerScreen() {
               </View>
             ) : null}
 
-            {!isExpert && (
-              <View style={styles.lockedCard}>
-                <View style={styles.lockedHeader}>
-                  <Feather name="lock" size={18} color={NEON} />
-                  <Text style={styles.lockedTitle}>{t('settings:partner.lockedTitle')}</Text>
-                </View>
-                <Text style={styles.lockedText}>{t('settings:partner.lockedSubtitle')}</Text>
-                <AppButton
-                  title={t('settings:partner.upgradeAction')}
-                  onPress={() => router.push('/(app)/(tabs)/ustawienia/subskrypcja')}
-                  style={styles.actionButton}
-                />
-              </View>
-            )}
-
-            <Text style={styles.groupLabel}>{t('settings:partner.permissionsTitle')}</Text>
-
-            <View style={[styles.presetRow, !isExpert && styles.cardDisabled]}>
+            <View style={styles.presetRow}>
               <TouchableOpacity
                 onPress={() => applyPreset('view')}
-                disabled={!isExpert || generating}
-                style={[styles.presetCard, activePreset === 'view' && styles.presetCardActive]}
+                style={[styles.presetCard, selectedPreset === 'view' && styles.presetCardActive]}
                 activeOpacity={0.88}
               >
-                <Text style={styles.presetLabel}>{t('settings:partner.presets.view.label')}</Text>
-                <Text style={styles.presetTitle}>{t('settings:partner.presets.view.title')}</Text>
-                <Text style={styles.presetText}>{t('settings:partner.presets.view.text')}</Text>
+                <Text style={styles.presetLabel}>Tryb</Text>
+                <Text style={styles.presetTitle}>Podgląd</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => applyPreset('collab')}
-                disabled={!isExpert || generating}
-                style={[styles.presetCard, activePreset === 'collab' && styles.presetCardActive]}
+                style={[styles.presetCard, selectedPreset === 'collab' && styles.presetCardActive]}
                 activeOpacity={0.88}
               >
-                <Text style={styles.presetLabel}>{t('settings:partner.presets.collab.label')}</Text>
-                <Text style={styles.presetTitle}>{t('settings:partner.presets.collab.title')}</Text>
-                <Text style={styles.presetText}>{t('settings:partner.presets.collab.text')}</Text>
+                <Text style={styles.presetLabel}>Tryb</Text>
+                <Text style={styles.presetTitle}>Aktywna współpraca</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.presetSummaryCard}>
-              <Text style={styles.presetSummaryTitle}>
-                {t(`settings:partner.presets.${activePreset === 'collab' ? 'collab' : 'view'}.summaryTitle`)}
-              </Text>
-              <Text style={styles.presetSummaryText}>
-                {t(`settings:partner.presets.${activePreset === 'collab' ? 'collab' : 'view'}.summaryText`)}
-              </Text>
-            </View>
-
-            <View style={[styles.card, !isExpert && styles.cardDisabled]}>
-              {permissionItems.map((item, index) => (
-                <View
-                  key={item.key}
-                  style={[
-                    styles.permissionRow,
-                    index < permissionItems.length - 1 && styles.rowBorder,
-                  ]}
-                >
-                  <View style={styles.rowIconWrap}>
-                    <Feather name={item.icon} size={18} color={ACCENT} />
-                  </View>
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowTitle}>
-                      {t(`settings:partner.permissions.${item.key}.title`)}
-                    </Text>
-                    <Text style={styles.rowSubtitle}>
-                      {t(`settings:partner.permissions.${item.key}.subtitle`)}
-                    </Text>
-                  </View>
-                  <View style={styles.permissionStateBadge}>
-                    <Text style={styles.permissionStateText}>
-                      {permissions[item.key] ? t('settings:partner.permissionOn') : t('settings:partner.permissionOff')}
-                    </Text>
-                  </View>
+            {selectedPresetCopy ? (
+              <View style={styles.presetSummaryCard}>
+                <Text style={styles.presetSummaryTitle}>{selectedPresetCopy.title}</Text>
+                <Text style={styles.presetSummaryText}>{selectedPresetCopy.text}</Text>
+                <View style={styles.presetSummaryList}>
+                  {selectedPresetCopy.bullets.map((item) => (
+                    <View key={item} style={styles.presetSummaryBulletRow}>
+                      <View style={styles.presetSummaryBulletDot} />
+                      <Text style={styles.presetSummaryBulletText}>{item}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
+              </View>
+            ) : null}
 
             <AppButton
               title={generating ? t('settings:partner.generating') : t('settings:partner.generateAction')}
               onPress={generateInvite}
               loading={generating}
-              disabled={!isExpert || !investmentId || generating}
+              disabled={!investmentId || generating}
               style={styles.generateButton}
             />
 
-            {invite && (
+            {invite && inviteVisible && (
               <View style={styles.inviteCard}>
                 <Text style={styles.inviteLabel}>{t('settings:partner.inviteReady')}</Text>
                 <View style={styles.inviteCodeRow}>
@@ -795,95 +752,80 @@ export default function BuildPartnerScreen() {
                 <Text style={styles.partnerListTitle}>
                   {t('settings:partner.partnerListTitle')}
                 </Text>
-                {partnerMembers.map((member, index) => (
-                  <View key={member.id} style={styles.partnerListRow}>
-                    <View style={styles.partnerListText}>
-                      <Text style={styles.partnerListName}>
-                        {t('settings:partner.partnerListItem', { index: index + 1 })}
-                      </Text>
-                      <Text style={styles.partnerListMeta}>
-                        {t('settings:partner.partnerListMeta')}
-                      </Text>
+                {partnerMembers.map((member, index) => {
+                  const memberMode = getPermissionPreset(member.permissions);
+                  return (
+                    <View key={member.id} style={styles.partnerListRow}>
+                      <View style={styles.partnerListText}>
+                        <Text style={styles.partnerListName} numberOfLines={1}>
+                          {member.displayName || t('settings:partner.partnerListItem', { index: index + 1 })}
+                        </Text>
+                        <View style={styles.partnerModeBadge}>
+                          <Text style={styles.partnerModeBadgeText}>
+                            {memberMode === 'view' ? 'Tryb: podgląd' : 'Tryb: aktywna współpraca'}
+                          </Text>
+                        </View>
+                        <Text style={styles.partnerListMeta}>
+                          {t('settings:partner.partnerListMeta')}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleRemovePartner(member)}
+                        style={styles.partnerRemoveBtn}
+                        activeOpacity={0.85}
+                      >
+                        <Feather name="trash-2" size={16} color="#FFB020" />
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => openPartnerEditor(member)}
-                      style={styles.partnerEditBtn}
-                      activeOpacity={0.85}
-                    >
-                      <Feather name="edit-3" size={16} color={NEON} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleRemovePartner(member)}
-                      style={styles.partnerRemoveBtn}
-                      activeOpacity={0.85}
-                    >
-                      <Feather name="trash-2" size={16} color="#FFB020" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             ) : null}
-
-            <Text style={styles.note}>{t('settings:partner.note')}</Text>
           </>
         )}
       </ScrollView>
 
       <Modal
-        visible={selectedPartner !== null}
+        visible={upgradeNoticeVisible}
         transparent
         animationType="fade"
-        onRequestClose={closePartnerEditor}
+        onRequestClose={() => setUpgradeNoticeVisible(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('settings:partner.editTitle')}</Text>
-            <Text style={styles.modalSubtitle}>{t('settings:partner.editSubtitle')}</Text>
-
-            <View style={[styles.card, styles.modalPermissionsCard]}>
-              {permissionItems.map((item, index) => (
-                <View
-                  key={item.key}
-                  style={[
-                    styles.permissionRow,
-                    index < permissionItems.length - 1 && styles.rowBorder,
-                  ]}
-                >
-                  <View style={styles.rowIconWrap}>
-                    <Feather name={item.icon} size={18} color={ACCENT} />
-                  </View>
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowTitle}>
-                      {t(`settings:partner.permissions.${item.key}.title`)}
-                    </Text>
-                    <Text style={styles.rowSubtitle}>
-                      {t(`settings:partner.permissions.${item.key}.subtitle`)}
-                    </Text>
-                  </View>
-                  <Switch
-                    value={editingPermissions[item.key]}
-                    onValueChange={() => toggleEditingPermission(item.key)}
-                    trackColor={{ false: 'rgba(255,255,255,0.10)', true: 'rgba(37,240,200,0.40)' }}
-                    thumbColor={editingPermissions[item.key] ? NEON : 'rgba(255,255,255,0.55)'}
-                    ios_backgroundColor="rgba(255,255,255,0.10)"
-                  />
+        <View style={styles.upgradeBackdrop}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.upgradeBackdropPressable}
+            onPress={() => setUpgradeNoticeVisible(false)}
+          />
+          <View style={styles.upgradeCardWrap}>
+            <BlurView intensity={22} tint="dark" style={styles.upgradeCard}>
+              <View style={styles.upgradeTopRow}>
+                <View style={styles.upgradeIconWrap}>
+                  <Feather name="lock" size={22} color={NEON} />
                 </View>
-              ))}
-            </View>
-
-            <View style={styles.modalButtons}>
-              <AppButton title={t('common:cancel')} onPress={closePartnerEditor} style={styles.modalButton} />
+                <TouchableOpacity
+                  onPress={() => setUpgradeNoticeVisible(false)}
+                  style={styles.upgradeCloseBtn}
+                  activeOpacity={0.85}
+                >
+                  <Feather name="x" size={18} color="rgba(255,255,255,0.72)" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.upgradeTitle}>{t('settings:partner.lockedTitle')}</Text>
+              <Text style={styles.upgradeText}>{t('settings:partner.lockedSubtitle')}</Text>
               <AppButton
-                title={savingPartnerId ? t('settings:partner.savingPermissions') : t('settings:partner.savePermissions')}
-                onPress={savePartnerPermissions}
-                loading={savingPartnerId === selectedPartner?.id}
-                disabled={savingPartnerId !== null}
-                style={styles.modalButton}
+                title={t('settings:partner.upgradeAction')}
+                onPress={() => {
+                  setUpgradeNoticeVisible(false);
+                  router.push('/(app)/(tabs)/ustawienia/subskrypcja');
+                }}
+                style={styles.upgradeCta}
               />
-            </View>
+            </BlurView>
           </View>
         </View>
       </Modal>
+
     </View>
   );
 }
@@ -911,9 +853,9 @@ const styles = StyleSheet.create({
   screenTitle: {
     color: ACCENT,
     fontFamily: 'Rubik_800ExtraBold',
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: '900',
-    letterSpacing: -0.2,
+    letterSpacing: -0.35,
   },
   loadingWrap: {
     minHeight: 260,
@@ -1073,9 +1015,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#050505',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
     overflow: 'hidden',
   },
-  heroIcon: {
+  heroIconCenter: {
     width: 48,
     height: 48,
     borderRadius: 16,
@@ -1086,14 +1029,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(37,240,200,0.22)',
     marginBottom: 14,
   },
-  heroTitle: {
-    color: '#FFFFFF',
-    fontSize: 21,
-    fontWeight: '900',
-    letterSpacing: -0.25,
-  },
   heroSubtitle: {
-    marginTop: 8,
+    textAlign: 'center',
     color: 'rgba(255,255,255,0.55)',
     fontSize: 14,
     fontWeight: '600',
@@ -1133,6 +1070,68 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     marginTop: 14,
+  },
+  upgradeBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.68)',
+    justifyContent: 'flex-end',
+  },
+  upgradeBackdropPressable: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  upgradeCardWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+  },
+  upgradeCard: {
+    borderRadius: 20,
+    padding: 18,
+    backgroundColor: 'rgba(5,10,14,0.96)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+    overflow: 'hidden',
+  },
+  upgradeTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  upgradeIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.22)',
+  },
+  upgradeCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  upgradeTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  upgradeText: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '600',
+  },
+  upgradeCta: {
+    marginTop: 16,
   },
   groupLabel: {
     color: 'rgba(255,255,255,0.38)',
@@ -1208,6 +1207,29 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: 'rgba(255,255,255,0.52)',
     fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  presetSummaryList: {
+    marginTop: 12,
+    gap: 8,
+  },
+  presetSummaryBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  presetSummaryBulletDot: {
+    width: 7,
+    height: 7,
+    marginTop: 6,
+    borderRadius: 99,
+    backgroundColor: NEON,
+  },
+  presetSummaryBulletText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.74)',
+    fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
   },
@@ -1351,6 +1373,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
+  partnerModeBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,240,200,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+  },
+  partnerModeBadgeText: {
+    color: NEON,
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   partnerListMeta: {
     marginTop: 3,
     color: 'rgba(255,255,255,0.40)',
@@ -1427,3 +1466,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 });
+

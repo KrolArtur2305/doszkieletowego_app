@@ -58,6 +58,7 @@
   "appSettings": {
     "title": "Ustawienia aplikacji",
     "version": "Wersja aplikacji",
+    "versionUnknown": "nieznana",
     "terms": "Regulamin / EULA",
     "privacy": "Polityka prywatności",
     "support": "Pomoc",
@@ -166,9 +167,9 @@
     "heroTitle": "Dodaj osobę towarzyszącą",
     "heroSubtitle": "Wygeneruj kod zaproszenia i zdecyduj, co partner może widzieć lub dodawać w Twojej budowie.",
     "currentBuild": "Budowa: {{name}}",
-    "lockedTitle": "Dostępne w planie Expert",
-    "lockedSubtitle": "Partner budowy nie płaci za konto. Zaproszenie może wygenerować tylko właściciel budowy z aktywnym planem Expert.",
-    "upgradeAction": "Zobacz plan Expert",
+    "lockedTitle": "Wymagany plan Expert",
+    "lockedSubtitle": "Aby wygenerować zaproszenie dla partnera, potrzebujesz aktywnego planu Expert.",
+    "upgradeAction": "Przejdź na Expert",
     "permissionsTitle": "Uprawnienia partnera",
     "presets": {
       "view": {

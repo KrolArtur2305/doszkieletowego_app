@@ -4,6 +4,63 @@
   "projectLocationPlaceholder": "—",
   "buildingParams": "Parametry budynku",
   "projectPlans": "Rzuty projektu",
+  "installationsSection": {
+    "title": "Instalacje i wyposażenie",
+    "add": "+ Dodaj instalacje",
+    "summaryTitle": "Zapisana konfiguracja",
+    "allTitle": "Wszystkie instalacje w projekcie",
+    "whyTitle": "Dlaczego to ważne?",
+    "infoLead": "Na podstawie tych informacji dopasujemy do Ciebie:",
+    "infoItems": {
+      "tasks": "Zadania",
+      "expenses": "Wydatki",
+      "schedule": "Postępy",
+      "ai": "Porady AI"
+    }
+  },
+  "installationWizard": {
+    "title": "Konfiguracja instalacji",
+    "heatingQuestion": "Jaki będzie główny system ogrzewania?",
+    "heatPumpQuestion": "Czy planujesz pompę ciepła?",
+    "recuperationQuestion": "Czy planujesz rekuperację?",
+    "extraQuestion": "Jakie dodatkowe instalacje planujesz?",
+    "answers": {
+      "yes": "Tak",
+      "no": "Nie",
+      "notSelected": "Nie wybrano"
+    },
+    "summaryLabels": {
+      "heatingSystem": "System ogrzewania",
+      "heatPump": "Pompa ciepła",
+      "recuperation": "Rekuperacja"
+    },
+    "heatingOptions": {
+      "heat_pump": "Pompa ciepła",
+      "gas": "Gaz",
+      "pellet": "Pellet",
+      "electric": "Ogrzewanie elektryczne",
+      "other": "Inne"
+    },
+    "extraOptions": {
+      "air_conditioning": "Klimatyzacja",
+      "photovoltaics": "Fotowoltaika",
+      "battery_storage": "Magazyn energii",
+      "underfloor_heating": "Ogrzewanie podłogowe",
+      "fireplace": "Kominek",
+      "external_blinds": "Rolety zewnętrzne",
+      "smart_home": "Smart Home",
+      "ev_charger": "Ładowarka EV",
+      "alarm": "Alarm",
+      "monitoring": "Monitoring",
+      "water_softener": "Zmiękczacz wody",
+      "central_vacuum": "Odkurzacz centralny"
+    },
+    "actions": {
+      "back": "Wstecz",
+      "next": "Dalej",
+      "save": "Zapisz"
+    }
+  },
   "projectAssetTypes": {
     "plan": {
       "title": "Rzuty projektu",
@@ -32,8 +89,8 @@
   "tileHeight": "Wysokość budynku",
   "tileRoofAngle": "Kąt dachu",
   "tileRoofArea": "Pow. dachu",
-  "tileFacadeWidth": "Szer. elewacji",
-  "tileFacadeLength": "Dł. elewacji",
+  "tileHouseLength": "Długość domu",
+  "tileHouseWidth": "Szerokość domu",
   "addPlan": "Dodaj rzut",
   "planDefaultName": "Rzut",
   "planNameModalTitle": "Dodaj rzut",
@@ -77,8 +134,8 @@
   "fieldHeight": "Wysokość (m)",
   "fieldRoofAngle": "Kąt dachu (°)",
   "fieldRoofArea": "Pow. dachu (m²)",
-  "fieldFacadeWidth": "Szer. elewacji (m)",
-  "fieldFacadeLength": "Dł. elewacji (m)",
+  "fieldHouseLength": "Długość domu (m)",
+  "fieldHouseWidth": "Szerokość domu (m)",
   "model3dTitle": "Model 3D",
   "model3dNextStep": "Następny krok: upload .glb/.gltf + aktualizacja projekty.model_url.",
   "model3dEmptyFile": "Wybrany plik jest pusty.",
@@ -103,6 +160,7 @@
   "skip": "Pomiń",
   "projectNudgeBuddyFallback": "Kierownik",
   "projectNudgeTitle": "Uzupełnij teraz najważniejsze informacje o projekcie.",
+  "projectNudgeTitleWithName": "{{name}}, uzupełnij teraz najważniejsze informacje o projekcie.",
   "projectNudgeText": "Dzięki temu będziesz miał wszystko pod ręką, a moje podpowiedzi będą lepiej dopasowane.",
   "projectNudgeCta": "Uzupełnij",
   "planTooLarge": "Zdjęcie jest zbyt duże. Maksymalny rozmiar to 15 MB.",

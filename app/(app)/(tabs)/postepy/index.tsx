@@ -62,7 +62,7 @@ function getUpcomingHintKey(groupCode?: StageGroupCode | null) {
 }
 
 export default function PostepyScreen() {
-  const { t } = useTranslation('stages');
+  const { t, i18n } = useTranslation('stages');
   const router = useRouter();
   const { session, loading: authLoading } = useSupabaseAuth();
   const userId = session?.user?.id;
@@ -210,11 +210,22 @@ export default function PostepyScreen() {
     () => selectBuildGuidesForStage(BUILD_GUIDES, viewModel.currentGroupCode),
     [viewModel.currentGroupCode],
   );
+  const guideLocaleSegment = useMemo(() => {
+    const lang = i18n.resolvedLanguage || i18n.language || 'pl';
+    if (lang.startsWith('de')) return 'de';
+    if (lang.startsWith('en')) return 'en';
+    return 'pl';
+  }, [i18n.language, i18n.resolvedLanguage]);
+  const localizedGuidesBase = `https://www.mybuildiq.com/${guideLocaleSegment}/poradniki`;
+  const localizedGuideUrl = (guide: BuildGuide) => {
+    const slug = t(`guides.items.${guide.id}.slug`);
+    return `${localizedGuidesBase}/${slug}`;
+  };
   const onOpenAllGuides = () => {
-    Linking.openURL('https://www.mybuildiq.com/pl/poradniki').catch(() => undefined);
+    Linking.openURL(localizedGuidesBase).catch(() => undefined);
   };
   const onOpenGuide = (guide: BuildGuide) => {
-    Linking.openURL(guide.url).catch(() => undefined);
+    Linking.openURL(localizedGuideUrl(guide)).catch(() => undefined);
   };
 
   return (

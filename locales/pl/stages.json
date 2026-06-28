@@ -55,6 +55,33 @@
     "screeds": "Wylewki",
     "painting": "Malowanie"
   },
+  "guides": {
+    "title": "Warto przeczytać",
+    "all": "Wszystkie →",
+    "readingTimeMinutes": "{{minutes}} min",
+    "items": {
+      "afterDecisionToBuild": {
+        "title": "Co zrobić po podjęciu decyzji o budowie domu?",
+        "slug": "co-zrobic-po-podjeciu-decyzji-o-budowie"
+      },
+      "beforeConstructionStarts": {
+        "title": "Checklista przed rozpoczęciem budowy domu",
+        "slug": "checklista-przed-rozpoczeciem-budowy"
+      },
+      "constructionCostStepByStep": {
+        "title": "Budowa domu koszt krok po kroku: etapy i budżet",
+        "slug": "budowa-domu-koszt-krok-po-kroku"
+      },
+      "constructionStepByStep": {
+        "title": "Budowa domu krok po kroku: etapy inwestora",
+        "slug": "budowa-domu-krok-po-kroku"
+      },
+      "homeBuildChecklist": {
+        "title": "Checklista budowy domu: co kontrolować od startu do odbioru",
+        "slug": "budowa-domu-checklista"
+      }
+    }
+  },
   "upcoming": {
     "cardLabel": "Zbliża się",
     "stageLine": "Etap {{stage}}",

@@ -1,8 +1,8 @@
 // RevenueCat purchase flows are enabled for App Store builds.
 export const PAYMENTS_ENABLED = true
 
-// Temporary launch mode: AI remains open while paid plans are not active.
-export const AI_OPEN_ACCESS = true
+// Temporary launch mode: keep false when plan limits should be enforced.
+export const AI_OPEN_ACCESS = false
 
 export function isLaunchPaymentsDisabled(): boolean {
   return !PAYMENTS_ENABLED

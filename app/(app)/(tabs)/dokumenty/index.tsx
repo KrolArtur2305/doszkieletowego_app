@@ -116,7 +116,7 @@ function isAllowedDocument(file?: { name?: string; mimeType?: string } | null) {
 }
 
 function formatDateLocale(iso: string | null | undefined, locale: string) {
-  if (!iso) return 'â€”';
+  if (!iso) return '-';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return String(iso);
   return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -337,7 +337,7 @@ export default function DokumentyScreen() {
         if (error) throw error;
         setDocs((data || []) as DbDoc[]);
       } catch (e: any) {
-        console.error('BĹ‚Ä…d Ĺ‚adowania dokumentĂłw:', e);
+        console.error('[Documents] load error:', e);
         Alert.alert(
           tt('common:errorTitle'),
           tt('documents:alerts.loadDocsError'),
@@ -561,7 +561,7 @@ export default function DokumentyScreen() {
         }, 4500);
       }
     } catch (e: any) {
-      console.error('BĹ‚Ä…d preview dokumentu:', e);
+      console.error('[Documents] preview error:', e);
       Alert.alert(
         tt('common:errorTitle'),
         tt('documents:alerts.openError'),
@@ -617,7 +617,7 @@ export default function DokumentyScreen() {
               if (previewDoc?.id === doc.id) closePreview();
               onRefresh();
             } catch (e: any) {
-              console.error('BĹ‚Ä…d usuwania dokumentu:', e);
+              console.error('[Documents] delete error:', e);
               Alert.alert(
                 tt('common:errorTitle'),
                 tt('documents:alerts.deleteError'),
@@ -726,7 +726,7 @@ export default function DokumentyScreen() {
         title.trim() ||
         (file.name
           ? file.name.replace(/\.[^/.]+$/, '')
-          : `${getTypeLabel(selectedTypeForUpload)} â€˘ ${Date.now()}`);
+          : `${getTypeLabel(selectedTypeForUpload)} - ${Date.now()}`);
 
       const payload = {
         user_id: userId,
@@ -746,7 +746,7 @@ export default function DokumentyScreen() {
       if (error) {
         const { error: rollbackError } = await supabase.storage.from(bucketName).remove([filePath]);
         if (rollbackError) {
-          console.warn('Rollback dokumentu nie powiĂłdĹ‚ siÄ™:', rollbackError);
+          console.warn('[Documents] rollback failed:', rollbackError);
         }
         throw error;
       }
@@ -758,7 +758,7 @@ export default function DokumentyScreen() {
       }
       onRefresh();
     } catch (e: any) {
-      console.error('BĹ‚Ä…d dodawania dokumentu:', e);
+      console.error('[Documents] add error:', e);
       Alert.alert(
         tt('common:errorTitle'),
         tt('documents:alerts.addError'),
@@ -861,7 +861,7 @@ export default function DokumentyScreen() {
               {item.tytul}
             </Text>
             <Text style={styles.listMeta} numberOfLines={1}>
-              {getTypeLabel(type)} â€˘ {dateTxt}
+              {getTypeLabel(type)} - {dateTxt}
             </Text>
             {!!item.notatki && (
               <Text style={styles.listDesc} numberOfLines={2}>
@@ -1113,7 +1113,7 @@ export default function DokumentyScreen() {
                 </Text>
 
                 <Text style={styles.previewFallbackMeta}>
-                  {previewDoc ? getTypeLabel(normalizeType(previewDoc.kategoria)) : 'â€”'} â€˘{' '}
+                  {previewDoc ? getTypeLabel(normalizeType(previewDoc.kategoria)) : '-'} -{' '}
                   {formatDateLocale(previewDoc?.created_at || null, dateLocale)}
                 </Text>
 

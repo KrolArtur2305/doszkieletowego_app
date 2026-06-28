@@ -52,7 +52,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
       docs: 5,
       expenses: 5,
       tasks: 15,
-      model3d: false,
+      model3d: true,
       ai: false,
       aiMessagesPerDay: 0,
     },
@@ -67,13 +67,13 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
     glowColor: 'rgba(25,112,92,0.35)',
     popular: true,
     features: {
-      photos: 'unlimited',
-      docs: 'unlimited',
-      expenses: 'unlimited',
+      photos: 20,
+      docs: 5,
+      expenses: 5,
       tasks: 'unlimited',
       model3d: true,
       ai: true,
-      aiMessagesPerDay: 'unlimited',
+      aiMessagesPerDay: 5,
     },
   },
   pro: {
@@ -111,7 +111,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
       tasks: 'unlimited',
       model3d: true,
       ai: true,
-      aiMessagesPerDay: 'unlimited',
+      aiMessagesPerDay: 50,
     },
   },
 }
@@ -142,5 +142,5 @@ export function isPaidPlanKey(plan: SubscriptionPlanKey): boolean {
 }
 
 export function hasExpertAccess(plan: SubscriptionPlanKey): boolean {
-  return plan === FREE_TRIAL_PLAN_KEY || plan === EXPERT_PLAN_KEY
+  return plan === EXPERT_PLAN_KEY
 }

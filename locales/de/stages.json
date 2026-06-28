@@ -55,6 +55,33 @@
     "screeds": "Estriche",
     "painting": "Malerarbeiten"
   },
+  "guides": {
+    "title": "Lesenswert",
+    "all": "Alle →",
+    "readingTimeMinutes": "{{minutes}} Min.",
+    "items": {
+      "afterDecisionToBuild": {
+        "title": "Was tun nach der Entscheidung, ein Haus zu bauen?",
+        "slug": "was-tun-nach-der-entscheidung-zu-bauen"
+      },
+      "beforeConstructionStarts": {
+        "title": "Checkliste vor Baubeginn",
+        "slug": "checkliste-vor-baubeginn"
+      },
+      "constructionCostStepByStep": {
+        "title": "Hausbaukosten Schritt für Schritt: Phasen und Budget",
+        "slug": "hausbaukosten-schritt-fuer-schritt"
+      },
+      "constructionStepByStep": {
+        "title": "Hausbau Schritt für Schritt: Phasen für Investoren",
+        "slug": "hausbau-schritt-fuer-schritt"
+      },
+      "homeBuildChecklist": {
+        "title": "Hausbau-Checkliste: was vom Start bis zur Abnahme zu prüfen ist",
+        "slug": "hausbau-checkliste"
+      }
+    }
+  },
   "upcoming": {
     "cardLabel": "Steht an",
     "stageLine": "Phase {{stage}}",

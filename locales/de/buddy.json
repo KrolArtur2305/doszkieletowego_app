@@ -84,6 +84,19 @@
       "fetchMessages": "Die Nachrichten konnten nicht geladen werden.",
       "aiConnection": "Verbindungsfehler mit der KI"
     },
+    "limitModal": {
+      "trialTitle": "Trial-KI hat das Limit erreicht",
+      "trialMessage": "Du hast deinen Free-Trial-Plan verbraucht. Upgrade, um BuildIQ weiter voll zu nutzen.",
+      "freeTitle": "Free-KI-Limit erreicht",
+      "freeMessage": "Du hast das tägliche Free-KI-Limit verbraucht. Upgrade, um BuildIQ weiter voll zu nutzen.",
+      "proTitle": "Pro-Limit erreicht",
+      "proMessage": "Du hast das tägliche Pro-Limit verbraucht. Upgrade auf Expert, um dein KI-Limit zu erhöhen.",
+      "expertTitle": "Tägliches Expert-Limit erreicht",
+      "expertMessage": "Du hast das tägliche Expert-Limit erreicht. Es wird morgen zurückgesetzt.",
+      "upgradeCta": "Plan upgraden",
+      "expertCta": "Zu Expert",
+      "manageCta": "Abo verwalten"
+    },
     "loading": {
       "conversation": "Unterhaltung wird geladen...",
       "history": "Verlauf wird geladen..."

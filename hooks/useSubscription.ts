@@ -11,6 +11,7 @@ import {
   getOfferingsSafe,
   getRevenueCatSupportStatus,
 } from '../src/services/subscription/revenuecat';
+import { syncRevenueCatProfile } from '../src/services/subscription/profileSync';
 import type { RevenueCatSupportStatus, SubscriptionAccess } from '../src/services/subscription/types';
 
 type UseSubscriptionResult = {
@@ -57,6 +58,9 @@ export function useSubscription(): UseSubscriptionResult {
         getCustomerInfoSafe(),
         getOfferingsSafe(),
       ]);
+      await syncRevenueCatProfile(nextCustomerInfo, session?.user?.id).catch((syncError) => {
+        console.warn('[RevenueCat] profile sync failed:', syncError);
+      });
 
       setCustomerInfo(nextCustomerInfo);
       setOfferings(nextOfferings);
@@ -87,6 +91,9 @@ export function useSubscription(): UseSubscriptionResult {
           getCustomerInfoSafe(),
           getOfferingsSafe(),
         ]);
+        await syncRevenueCatProfile(nextCustomerInfo, session?.user?.id).catch((syncError) => {
+          console.warn('[RevenueCat] profile sync failed:', syncError);
+        });
 
         if (!alive) return;
 

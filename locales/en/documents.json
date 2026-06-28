@@ -2,7 +2,7 @@
   "screen": {
     "title": "Documents"
   },
-  "loading": "Loading…",
+  "loading": "Loading...",
   "types": {
     "all": "All types",
     "umowa": "Contract",
@@ -21,9 +21,9 @@
     "title": "No documents",
     "subtitle": "Add your first documents to the project.",
     "cta": "Add document",
-    "suggestedLink": "Suggested documents ({{count}}) →"
+    "suggestedLink": "Suggested documents ({{count}}) ->"
   },
-  "missingBanner": "There are still {{count}} important documents missing →",
+  "missingBanner": "There are still {{count}} important documents missing ->",
   "suggestedSheet": {
     "title": "Suggested documents",
     "subtitle": "The documents most often added at this stage of the build."
@@ -52,7 +52,7 @@
       "file": "Attach file or image"
     },
     "setDate": "Set date",
-    "saving": "Saving…"
+    "saving": "Saving..."
   },
   "alerts": {
     "loadDocsError": "Failed to load documents.",

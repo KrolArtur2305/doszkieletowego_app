@@ -23,6 +23,8 @@ import type { SubscriptionPlanKey } from '../../../../../src/config/subscription
 import { isSubscriptionUiReadOnly } from '../../../../../src/services/subscription/launchMode'
 import { getSubscriptionAccess } from '../../../../../src/services/subscription/access'
 import { purchasePackageSafe, restorePurchasesSafe } from '../../../../../src/services/subscription/revenuecat'
+import { syncRevenueCatProfile } from '../../../../../src/services/subscription/profileSync'
+import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
@@ -91,6 +93,7 @@ export default function CheckoutScreen() {
   const { planKey } = useLocalSearchParams<{ planKey?: SubscriptionPlanKey }>()
   const subscriptionUiReadOnly = isSubscriptionUiReadOnly()
   const { access, offerings, refresh, loading, error } = useSubscription()
+  const { session } = useSupabaseAuth()
 
   const initialPlan: PaywallPlanKey =
     planKey === 'expert' ? 'expert' : 'pro'
@@ -148,6 +151,7 @@ export default function CheckoutScreen() {
 
       if (result.cancelled) return
 
+      await syncRevenueCatProfile(result.customerInfo, session?.user?.id)
       await refresh()
 
       const nextAccess = getSubscriptionAccess(result.customerInfo)
@@ -162,6 +166,11 @@ export default function CheckoutScreen() {
           t('paywall.purchaseErrorMessage')
         )
       }
+    } catch {
+      Alert.alert(
+        t('paywall.purchaseErrorTitle'),
+        t('paywall.purchaseErrorMessage')
+      )
     } finally {
       setPurchasing(false)
     }
@@ -171,6 +180,7 @@ export default function CheckoutScreen() {
     setRestoring(true)
     try {
       const restored = await restorePurchasesSafe()
+      await syncRevenueCatProfile(restored, session?.user?.id)
       await refresh()
       const restoredAccess = getSubscriptionAccess(restored)
       Alert.alert(

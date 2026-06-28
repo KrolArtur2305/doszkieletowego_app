@@ -21,7 +21,7 @@ import { isSubscriptionUiReadOnly } from '../../../../src/services/subscription/
 import { AppCard, AppHeader, AppScreen } from '../../../../src/ui/components';
 import { colors, radius, shadows, spacing, typography } from '../../../../src/ui/theme';
 
-function safeEmailPrefix(email?: string | null, fallback = 'User') {
+function safeEmailPrefix(email: string | null | undefined, fallback: string) {
   if (!email) return fallback;
   const [p] = email.split('@');
   return p ? p : fallback;

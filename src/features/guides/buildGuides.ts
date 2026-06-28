@@ -1,56 +1,50 @@
 import type { StageGroupCode } from '../../../lib/postepyModel';
 
 export type BuildGuide = {
-  title: string;
+  id: string;
   image: string;
-  url: string;
   buildOrder: number;
   stage: StageGroupCode;
-  readingTime: string;
+  readingTimeMinutes: number;
 };
 
 const GUIDE_LIMIT = 6;
 
 export const BUILD_GUIDES: BuildGuide[] = [
   {
-    title: 'Co zrobić po podjęciu decyzji o budowie domu?',
+    id: 'afterDecisionToBuild',
     image: 'https://www.mybuildiq.com/poradniki/after-decision-to-build.webp',
-    url: 'https://www.mybuildiq.com/pl/poradniki/co-zrobic-po-podjeciu-decyzji-o-budowie',
     buildOrder: 10,
     stage: 'stan_zero',
-    readingTime: '5 min',
+    readingTimeMinutes: 5,
   },
   {
-    title: 'Checklista przed rozpoczęciem budowy domu',
+    id: 'beforeConstructionStarts',
     image: 'https://www.mybuildiq.com/poradniki/before-construction-starts.webp',
-    url: 'https://www.mybuildiq.com/pl/poradniki/checklista-przed-rozpoczeciem-budowy',
     buildOrder: 20,
     stage: 'stan_zero',
-    readingTime: '5 min',
+    readingTimeMinutes: 5,
   },
   {
-    title: 'Budowa domu koszt krok po kroku: etapy i budżet',
+    id: 'constructionCostStepByStep',
     image: 'https://www.mybuildiq.com/poradniki/budowa-domu-koszt-krok-po-kroku.webp',
-    url: 'https://www.mybuildiq.com/pl/poradniki/budowa-domu-koszt-krok-po-kroku',
     buildOrder: 30,
     stage: 'stan_zero',
-    readingTime: '6 min',
+    readingTimeMinutes: 6,
   },
   {
-    title: 'Budowa domu krok po kroku: etapy inwestora',
+    id: 'constructionStepByStep',
     image: 'https://www.mybuildiq.com/poradniki/budowa-domu-krok-po-kroku.webp',
-    url: 'https://www.mybuildiq.com/pl/poradniki/budowa-domu-krok-po-kroku',
     buildOrder: 40,
     stage: 'sso',
-    readingTime: '6 min',
+    readingTimeMinutes: 6,
   },
   {
-    title: 'Checklista budowy domu: co kontrolować od startu do odbioru',
+    id: 'homeBuildChecklist',
     image: 'https://www.mybuildiq.com/poradniki/home-build-checklist.webp',
-    url: 'https://www.mybuildiq.com/pl/poradniki/budowa-domu-checklista',
     buildOrder: 50,
     stage: 'sso',
-    readingTime: '7 min',
+    readingTimeMinutes: 7,
   },
 ];
 

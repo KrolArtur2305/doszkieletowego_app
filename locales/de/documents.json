@@ -2,7 +2,7 @@
   "screen": {
     "title": "Dokumente"
   },
-  "loading": "Laden…",
+  "loading": "Laden...",
   "types": {
     "all": "Alle Typen",
     "umowa": "Vertrag",
@@ -15,29 +15,29 @@
   },
   "sort": {
     "newest": "Neueste",
-    "oldest": "Älteste"
+    "oldest": "Aelteste"
   },
   "empty": {
     "title": "Keine Dokumente",
-    "subtitle": "Füge die ersten Dokumente zum Projekt hinzu.",
-    "cta": "Dokument hinzufügen",
-    "suggestedLink": "Vorgeschlagene Dokumente ({{count}}) →"
+    "subtitle": "Fuege die ersten Dokumente zum Projekt hinzu.",
+    "cta": "Dokument hinzufuegen",
+    "suggestedLink": "Vorgeschlagene Dokumente ({{count}}) ->"
   },
-  "missingBanner": "Es fehlen noch {{count}} wichtige Dokumente →",
+  "missingBanner": "Es fehlen noch {{count}} wichtige Dokumente ->",
   "suggestedSheet": {
     "title": "Vorgeschlagene Dokumente",
-    "subtitle": "Die Dokumente, die in dieser Bauphase am häufigsten hinzugefügt werden."
+    "subtitle": "Die Dokumente, die in dieser Bauphase am haeufigsten hinzugefuegt werden."
   },
   "suggestedDocuments": {
     "buildingPermit": "Baugenehmigung",
     "buildingProject": "Bauprojekt",
-    "plotPlan": "Grundstücksplan",
+    "plotPlan": "Grundstuecksplan",
     "zoningConditions": "Bauauflagen",
     "contractorAgreement": "Vertrag mit Auftragnehmer",
     "insurancePolicy": "Versicherungspolice"
   },
   "addModal": {
-    "title": "Dokument hinzufügen",
+    "title": "Dokument hinzufuegen",
     "labels": {
       "type": "TYP",
       "documentDate": "DOKUMENTDATUM",
@@ -47,32 +47,32 @@
     },
     "placeholders": {
       "title": "z. B. Vertrag",
-      "documentDate": "Datum auswahlen",
-      "description": "Beschreibung hinzufügen (optional)",
-      "file": "Datei oder Bild anhängen"
+      "documentDate": "Datum auswaehlen",
+      "description": "Beschreibung hinzufuegen (optional)",
+      "file": "Datei oder Bild anhaengen"
     },
     "setDate": "Datum setzen",
-    "saving": "Speichern…"
+    "saving": "Speichern..."
   },
   "alerts": {
     "loadDocsError": "Dokumente konnten nicht geladen werden.",
-    "openError": "Dokument konnte nicht geöffnet werden.",
-    "deleteTitle": "Dokument löschen?",
-    "deleteDesc": "Möchtest du dieses Dokument wirklich löschen?",
-    "deleteError": "Dokument konnte nicht gelöscht werden.",
-    "fileRequired": "Bitte eine Datei oder ein Bild anhängen.",
-    "addError": "Dokument konnte nicht hinzugefügt werden.",
+    "openError": "Dokument konnte nicht geoeffnet werden.",
+    "deleteTitle": "Dokument loeschen?",
+    "deleteDesc": "Moechtest du dieses Dokument wirklich loeschen?",
+    "deleteError": "Dokument konnte nicht geloescht werden.",
+    "fileRequired": "Bitte eine Datei oder ein Bild anhaengen.",
+    "addError": "Dokument konnte nicht hinzugefuegt werden.",
     "successTitle": "Erfolg",
-    "docAdded": "Dokument hinzugefügt.",
-    "emptyFile": "Die ausgewählte Datei ist leer.",
-    "fileTooLarge": "Die Datei ist zu groß.",
-    "invalidFileType": "Nicht unterstützter Dateityp.",
-    "deleteStorageError": "Das Dokument wurde aus der Liste entfernt, aber die Datei konnte nicht aus dem Speicher gelöscht werden."
+    "docAdded": "Dokument hinzugefuegt.",
+    "emptyFile": "Die ausgewaehlte Datei ist leer.",
+    "fileTooLarge": "Die Datei ist zu gross.",
+    "invalidFileType": "Nicht unterstuetzter Dateityp.",
+    "deleteStorageError": "Das Dokument wurde aus der Liste entfernt, aber die Datei konnte nicht aus dem Speicher geloescht werden."
   },
   "preview": {
     "pdfInfo": "Die PDF-Vorschau konnte in der App nicht angezeigt werden.",
-    "fileInfo": "Für diesen Dateityp gibt es noch keine Vorschau in der App.",
-    "openPdf": "PDF öffnen",
-    "openFile": "Datei öffnen"
+    "fileInfo": "Fuer diesen Dateityp gibt es noch keine Vorschau in der App.",
+    "openPdf": "PDF oeffnen",
+    "openFile": "Datei oeffnen"
   }
 }

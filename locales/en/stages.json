@@ -55,6 +55,33 @@
     "screeds": "Screeds",
     "painting": "Painting"
   },
+  "guides": {
+    "title": "Worth reading",
+    "all": "All →",
+    "readingTimeMinutes": "{{minutes}} min",
+    "items": {
+      "afterDecisionToBuild": {
+        "title": "What to do after deciding to build a house?",
+        "slug": "what-to-do-after-deciding-to-build"
+      },
+      "beforeConstructionStarts": {
+        "title": "Checklist before construction starts",
+        "slug": "checklist-before-construction-starts"
+      },
+      "constructionCostStepByStep": {
+        "title": "House construction cost step by step: stages and budget",
+        "slug": "house-construction-cost-step-by-step"
+      },
+      "constructionStepByStep": {
+        "title": "Building a house step by step: investor stages",
+        "slug": "building-a-house-step-by-step"
+      },
+      "homeBuildChecklist": {
+        "title": "House build checklist: what to control from start to handover",
+        "slug": "house-build-checklist"
+      }
+    }
+  },
   "upcoming": {
     "cardLabel": "Coming up",
     "stageLine": "{{stage}} stage",

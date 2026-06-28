@@ -4,6 +4,63 @@
   "projectLocationPlaceholder": "—",
   "buildingParams": "Gebäudeparameter",
   "projectPlans": "Projektgrundrisse",
+  "installationsSection": {
+    "title": "Installationen und Ausstattung",
+    "add": "+ Installationen hinzufuegen",
+    "summaryTitle": "Gespeicherte Konfiguration",
+    "allTitle": "Alle Installationen im Projekt",
+    "whyTitle": "Warum ist das wichtig?",
+    "infoLead": "Auf Basis dieser Angaben passen wir Folgendes an:",
+    "infoItems": {
+      "tasks": "Aufgaben",
+      "expenses": "Ausgaben",
+      "schedule": "Fortschritt",
+      "ai": "KI-Tipps"
+    }
+  },
+  "installationWizard": {
+    "title": "Installation konfigurieren",
+    "heatingQuestion": "Was wird das Haupt-Heizsystem sein?",
+    "heatPumpQuestion": "Planst du eine Waermepumpe?",
+    "recuperationQuestion": "Planst du eine Waermerueckgewinnung?",
+    "extraQuestion": "Welche zusaetzlichen Installationen planst du?",
+    "answers": {
+      "yes": "Ja",
+      "no": "Nein",
+      "notSelected": "Nicht ausgewählt"
+    },
+    "summaryLabels": {
+      "heatingSystem": "Heizsystem",
+      "heatPump": "Waermepumpe",
+      "recuperation": "Waermerueckgewinnung"
+    },
+    "heatingOptions": {
+      "heat_pump": "Waermepumpe",
+      "gas": "Gas",
+      "pellet": "Pellet",
+      "electric": "Elektroheizung",
+      "other": "Andere"
+    },
+    "extraOptions": {
+      "air_conditioning": "Klimaanlage",
+      "photovoltaics": "Photovoltaik",
+      "battery_storage": "Stromspeicher",
+      "underfloor_heating": "Fussbodenheizung",
+      "fireplace": "Kamin",
+      "external_blinds": "Aussenrolladen",
+      "smart_home": "Smart Home",
+      "ev_charger": "EV-Ladestation",
+      "alarm": "Alarmanlage",
+      "monitoring": "Videoueberwachung",
+      "water_softener": "Wasserenthaerter",
+      "central_vacuum": "Zentralstaubsauger"
+    },
+    "actions": {
+      "back": "Zurueck",
+      "next": "Weiter",
+      "save": "Speichern"
+    }
+  },
   "projectAssetTypes": {
     "plan": {
       "title": "Projektgrundrisse",
@@ -33,8 +90,8 @@
   "tileHeight": "Gebäudehöhe",
   "tileRoofAngle": "Dachneigung",
   "tileRoofArea": "Dachfläche",
-  "tileFacadeWidth": "Fassadenbreite",
-  "tileFacadeLength": "Fassadenlänge",
+  "tileHouseLength": "Hauslänge",
+  "tileHouseWidth": "Hausbreite",
   "addPlan": "Grundriss hinzufügen",
   "planDefaultName": "Grundriss",
   "planNameModalTitle": "Grundriss benennen",
@@ -78,8 +135,8 @@
   "fieldHeight": "Höhe (m)",
   "fieldRoofAngle": "Dachneigung (°)",
   "fieldRoofArea": "Dachfläche (m²)",
-  "fieldFacadeWidth": "Fassadenbreite (m)",
-  "fieldFacadeLength": "Fassadenlänge (m)",
+  "fieldHouseLength": "Hauslänge (m)",
+  "fieldHouseWidth": "Hausbreite (m)",
   "model3dTitle": "3D-Modell",
   "model3dNextStep": "Nächster Schritt: .glb/.gltf hochladen und projekty.model_url aktualisieren.",
   "model3dEmptyFile": "Die ausgewählte Datei ist leer.",
@@ -103,6 +160,7 @@
   "skip": "Überspringen",
   "projectNudgeBuddyFallback": "Bauleiter",
   "projectNudgeTitle": "Fülle jetzt die wichtigsten Projektdaten aus.",
+  "projectNudgeTitleWithName": "{{name}}, fülle jetzt die wichtigsten Projektdaten aus.",
   "projectNudgeText": "So hast du alles griffbereit und meine Vorschläge passen besser.",
   "projectNudgeCta": "Ausfüllen",
   "planTooLarge": "Das Bild ist zu groß. Die maximale Größe beträgt 15 MB.",

@@ -2,7 +2,7 @@
   "screen": {
     "title": "Dokumenty"
   },
-  "loading": "Ładowanie…",
+  "loading": "Ładowanie...",
   "types": {
     "all": "Wszystkie rodzaje",
     "umowa": "Umowa",
@@ -21,9 +21,9 @@
     "title": "Brak dokumentów",
     "subtitle": "Dodaj pierwsze dokumenty do projektu.",
     "cta": "Dodaj dokument",
-    "suggestedLink": "Proponowane dokumenty ({{count}}) →"
+    "suggestedLink": "Proponowane dokumenty ({{count}}) ->"
   },
-  "missingBanner": "Brakuje jeszcze {{count}} ważnych dokumentów →",
+  "missingBanner": "Brakuje jeszcze {{count}} ważnych dokumentów ->",
   "suggestedSheet": {
     "title": "Proponowane dokumenty",
     "subtitle": "Najczęściej dodawane dokumenty na tym etapie budowy."
@@ -52,7 +52,7 @@
       "file": "Dodaj plik lub zdjęcie"
     },
     "setDate": "Ustaw datę",
-    "saving": "Zapisywanie…"
+    "saving": "Zapisywanie..."
   },
   "alerts": {
     "loadDocsError": "Nie udało się wczytać dokumentów.",
@@ -73,6 +73,6 @@
     "pdfInfo": "Nie udało się wyświetlić podglądu PDF w aplikacji.",
     "fileInfo": "Ten typ pliku nie ma jeszcze podglądu w aplikacji.",
     "openPdf": "Otwórz PDF",
-    "openFile": "Otwórz plik"
+    "openFile": "Otworz plik"
   }
 }

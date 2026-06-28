@@ -45,7 +45,7 @@ const APP_LOGO = require('../../../../assets/logo.png');
 const MAX_JOURNAL_IMAGE_BYTES = 15 * 1024 * 1024;
 const ALLOWED_JOURNAL_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
 const JOURNAL_IMAGES_BUCKET = 'zdjecia';
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Types
 
 type Etap = {
   id: string;
@@ -72,7 +72,7 @@ type Wpis = {
   created_at: string;
 };
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helpers
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -132,7 +132,7 @@ async function getJournalSignedUrlForPath(filePath: string) {
   return data.signedUrl;
 }
 
-// â”€â”€â”€ Main screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Main screen
 
 export default function DziennikScreen() {
   const { session } = useSupabaseAuth();
@@ -144,7 +144,7 @@ export default function DziennikScreen() {
     [i18n.language, i18n.resolvedLanguage]
   );
 
-  // â”€â”€ State â”€â”€
+  // State
   const [wpisy, setWpisy] = useState<Wpis[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
@@ -154,7 +154,7 @@ export default function DziennikScreen() {
   const [etapyLoading, setEtapyLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
-  // â”€â”€ Add modal â”€â”€
+  // Add modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editingWpis, setEditingWpis] = useState<Wpis | null>(null);
   const [formData, setFormData] = useState(toYMD(new Date()));
@@ -166,12 +166,12 @@ export default function DziennikScreen() {
   const [saving, setSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // â”€â”€ Detail modal â”€â”€
+  // Detail modal
   const [detailWpis, setDetailWpis] = useState<Wpis | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailImageError, setDetailImageError] = useState(false);
 
-  // â”€â”€ Animations â”€â”€
+  // Animations
   const fabAnim = useRef(new Animated.Value(0)).current;
   const headerAnim = useRef(new Animated.Value(0)).current;
   const openedFromParamRef = useRef(false);
@@ -191,7 +191,7 @@ export default function DziennikScreen() {
         useNativeDriver: true})]).start();
   }, [fabAnim, headerAnim]);
 
-  // â”€â”€ Load data â”€â”€
+  // Load data
   const loadWpisy = async (accessArg?: BuildAccess | null, userIdArg?: string | null) => {
     const userId = userIdArg ?? session?.user?.id ?? null;
     if (!userId) return;
@@ -354,7 +354,7 @@ export default function DziennikScreen() {
     return copy;
   }, [wpisy, sortOrder]);
 
-  // â”€â”€ Open add â”€â”€
+  // Open add
   const openAdd = () => {
     if (etapyLoading) {
       pendingOpenAddRef.current = true;
@@ -399,7 +399,7 @@ export default function DziennikScreen() {
 
   const canManageDetailWpis = !!detailWpis && (buildAccess?.role === 'owner' || detailWpis.user_id === currentUserId);
 
-  // â”€â”€ Pick image â”€â”€
+  // Pick image
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -441,7 +441,7 @@ export default function DziennikScreen() {
     setFormZdjecieStoredValue(null);
   };
 
-  // â”€â”€ Upload image â”€â”€
+  // Upload image
   const uploadImage = async (uri: string, userId: string): Promise<string | null> => {
     try {
       if (!uri) {
@@ -476,7 +476,7 @@ export default function DziennikScreen() {
     }
   };
 
-  // â”€â”€ Save â”€â”€
+  // Save
   const save = async () => {
     if (!formTresc.trim()) {
       Alert.alert(t('alerts.errorTitle'), t('alerts.noteRequired'));
@@ -535,7 +535,7 @@ export default function DziennikScreen() {
     }
   };
 
-  // â”€â”€ Delete â”€â”€
+  // Delete
   const deleteWpis = (w: Wpis) => {
     Alert.alert(t('detail.deleteTitle'), t('detail.deleteConfirm'), [
       { text: t('common:cancel'), style: 'cancel' },
@@ -689,7 +689,7 @@ export default function DziennikScreen() {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* â”€â”€ ADD/EDIT MODAL â”€â”€ */}
+      {/* ADD/EDIT MODAL */}
       <Modal
         visible={modalOpen}
         animationType="slide"
@@ -825,7 +825,7 @@ export default function DziennikScreen() {
                 </View>
               )}
 
-              {/* TreĹ›Ä‡ */}
+              {/* Content */}
               <View style={styles.formGroup}>
                 <AppInput
                   value={formTresc}
@@ -841,7 +841,7 @@ export default function DziennikScreen() {
                 <Text style={styles.charCount}>{formTresc.length}/2000</Text>
               </View>
 
-              {/* ZdjÄ™cie */}
+              {/* Zdjecie */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>{t('modal.photo')}</Text>
                 {formZdjecieUri || formZdjecieUrl ? (
@@ -885,7 +885,7 @@ export default function DziennikScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* â”€â”€ DETAIL MODAL â”€â”€ */}
+      {/* DETAIL MODAL */}
       <Modal
         visible={detailOpen}
         animationType="slide"
@@ -960,7 +960,7 @@ export default function DziennikScreen() {
   );
 }
 
-// â”€â”€â”€ Wpis Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Journal entry card
 
 function WpisCard({
   wpis: w,
@@ -1044,7 +1044,7 @@ function WpisCard({
   );
 }
 
-// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Styles
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
@@ -1453,7 +1453,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 6},
 
-  // TreĹ›Ä‡
+  // Content
   trescInput: {
     borderRadius: 16,
     padding: 14,

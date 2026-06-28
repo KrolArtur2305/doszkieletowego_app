@@ -156,7 +156,7 @@ export default function PlanScreen() {
     const photos = l?.max_photos ?? planDef.features.photos;
     const docs = l?.max_docs ?? planDef.features.docs;
     const expenses = l?.max_expenses ?? planDef.features.expenses;
-    const canEdit3d = l?.can_edit_3d ?? planDef.features.model3d;
+    const canEdit3d = true;
     const canTasks = l?.can_tasks ?? (planDef.features.tasks !== 0);
 
     const title = ts(planDef.nameKey) || planDef.key.toUpperCase();

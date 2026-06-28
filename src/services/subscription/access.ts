@@ -82,7 +82,7 @@ export function getSubscriptionAccess(customerInfo: CustomerInfo | null): Subscr
   const trialEndsAt = getActiveTrialEndsAt(customerInfo);
   const isTrialActive = !!trialEndsAt && mappedPlan === EXPERT_PLAN_KEY;
   const currentPlan = isTrialActive ? FREE_TRIAL_PLAN_KEY : mappedPlan;
-  const accessPlan = isTrialActive ? EXPERT_PLAN_KEY : mappedPlan;
+  const accessPlan = currentPlan;
 
   return {
     currentPlan,
@@ -90,9 +90,16 @@ export function getSubscriptionAccess(customerInfo: CustomerInfo | null): Subscr
     isSubscriptionActive: accessPlan !== 'free',
     isTrialActive,
     trialEndsAt,
-    hasPremiumAccess: accessPlan !== 'free',
+    hasPremiumAccess: accessPlan === PRO_PLAN_KEY || accessPlan === EXPERT_PLAN_KEY,
     hasAiAccess: accessPlan !== 'free',
-    aiMessagesPerDayLimit: accessPlan === PRO_PLAN_KEY ? 20 : null,
+    aiMessagesPerDayLimit:
+      accessPlan === 'free'
+        ? 0
+        : accessPlan === FREE_TRIAL_PLAN_KEY
+          ? 5
+          : accessPlan === PRO_PLAN_KEY
+            ? 20
+            : 50,
     activeEntitlementIds,
   };
 }

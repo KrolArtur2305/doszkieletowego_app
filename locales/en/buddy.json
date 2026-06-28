@@ -84,6 +84,19 @@
       "fetchMessages": "Failed to fetch messages.",
       "aiConnection": "AI connection error"
     },
+    "limitModal": {
+      "trialTitle": "Trial AI limit reached",
+      "trialMessage": "You used your free trial plan. Upgrade to keep getting the full BuildIQ experience.",
+      "freeTitle": "Free AI limit reached",
+      "freeMessage": "You used the daily free AI limit. Upgrade to keep getting the full BuildIQ experience.",
+      "proTitle": "Pro limit reached",
+      "proMessage": "You used the daily Pro limit. Upgrade to Expert to increase your AI allowance.",
+      "expertTitle": "Expert daily limit reached",
+      "expertMessage": "You reached the Expert daily limit. It resets tomorrow.",
+      "upgradeCta": "Upgrade plan",
+      "expertCta": "Go to Expert",
+      "manageCta": "Manage subscription"
+    },
     "loading": {
       "conversation": "Loading conversation...",
       "history": "Loading history..."

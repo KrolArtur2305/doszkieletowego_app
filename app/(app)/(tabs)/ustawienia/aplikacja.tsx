@@ -42,11 +42,11 @@ import { AppButton, AppInput } from '../../../../src/ui/components';
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
 
-function getAppVersionLabel(): string {
+function getAppVersionLabel(unknownLabel: string): string {
   const version =
     Application.nativeApplicationVersion ??
     Constants.expoConfig?.version ??
-    'unknown';
+    unknownLabel;
   const build =
     Application.nativeBuildVersion ??
     Constants.expoConfig?.ios?.buildNumber ??
@@ -63,7 +63,7 @@ export default function UstawieniaAplikacjiScreen() {
   const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
   const bottomPad = Math.max(60, insets.bottom + 96);
-  const appVersionLabel = getAppVersionLabel();
+  const appVersionLabel = getAppVersionLabel(t('appSettings.versionUnknown'));
 
   const activeLang = (i18n.resolvedLanguage || i18n.language) as AppLanguage;
 

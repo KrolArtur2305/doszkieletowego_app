@@ -3,6 +3,7 @@ import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from
 import { Image } from 'expo-image';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '../../ui/theme';
 import type { BuildGuide } from './buildGuides';
@@ -18,14 +19,16 @@ type BuildGuidesCarouselProps = {
 };
 
 export function BuildGuidesCarousel({ guides, onOpenAll, onOpenGuide }: BuildGuidesCarouselProps) {
+  const { t } = useTranslation('stages');
+
   if (!guides.length) return null;
 
   return (
     <View style={styles.section}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Warto przeczytać</Text>
+        <Text style={styles.title}>{t('guides.title')}</Text>
         <TouchableOpacity onPress={onOpenAll} activeOpacity={0.82} hitSlop={8}>
-          <Text style={styles.allLink}>Wszystkie →</Text>
+          <Text style={styles.allLink}>{t('guides.all')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -37,7 +40,7 @@ export function BuildGuidesCarousel({ guides, onOpenAll, onOpenGuide }: BuildGui
       >
         {guides.map((guide) => (
           <TouchableOpacity
-            key={`${guide.stage}-${guide.buildOrder}-${guide.url}`}
+            key={`${guide.stage}-${guide.buildOrder}-${guide.id}`}
             style={styles.cardButton}
             activeOpacity={0.88}
             onPress={() => onOpenGuide(guide)}
@@ -46,11 +49,13 @@ export function BuildGuidesCarousel({ guides, onOpenAll, onOpenGuide }: BuildGui
               <Image source={{ uri: guide.image }} style={styles.image} contentFit="cover" />
               <View style={styles.body}>
                 <Text style={styles.guideTitle} numberOfLines={2}>
-                  {guide.title}
+                  {t(`guides.items.${guide.id}.title`)}
                 </Text>
                 <View style={styles.metaRow}>
                   <Feather name="clock" size={11} color={colors.accentBright} />
-                  <Text style={styles.readingTime}>{guide.readingTime}</Text>
+                  <Text style={styles.readingTime}>
+                    {t('guides.readingTimeMinutes', { minutes: guide.readingTimeMinutes })}
+                  </Text>
                 </View>
               </View>
             </BlurView>
