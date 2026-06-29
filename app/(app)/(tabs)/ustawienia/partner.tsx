@@ -106,22 +106,22 @@ export default function BuildPartnerScreen() {
   const selectedPresetCopy =
     selectedPreset === 'view'
       ? {
-          title: 'Tryb: podgląd',
-          text: 'Dobry wybór, gdy chcesz dać dostęp do informacji bez ryzyka przypadkowych zmian.',
+          title: t('settings:partner.presetSummary.view.title'),
+          text: t('settings:partner.presetSummary.view.text'),
           bullets: [
-            'Pełny podgląd budżetu, dokumentów i zadań',
-            'Idealny do kontroli postępu i bieżącego wglądu',
-            'Bez dodawania zdjęć, dokumentów, wpisów i wydatków',
+            t('settings:partner.presetSummary.view.bullets.budget'),
+            t('settings:partner.presetSummary.view.bullets.progress'),
+            t('settings:partner.presetSummary.view.bullets.noAdds'),
           ],
         }
       : selectedPreset === 'collab'
         ? {
-            title: 'Tryb: aktywna współpraca',
-            text: 'Najmocniejszy wariant współpracy dla partnera, który ma realnie pomagać w budowie.',
+            title: t('settings:partner.presetSummary.collab.title'),
+            text: t('settings:partner.presetSummary.collab.text'),
             bullets: [
-              'Dodawanie zdjęć, dokumentów, wpisów i wydatków',
-              'Zadania są dostępne po obu stronach',
-              'Budżet, dokumenty i postęp są pod kontrolą właściciela',
+              t('settings:partner.presetSummary.collab.bullets.adds'),
+              t('settings:partner.presetSummary.collab.bullets.tasks'),
+              t('settings:partner.presetSummary.collab.bullets.ownerControl'),
             ],
           }
         : null;
@@ -682,16 +682,16 @@ export default function BuildPartnerScreen() {
                 style={[styles.presetCard, selectedPreset === 'view' && styles.presetCardActive]}
                 activeOpacity={0.88}
               >
-                <Text style={styles.presetLabel}>Tryb</Text>
-                <Text style={styles.presetTitle}>Podgląd</Text>
+                <Text style={styles.presetLabel}>{t('settings:partner.presetModeLabel')}</Text>
+                <Text style={styles.presetTitle}>{t('settings:partner.presetModes.view')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => applyPreset('collab')}
                 style={[styles.presetCard, selectedPreset === 'collab' && styles.presetCardActive]}
                 activeOpacity={0.88}
               >
-                <Text style={styles.presetLabel}>Tryb</Text>
-                <Text style={styles.presetTitle}>Aktywna współpraca</Text>
+                <Text style={styles.presetLabel}>{t('settings:partner.presetModeLabel')}</Text>
+                <Text style={styles.presetTitle}>{t('settings:partner.presetModes.collab')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -762,7 +762,9 @@ export default function BuildPartnerScreen() {
                         </Text>
                         <View style={styles.partnerModeBadge}>
                           <Text style={styles.partnerModeBadgeText}>
-                            {memberMode === 'view' ? 'Tryb: podgląd' : 'Tryb: aktywna współpraca'}
+                            {memberMode === 'view'
+                              ? t('settings:partner.presetSummary.view.title')
+                              : t('settings:partner.presetSummary.collab.title')}
                           </Text>
                         </View>
                         <Text style={styles.partnerListMeta}>

@@ -6,6 +6,27 @@ import { useTranslation } from 'react-i18next'
 
 import { AppButton, AppCard, AppHeader, AppScreen } from '../../../../src/ui/components'
 
+const DETAIL_SECTIONS = [
+  {
+    key: 'decisions',
+    icon: 'check-square' as keyof typeof Feather.glyphMap,
+    titleKey: 'installationDetails.sections.decisions.title',
+    textKey: 'installationDetails.sections.decisions.text',
+  },
+  {
+    key: 'contractor',
+    icon: 'tool' as keyof typeof Feather.glyphMap,
+    titleKey: 'installationDetails.sections.contractor.title',
+    textKey: 'installationDetails.sections.contractor.text',
+  },
+  {
+    key: 'costs',
+    icon: 'trending-up' as keyof typeof Feather.glyphMap,
+    titleKey: 'installationDetails.sections.costs.title',
+    textKey: 'installationDetails.sections.costs.text',
+  },
+]
+
 export default function InstallationDetailsScreen() {
   const { t } = useTranslation('project')
   const router = useRouter()
@@ -55,27 +76,31 @@ export default function InstallationDetailsScreen() {
             />
           </View>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.text}>
-            W tym miejscu mozna pokazac krotki poradnik i najwazniejsze decyzje dla danej instalacji.
-          </Text>
+          <Text style={styles.text}>{t('installationDetails.lead')}</Text>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Co warto sprawdzic</Text>
-            <Text style={styles.sectionText}>Dobor mocy, miejsce montazu, dostep serwisowy i wplyw na harmonogram prac.</Text>
+          <View style={styles.recommendationSlot}>
+            <View style={styles.recommendationIcon}>
+              <Feather name="bookmark" size={16} color="#25F0C8" />
+            </View>
+            <View style={styles.recommendationTextWrap}>
+              <Text style={styles.recommendationEyebrow}>{t('installationDetails.recommendation.eyebrow')}</Text>
+              <Text style={styles.recommendationTitle}>{t('installationDetails.recommendation.title')}</Text>
+              <Text style={styles.recommendationText}>{t('installationDetails.recommendation.text')}</Text>
+            </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Na co uwazac</Text>
-            <Text style={styles.sectionText}>Warunki techniczne, kompatybilnosc z reszta instalacji i koszty eksploatacji.</Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Kiedy wrocic do AI</Text>
-            <Text style={styles.sectionText}>Gdy chcesz porownac rozwiazania albo doprecyzowac kolejne kroki z wykonawca.</Text>
-          </View>
+          {DETAIL_SECTIONS.map((section) => (
+            <View key={section.key} style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Feather name={section.icon} size={15} color="#25F0C8" />
+                <Text style={styles.sectionTitle}>{t(section.titleKey)}</Text>
+              </View>
+              <Text style={styles.sectionText}>{t(section.textKey)}</Text>
+            </View>
+          ))}
 
           <AppButton
-            title="Zapytaj AI"
+            title={t('installationDetails.askAi')}
             onPress={() => router.push('/(app)/(tabs)/buddy')}
             style={styles.cta}
           />
@@ -142,6 +167,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.08)',
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionTitle: {
     color: '#F8FAFC',
     fontSize: 13.5,
@@ -153,6 +183,46 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.68)',
     fontSize: 13,
     lineHeight: 18,
+    fontWeight: '600',
+  },
+  recommendationSlot: {
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: 'rgba(37,240,200,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.18)',
+  },
+  recommendationIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,240,200,0.10)',
+  },
+  recommendationTextWrap: {
+    flex: 1,
+  },
+  recommendationEyebrow: {
+    color: '#25F0C8',
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  recommendationTitle: {
+    marginTop: 3,
+    color: '#F8FAFC',
+    fontSize: 13.5,
+    fontWeight: '900',
+  },
+  recommendationText: {
+    marginTop: 5,
+    color: 'rgba(255,255,255,0.68)',
+    fontSize: 12.5,
+    lineHeight: 17,
     fontWeight: '600',
   },
   cta: {

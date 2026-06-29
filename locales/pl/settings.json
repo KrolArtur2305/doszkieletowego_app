@@ -198,9 +198,9 @@
     "revokeTitle": "Unieważnić kod zaproszenia?",
     "revokeMessage": "Ten kod przestanie działać natychmiast. Partner będzie musiał użyć nowego kodu.",
     "converting": "Przenoszenie...",
-    "convertAction": "Opuść obecną budowę i dołącz",
-    "convertWarningTitle": "Uwaga: przeniesienie na konto partnera",
-    "convertWarningMessage": "Po przejściu dalej usuniemy zapisane dane tej budowy z tego konta. Zostanie tylko dostęp partnera do cudzej budowy. To działanie jest nieodwracalne.",
+    "convertAction": "Tak, usuń moją budowę i dołącz",
+    "convertWarningTitle": "Usunąć Twoją obecną budowę?",
+    "convertWarningMessage": "Masz już własną budowę na tym koncie. Jeśli dołączysz jako partner, usuniemy Twoją obecną budowę wraz z jej danymi: budżetem, dokumentami, zdjęciami, dziennikiem, zadaniami i projektem. Tej operacji nie można cofnąć.",
     "leaveTitle": "Rezygnacja z partnerstwa",
     "leaveMessage": "Po rezygnacji utracisz dostęp do budowy, do której zostałeś zaproszony. Konto pozostanie aktywne.",
     "leaveAction": "Rezygnuję",
@@ -212,14 +212,35 @@
     },
     "partnerListTitle": "Aktywni partnerzy",
     "partnerListItem": "Partner {{index}}",
-    "partnerListMeta": "Możesz usuwać partnerów z tej budowy.",
+    "partnerListMeta": "Tryb partnera jest stały. Aby zmienić dostęp, usuń partnera i wyślij nowe zaproszenie.",
+    "presetModeLabel": "Tryb",
+    "presetModes": {
+      "view": "Podgląd",
+      "collab": "Aktywna współpraca"
+    },
+    "presetSummary": {
+      "view": {
+        "title": "Tryb: podgląd",
+        "text": "Dobry wybór, gdy chcesz dać dostęp do informacji bez ryzyka przypadkowych zmian.",
+        "bullets": {
+          "budget": "Pełny podgląd budżetu, dokumentów i zadań",
+          "progress": "Idealny do kontroli postępu i bieżącego wglądu",
+          "noAdds": "Bez dodawania zdjęć, dokumentów, wpisów i wydatków"
+        }
+      },
+      "collab": {
+        "title": "Tryb: aktywna współpraca",
+        "text": "Najmocniejszy wariant współpracy dla partnera, który ma realnie pomagać w budowie.",
+        "bullets": {
+          "adds": "Dodawanie zdjęć, dokumentów, wpisów i wydatków",
+          "tasks": "Zadania są dostępne po obu stronach",
+          "ownerControl": "Budżet, dokumenty i postęp są pod kontrolą właściciela"
+        }
+      }
+    },
     "removeTitle": "Usunąć partnera?",
     "removeMessage": "Ta osoba straci dostęp do budowy. Uprawnienia zostaną cofnięte natychmiast.",
     "removeAction": "Usuń",
-    "editTitle": "Edytuj uprawnienia partnera",
-    "editSubtitle": "Zmień dostęp dla wybranej osoby.",
-    "savePermissions": "Zapisz uprawnienia",
-    "savingPermissions": "Zapisywanie...",
     "removedTitle": "Usunięto Cię z budowy",
     "removedMessage": "Zostałeś usunięty z budowy i wracasz do zwykłego konta.",
     "removedMessageNamed": "Zostałeś usunięty z budowy \"{{name}}\" i wracasz do zwykłego konta.",
@@ -231,8 +252,7 @@
       "convert": "Nie udało się przenieść konta na partnera.",
       "leave": "Nie udało się zrezygnować z partnerstwa.",
       "remove": "Nie udało się usunąć partnera.",
-      "revoke": "Nie udało się unieważnić kodu zaproszenia.",
-      "update": "Nie udało się zaktualizować uprawnień partnera."
+      "revoke": "Nie udało się unieważnić kodu zaproszenia."
     },
     "permissions": {
       "view_budget": {

@@ -82,6 +82,13 @@ export async function convertBuildOwnerToPartner(inviteCode: string): Promise<vo
   if ((data as any)?.error) {
     throw new Error(String((data as any).error));
   }
+
+  if ((data as any)?.cleanup_incomplete) {
+    const warnings = Array.isArray((data as any)?.warnings)
+      ? (data as any).warnings.filter(Boolean).join('; ')
+      : '';
+    throw new Error(warnings ? `partner_conversion_cleanup_incomplete: ${warnings}` : 'partner_conversion_cleanup_incomplete');
+  }
 }
 
 export async function leavePartnerRole(): Promise<void> {

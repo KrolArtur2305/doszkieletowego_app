@@ -179,6 +179,15 @@ Deno.serve(async (req) => {
     return json(400, { error: "Missing invite code." });
   }
 
+  const { error: attemptError } = await supabase.rpc("record_invite_accept_attempt", {
+    p_user_id: user.id,
+  });
+
+  if (attemptError) {
+    const message = String(attemptError.message ?? "");
+    return json(message.includes("invite_accept_rate_limited") ? 429 : 500, { error: message });
+  }
+
   const { data: invite, error: inviteError } = await supabase
     .from("investment_invites")
     .select("id,investment_id,invite_code,permissions,created_by,expires_at,revoked_at,accepted_uses,max_uses")
@@ -201,6 +210,10 @@ Deno.serve(async (req) => {
 
   if (ownBuildError) return json(500, { error: ownBuildError.message });
 
+  if (String(inviteRow.created_by ?? "") === user.id || String(ownBuild?.id ?? "") === String(inviteRow.investment_id ?? "")) {
+    return json(409, { error: "cannot_join_own_build" });
+  }
+
   const { data: memberships, error: membershipsError } = await supabase
     .from("investment_members")
     .select("investment_id,role")
@@ -213,22 +226,6 @@ Deno.serve(async (req) => {
   }
 
   const warnings: string[] = [];
-
-  const targetMembership = {
-    investment_id: inviteRow.investment_id,
-    user_id: user.id,
-    role: "partner",
-    permissions: inviteRow.permissions ?? {},
-    invited_by: inviteRow.created_by,
-  };
-
-  const { error: upsertError } = await supabase
-    .from("investment_members")
-    .upsert(targetMembership, { onConflict: "investment_id,user_id" });
-
-  if (upsertError) {
-    return json(500, { error: upsertError.message });
-  }
 
   if (ownBuild?.id) {
     const [photos, docs, receipts, plans, projects] = await Promise.all([
@@ -247,12 +244,6 @@ Deno.serve(async (req) => {
 
     if (warnings.length > 0) {
       await supabase
-        .from("investment_members")
-        .delete()
-        .eq("investment_id", inviteRow.investment_id)
-        .eq("user_id", user.id)
-        .eq("role", "partner");
-
       return json(500, {
         error: "Partner conversion was stopped because user data could not be inspected.",
         warnings,
@@ -341,6 +332,22 @@ Deno.serve(async (req) => {
         warnings,
       });
     }
+  }
+
+  const targetMembership = {
+    investment_id: inviteRow.investment_id,
+    user_id: user.id,
+    role: "partner",
+    permissions: inviteRow.permissions ?? {},
+    invited_by: inviteRow.created_by,
+  };
+
+  const { error: upsertError } = await supabase
+    .from("investment_members")
+    .upsert(targetMembership, { onConflict: "investment_id,user_id" });
+
+  if (upsertError) {
+    return json(500, { error: upsertError.message });
   }
 
   const { error: updateInviteError } = await supabase

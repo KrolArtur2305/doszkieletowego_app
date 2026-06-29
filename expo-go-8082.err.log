@@ -1,0 +1,4 @@
+[metro-file-map] Cache write error
+: Error: Data cannot be cloned, out of memory.
+    at serialize (node:v8:423:7)
+    at C:\doszkieletowego_app\node_modules\metro-file-map\src\cache\DiskCacheManager.js:82:30

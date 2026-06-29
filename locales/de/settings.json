@@ -198,9 +198,9 @@
     "revokeTitle": "Diesen Einladungscode widerrufen?",
     "revokeMessage": "Dieser Code funktioniert sofort nicht mehr. Der Partner braucht einen neuen Code.",
     "converting": "Wird verschoben...",
-    "convertAction": "Aktuelles Projekt verlassen und beitreten",
-    "convertWarningTitle": "Warnung: Wechsel zu einem Partnerkonto",
-    "convertWarningMessage": "Wenn du fortfaehrst, entfernen wir die gespeicherten Daten dieses Bauprojekts aus diesem Konto. Es bleibt nur der Partnerzugang zu einem anderen Projekt erhalten. Diese Aktion kann nicht rueckgaengig gemacht werden.",
+    "convertAction": "Ja, mein Projekt loeschen und beitreten",
+    "convertWarningTitle": "Dein aktuelles Bauprojekt loeschen?",
+    "convertWarningMessage": "Du hast bereits ein eigenes Bauprojekt in diesem Konto. Wenn du als Partner beitrittst, loeschen wir dein aktuelles Bauprojekt mit seinen Daten: Budget, Dokumente, Fotos, Tagebuch, Aufgaben und Projekt. Diese Aktion kann nicht rueckgaengig gemacht werden.",
     "leaveTitle": "Partnerzugang verlassen",
     "leaveMessage": "Nach dem Verlassen verlierst du den Zugriff auf das Projekt, zu dem du eingeladen wurdest. Das Konto bleibt aktiv.",
     "leaveAction": "Verlassen",
@@ -212,14 +212,35 @@
     },
     "partnerListTitle": "Aktive Partner",
     "partnerListItem": "Partner {{index}}",
-    "partnerListMeta": "Du kannst Partner aus diesem Projekt entfernen.",
+    "partnerListMeta": "Der Partnermodus ist fest. Um den Zugriff zu aendern, entferne den Partner und sende eine neue Einladung.",
+    "presetModeLabel": "Modus",
+    "presetModes": {
+      "view": "Nur Ansicht",
+      "collab": "Aktive Zusammenarbeit"
+    },
+    "presetSummary": {
+      "view": {
+        "title": "Modus: Nur Ansicht",
+        "text": "Eine gute Wahl, wenn du Informationen teilen moechtest, ohne versehentliche Aenderungen zu riskieren.",
+        "bullets": {
+          "budget": "Vollstaendige Ansicht von Budget, Dokumenten und Aufgaben",
+          "progress": "Ideal zur Kontrolle des Fortschritts und fuer den laufenden Einblick",
+          "noAdds": "Kein Hinzufuegen von Fotos, Dokumenten, Eintraegen oder Ausgaben"
+        }
+      },
+      "collab": {
+        "title": "Modus: Aktive Zusammenarbeit",
+        "text": "Die staerkste Zusammenarbeit fuer einen Partner, der aktiv beim Bau hilft.",
+        "bullets": {
+          "adds": "Kann Fotos, Dokumente, Eintraege und Ausgaben hinzufuegen",
+          "tasks": "Aufgaben sind auf beiden Seiten verfuegbar",
+          "ownerControl": "Budget, Dokumente und Fortschritt bleiben unter Kontrolle des Eigentuemers"
+        }
+      }
+    },
     "removeTitle": "Diesen Partner entfernen?",
     "removeMessage": "Diese Person verliert sofort den Zugriff auf das Projekt.",
     "removeAction": "Entfernen",
-    "editTitle": "Partnerberechtigungen bearbeiten",
-    "editSubtitle": "Aendere den Zugriff fuer die ausgewaehlte Person.",
-    "savePermissions": "Berechtigungen speichern",
-    "savingPermissions": "Wird gespeichert...",
     "removedTitle": "Du wurdest aus dem Bauprojekt entfernt",
     "removedMessage": "Du wurdest aus dem Bauprojekt entfernt und kehrst zu einem normalen Konto zurueck.",
     "removedMessageNamed": "Du wurdest aus dem Bauprojekt \"{{name}}\" entfernt und kehrst zu einem normalen Konto zurueck.",
@@ -231,8 +252,7 @@
       "convert": "Konto konnte nicht in den Partnermodus verschoben werden.",
       "leave": "Partnerrolle konnte nicht verlassen werden.",
       "remove": "Partner konnte nicht entfernt werden.",
-      "revoke": "Einladungscode konnte nicht widerrufen werden.",
-      "update": "Partnerberechtigungen konnten nicht aktualisiert werden."
+      "revoke": "Einladungscode konnte nicht widerrufen werden."
     },
     "permissions": {
       "view_budget": {

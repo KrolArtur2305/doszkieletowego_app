@@ -1357,7 +1357,7 @@ export default function ProjektScreen() {
                   <InstallationsIllustration style={styles.installationsIllustration} />
                 </View>
 
-                {!installationsSummary ? (
+                {!installationsSummary && canEditProject ? (
                   <AppButton
                     title={t('installationsSection.add')}
                     onPress={openInstallationsConfigurator}

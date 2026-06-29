@@ -11,7 +11,7 @@ const PAID_MESSAGES_PER_DAY = 50;
 const LAUNCH_AI_OPEN_ACCESS = false;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const MAX_HISTORY_MESSAGES = 16;
-const PAID_PLANS = new Set(["standard", "pro", "pro_plus"]);
+const PAID_PLANS = new Set(["standard", "pro", "expert", "pro_plus"]);
 const TRUSTED_SUBSCRIPTION_SOURCES = new Set([
   "stripe",
   "revenuecat",
@@ -75,6 +75,11 @@ type UserContext = {
 type AccessPolicy = {
   dailyLimit: number;
   plan: string;
+};
+
+type BillingContext = {
+  ownerUserId: string;
+  usageScopeKey: string;
 };
 
 class HttpError extends Error {
@@ -465,8 +470,42 @@ async function resolveActiveInvestmentId(
   return ownerData?.id ? String(ownerData.id) : null;
 }
 
+async function getBillingContext(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
+): Promise<BillingContext> {
+  if (!investmentId) {
+    return {
+      ownerUserId: userId,
+      usageScopeKey: `user:${userId}`,
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("inwestycje")
+    .select("user_id")
+    .eq("id", investmentId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Nie udało się sprawdzić właściciela budowy: ${error.message}`);
+  }
+
+  const ownerUserId = normalizeText(data?.user_id);
+  if (!ownerUserId) {
+    throw new HttpError(403, "Nie udało się ustalić właściciela budowy.");
+  }
+
+  return {
+    ownerUserId,
+    usageScopeKey: `investment:${investmentId}`,
+  };
+}
+
 async function getAccessPolicy(
   supabase: ReturnType<typeof createClient>,
+  billingUserId: string,
 ): Promise<AccessPolicy> {
   if (LAUNCH_AI_OPEN_ACCESS) {
     return {
@@ -478,6 +517,7 @@ async function getAccessPolicy(
   const { data, error } = await supabase
     .from("profiles")
     .select("plan, subscription_source, plan_expires_at")
+    .eq("user_id", billingUserId)
     .limit(1)
     .maybeSingle();
 
@@ -569,11 +609,11 @@ async function ensureConversation(
 
 async function checkDailyUsage(
   supabase: ReturnType<typeof createClient>,
-  userId: string,
+  usageScopeKey: string,
   accessPolicy: AccessPolicy,
 ) {
-  const { data, error } = await supabase.rpc("get_ai_daily_usage", {
-    p_user_id: userId,
+  const { data, error } = await supabase.rpc("get_build_ai_daily_usage", {
+    p_scope_key: usageScopeKey,
   });
 
   if (error) {
@@ -606,10 +646,10 @@ async function checkDailyUsage(
 
 async function incrementDailyUsage(
   supabase: ReturnType<typeof createClient>,
-  userId: string,
+  usageScopeKey: string,
 ) {
-  const { error } = await supabase.rpc("increment_ai_daily_usage", {
-    p_user_id: userId,
+  const { error } = await supabase.rpc("increment_build_ai_daily_usage", {
+    p_scope_key: usageScopeKey,
   });
 
   if (error) {
@@ -1181,8 +1221,6 @@ serve(async (req) => {
     }
 
     const user = await getAuthenticatedUser(supabase);
-    const accessPolicy = await getAccessPolicy(supabase);
-
     const body = (await req.json()) as ChatRequestBody;
     const message = normalizeText(
       body.message ?? (body as Record<string, unknown>).question,
@@ -1200,7 +1238,14 @@ serve(async (req) => {
       body.investment_id ?? null,
     );
 
-    await checkDailyUsage(supabase, user.id, accessPolicy);
+    const billingContext = await getBillingContext(
+      supabase,
+      user.id,
+      activeInvestmentId,
+    );
+    const accessPolicy = await getAccessPolicy(supabase, billingContext.ownerUserId);
+
+    await checkDailyUsage(supabase, billingContext.usageScopeKey, accessPolicy);
     await checkMinuteRateLimit(supabase);
 
     const conversationId = await ensureConversation(
@@ -1251,7 +1296,7 @@ serve(async (req) => {
       status: "completed",
     });
 
-    await incrementDailyUsage(supabase, user.id);
+    await incrementDailyUsage(supabase, billingContext.usageScopeKey);
 
     return jsonResponse({
       conversation_id: conversationId,

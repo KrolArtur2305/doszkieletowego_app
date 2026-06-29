@@ -61,6 +61,29 @@
       "save": "Save"
     }
   },
+  "installationDetails": {
+    "lead": "Use these points before talking to a contractor and before ordering components for this installation.",
+    "recommendation": {
+      "eyebrow": "Recommendation slot",
+      "title": "A recommended product can appear here later",
+      "text": "For now, treat this section as a place for your own notes and decisions. In the future it can show a verified manufacturer recommendation."
+    },
+    "sections": {
+      "decisions": {
+        "title": "What to decide",
+        "text": "Confirm power or capacity, device locations, cable or pipe routes, service access and the impact on room layout."
+      },
+      "contractor": {
+        "title": "Questions for the contractor",
+        "text": "Ask about scope, included materials, required penetrations, installation timing and workmanship warranty."
+      },
+      "costs": {
+        "title": "Costs and operation",
+        "text": "Compare purchase, installation, service and running costs. The cheapest option upfront is not always the cheapest to maintain."
+      }
+    },
+    "askAi": "Ask AI"
+  },
   "projectAssetTypes": {
     "plan": {
       "title": "Project floor plans",

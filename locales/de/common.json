@@ -11,7 +11,8 @@
   "errors": {
     "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     "connection": "Verbindung zum Dienst fehlgeschlagen. Bitte Internet prüfen und erneut versuchen.",
-    "timeout": "Der Server hat nicht rechtzeitig geantwortet. Bitte erneut versuchen."
+    "timeout": "Der Server hat nicht rechtzeitig geantwortet. Bitte erneut versuchen.",
+    "cannotJoinOwnBuild": "Du kannst deinem eigenen Bauprojekt nicht beitreten."
   },
   "delete": "Löschen",
   "configErrorTitle": "App-Konfigurationsfehler",

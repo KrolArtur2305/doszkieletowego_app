@@ -198,9 +198,9 @@
     "revokeTitle": "Revoke this invite code?",
     "revokeMessage": "This code will stop working immediately. The partner will need a new code.",
     "converting": "Moving...",
-    "convertAction": "Leave current build and join",
-    "convertWarningTitle": "Warning: move to a partner account",
-    "convertWarningMessage": "If you continue, we will remove the saved data for this build from this account. Only partner access to another build will remain. This action cannot be undone.",
+    "convertAction": "Yes, delete my build and join",
+    "convertWarningTitle": "Delete your current build?",
+    "convertWarningMessage": "You already have your own build on this account. If you join as a partner, we will delete your current build and its data: budget, documents, photos, journal, tasks and project. This action cannot be undone.",
     "leaveTitle": "Leave partner access",
     "leaveMessage": "After leaving, you will lose access to the build you were invited to. The account will stay active.",
     "leaveAction": "Leave",
@@ -212,14 +212,35 @@
     },
     "partnerListTitle": "Active partners",
     "partnerListItem": "Partner {{index}}",
-    "partnerListMeta": "You can remove partners from this build.",
+    "partnerListMeta": "The partner mode is fixed. To change access, remove the partner and send a new invite.",
+    "presetModeLabel": "Mode",
+    "presetModes": {
+      "view": "View only",
+      "collab": "Active collaboration"
+    },
+    "presetSummary": {
+      "view": {
+        "title": "Mode: view only",
+        "text": "A good choice when you want to share information without risking accidental changes.",
+        "bullets": {
+          "budget": "Full view of budget, documents and tasks",
+          "progress": "Ideal for checking progress and keeping up to date",
+          "noAdds": "No adding photos, documents, entries or expenses"
+        }
+      },
+      "collab": {
+        "title": "Mode: active collaboration",
+        "text": "The strongest collaboration setup for a partner who will actively help with the build.",
+        "bullets": {
+          "adds": "Can add photos, documents, entries and expenses",
+          "tasks": "Tasks are available on both sides",
+          "ownerControl": "Budget, documents and progress stay under owner control"
+        }
+      }
+    },
     "removeTitle": "Remove this partner?",
     "removeMessage": "This person will lose access to the build immediately.",
     "removeAction": "Remove",
-    "editTitle": "Edit partner permissions",
-    "editSubtitle": "Change access for the selected person.",
-    "savePermissions": "Save permissions",
-    "savingPermissions": "Saving...",
     "removedTitle": "You were removed from the build",
     "removedMessage": "You were removed from the build and are returning to a normal account.",
     "removedMessageNamed": "You were removed from build \"{{name}}\" and are returning to a normal account.",
@@ -231,8 +252,7 @@
       "convert": "Failed to move this account to partner mode.",
       "leave": "Failed to leave partner mode.",
       "remove": "Failed to remove this partner.",
-      "revoke": "Failed to revoke the invite code.",
-      "update": "Failed to update partner permissions."
+      "revoke": "Failed to revoke the invite code."
     },
     "permissions": {
       "view_budget": {

@@ -61,6 +61,29 @@
       "save": "Zapisz"
     }
   },
+  "installationDetails": {
+    "lead": "Zebraliśmy najważniejsze punkty, które warto sprawdzić przed rozmową z wykonawcą i przed zamówieniem elementów tej instalacji.",
+    "recommendation": {
+      "eyebrow": "Miejsce na rekomendację",
+      "title": "Tu później pokażemy polecany produkt",
+      "text": "Na razie traktuj tę sekcję jako miejsce na własne notatki i decyzje. Docelowo może tu pojawić się zweryfikowana propozycja producenta."
+    },
+    "sections": {
+      "decisions": {
+        "title": "Co ustalić",
+        "text": "Dobór mocy, lokalizację urządzeń, przebieg przewodów, dostęp serwisowy i wpływ instalacji na układ pomieszczeń."
+      },
+      "contractor": {
+        "title": "Pytania do wykonawcy",
+        "text": "Zapytaj o zakres prac, materiały w cenie, wymagane przepusty, terminy montażu oraz gwarancję na usługę."
+      },
+      "costs": {
+        "title": "Koszty i eksploatacja",
+        "text": "Porównaj koszt zakupu, montażu, serwisu i późniejszego użytkowania. Najtańsze rozwiązanie na starcie nie zawsze jest najtańsze w utrzymaniu."
+      }
+    },
+    "askAi": "Zapytaj AI"
+  },
   "projectAssetTypes": {
     "plan": {
       "title": "Rzuty projektu",

@@ -30,6 +30,10 @@ export function getFriendlyErrorMessage(
     return t('common:errors.connection');
   }
 
+  if (message.includes('cannot_join_own_build')) {
+    return t('common:errors.cannotJoinOwnBuild');
+  }
+
   const translated = t(fallbackKey);
   return translated === fallbackKey ? fallbackKey : translated;
 }

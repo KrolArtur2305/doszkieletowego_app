@@ -61,6 +61,29 @@
       "save": "Speichern"
     }
   },
+  "installationDetails": {
+    "lead": "Nutze diese Punkte vor dem Gespraech mit dem Fachbetrieb und bevor du Komponenten fuer diese Installation bestellst.",
+    "recommendation": {
+      "eyebrow": "Empfehlungsbereich",
+      "title": "Hier kann spaeter ein empfohlenes Produkt erscheinen",
+      "text": "Aktuell dient dieser Bereich fuer eigene Notizen und Entscheidungen. Spaeter kann hier eine gepruefte Empfehlung eines Herstellers erscheinen."
+    },
+    "sections": {
+      "decisions": {
+        "title": "Was festlegen",
+        "text": "Klaere Leistung oder Kapazitaet, Position der Geraete, Leitungswege, Servicezugang und Einfluss auf den Grundriss."
+      },
+      "contractor": {
+        "title": "Fragen an den Fachbetrieb",
+        "text": "Frage nach Leistungsumfang, enthaltenen Materialien, notwendigen Durchbruechen, Montagezeitpunkt und Gewaehrleistung."
+      },
+      "costs": {
+        "title": "Kosten und Betrieb",
+        "text": "Vergleiche Anschaffung, Montage, Service und laufende Kosten. Die guenstigste Loesung beim Kauf ist nicht immer die guenstigste im Betrieb."
+      }
+    },
+    "askAi": "KI fragen"
+  },
   "projectAssetTypes": {
     "plan": {
       "title": "Projektgrundrisse",

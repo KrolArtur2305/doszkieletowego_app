@@ -16,14 +16,14 @@ type InviteState = 'loading' | 'conflict' | 'error';
 
 export default function InviteJoinScreen() {
   const router = useRouter();
-  const { t } = useTranslation('auth');
+  const { t } = useTranslation(['auth', 'common']);
   const [state, setState] = useState<InviteState>('loading');
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string>('');
   const [busy, setBusy] = useState(false);
 
   const conflictMessage = useMemo(
-    () => t('inviteJoin.convertWarningMessage'),
+    () => t('auth:inviteJoin.convertWarningMessage'),
     [t]
   );
 
@@ -53,9 +53,11 @@ export default function InviteJoinScreen() {
         }
 
         setErrorText(
-          message.includes('invalid_or_expired_invite')
-            ? t('inviteJoin.invalidMessage')
-            : String((error as any)?.message ?? t('inviteJoin.genericMessage'))
+          message.includes('cannot_join_own_build')
+            ? t('common:errors.cannotJoinOwnBuild')
+            : message.includes('invalid_or_expired_invite')
+              ? t('auth:inviteJoin.invalidMessage')
+              : String((error as any)?.message ?? t('auth:inviteJoin.genericMessage'))
         );
         setState('error');
       }
@@ -75,7 +77,12 @@ export default function InviteJoinScreen() {
       await clearPendingInviteCode();
       router.replace('/(app)/(tabs)/dashboard');
     } catch (error) {
-      setErrorText(String((error as any)?.message ?? t('inviteJoin.genericMessage')));
+      const message = String((error as any)?.message ?? '').toLowerCase();
+      setErrorText(
+        message.includes('cannot_join_own_build')
+          ? t('common:errors.cannotJoinOwnBuild')
+          : String((error as any)?.message ?? t('auth:inviteJoin.genericMessage'))
+      );
       setState('error');
     } finally {
       setBusy(false);
@@ -92,19 +99,19 @@ export default function InviteJoinScreen() {
       <AppCard style={styles.card} contentStyle={styles.cardContent} withShadow={false}>
         {state === 'loading' ? (
           <>
-            <Text style={styles.title}>{t('inviteJoin.loadingTitle')}</Text>
-            <Text style={styles.subtitle}>{t('inviteJoin.loadingMessage')}</Text>
+            <Text style={styles.title}>{t('auth:inviteJoin.loadingTitle')}</Text>
+            <Text style={styles.subtitle}>{t('auth:inviteJoin.loadingMessage')}</Text>
           </>
         ) : null}
 
         {state === 'conflict' ? (
           <>
-            <Text style={styles.title}>{t('inviteJoin.convertWarningTitle')}</Text>
+            <Text style={styles.title}>{t('auth:inviteJoin.convertWarningTitle')}</Text>
             <Text style={styles.subtitle}>{conflictMessage}</Text>
-            <Text style={styles.note}>{t('inviteJoin.convertNote')}</Text>
+            <Text style={styles.note}>{t('auth:inviteJoin.convertNote')}</Text>
 
             <AppButton
-              title={busy ? t('inviteJoin.processing') : t('inviteJoin.convertAction')}
+              title={busy ? t('auth:inviteJoin.processing') : t('auth:inviteJoin.convertAction')}
               loading={busy}
               onPress={handleConvert}
               style={styles.primaryBtn}
@@ -121,7 +128,7 @@ export default function InviteJoinScreen() {
 
         {state === 'error' ? (
           <>
-            <Text style={styles.title}>{t('inviteJoin.errorTitle')}</Text>
+            <Text style={styles.title}>{t('auth:inviteJoin.errorTitle')}</Text>
             <Text style={styles.subtitle}>{errorText}</Text>
             <AppButton
               title={t('common:ok')}
