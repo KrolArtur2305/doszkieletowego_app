@@ -62,24 +62,43 @@
     }
   },
   "installationDetails": {
-    "lead": "Zebraliśmy najważniejsze punkty, które warto sprawdzić przed rozmową z wykonawcą i przed zamówieniem elementów tej instalacji.",
-    "recommendation": {
-      "eyebrow": "Miejsce na rekomendację",
-      "title": "Tu później pokażemy polecany produkt",
-      "text": "Na razie traktuj tę sekcję jako miejsce na własne notatki i decyzje. Docelowo może tu pojawić się zweryfikowana propozycja producenta."
+    "about": {
+      "title": "O instalacji",
+      "text": "{{name}} wpływa na komfort, koszty i sposób użytkowania domu. Poniżej znajdziesz skrót najważniejszych rzeczy do sprawdzenia."
     },
     "sections": {
-      "decisions": {
-        "title": "Co ustalić",
-        "text": "Dobór mocy, lokalizację urządzeń, przebieg przewodów, dostęp serwisowy i wpływ instalacji na układ pomieszczeń."
+      "benefits": {
+        "title": "Plusy",
+        "items": [
+          "Łatwiej podjąć dobrą decyzję na etapie projektu.",
+          "Prościej porównać oferty wykonawców i zakres prac.",
+          "Szybciej wychwycisz ryzyka przed zakupem i montażem."
+        ]
       },
-      "contractor": {
-        "title": "Pytania do wykonawcy",
-        "text": "Zapytaj o zakres prac, materiały w cenie, wymagane przepusty, terminy montażu oraz gwarancję na usługę."
+      "drawbacks": {
+        "title": "Minusy",
+        "items": [
+          "Wymaga dobrego planu i koordynacji z resztą budowy.",
+          "Błędy na tym etapie są kosztowne do poprawienia później.",
+          "Może zauważalnie wpłynąć na budżet i termin realizacji."
+        ]
       },
       "costs": {
         "title": "Koszty i eksploatacja",
-        "text": "Porównaj koszt zakupu, montażu, serwisu i późniejszego użytkowania. Najtańsze rozwiązanie na starcie nie zawsze jest najtańsze w utrzymaniu."
+        "items": [
+          "Zakup i montaż: zwykle od kilku do kilkudziesięciu tysięcy zł, zależnie od zakresu.",
+          "Eksploatacja: dolicz zużycie energii, paliwa lub materiałów oraz sezonowe przeglądy.",
+          "Utrzymanie: warto zaplanować koszt serwisu, czyszczenia i ewentualnych części."
+        ]
+      },
+      "questions": {
+        "title": "Pytania do wykonawcy",
+        "items": [
+          "Jakie warunki techniczne trzeba spełnić przed montażem?",
+          "Co jest w cenie, a co trzeba doliczyć osobno?",
+          "Jak wygląda gwarancja, serwis i czas reakcji po montażu?",
+          "Jakie są miesięczne lub sezonowe koszty użytkowania?"
+        ]
       }
     },
     "askAi": "Zapytaj AI"

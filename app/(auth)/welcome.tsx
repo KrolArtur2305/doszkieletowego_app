@@ -17,7 +17,11 @@ import type { ScrollView as ScrollViewType } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { clearPendingInviteCode, setPendingInviteCode } from '../../lib/investmentInvite';
+import {
+  clearPendingInviteCode,
+  setPendingInviteCode,
+  validateInvestmentInviteCode,
+} from '../../lib/investmentInvite';
 import { setCurrencyForLanguage } from '../../lib/currency';
 import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../lib/i18n';
 import { AppButton, AppCard, AppInput, AppScreen } from '../../src/ui/components';
@@ -35,6 +39,7 @@ export default function WelcomeScreen() {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [joinError, setJoinError] = useState('');
+  const [joinChecking, setJoinChecking] = useState(false);
 
   const slides = useMemo(
     () => [
@@ -45,16 +50,10 @@ export default function WelcomeScreen() {
         icon: require('../../assets/icons/welcome/budget.png'),
       },
       {
-        key: 'documents',
-        title: t('welcome.slides.documents.title'),
-        text: t('welcome.slides.documents.text'),
-        icon: require('../../assets/icons/welcome/documents.png'),
-      },
-      {
-        key: 'project',
-        title: t('welcome.slides.project.title'),
-        text: t('welcome.slides.project.text'),
-        icon: require('../../assets/icons/welcome/project.png'),
+        key: 'ai',
+        title: t('welcome.slides.ai.title'),
+        text: t('welcome.slides.ai.text'),
+        icon: require('../../assets/icons/welcome/ai.png'),
       },
       {
         key: 'progress',
@@ -63,10 +62,22 @@ export default function WelcomeScreen() {
         icon: require('../../assets/icons/welcome/progress.png'),
       },
       {
+        key: 'project',
+        title: t('welcome.slides.project.title'),
+        text: t('welcome.slides.project.text'),
+        icon: require('../../assets/icons/welcome/project.png'),
+      },
+      {
         key: 'photos',
         title: t('welcome.slides.photos.title'),
         text: t('welcome.slides.photos.text'),
         icon: require('../../assets/icons/welcome/photos.png'),
+      },
+      {
+        key: 'documents',
+        title: t('welcome.slides.documents.title'),
+        text: t('welcome.slides.documents.text'),
+        icon: require('../../assets/icons/welcome/documents.png'),
       },
     ],
     [i18n.language, t]
@@ -100,16 +111,34 @@ export default function WelcomeScreen() {
   };
 
   const saveInviteCodeAndGo = async (target: '/(auth)/register' | '/(auth)/login') => {
+    if (joinChecking) return;
+
     const cleaned = inviteCode.trim().replace(/\s+/g, '').toUpperCase();
     if (!cleaned) {
       setJoinError(t('welcome.join.error'));
       return;
     }
 
-    await setPendingInviteCode(cleaned);
-    setJoinModalOpen(false);
+    setJoinChecking(true);
     setJoinError('');
-    router.push(target);
+
+    try {
+      const isValid = await validateInvestmentInviteCode(cleaned);
+      if (!isValid) {
+        setJoinError(t('welcome.join.invalidCode'));
+        return;
+      }
+
+      await setPendingInviteCode(cleaned);
+      setJoinModalOpen(false);
+      setJoinError('');
+      router.push(target);
+    } catch (error) {
+      console.warn('[Invite] preflight validation failed:', error);
+      setJoinError(t('welcome.join.validationError'));
+    } finally {
+      setJoinChecking(false);
+    }
   };
 
   return (
@@ -117,7 +146,10 @@ export default function WelcomeScreen() {
         <View style={styles.topBlock}>
           <View style={styles.brandStack}>
             <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
-            <Text style={styles.brandName}>BuildIQ</Text>
+            <View style={styles.brandName} accessibilityLabel="BuildIQ">
+              <Text style={[styles.brandNameText, styles.brandNameBuild]}>Build</Text>
+              <Text style={[styles.brandNameText, styles.brandNameIq]}>IQ</Text>
+            </View>
           </View>
 
           <View style={styles.heroCopy}>
@@ -216,7 +248,8 @@ export default function WelcomeScreen() {
                 {!!joinError && <Text style={styles.joinError}>{joinError}</Text>}
 
                 <AppButton
-                  title={t('welcome.join.registerAction')}
+                  title={joinChecking ? t('welcome.join.checking') : t('welcome.join.registerAction')}
+                  loading={joinChecking}
                   onPress={() => saveInviteCodeAndGo('/(auth)/register')}
                   style={styles.joinPrimary}
                 />
@@ -224,6 +257,7 @@ export default function WelcomeScreen() {
                 <AppButton
                   title={t('welcome.join.loginAction')}
                   onPress={() => saveInviteCodeAndGo('/(auth)/login')}
+                  disabled={joinChecking}
                   variant="secondary"
                   style={styles.joinSecondary}
                 />
@@ -252,28 +286,43 @@ const styles = StyleSheet.create({
   topBlock: {
     width: '100%',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing['2xl'],
     marginBottom: spacing.md,
   },
   brandStack: {
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginTop: -24,
+    marginBottom: -26,
   },
   brandLogo: {
-    width: 116,
-    height: 116,
+    width: 146,
+    height: 146,
   },
   brandName: {
-    marginTop: spacing.xs,
-    color: colors.text,
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: '900',
-    letterSpacing: 0,
+    marginTop: -36,
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandNameText: {
+    fontSize: 29,
+    lineHeight: 34,
+    fontFamily: 'Syne_800ExtraBold',
+    fontWeight: '800',
+    letterSpacing: -0.44,
+    includeFontPadding: false,
+  },
+  brandNameBuild: {
+    color: '#FFFFFF',
+  },
+  brandNameIq: {
+    color: '#0E8F84',
   },
   heroCopy: {
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
+    marginTop: spacing.xl,
   },
   heroTitle: {
     ...typography.sectionTitle,

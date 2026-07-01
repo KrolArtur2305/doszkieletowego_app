@@ -62,24 +62,43 @@
     }
   },
   "installationDetails": {
-    "lead": "Nutze diese Punkte vor dem Gespraech mit dem Fachbetrieb und bevor du Komponenten fuer diese Installation bestellst.",
-    "recommendation": {
-      "eyebrow": "Empfehlungsbereich",
-      "title": "Hier kann spaeter ein empfohlenes Produkt erscheinen",
-      "text": "Aktuell dient dieser Bereich fuer eigene Notizen und Entscheidungen. Spaeter kann hier eine gepruefte Empfehlung eines Herstellers erscheinen."
+    "about": {
+      "title": "Zur Installation",
+      "text": "{{name}} beeinflusst Komfort, Kosten und die Nutzung des Hauses. Unten findest du eine kurze Zusammenfassung der wichtigsten Punkte."
     },
     "sections": {
-      "decisions": {
-        "title": "Was festlegen",
-        "text": "Klaere Leistung oder Kapazitaet, Position der Geraete, Leitungswege, Servicezugang und Einfluss auf den Grundriss."
+      "benefits": {
+        "title": "Vorteile",
+        "items": [
+          "Die Entscheidung in der Planungsphase faellt leichter.",
+          "Angebote und Leistungsumfaenge lassen sich besser vergleichen.",
+          "Risiken werden vor Kauf und Montage schneller erkannt."
+        ]
       },
-      "contractor": {
-        "title": "Fragen an den Fachbetrieb",
-        "text": "Frage nach Leistungsumfang, enthaltenen Materialien, notwendigen Durchbruechen, Montagezeitpunkt und Gewaehrleistung."
+      "drawbacks": {
+        "title": "Nachteile",
+        "items": [
+          "Es braucht einen sauberen Plan und gute Abstimmung mit dem Bau.",
+          "Fehler in dieser Phase sind spaeter teuer zu korrigieren.",
+          "Budget und Zeitplan koennen deutlich beeinflusst werden."
+        ]
       },
       "costs": {
         "title": "Kosten und Betrieb",
-        "text": "Vergleiche Anschaffung, Montage, Service und laufende Kosten. Die guenstigste Loesung beim Kauf ist nicht immer die guenstigste im Betrieb."
+        "items": [
+          "Anschaffung und Montage: meist von einigen bis zu mehreren zehntausend PLN, je nach Umfang.",
+          "Betrieb: Strom-, Brennstoff- oder Materialkosten sowie saisonale Pruefungen einplanen.",
+          "Wartung: Service, Reinigung und Ersatzteile sollten mitgerechnet werden."
+        ]
+      },
+      "questions": {
+        "title": "Fragen an den Fachbetrieb",
+        "items": [
+          "Welche technischen Voraussetzungen muessen vor der Montage erfuellt sein?",
+          "Was ist im Preis enthalten und was wird separat berechnet?",
+          "Wie funktionieren Garantie, Service und Reaktionszeiten nach der Montage?",
+          "Welche monatlichen oder saisonalen Betriebskosten fallen an?"
+        ]
       }
     },
     "askAi": "KI fragen"

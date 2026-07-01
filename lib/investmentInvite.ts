@@ -27,6 +27,21 @@ export async function setPendingInviteCode(code: string): Promise<void> {
   }
 }
 
+export async function validateInvestmentInviteCode(code: string): Promise<boolean> {
+  const cleaned = String(code ?? '').trim().replace(/\s+/g, '').toUpperCase();
+  if (!cleaned) return false;
+
+  const { data, error } = await supabase.rpc('validate_investment_invite', {
+    p_invite_code: cleaned,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data === true;
+}
+
 export async function resolvePostAuthLandingPath(): Promise<'/(app)' | '/(auth)/invite-join'> {
   try {
     const code = await getPendingInviteCode();

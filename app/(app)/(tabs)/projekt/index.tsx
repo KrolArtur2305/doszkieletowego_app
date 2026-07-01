@@ -382,7 +382,7 @@ function base64ToUint8Array(base64: string) {
 export default function ProjektScreen() {
   const { t, i18n } = useTranslation('project')
   const { units } = useUnits()
-  const { width } = useWindowDimensions()
+  const { width, height } = useWindowDimensions()
   const router = useRouter()
   const { setup, guidedStep } = useLocalSearchParams<{ setup?: string | string[]; guidedStep?: string | string[] }>()
   const isSetupMode = Array.isArray(setup) ? setup[0] === '1' : setup === '1'
@@ -419,6 +419,7 @@ export default function ProjektScreen() {
   const [modelUploading, setModelUploading] = useState(false)
   const [projectNudgeOpen, setProjectNudgeOpen] = useState(false)
   const [installationsOpen, setInstallationsOpen] = useState(false)
+  const [installationsSaving, setInstallationsSaving] = useState(false)
   const [installationsStep, setInstallationsStep] = useState(0)
   const [installationsConfig, setInstallationsConfig] = useState<InstallationDraft | null>(null)
   const [installationsDraft, setInstallationsDraft] = useState<InstallationDraft>(createEmptyInstallationDraft())
@@ -429,6 +430,7 @@ export default function ProjektScreen() {
   const installationSteps = useMemo(() => getInstallationSteps(installationsDraft), [installationsDraft])
   const currentInstallationStepKey = installationSteps[installationsStep] ?? installationSteps[installationSteps.length - 1]
   const installationColumns = width < 390 ? 1 : 2
+  const compactProjectParams = height < 760
 
   useEffect(() => {
     setInstallationsStep((current) => Math.min(current, Math.max(0, installationSteps.length - 1)))
@@ -482,6 +484,8 @@ export default function ProjektScreen() {
   }
 
   const saveInstallations = () => {
+    if (installationsSaving) return
+
     const nextConfig: InstallationDraft = {
       heatingSystem: installationsDraft.heatingSystem,
       heatPump: installationsDraft.heatPump,
@@ -491,6 +495,7 @@ export default function ProjektScreen() {
 
     const persist = async () => {
       try {
+        setInstallationsSaving(true)
         const proj = await ensureProjektExists()
         if (!proj?.id) return
 
@@ -498,21 +503,26 @@ export default function ProjektScreen() {
           installations_config: nextConfig,
         }
 
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from('projekty')
           .update(payload)
           .eq(buildAccess?.investmentId ? 'investment_id' : 'user_id', buildAccess?.investmentId ?? userId)
           .eq('id', proj.id)
+          .select('*')
+          .single()
 
         if (error) {
           Alert.alert(t('saveErrorTitle'), getFriendlyErrorMessage(error, t, 'saveParamsError'))
           return
         }
 
+        setProjekt(updated as any)
         setInstallationsConfig(nextConfig)
         closeInstallationsConfigurator()
       } catch (error) {
         Alert.alert(t('saveErrorTitle'), getFriendlyErrorMessage(error as any, t, 'saveParamsError'))
+      } finally {
+        setInstallationsSaving(false)
       }
     }
 
@@ -1454,7 +1464,15 @@ export default function ProjektScreen() {
           </View>
         </Modal>
 
-        <Modal visible={installationsOpen} transparent animationType="slide" onRequestClose={closeInstallationsConfigurator}>
+        <Modal
+          visible={installationsOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => {
+            if (installationsSaving) return
+            closeInstallationsConfigurator()
+          }}
+        >
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
             <View style={styles.modalBackdrop}>
               <Pressable style={styles.modalSheet} onPress={Keyboard.dismiss}>
@@ -1463,7 +1481,10 @@ export default function ProjektScreen() {
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>{t('installationWizard.title')}</Text>
                   <TouchableOpacity
-                    onPress={closeInstallationsConfigurator}
+                    onPress={() => {
+                      if (installationsSaving) return
+                      closeInstallationsConfigurator()
+                    }}
                     style={styles.modalCloseBtn}
                     activeOpacity={0.85}
                   >
@@ -1484,6 +1505,7 @@ export default function ProjektScreen() {
                       return (
                         <TouchableOpacity
                           key={option.key}
+                          disabled={installationsSaving}
                           onPress={() => {
                             setInstallationsDraft((current) => ({
                               ...current,
@@ -1513,6 +1535,7 @@ export default function ProjektScreen() {
                       return (
                         <TouchableOpacity
                           key={String(choice.key)}
+                          disabled={installationsSaving}
                           onPress={() => setInstallationsDraft((current) => ({ ...current, recuperation: choice.key }))}
                           style={[styles.installationsChoiceCard, active && styles.installationsChoiceCardActive]}
                           activeOpacity={0.86}
@@ -1530,6 +1553,7 @@ export default function ProjektScreen() {
                       return (
                         <TouchableOpacity
                           key={option.key}
+                          disabled={installationsSaving}
                           onPress={() => toggleInstallationExtra(option.key)}
                           style={[styles.installationsExtraOption, active && styles.installationsExtraOptionActive]}
                           activeOpacity={0.86}
@@ -1545,11 +1569,18 @@ export default function ProjektScreen() {
                 </ScrollView>
 
                 <View style={styles.installationsActions}>
-                  <AppButton title={t('cancel')} variant="secondary" onPress={closeInstallationsConfigurator} style={styles.installationsActionBtn} />
                   <AppButton
-                    title={t('installationWizard.actions.save')}
+                    title={t('cancel')}
+                    variant="secondary"
+                    onPress={closeInstallationsConfigurator}
+                    disabled={installationsSaving}
+                    style={styles.installationsActionBtn}
+                  />
+                  <AppButton
+                    title={installationsSaving ? t('planSaving') : t('installationWizard.actions.save')}
+                    loading={installationsSaving}
                     onPress={saveInstallations}
-                    disabled={!installationsDraft.heatingSystem || installationsDraft.recuperation === null}
+                    disabled={installationsSaving || !installationsDraft.heatingSystem || installationsDraft.recuperation === null}
                     style={styles.installationsActionBtn}
                   />
                 </View>
@@ -1708,10 +1739,17 @@ export default function ProjektScreen() {
         <Modal visible={editOpen} transparent animationType="slide" onRequestClose={() => setEditOpen(false)}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
             <View style={styles.modalBackdrop}>
-              <Pressable style={styles.modalSheet} onPress={Keyboard.dismiss}>
+              <Pressable
+                style={[
+                  styles.modalSheet,
+                  styles.editParamsSheet,
+                  compactProjectParams && styles.editParamsSheetCompact,
+                ]}
+                onPress={Keyboard.dismiss}
+              >
                 <View style={styles.modalHandle} />
 
-                <View style={styles.modalHeader}>
+                <View style={[styles.modalHeader, styles.editParamsHeader]}>
                   <Text style={styles.modalTitle}>{t('editParamsTitle')}</Text>
 
                   <TouchableOpacity onPress={() => setEditOpen(false)} style={styles.modalCloseBtn} activeOpacity={0.85}>
@@ -1723,75 +1761,82 @@ export default function ProjektScreen() {
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
-                  contentContainerStyle={{ paddingBottom: 24 }}
+                  contentContainerStyle={styles.editParamsContent}
                 >
-                  <Text style={[styles.fieldGroupLabel, styles.fieldGroupLabelCentered]}>{t('fieldGroupGeneral')}</Text>
+                  <Text style={[styles.fieldGroupLabel, styles.fieldGroupLabelCentered, styles.editFieldGroupLabel]}>{t('fieldGroupGeneral')}</Text>
                   <FieldText
                     label={t('fieldProjectName')}
                     value={form.nazwa}
                     onChange={(txt) => setForm((p) => ({ ...p, nazwa: txt }))}
                     centered
+                    compact
                   />
 
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupFacade')}</Text>
+                  <Text style={[styles.fieldGroupLabel, styles.editFieldGroupLabel]}>{t('fieldGroupFacade')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
                       label={labelWithUnit(t('fieldHouseLength'), lengthUnit)}
                       value={form.dlugosc_elewacji}
                       onChange={(txt) => setForm((p) => ({ ...p, dlugosc_elewacji: txt }))}
+                      compact
                     />
                     <FieldNum
                       label={labelWithUnit(t('fieldHouseWidth'), lengthUnit)}
                       value={form.szerokosc_elewacji}
                       onChange={(txt) => setForm((p) => ({ ...p, szerokosc_elewacji: txt }))}
+                      compact
                     />
                   </View>
 
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupSurfaces')}</Text>
+                  <Text style={[styles.fieldGroupLabel, styles.editFieldGroupLabel]}>{t('fieldGroupSurfaces')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
                       label={labelWithUnit(t('fieldPowU'), areaUnit)}
                       value={form.powierzchnia_uzytkowa}
                       onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_uzytkowa: txt }))}
+                      compact
                     />
                     <FieldNum
                       label={labelWithUnit(t('fieldPowZ'), areaUnit)}
                       value={form.powierzchnia_zabudowy}
                       onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_zabudowy: txt }))}
+                      compact
                     />
                   </View>
 
-                  <FieldNum
-                    label={labelWithUnit(t('fieldRoofArea'), areaUnit)}
-                    value={form.powierzchnia_dachu}
-                    onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_dachu: txt }))}
-                  />
-
-                  <Text style={styles.fieldGroupLabel}>{t('fieldGroupStructure')}</Text>
+                  <Text style={[styles.fieldGroupLabel, styles.editFieldGroupLabel]}>{t('fieldGroupStructure')}</Text>
                   <View style={styles.row2}>
                     <FieldNum
                       label={t('fieldFloors')}
                       value={form.kondygnacje}
                       onChange={(txt) => setForm((p) => ({ ...p, kondygnacje: txt }))}
+                      compact
                     />
                     <FieldNum
                       label={t('fieldRooms')}
                       value={form.pomieszczenia}
                       onChange={(txt) => setForm((p) => ({ ...p, pomieszczenia: txt }))}
+                      compact
                     />
                   </View>
 
                   <View style={styles.row2}>
                     <FieldNum
+                      label={labelWithUnit(t('fieldRoofArea'), areaUnit)}
+                      value={form.powierzchnia_dachu}
+                      onChange={(txt) => setForm((p) => ({ ...p, powierzchnia_dachu: txt }))}
+                      compact
+                    />
+                    <FieldNum
                       label={labelWithUnit(t('fieldHeight'), lengthUnit)}
                       value={form.wysokosc_budynku}
                       onChange={(txt) => setForm((p) => ({ ...p, wysokosc_budynku: txt }))}
+                      compact
                     />
-                    <View style={{ flex: 1 }} />
                   </View>
                 </ScrollView>
 
-                <View style={styles.modalActions}>
+                <View style={[styles.modalActions, styles.editParamsActions]}>
                   {isSetupMode ? (
                     <AppButton
                       title={t('skip')}
@@ -1871,22 +1916,45 @@ function AnimatedDataCell({ tile, index }: { tile: { id: string; label: string; 
   )
 }
 
-function FieldText({ label, value, onChange, centered }: { label: string; value: string; onChange: (t: string) => void; centered?: boolean }) {
+function FieldText({
+  label,
+  value,
+  onChange,
+  centered,
+  compact,
+}: {
+  label: string;
+  value: string;
+  onChange: (t: string) => void;
+  centered?: boolean;
+  compact?: boolean;
+}) {
   const { t } = useTranslation();
   return (
-    <View style={styles.field}>
-      <Text style={[styles.fieldLabel, centered && styles.fieldLabelCentered]}>{label}</Text>
-      <AppInput value={value} onChangeText={onChange} placeholder={t('common:dash')} style={[styles.input, centered && styles.inputCentered]} />
+    <View style={[styles.field, compact && styles.editField]}>
+      <Text style={[styles.fieldLabel, compact && styles.editFieldLabel, centered && styles.fieldLabelCentered]}>{label}</Text>
+      <AppInput
+        value={value}
+        onChangeText={onChange}
+        placeholder={t('common:dash')}
+        style={[styles.input, compact && styles.editInput, centered && styles.inputCentered]}
+      />
     </View>
   )
 }
 
-function FieldNum({ label, value, onChange }: { label: string; value: string; onChange: (t: string) => void }) {
+function FieldNum({ label, value, onChange, compact }: { label: string; value: string; onChange: (t: string) => void; compact?: boolean }) {
   const { t } = useTranslation();
   return (
-    <View style={[styles.field, { flex: 1 }]}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <AppInput value={value} onChangeText={onChange} placeholder={t('common:dash')} keyboardType="decimal-pad" style={styles.input} />
+    <View style={[styles.field, { flex: 1 }, compact && styles.editField]}>
+      <Text style={[styles.fieldLabel, compact && styles.editFieldLabel]}>{label}</Text>
+      <AppInput
+        value={value}
+        onChangeText={onChange}
+        placeholder={t('common:dash')}
+        keyboardType="decimal-pad"
+        style={[styles.input, compact && styles.editInput]}
+      />
     </View>
   )
 }
@@ -2643,6 +2711,16 @@ const styles = StyleSheet.create({
     shadowRadius: 30,
     shadowOffset: { width: 0, height: -8 }},
 
+  editParamsSheet: {
+    maxHeight: '96%',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6},
+
+  editParamsSheetCompact: {
+    maxHeight: '98%',
+    paddingTop: 8},
+
   modalHandle: {
     alignSelf: 'center',
     width: 40,
@@ -2657,6 +2735,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
     minHeight: 34},
+
+  editParamsHeader: {
+    marginBottom: 8,
+    minHeight: 32},
 
   modalTitle: {
     color: NEON,
@@ -2688,11 +2770,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     opacity: 0.8},
 
+  editFieldGroupLabel: {
+    marginTop: 10,
+    marginBottom: 6,
+    fontSize: 10,
+    letterSpacing: 1.1},
+
   fieldGroupLabelCentered: {
     textAlign: 'center'},
 
   field: {
     marginBottom: 10},
+
+  editField: {
+    marginBottom: 6},
 
   fieldLabel: {
     color: 'rgba(255,255,255,0.38)',
@@ -2702,12 +2793,25 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase'},
 
+  editFieldLabel: {
+    marginBottom: 4,
+    fontSize: 9.5,
+    lineHeight: 12,
+    letterSpacing: 0.3},
+
   fieldLabelCentered: {
     textAlign: 'center'},
 
   input: {
     fontWeight: '700',
     fontSize: 15},
+
+  editInput: {
+    minHeight: 42,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    fontSize: 14},
 
   inputCentered: {
     textAlign: 'center'},
@@ -2721,6 +2825,13 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 16,
     paddingBottom: Platform.OS === 'ios' ? 20 : 8},
+
+  editParamsContent: {
+    paddingBottom: 8},
+
+  editParamsActions: {
+    marginTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 12 : 4},
 
   modalBtnGhost: {
     flex: 1},

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { Image, Text, View } from 'react-native';
 import { useFonts, Rubik_700Bold, Rubik_800ExtraBold } from '@expo-google-fonts/rubik';
+import { Syne_800ExtraBold } from '@expo-google-fonts/syne';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
@@ -24,7 +25,7 @@ const APP_LOGO = require('../assets/logo.png');
 export default function RootLayout() {
   const { session, loading } = useSupabaseAuth();
   const [i18nReady, setI18nReady] = useState(false);
-  const [fontsLoaded] = useFonts({ Rubik_700Bold, Rubik_800ExtraBold });
+  const [fontsLoaded] = useFonts({ Rubik_700Bold, Rubik_800ExtraBold, Syne_800ExtraBold });
   const { t } = useTranslation('common');
 
   usePushNotifications();

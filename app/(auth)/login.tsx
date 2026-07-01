@@ -8,6 +8,7 @@ import {
   Keyboard,
   Platform,
   Alert,
+  ActivityIndicator,
   TouchableWithoutFeedback,
   TouchableOpacity,
 } from 'react-native';
@@ -25,6 +26,7 @@ import { colors, spacing, typography } from '../../src/ui/theme';
 const GOOGLE_AUTH_ENABLED = true;
 const FACEBOOK_AUTH_ENABLED = false;
 const APP_LOGO = require('../../assets/logo.png');
+const GOOGLE_LOGO = require('../../assets/google-g.png');
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -38,6 +40,7 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const authBusy = loading || appleLoading || googleLoading || facebookLoading;
 
   useEffect(() => {
     let mounted = true;
@@ -56,6 +59,7 @@ export default function LoginScreen() {
   }, []);
 
   const onLogin = async () => {
+    if (authBusy) return;
     setError(null);
     setLoading(true);
     try {
@@ -73,6 +77,7 @@ export default function LoginScreen() {
   };
 
   const onForgotPassword = async () => {
+    if (authBusy) return;
     const e = email.trim();
     if (!e) {
       Alert.alert(t('login.alerts.resetTitle'), t('login.alerts.resetMessage'));
@@ -97,6 +102,8 @@ export default function LoginScreen() {
   };
 
   async function handleGoogleLogin() {
+    if (authBusy) return;
+    setError(null);
     setGoogleLoading(true);
     try {
       await signInWithGoogleMobile();
@@ -148,7 +155,10 @@ export default function LoginScreen() {
         <AppScreen scroll contentContainerStyle={styles.content}>
             <View style={styles.brandStack}>
               <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
-              <Text style={styles.brandName}>BuildIQ</Text>
+              <View style={styles.brandName} accessibilityLabel="BuildIQ">
+                <Text style={[styles.brandNameText, styles.brandNameBuild]}>Build</Text>
+                <Text style={[styles.brandNameText, styles.brandNameIq]}>IQ</Text>
+              </View>
             </View>
 
             <View style={styles.formBlock}>
@@ -174,6 +184,7 @@ export default function LoginScreen() {
                 <AppButton
                   title={t('login.form.submit')}
                   loading={loading}
+                  disabled={appleLoading || googleLoading || facebookLoading}
                   onPress={onLogin}
                   style={styles.primaryBtn}
                 />
@@ -186,26 +197,36 @@ export default function LoginScreen() {
                     style={[
                       styles.googleBtn,
                       styles.appleButton,
-                      (appleLoading || googleLoading || facebookLoading || loading) && styles.appleButtonDisabled,
+                      authBusy && styles.appleButtonDisabled,
                     ]}
                     onPress={handleAppleLogin}
                   />
                 ) : null}
 
                 {GOOGLE_AUTH_ENABLED ? (
-                  <AppButton
-                    title={googleLoading ? t('common:loading') : t('login.form.googleCta')}
-                    disabled={googleLoading || appleLoading || facebookLoading || loading}
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t('login.form.googleCta')}
+                    activeOpacity={0.86}
+                    disabled={authBusy}
                     onPress={handleGoogleLogin}
-                    variant="secondary"
-                    style={styles.googleBtn}
-                  />
+                    style={[
+                      styles.googleIconBtn,
+                      authBusy && styles.appleButtonDisabled,
+                    ]}
+                  >
+                    {googleLoading ? (
+                      <ActivityIndicator color={colors.textSoft} />
+                    ) : (
+                      <Image source={GOOGLE_LOGO} style={styles.googleIcon} resizeMode="contain" />
+                    )}
+                  </TouchableOpacity>
                 ) : null}
 
                 {FACEBOOK_AUTH_ENABLED ? (
                   <AppButton
                     title={facebookLoading ? t('common:loading') : t('login.form.facebookCta')}
-                    disabled={facebookLoading || appleLoading || googleLoading || loading}
+                    disabled={authBusy}
                     onPress={handleFacebookLogin}
                     variant="secondary"
                     style={styles.googleBtn}
@@ -250,19 +271,32 @@ const styles = StyleSheet.create({
   brandStack: {
     alignItems: 'center',
     marginTop: spacing.lg,
-    marginBottom: spacing.md,
+    marginBottom: spacing['2xl'] + spacing.md,
   },
   brandLogo: {
-    width: 116,
-    height: 116,
+    width: 146,
+    height: 146,
   },
   brandName: {
-    marginTop: spacing.xs,
-    color: colors.text,
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: '900',
-    letterSpacing: 0,
+    marginTop: -30,
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandNameText: {
+    fontSize: 29,
+    lineHeight: 34,
+    fontFamily: 'Syne_800ExtraBold',
+    fontWeight: '800',
+    letterSpacing: -0.44,
+    includeFontPadding: false,
+  },
+  brandNameBuild: {
+    color: '#FFFFFF',
+  },
+  brandNameIq: {
+    color: '#0E8F84',
   },
   formBlock: {
     flex: 1,
@@ -275,6 +309,18 @@ const styles = StyleSheet.create({
   primaryBtn: { marginTop: spacing.xs + 2 },
   googleBtn: {
     marginTop: spacing.lg,
+  },
+  googleIconBtn: {
+    width: 54,
+    height: 54,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.lg,
+  },
+  googleIcon: {
+    width: 54,
+    height: 54,
   },
   appleButton: {
     width: '100%',

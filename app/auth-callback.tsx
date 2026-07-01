@@ -4,6 +4,7 @@ import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { getFriendlyErrorMessage } from '../lib/errorMessages';
+import { resolvePostAuthLandingPath } from '../lib/investmentInvite';
 import { completeAuthSessionFromUrl, getAuthCallbackType } from '../src/services/auth/deepLinkAuth';
 
 export default function AuthCallbackScreen() {
@@ -28,7 +29,9 @@ export default function AuthCallbackScreen() {
           return;
         }
 
-        router.replace('/(app)');
+        const landingPath = await resolvePostAuthLandingPath();
+        if (!alive) return;
+        router.replace(landingPath);
       } catch (nextError: any) {
         if (!alive) return;
         const callbackType = url ? getAuthCallbackType(url) : 'unknown';

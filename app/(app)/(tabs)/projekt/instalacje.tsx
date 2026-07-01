@@ -1,31 +1,55 @@
 import { useMemo, useRef } from 'react'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
-import { AppButton, AppCard, AppHeader, AppScreen } from '../../../../src/ui/components'
+import { AppButton, AppCard, AppScreen } from '../../../../src/ui/components'
+import { colors, header, radius, spacing, typography } from '../../../../src/ui/theme'
+
+const APP_LOGO = require('../../../../assets/logo.png')
 
 const DETAIL_SECTIONS = [
   {
-    key: 'decisions',
-    icon: 'check-square' as keyof typeof Feather.glyphMap,
-    titleKey: 'installationDetails.sections.decisions.title',
-    textKey: 'installationDetails.sections.decisions.text',
+    key: 'benefits',
+    icon: 'plus-circle' as const,
+    titleKey: 'installationDetails.sections.benefits.title',
+    itemsKey: 'installationDetails.sections.benefits.items',
+    accent: '#25F0C8',
+    tone: 'benefit',
   },
   {
-    key: 'contractor',
-    icon: 'tool' as keyof typeof Feather.glyphMap,
-    titleKey: 'installationDetails.sections.contractor.title',
-    textKey: 'installationDetails.sections.contractor.text',
+    key: 'drawbacks',
+    icon: 'minus-circle' as const,
+    titleKey: 'installationDetails.sections.drawbacks.title',
+    itemsKey: 'installationDetails.sections.drawbacks.items',
+    accent: '#F97373',
+    tone: 'drawback',
   },
   {
     key: 'costs',
-    icon: 'trending-up' as keyof typeof Feather.glyphMap,
+    icon: 'trending-up' as const,
     titleKey: 'installationDetails.sections.costs.title',
-    textKey: 'installationDetails.sections.costs.text',
+    itemsKey: 'installationDetails.sections.costs.items',
+    accent: '#25F0C8',
+    tone: 'neutral',
   },
-]
+  {
+    key: 'questions',
+    icon: 'help-circle' as const,
+    titleKey: 'installationDetails.sections.questions.title',
+    itemsKey: 'installationDetails.sections.questions.items',
+    accent: '#25F0C8',
+    tone: 'neutral',
+  },
+] as const
+
+function splitTitle(title: string) {
+  const words = title.trim().split(/\s+/).filter(Boolean)
+  if (words.length <= 1) return title.trim()
+  if (words.length === 2) return `${words[0]}\n${words[1]}`
+  return `${words.slice(0, 2).join(' ')}\n${words.slice(2).join(' ')}`
+}
 
 export default function InstallationDetailsScreen() {
   const { t } = useTranslation('project')
@@ -42,69 +66,121 @@ export default function InstallationDetailsScreen() {
     return raw?.trim() || 'information-outline'
   }, [params.icon])
 
+  const displayTitle = useMemo(() => splitTitle(title), [title])
+
+  const goBackToProject = () => {
+    router.replace('/(app)/(tabs)/projekt')
+  }
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_event, gestureState) => {
-        return Math.abs(gestureState.dx) > 24 && Math.abs(gestureState.dy) < 20 && gestureState.dx > 0
+        return Math.abs(gestureState.dx) > 22 && Math.abs(gestureState.dy) < 18 && gestureState.dx > 0
       },
       onPanResponderRelease: (_event, gestureState) => {
-        if (gestureState.dx > 70 || gestureState.vx > 0.45) {
-          router.back()
+        if (gestureState.dx > 60 || gestureState.vx > 0.4) {
+          goBackToProject()
         }
       },
     })
   ).current
 
   return (
-    <AppScreen style={styles.screen}>
-      <View style={styles.container} {...panResponder.panHandlers}>
-        <AppHeader
-          title={title}
-          rightSlot={
-            <Pressable onPress={() => router.back()} hitSlop={10} style={styles.closeBtn}>
-              <Feather name="x" size={18} color="rgba(255,255,255,0.74)" />
-            </Pressable>
-          }
-        />
+    <AppScreen scroll contentContainerStyle={styles.screen}>
+      <View style={styles.content} {...panResponder.panHandlers}>
+        <View style={styles.topRow}>
+          <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
+          <Pressable onPress={goBackToProject} hitSlop={12} style={styles.closeBtn}>
+            <Feather name="x" size={18} color="rgba(255,255,255,0.78)" />
+          </Pressable>
+        </View>
 
-        <AppCard contentStyle={styles.card}>
-          <View style={styles.heroIcon}>
-            <MaterialCommunityIcons
-              name={iconName as keyof typeof MaterialCommunityIcons.glyphMap}
-              size={26}
-              color="rgba(248,250,252,0.90)"
-            />
-          </View>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.text}>{t('installationDetails.lead')}</Text>
+        <View style={styles.headerBlock}>
+          <Text style={styles.pageTitle}>{displayTitle}</Text>
+        </View>
 
-          <View style={styles.recommendationSlot}>
-            <View style={styles.recommendationIcon}>
-              <Feather name="bookmark" size={16} color="#25F0C8" />
-            </View>
-            <View style={styles.recommendationTextWrap}>
-              <Text style={styles.recommendationEyebrow}>{t('installationDetails.recommendation.eyebrow')}</Text>
-              <Text style={styles.recommendationTitle}>{t('installationDetails.recommendation.title')}</Text>
-              <Text style={styles.recommendationText}>{t('installationDetails.recommendation.text')}</Text>
-            </View>
-          </View>
+        <View style={styles.heroIconWrap}>
+          <MaterialCommunityIcons
+            name={iconName as keyof typeof MaterialCommunityIcons.glyphMap}
+            size={54}
+            color="rgba(248,250,252,0.92)"
+          />
+        </View>
 
-          {DETAIL_SECTIONS.map((section) => (
-            <View key={section.key} style={styles.section}>
+        <Text style={styles.lead}>
+          {t('installationDetails.about.text', { name: title })}
+        </Text>
+
+        {DETAIL_SECTIONS.map((section) => {
+          const hasItems = 'itemsKey' in section
+          const hasText = 'textKey' in section
+          const items = hasItems ? (t(section.itemsKey, { returnObjects: true }) as string[]) : []
+          const text = hasText ? t((section as any).textKey, { name: title }) : null
+
+          return (
+            <AppCard key={section.key} style={styles.sectionCard} contentStyle={styles.sectionCardContent} withShadow={false}>
               <View style={styles.sectionHeader}>
-                <Feather name={section.icon} size={15} color="#25F0C8" />
+                <View
+                  style={[
+                    styles.sectionIcon,
+                    section.tone === 'benefit'
+                      ? styles.benefitIcon
+                      : section.tone === 'drawback'
+                        ? styles.drawbackIcon
+                        : styles.neutralIcon,
+                  ]}
+                >
+                  <Feather
+                    name={section.icon}
+                    size={16}
+                    color={section.tone === 'drawback' ? '#F97373' : '#25F0C8'}
+                  />
+                </View>
                 <Text style={styles.sectionTitle}>{t(section.titleKey)}</Text>
               </View>
-              <Text style={styles.sectionText}>{t(section.textKey)}</Text>
-            </View>
-          ))}
 
-          <AppButton
-            title={t('installationDetails.askAi')}
-            onPress={() => router.push('/(app)/(tabs)/buddy')}
-            style={styles.cta}
-          />
-        </AppCard>
+              {text ? <Text style={styles.sectionText}>{text}</Text> : null}
+
+              {items?.length ? (
+                <View style={styles.pointsList}>
+                  {items.map((item, index) => (
+                    <View
+                      key={`${section.key}-${index}`}
+                      style={[
+                        styles.pointRow,
+                        section.tone === 'benefit' ? styles.pointRowBenefit : section.tone === 'drawback' ? styles.pointRowDrawback : styles.pointRowNeutral,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.pointBadge,
+                          section.tone === 'benefit'
+                            ? styles.pointBadgeBenefit
+                            : section.tone === 'drawback'
+                              ? styles.pointBadgeDrawback
+                              : styles.pointBadgeNeutral,
+                        ]}
+                      >
+                        <Feather
+                          name={section.tone === 'drawback' ? 'minus' : 'check'}
+                          size={14}
+                          color={section.tone === 'drawback' ? '#F97373' : '#25F0C8'}
+                        />
+                      </View>
+                      <Text style={styles.pointText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </AppCard>
+          )
+        })}
+
+        <AppButton
+          title={t('installationDetails.askAi')}
+          onPress={() => router.push('/(app)/(tabs)/buddy')}
+          style={styles.cta}
+        />
       </View>
     </AppScreen>
   )
@@ -112,17 +188,27 @@ export default function InstallationDetailsScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
-    backgroundColor: '#05070B',
+    paddingHorizontal: spacing.lg + 2,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing['2xl'],
+    backgroundColor: colors.bg,
   },
-  container: {
+  content: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 10,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  brandLogo: {
+    width: header.sideSlot,
+    height: header.logoHeight,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
@@ -130,104 +216,137 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  card: {
-    borderRadius: 24,
-    padding: 18,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  headerBlock: {
+    alignItems: 'center',
+    marginTop: -4,
+    marginBottom: spacing.sm,
   },
-  heroIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
+  pageTitle: {
+    color: '#F8FAFC',
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  heroIconWrap: {
+    width: 116,
+    height: 116,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    marginBottom: 14,
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
   },
-  title: {
-    color: '#F8FAFC',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: -0.2,
+  lead: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.lg,
   },
-  text: {
-    marginTop: 8,
-    color: 'rgba(255,255,255,0.74)',
-    fontSize: 13.5,
-    lineHeight: 19,
-    fontWeight: '600',
+  sectionCard: {
+    marginBottom: spacing.md,
   },
-  section: {
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+  sectionCardContent: {
+    padding: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    marginBottom: spacing.md,
   },
-  sectionTitle: {
-    color: '#F8FAFC',
-    fontSize: 13.5,
-    fontWeight: '900',
-    letterSpacing: -0.1,
-  },
-  sectionText: {
-    marginTop: 6,
-    color: 'rgba(255,255,255,0.68)',
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '600',
-  },
-  recommendationSlot: {
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 18,
-    flexDirection: 'row',
-    gap: 12,
-    backgroundColor: 'rgba(37,240,200,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(37,240,200,0.18)',
-  },
-  recommendationIcon: {
+  sectionIcon: {
     width: 34,
     height: 34,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+  },
+  benefitIcon: {
     backgroundColor: 'rgba(37,240,200,0.10)',
+    borderColor: 'rgba(37,240,200,0.22)',
   },
-  recommendationTextWrap: {
+  drawbackIcon: {
+    backgroundColor: 'rgba(249,115,115,0.10)',
+    borderColor: 'rgba(249,115,115,0.22)',
+  },
+  neutralIcon: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(37,240,200,0.18)',
+  },
+  sectionTitle: {
     flex: 1,
-  },
-  recommendationEyebrow: {
-    color: '#25F0C8',
-    fontSize: 11,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  recommendationTitle: {
-    marginTop: 3,
     color: '#F8FAFC',
-    fontSize: 13.5,
+    fontSize: 15,
     fontWeight: '900',
+    lineHeight: 20,
   },
-  recommendationText: {
-    marginTop: 5,
-    color: 'rgba(255,255,255,0.68)',
-    fontSize: 12.5,
-    lineHeight: 17,
+  sectionText: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 13.5,
+    lineHeight: 20,
+    fontWeight: '600',
+    marginBottom: spacing.md,
+  },
+  pointsList: {
+    gap: 10,
+  },
+  pointRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  pointRowBenefit: {
+    backgroundColor: 'rgba(37,240,200,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,240,200,0.10)',
+  },
+  pointRowDrawback: {
+    backgroundColor: 'rgba(249,115,115,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,115,0.10)',
+  },
+  pointRowNeutral: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  pointBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  pointBadgeBenefit: {
+    backgroundColor: 'rgba(37,240,200,0.12)',
+  },
+  pointBadgeDrawback: {
+    backgroundColor: 'rgba(249,115,115,0.12)',
+  },
+  pointBadgeNeutral: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  pointText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.80)',
+    fontSize: 13.5,
+    lineHeight: 19,
     fontWeight: '600',
   },
   cta: {
-    marginTop: 16,
-    alignSelf: 'flex-start',
-    minWidth: 146,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
 })
