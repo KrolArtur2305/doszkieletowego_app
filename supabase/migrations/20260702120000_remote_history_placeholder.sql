@@ -1,0 +1,5 @@
+-- Remote migration history placeholder.
+-- This version exists in the linked Supabase project history but was not
+-- present in the local repository when the scanner usage-limit migration was
+-- added. Keep the file so future `supabase db push` runs do not require
+-- removing the remote migration-history entry.

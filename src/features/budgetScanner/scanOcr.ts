@@ -33,6 +33,7 @@ type BudgetScanOcrResponse = Partial<BudgetScanOcrResult> & {
   issues?: unknown;
   error?: unknown;
   details?: unknown;
+  code?: unknown;
 };
 
 class BudgetScanOcrHttpError extends Error {
@@ -40,6 +41,7 @@ class BudgetScanOcrHttpError extends Error {
     message: string,
     readonly status: number,
     readonly details?: string | null,
+    readonly code?: string | null,
   ) {
     super(message);
     this.name = 'BudgetScanOcrHttpError';
@@ -81,6 +83,7 @@ async function readImageAsBase64(file: BudgetScanFile): Promise<string> {
 export async function runBudgetScanOcr(
   file: BudgetScanFile,
   appLanguage?: string | null,
+  investmentId?: string | null,
 ): Promise<BudgetScanOcrResult> {
   const imageDataUrl = await readImageAsBase64(file);
   const normalizedLanguage = normalizeAppLanguage(appLanguage);
@@ -108,12 +111,16 @@ export async function runBudgetScanOcr(
         mime_type: file.mimeType,
         size: file.size ?? null,
         app_language: normalizedLanguage,
+        investment_id: investmentId ?? null,
       }),
       signal: requestTimeout.signal,
     });
   } catch (error: any) {
     if (requestTimeout.signal.aborted) {
-      throw new Error('OCR request timed out.');
+      throw new BudgetScanOcrHttpError('OCR request timed out.', 408, null, 'scanner_timeout');
+    }
+    if (error instanceof TypeError || String(error?.name) === 'TypeError') {
+      throw new BudgetScanOcrHttpError('OCR request failed.', 0, normalizeText(error?.message), 'scanner_network_error');
     }
     throw error;
   } finally {
@@ -125,7 +132,8 @@ export async function runBudgetScanOcr(
   if (!response.ok) {
     const message = normalizeText(data?.error) ?? `OCR request failed with status ${response.status}`;
     const details = normalizeText(data?.details);
-    throw new BudgetScanOcrHttpError(message, response.status, details);
+    const code = normalizeText(data?.code);
+    throw new BudgetScanOcrHttpError(message, response.status, details, code);
   }
 
   const payload = (data ?? {}) as BudgetScanOcrResponse;

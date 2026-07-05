@@ -12,6 +12,8 @@ const corsHeaders = {
 
 const userTables = [
   "push_devices",
+  "push_lifecycle_events",
+  "push_lifecycle_state",
   "zgloszenia",
   "kontakty",
   "dziennik",

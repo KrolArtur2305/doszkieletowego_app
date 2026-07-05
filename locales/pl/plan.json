@@ -1,13 +1,13 @@
 {
   "header": {
-    "title": "Wybierz plan",
-    "subtitle": "To jednorazowy krok. Zawsze możesz później zmienić plan w ustawieniach."
+    "title": "Wybierz plan dla swojej budowy",
+    "subtitle": "To jednorazowy krok. Plan możesz później zmienić w ustawieniach."
   },
   "alerts": {
     "errorTitle": "Błąd",
     "noSession": "Brak sesji. Zaloguj się ponownie.",
     "saveFailed": "Nie udało się zapisać planu. Spróbuj ponownie.",
-    "paidPlanRequiresActivation": "Zakup lub trial będzie obsługiwany przez ekran subskrypcji. Na tym etapie konto pozostaje w planie darmowym."
+    "paidPlanRequiresActivation": "Zakup lub okres próbny aktywujesz na ekranie subskrypcji. Na tym etapie konto pozostaje w planie darmowym."
   },
   "cards": {
     "free": {

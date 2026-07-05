@@ -1,9 +1,9 @@
 {
   "eyebrow": "BuildIQ plans",
-  "title": "Choose your BuildIQ plan",
-  "subtitle": "Start with a 14-day trial with 5 AI messages/day, then choose the plan that fits your build.",
+  "title": "Choose the plan that keeps the build moving",
+  "subtitle": "Start with a 14-day trial with 5 AI messages/day. Then choose the plan that fits your build.",
   "currentPlan": "Current plan",
-  "launchInfo": "Prices are loaded from the App Store when store products are available. Subscriptions renew automatically unless cancelled, and the Terms of Use and Privacy Policy links are shown below.",
+  "launchInfo": "Prices are loaded from the App Store when products are available. Subscriptions renew automatically unless cancelled. The Terms of Use and Privacy Policy links are shown below.",
   "popular": "Popular",
   "free": "No subscription",
   "trialLength": "14 days",
@@ -34,7 +34,7 @@
     },
     "pro": {
       "name": "BuildIQ Pro",
-      "desc": "Focused limits for an active build",
+      "desc": "Built for an active build",
       "badge": "PRO"
     },
     "expert": {
@@ -68,15 +68,15 @@
     "aiMessagesUnlimited": "unlimited"
   },
   "checkout": {
-    "title": "Choose your BuildIQ plan",
-    "subtitle": "Start with a 14-day trial with 5 AI messages/day, then choose the plan that fits your build.",
+    "title": "Choose the plan that keeps the build moving",
+    "subtitle": "Start with a 14-day trial with 5 AI messages/day. Then choose the plan that fits your build.",
     "selectBtn": "Continue",
     "trialCta": "Continue",
     "freeCta": "Current free access",
     "processing": "Processing...",
-    "successTitle": "Thank you!",
-    "successMessage": "Your plan will be activated after payment confirmation.",
-    "security": "Secure payment • Cancel anytime",
+    "successTitle": "Ready",
+    "successMessage": "Your plan activates after payment is confirmed.",
+    "security": "Secure payment · Cancel anytime",
     "savingsNote": "You save {{amount}} USD",
     "priceNotice": "Price shown in App Store",
     "unavailableTitle": "Developer build",
@@ -92,19 +92,19 @@
   "paywall": {
     "logo": "BuildIQ",
     "eyebrow": "BuildIQ Premium",
-    "title": "Choose your BuildIQ plan",
+    "title": "Choose the BuildIQ plan",
     "heroTitle": "BuildIQ Pro Trial",
-    "heroSubtitle": "Start with 14 days with 5 AI messages/day",
+    "heroSubtitle": "Start with 14 days and 5 AI messages/day",
     "trialDaysRemaining": "{{count}} days remaining",
     "monthly": "Monthly",
     "yearly": "Yearly",
     "priceInStore": "Price from App Store",
-    "manageSubtitle": "Everything you need to manage your construction project, with the selected plan, length, price, auto-renew rule, and legal links shown below.",
+    "manageSubtitle": "You get the selected plan, length, price, auto-renew rule, and legal links in one place.",
     "subscriptionDisclosure": "Auto-renewing subscription. The selected plan, length, price, and legal links are shown on this screen.",
     "saveMore": "Save more",
     "secureCheckout": "Secure checkout through App Store",
     "continue": "Start",
-    "restore": "Restore Purchases",
+    "restore": "Restore purchases",
     "autoRenew": "Subscriptions renew automatically unless cancelled.",
     "terms": "Terms of Use / EULA",
     "refund": "Refunds",
@@ -126,11 +126,7 @@
         "name": "Free",
         "badge": "",
         "description": "Start and explore the essentials",
-        "details": [
-          "Core project setup",
-          "Basic tracking",
-          "Limited storage"
-        ]
+        "details": ["Core project setup", "Basic tracking", "Limited storage"]
       },
       "free_trial": {
         "name": "Free Trial",
@@ -138,95 +134,47 @@
         "description": "5 AI messages/day during trial",
         "price": "Free",
         "priceSub": "for 14 days",
-        "details": [
-          "5 AI messages/day",
-          "Photos and documents like Free",
-          "Unlimited tasks",
-          "No commitment"
-        ]
+        "details": ["5 AI messages/day", "Photos and documents like Free", "Unlimited tasks", "No commitment"]
       },
       "pro": {
         "name": "Pro",
         "badge": "MOST POPULAR",
-        "description": "Perfect for most builders",
+        "description": "Built for an active build",
         "samplePrice": "$14.99",
-        "details": [
-          "20 AI messages/day",
-          "100 photos",
-          "25 documents",
-          "Budget and expenses",
-          "Build reports"
-        ]
+        "details": ["20 AI messages/day", "100 photos", "25 documents", "Budget and expenses", "Build reports"]
       },
       "expert": {
         "name": "Expert",
         "badge": "",
         "description": "Highest BuildIQ limits",
         "samplePrice": "$19.99",
-        "details": [
-          "50 AI messages/day",
-          "Unlimited photos",
-          "Unlimited documents",
-          "Priority AI",
-          "Full build archive",
-          "Full access for the whole build period"
-        ]
+        "details": ["50 AI messages/day", "Unlimited photos", "Unlimited documents", "Priority AI", "Full build archive", "Full access for the whole build period"]
       }
     },
     "selected": {
       "free_trial": {
         "title": "Explore BuildIQ with full access",
         "desc": "Try the app with 5 AI messages/day before choosing the plan for your project.",
-        "benefits": [
-          "5 AI/day",
-          "Photos and documents on Free limits",
-          "Unlimited tasks",
-          "No commitment"
-        ]
+        "benefits": ["5 AI/day", "Photos and documents on Free limits", "Unlimited tasks", "No commitment"]
       },
       "pro": {
         "title": "Best for most homebuilders",
         "desc": "A focused plan for managing one active build with AI, budget context, and site documentation.",
-        "benefits": [
-          "20 AI/day",
-          "100 photos",
-          "25 documents",
-          "Core reports"
-        ]
+        "benefits": ["20 AI/day", "100 photos", "25 documents", "Core reports"]
       },
       "expert": {
         "title": "Unlimited control for demanding builds",
         "desc": "Designed for heavier documentation, frequent AI workflows, and long-running construction records.",
-        "benefits": [
-          "50 AI/day",
-          "Unlimited photos",
-          "Unlimited docs",
-          "Priority AI"
-        ]
+        "benefits": ["50 AI/day", "Unlimited photos", "Unlimited docs", "Priority AI"]
       }
     },
     "benefits": {
       "items": [
-        {
-          "title": "AI Construction Manager",
-          "desc": "Plan next steps, answer build questions, and keep decisions moving."
-        },
-        {
-          "title": "Budget & expense tracking",
-          "desc": "Track costs with a clear view of budget pressure and spending history."
-        },
-        {
-          "title": "Construction photos & documents",
-          "desc": "Keep site evidence, files, and project context organized in one place."
-        },
-        {
-          "title": "Progress tracking",
-          "desc": "Follow work stages with a structured timeline built for home construction."
-        },
-        {
-          "title": "Reports & exports",
-          "desc": "Prepare clean summaries for owners, teams, and project records."
-        }
+        { "title": "AI Construction Manager", "desc": "Plan next steps, answer build questions, and keep decisions moving." },
+        { "title": "Budget & expense tracking", "desc": "Track costs with a clear view of budget pressure and spending history." },
+        { "title": "Construction photos & documents", "desc": "Keep site evidence, files, and project context organized in one place." },
+        { "title": "Progress tracking", "desc": "Follow work stages with a structured timeline built for home construction." },
+        { "title": "Reports & exports", "desc": "Prepare clean summaries for owners, teams, and project records." }
       ]
     },
     "pro": {

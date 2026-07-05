@@ -51,7 +51,7 @@
       "title": "Immer verfügbar",
       "desc": "Fragen Sie alles rund um den Bau und erhalten Sie sofort eine Antwort."
     },
-    "proNote": "Zum Start ist der KI-Bauleiter für alle Nutzer verfügbar. Bezahlte Pläne folgen in einem kommenden Update.",
+    "proNote": "Der KI-Bauleiter arbeitet gemäß dem aktiven Plan und Nachrichtenlimit.",
     "saving": "Wird gespeichert...",
     "cta": "Bauleiter kennenlernen",
     "nameRequired": "Gib den Namen des Bauleiters ein.",
@@ -85,17 +85,17 @@
       "aiConnection": "Verbindungsfehler mit der KI"
     },
     "limitModal": {
-      "trialTitle": "Trial-KI hat das Limit erreicht",
-      "trialMessage": "Du hast deinen Free-Trial-Plan verbraucht. Upgrade, um BuildIQ weiter voll zu nutzen.",
-      "freeTitle": "Free-KI-Limit erreicht",
-      "freeMessage": "Du hast das tägliche Free-KI-Limit verbraucht. Upgrade, um BuildIQ weiter voll zu nutzen.",
+      "trialTitle": "Trial-Limit erreicht",
+      "trialMessage": "Du hast heute das Nachrichtenlimit im Trial verbraucht. Wechsle auf einen höheren Plan, um den KI-Bauleiter weiter zu nutzen.",
+      "freeTitle": "Tägliches KI-Limit erreicht",
+      "freeMessage": "Du hast heute das Nachrichtenlimit verbraucht. Wechsle auf einen höheren Plan, um BuildIQ ohne Unterbrechung weiter zu nutzen.",
       "proTitle": "Pro-Limit erreicht",
-      "proMessage": "Du hast das tägliche Pro-Limit verbraucht. Upgrade auf Expert, um dein KI-Limit zu erhöhen.",
+      "proMessage": "Du hast heute das Pro-Nachrichtenlimit verbraucht. Expert schaltet mehr KI-Zugriff frei.",
       "expertTitle": "Tägliches Expert-Limit erreicht",
-      "expertMessage": "Du hast das tägliche Expert-Limit erreicht. Es wird morgen zurückgesetzt.",
-      "upgradeCta": "Plan upgraden",
+      "expertMessage": "Du hast heute das Expert-Limit erreicht. Es wird morgen zurückgesetzt.",
+      "upgradeCta": "Höheren Plan wählen",
       "expertCta": "Zu Expert",
-      "manageCta": "Abo verwalten"
+      "manageCta": "Plan verwalten"
     },
     "loading": {
       "conversation": "Unterhaltung wird geladen...",

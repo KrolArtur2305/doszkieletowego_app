@@ -51,7 +51,7 @@
       "title": "Zawsze do dyspozycji",
       "desc": "Pytaj o wszystko związane z budową, odpowie od razu."
     },
-    "proNote": "Na premierę kierownik AI jest dostępny dla wszystkich użytkowników. Płatne plany pojawią się w kolejnej aktualizacji.",
+    "proNote": "Kierownik AI działa zgodnie z aktywnym planem i limitem wiadomości.",
     "saving": "Zapisywanie...",
     "cta": "Poznaj kierownika",
     "nameRequired": "Podaj imi? kierownika.",
@@ -85,17 +85,17 @@
       "aiConnection": "Błąd połączenia z AI"
     },
     "limitModal": {
-      "trialTitle": "Kierownik AI w trialu osiągnął limit",
-      "trialMessage": "Wykorzystałeś plan free trial. Przejdź na wyższy plan, aby w pełni korzystać z BuildIQ.",
-      "freeTitle": "Darmowy limit AI został wykorzystany",
-      "freeMessage": "Wykorzystałeś dzienny limit darmowego dostępu do AI. Przejdź na wyższy plan, aby w pełni korzystać z BuildIQ.",
-      "proTitle": "Limit Pro został wykorzystany",
-      "proMessage": "Wykorzystałeś dzienny limit Pro. Przejdź na Expert, aby zwiększyć limit kierownika AI.",
-      "expertTitle": "Dzienny limit Expert został wykorzystany",
-      "expertMessage": "Osiągnięto dzienny limit Expert. Limit odświeży się jutro.",
-      "upgradeCta": "Przejdź na wyższy plan",
+      "trialTitle": "Limit triala został osiągnięty",
+      "trialMessage": "Wykorzystałeś dzisiejszy limit wiadomości w trialu. Wybierz wyższy plan, aby dalej korzystać z kierownika AI.",
+      "freeTitle": "Dzisiejszy limit AI został wykorzystany",
+      "freeMessage": "Wykorzystałeś dzienny limit wiadomości. Wybierz wyższy plan, aby dalej korzystać z BuildIQ bez przerw.",
+      "proTitle": "Limit planu Pro został wykorzystany",
+      "proMessage": "Wykorzystałeś dzienny limit planu Pro. Przejście na Expert zwiększy dostęp do kierownika AI.",
+      "expertTitle": "Dzisiejszy limit Expert został wykorzystany",
+      "expertMessage": "Osiągnięto dzienny limit planu Expert. Odnowi się jutro.",
+      "upgradeCta": "Wybierz wyższy plan",
       "expertCta": "Przejdź na Expert",
-      "manageCta": "Zarządzaj subskrypcją"
+      "manageCta": "Zarządzaj planem"
     },
     "loading": {
       "conversation": "Ładuję rozmowę...",

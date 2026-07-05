@@ -3,11 +3,35 @@ import * as Device from 'expo-device';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../../lib/supabase';
+import i18n, { normalizeAppLanguage } from '../../../lib/i18n';
+
+const PUSH_OPT_OUT_KEY = 'buildiq:push-opt-out';
 
 type RegisterForPushNotificationsOptions = {
   requestPermission?: boolean;
 };
+
+export async function setPushOptOut(disabled: boolean): Promise<void> {
+  try {
+    if (disabled) {
+      await AsyncStorage.setItem(PUSH_OPT_OUT_KEY, '1');
+    } else {
+      await AsyncStorage.removeItem(PUSH_OPT_OUT_KEY);
+    }
+  } catch {
+    // Local preference storage should not break notification registration.
+  }
+}
+
+export async function isPushOptedOut(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(PUSH_OPT_OUT_KEY)) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function getExpoProjectId(): string | null {
   return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? null;
@@ -17,6 +41,10 @@ export async function registerForPushNotificationsAsync(
   options: RegisterForPushNotificationsOptions = {}
 ): Promise<string | null> {
   const { requestPermission = true } = options;
+
+  if (await isPushOptedOut()) {
+    return null;
+  }
 
   if (!Device.isDevice) {
     console.warn('[Push] Dziala tylko na fizycznym urzadzeniu.');
@@ -55,6 +83,14 @@ async function getInstallationIdAsync(): Promise<string> {
   return id ?? 'unknown-ios';
 }
 
+function getDeviceTimezone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function savePushToken(token: string): Promise<void> {
   const {
     data: { user },
@@ -73,6 +109,8 @@ export async function savePushToken(token: string): Promise<void> {
 
   const installationId = await getInstallationIdAsync();
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+  const appLanguage = normalizeAppLanguage(i18n.resolvedLanguage || i18n.language) ?? 'en';
+  const timezone = getDeviceTimezone();
 
   let { error } = await supabase.from('push_devices').upsert(
     {
@@ -80,6 +118,9 @@ export async function savePushToken(token: string): Promise<void> {
       expo_push_token: token,
       installation_id: installationId,
       platform,
+      app_language: appLanguage,
+      timezone,
+      disabled_at: null,
       updated_at: new Date().toISOString(),
     },
     {
@@ -94,6 +135,9 @@ export async function savePushToken(token: string): Promise<void> {
         user_id: user.id,
         expo_push_token: token,
         platform,
+        app_language: appLanguage,
+        timezone,
+        disabled_at: null,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', user.id)

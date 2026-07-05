@@ -13,7 +13,16 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 import { initI18n } from '../lib/i18n';
 import { isSupabaseConfigured, supabaseConfigError } from '../lib/supabase';
+import {
+  clearRuntimeDiagnostics,
+  installRuntimeDiagnostics,
+  readRuntimeDiagnostics,
+  recordCheckpoint,
+  type RuntimeDiagnosticSnapshot,
+} from '../lib/runtimeDiagnostics';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { RuntimeCrashReport } from '../components/RuntimeCrashReport';
+import { PushLifecycleModal } from '../components/PushLifecycleModal';
 import {
   configurePurchases,
   logInPurchasesUser,
@@ -25,10 +34,21 @@ const APP_LOGO = require('../assets/logo.png');
 export default function RootLayout() {
   const { session, loading } = useSupabaseAuth();
   const [i18nReady, setI18nReady] = useState(false);
+  const [diagnosticsReady, setDiagnosticsReady] = useState(false);
+  const [crashSnapshot, setCrashSnapshot] = useState<RuntimeDiagnosticSnapshot | null>(null);
   const [fontsLoaded] = useFonts({ Rubik_700Bold, Rubik_800ExtraBold, Syne_800ExtraBold });
   const { t } = useTranslation('common');
 
-  usePushNotifications();
+  const {
+    lifecycleModal,
+    dismissLifecycleModal,
+    confirmLifecycleModal,
+  } = usePushNotifications();
+
+  useEffect(() => {
+    installRuntimeDiagnostics();
+    void recordCheckpoint('root-layout');
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -39,6 +59,23 @@ export default function RootLayout() {
       })
       .finally(() => {
         if (mounted) setI18nReady(true);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    readRuntimeDiagnostics()
+      .then((snapshot) => {
+        if (!mounted) return;
+        setCrashSnapshot(snapshot?.lastError ? snapshot : null);
+      })
+      .finally(() => {
+        if (mounted) setDiagnosticsReady(true);
       });
 
     return () => {
@@ -68,6 +105,7 @@ export default function RootLayout() {
   }, [session?.user?.id]);
 
   const showLoader = loading || !i18nReady || !fontsLoaded;
+  const showCrashReport = diagnosticsReady && !!crashSnapshot?.lastError;
   const configErrorScreen = !isSupabaseConfigured ? (
     <View
       style={{
@@ -93,7 +131,17 @@ export default function RootLayout() {
         <StatusBar style="light" translucent />
 
         <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-          {configErrorScreen ?? (showLoader ? (
+          {configErrorScreen ?? (showCrashReport ? (
+            <RuntimeCrashReport
+              title="Aplikacja się wyłączyła"
+              subtitle="Zapisaliśmy ostatni błąd. Skopiuj go i podeślij, wtedy będziemy wiedzieć dokładnie, co padło."
+              snapshot={crashSnapshot}
+              onDismiss={async () => {
+                await clearRuntimeDiagnostics();
+                setCrashSnapshot(null);
+              }}
+            />
+          ) : showLoader ? (
             <View
               style={{
                 flex: 1,
@@ -118,6 +166,11 @@ export default function RootLayout() {
               <Stack.Screen name="reset-password" />
             </Stack>
           ))}
+          <PushLifecycleModal
+            state={lifecycleModal}
+            onDismiss={dismissLifecycleModal}
+            onConfirm={confirmLifecycleModal}
+          />
         </SafeAreaView>
       </SafeAreaProvider>
     </GestureHandlerRootView>

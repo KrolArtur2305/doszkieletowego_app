@@ -85,10 +85,22 @@
       "groupLabel": "Notifications",
       "pushTitle": "Push notifications",
       "pushSubtitle": "Task reminders and alerts",
+      "channels": {
+        "default": "BuildIQ",
+        "tasks": "Tasks",
+        "ai": "AI Manager"
+      },
+      "taskBeforeTitle": "Your task is tomorrow",
+      "taskBeforeBody": "Reminder: {{name}}",
+      "taskTodayTitle": "Task for today",
+      "taskTodayBody": "Due today: {{name}}",
+      "lifecycle": {
+        "later": "Later"
+      },
       "deniedTitle": "Permission denied",
       "deniedMessage": "Enable notifications in system settings.",
       "disableTitle": "Disable notifications",
-      "disableMessage": "To disable notifications, go to your phone settings."
+      "disableMessage": "BuildIQ notifications have been disabled in the app. You can also change the system permission in your phone settings."
     },
     "security": {
       "groupLabel": "Security"

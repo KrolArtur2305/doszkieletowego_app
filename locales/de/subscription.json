@@ -1,20 +1,20 @@
 {
-  "eyebrow": "BuildIQ-Pläne",
-  "title": "Wähle deinen BuildIQ-Plan",
-  "subtitle": "Starte mit einem 14-Tage-Trial mit 5 KI-Nachrichten pro Tag und wähle danach den passenden Plan.",
+  "eyebrow": "BuildIQ Pläne",
+  "title": "Wähle den Plan, der den Bau voranbringt",
+  "subtitle": "Starte mit 14 Tagen und 5 KI-Nachrichten pro Tag. Danach wählst du den passenden Plan.",
   "currentPlan": "Aktueller Plan",
-  "launchInfo": "Preise werden aus dem App Store geladen, sobald Store-Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden, und die Links zu Nutzungsbedingungen und Datenschutz stehen unten.",
+  "launchInfo": "Preise werden aus dem App Store geladen, sobald Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden. Die Links zu Nutzungsbedingungen und Datenschutz stehen unten.",
   "popular": "Beliebt",
   "free": "Kein Abo",
   "trialLength": "14 Tage",
   "priceFromStore": "Preis im App Store",
-  "currency": "€",
+  "currency": "EUR",
   "month": "Monat",
   "twoYears": "2 Jahre",
   "orYearly": "oder {{price}} {{currency}} / {{period}}",
   "billingMonthly": "Monatlich",
   "billingYearly": "Jährlich",
-  "priceEquiv": "≈ {{amount}} €/Monat",
+  "priceEquiv": "≈ {{amount}} EUR/Monat",
   "currentPlanBtn": "Aktiv",
   "unlimited": "Unbegrenzt",
   "featureWithValue": "{{value}} {{label}}",
@@ -34,7 +34,7 @@
     },
     "pro": {
       "name": "BuildIQ Pro",
-      "desc": "Limits für aktive Bauprojekte",
+      "desc": "Für aktive Bauprojekte gebaut",
       "badge": "PRO"
     },
     "expert": {
@@ -68,16 +68,16 @@
     "aiMessagesUnlimited": "unbegrenzt"
   },
   "checkout": {
-    "title": "Wähle deinen BuildIQ-Plan",
-    "subtitle": "Starte mit einem 14-Tage-Trial mit 5 KI-Nachrichten pro Tag und wähle danach den passenden Plan.",
+    "title": "Wähle den Plan, der den Bau voranbringt",
+    "subtitle": "Starte mit 14 Tagen und 5 KI-Nachrichten pro Tag. Danach wählst du den passenden Plan.",
     "selectBtn": "Weiter",
     "trialCta": "Weiter",
     "freeCta": "Aktueller Free-Zugriff",
     "processing": "Verarbeitung...",
-    "successTitle": "Danke!",
-    "successMessage": "Ihr Plan wird nach der Zahlungsbestätigung aktiviert.",
-    "security": "Sichere Zahlung • Jederzeit kündbar",
-    "savingsNote": "Sie sparen {{amount}} €",
+    "successTitle": "Bereit",
+    "successMessage": "Dein Plan wird nach der Zahlungsbestätigung aktiviert.",
+    "security": "Sichere Zahlung · Jederzeit kündbar",
+    "savingsNote": "Du sparst {{amount}} EUR",
     "priceNotice": "Preis im App Store",
     "unavailableTitle": "Entwickler-Build",
     "unavailableMessage": "Die Transaktionslogik ist in diesem Build nicht verbunden.",
@@ -92,14 +92,14 @@
   "paywall": {
     "logo": "BuildIQ",
     "eyebrow": "BuildIQ Premium",
-    "title": "Wähle deinen BuildIQ-Plan",
+    "title": "Wähle den BuildIQ-Plan",
     "heroTitle": "BuildIQ Pro Trial",
-    "heroSubtitle": "Starte mit 14 Tagen mit 5 KI-Nachrichten pro Tag",
+    "heroSubtitle": "Starte mit 14 Tagen und 5 KI-Nachrichten pro Tag",
     "trialDaysRemaining": "{{count}} Tage verbleibend",
     "monthly": "Monatlich",
     "yearly": "Jährlich",
     "priceInStore": "Preis aus dem App Store",
-    "manageSubtitle": "Alles, was du für die Verwaltung deines Bauprojekts brauchst. Der gewählte Plan, die Laufzeit, der Preis, die Verlängerungsregel und die rechtlichen Links werden unten angezeigt.",
+    "manageSubtitle": "Du siehst hier den gewählten Plan, die Laufzeit, den Preis, die Verlängerungsregel und die rechtlichen Links.",
     "subscriptionDisclosure": "Das Abo verlängert sich automatisch. Der gewählte Plan, die Laufzeit, der Preis und die rechtlichen Links werden auf diesem Bildschirm angezeigt.",
     "saveMore": "Mehr sparen",
     "secureCheckout": "Sichere Zahlung über den App Store",
@@ -126,11 +126,7 @@
         "name": "Free",
         "badge": "",
         "description": "Start mit den wichtigsten Grundlagen",
-        "details": [
-          "Basis-Projekteinrichtung",
-          "Basis-Tracking",
-          "Begrenzter Speicher"
-        ]
+        "details": ["Basis-Projekteinrichtung", "Basis-Tracking", "Begrenzter Speicher"]
       },
       "free_trial": {
         "name": "Free Trial",
@@ -138,95 +134,47 @@
         "description": "5 KI-Nachrichten pro Tag während des Trials",
         "price": "Free",
         "priceSub": "für 14 Tage",
-        "details": [
-          "5 KI-Nachrichten pro Tag",
-          "Fotos und Dokumente wie Free",
-          "Unbegrenzte Aufgaben",
-          "Keine Verpflichtung"
-        ]
+        "details": ["5 KI-Nachrichten pro Tag", "Fotos und Dokumente wie Free", "Unbegrenzte Aufgaben", "Keine Verpflichtung"]
       },
       "pro": {
         "name": "Pro",
         "badge": "BELIEBT",
-        "description": "Ideal für die meisten Bauherren",
+        "description": "Für aktive Bauprojekte gebaut",
         "samplePrice": "14,99 $",
-        "details": [
-          "20 KI-Nachrichten pro Tag",
-          "100 Fotos",
-          "25 Dokumente",
-          "Budget und Ausgaben",
-          "Bauberichte"
-        ]
+        "details": ["20 KI-Nachrichten pro Tag", "100 Fotos", "25 Dokumente", "Budget und Ausgaben", "Bauberichte"]
       },
       "expert": {
         "name": "Expert",
         "badge": "",
         "description": "Höchste BuildIQ-Limits",
         "samplePrice": "19,99 $",
-        "details": [
-          "50 KI-Nachrichten pro Tag",
-          "Unbegrenzte Fotos",
-          "Unbegrenzte Dokumente",
-          "Priorisierte KI",
-          "Vollständiges Bauarchiv",
-          "Voller Zugriff während der gesamten Bauzeit"
-        ]
+        "details": ["50 KI-Nachrichten pro Tag", "Unbegrenzte Fotos", "Unbegrenzte Dokumente", "Priorisierte KI", "Vollständiges Bauarchiv", "Voller Zugriff während der gesamten Bauzeit"]
       }
     },
     "selected": {
       "free_trial": {
         "title": "Teste BuildIQ mit vollem Zugriff",
         "desc": "Probiere die App mit 5 KI-Nachrichten pro Tag aus, bevor du den passenden Plan wählst.",
-        "benefits": [
-          "5 KI/Tag",
-          "Fotos und Dokumente auf Free-Niveau",
-          "Unbegrenzte Aufgaben",
-          "Keine Verpflichtung"
-        ]
+        "benefits": ["5 KI/Tag", "Fotos und Dokumente auf Free-Niveau", "Unbegrenzte Aufgaben", "Keine Verpflichtung"]
       },
       "pro": {
         "title": "Ideal für die meisten Bauherren",
         "desc": "Ein fokussierter Plan für aktive Bauprojekte mit KI, Budgetkontext und Dokumentation.",
-        "benefits": [
-          "20 KI/Tag",
-          "100 Fotos",
-          "25 Dokumente",
-          "Berichte"
-        ]
+        "benefits": ["20 KI/Tag", "100 Fotos", "25 Dokumente", "Berichte"]
       },
       "expert": {
         "title": "Volle Kontrolle für anspruchsvolle Bauprojekte",
         "desc": "Für umfangreiche Dokumentation, häufige KI-Workflows und lange Bauarchive.",
-        "benefits": [
-          "50 KI/Tag",
-          "Unbegrenzte Fotos",
-          "Unbegrenzte Dokumente",
-          "Priorisierte KI"
-        ]
+        "benefits": ["50 KI/Tag", "Unbegrenzte Fotos", "Unbegrenzte Dokumente", "Priorisierte KI"]
       }
     },
     "benefits": {
       "items": [
-        {
-          "title": "KI-Bauleiter",
-          "desc": "Plane die nächsten Schritte, beantworte Fragen zum Bau und halte Entscheidungen in Bewegung."
-        },
-        {
-          "title": "Budget- und Ausgabentracking",
-          "desc": "Behalte Kosten, Ausgabenhistorie und Budgetdruck im Blick."
-        },
-        {
-          "title": "Baufotos und Dokumente",
-          "desc": "Speichere Fotos, Dateien und Projektkontext an einem Ort."
-        },
-        {
-          "title": "Fortschritt verfolgen",
-          "desc": "Verfolge Bauphasen mit einer strukturierten Zeitleiste."
-        },
-        {
-          "title": "Berichte und Exporte",
-          "desc": "Erstelle klare Zusammenfassungen für Eigentümer, Teams und die Dokumentation."
-        }
+        { "title": "KI-Bauleiter", "desc": "Plane die nächsten Schritte, beantworte Fragen zum Bau und halte Entscheidungen in Bewegung." },
+        { "title": "Budget- und Ausgabentracking", "desc": "Behalte Kosten, Ausgabenhistorie und Budgetdruck im Blick." },
+        { "title": "Baufotos und Dokumente", "desc": "Speichere Fotos, Dateien und Projektkontext an einem Ort." },
+        { "title": "Fortschritt verfolgen", "desc": "Verfolge Bauphasen mit einer strukturierten Zeitleiste." },
+        { "title": "Berichte und Exporte", "desc": "Erstelle klare Zusammenfassungen für Eigentümer, Teams und die Dokumentation." }
       ]
     },
     "pro": {

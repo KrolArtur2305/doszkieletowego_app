@@ -8,6 +8,8 @@ export type SubscriptionFeatureKey =
   | 'model3d'
   | 'ai'
   | 'aiMessagesPerDay'
+  | 'budgetScanner'
+  | 'ocrScansPerMonth'
 
 export type SubscriptionPlanDefinition = {
   key: SubscriptionPlanKey
@@ -28,6 +30,8 @@ export type SubscriptionPlanDefinition = {
     model3d: boolean
     ai: boolean
     aiMessagesPerDay: number | 'unlimited'
+    budgetScanner: boolean
+    ocrScansPerMonth: number | 'unlimited'
   }
 }
 
@@ -55,6 +59,8 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
       model3d: true,
       ai: false,
       aiMessagesPerDay: 0,
+      budgetScanner: false,
+      ocrScansPerMonth: 0,
     },
   },
   free_trial: {
@@ -74,6 +80,8 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
       model3d: true,
       ai: true,
       aiMessagesPerDay: 5,
+      budgetScanner: true,
+      ocrScansPerMonth: 5,
     },
   },
   pro: {
@@ -93,6 +101,8 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
       model3d: true,
       ai: true,
       aiMessagesPerDay: 20,
+      budgetScanner: true,
+      ocrScansPerMonth: 30,
     },
   },
   expert: {
@@ -112,6 +122,8 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanKey, SubscriptionPlanDef
       model3d: true,
       ai: true,
       aiMessagesPerDay: 50,
+      budgetScanner: true,
+      ocrScansPerMonth: 100,
     },
   },
 }

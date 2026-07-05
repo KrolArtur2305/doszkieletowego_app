@@ -51,7 +51,7 @@
       "title": "Always available",
       "desc": "Ask about anything related to the build and get an answer right away."
     },
-    "proNote": "At launch, the AI supervisor is available to all users. Paid plans will arrive in a future update.",
+    "proNote": "The AI supervisor works according to the active plan and message limit.",
     "saving": "Saving...",
     "cta": "Meet your supervisor",
     "nameRequired": "Enter the manager name.",
@@ -85,17 +85,17 @@
       "aiConnection": "AI connection error"
     },
     "limitModal": {
-      "trialTitle": "Trial AI limit reached",
-      "trialMessage": "You used your free trial plan. Upgrade to keep getting the full BuildIQ experience.",
-      "freeTitle": "Free AI limit reached",
-      "freeMessage": "You used the daily free AI limit. Upgrade to keep getting the full BuildIQ experience.",
+      "trialTitle": "Trial limit reached",
+      "trialMessage": "You used today’s trial message limit. Upgrade to keep using the AI supervisor.",
+      "freeTitle": "Daily AI limit reached",
+      "freeMessage": "You used today’s message limit. Upgrade to keep using BuildIQ without interruptions.",
       "proTitle": "Pro limit reached",
-      "proMessage": "You used the daily Pro limit. Upgrade to Expert to increase your AI allowance.",
+      "proMessage": "You used today’s Pro message limit. Upgrade to Expert for more AI access.",
       "expertTitle": "Expert daily limit reached",
-      "expertMessage": "You reached the Expert daily limit. It resets tomorrow.",
-      "upgradeCta": "Upgrade plan",
+      "expertMessage": "You reached today’s Expert limit. It resets tomorrow.",
+      "upgradeCta": "Choose a higher plan",
       "expertCta": "Go to Expert",
-      "manageCta": "Manage subscription"
+      "manageCta": "Manage plan"
     },
     "loading": {
       "conversation": "Loading conversation...",

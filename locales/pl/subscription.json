@@ -1,9 +1,9 @@
 {
   "eyebrow": "Plany BuildIQ",
   "title": "Wybierz plan BuildIQ",
-  "subtitle": "Zacznij od 14-dniowego triala z 5 wiadomościami AI dziennie, a potem wybierz plan dopasowany do budowy.",
+  "subtitle": "Zacznij od 14-dniowego okresu próbnego z 5 wiadomościami AI dziennie. Potem wybierasz plan dopasowany do budowy.",
   "currentPlan": "Aktualny plan",
-  "launchInfo": "Ceny są pobierane z App Store, gdy produkty sklepu są dostępne. Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane, a linki do Regulaminu i Polityki prywatności są poniżej.",
+  "launchInfo": "Ceny pobieramy z App Store, gdy produkty są dostępne. Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane. Linki do regulaminu i polityki prywatności znajdziesz poniżej.",
   "popular": "Popularny",
   "free": "Brak subskrypcji",
   "trialLength": "14 dni",
@@ -23,7 +23,7 @@
   "plans": {
     "free": {
       "name": "Free",
-      "desc": "Brak aktywnej subskrypcji",
+      "desc": "Bez aktywnej subskrypcji",
       "forever": "brak aktywnego planu"
     },
     "free_trial": {
@@ -34,7 +34,7 @@
     },
     "pro": {
       "name": "BuildIQ Pro",
-      "desc": "Limity dla aktywnej budowy",
+      "desc": "Dla aktywnej budowy",
       "badge": "PRO"
     },
     "expert": {
@@ -44,7 +44,7 @@
     }
   },
   "features": {
-    "photos": "zdjęć",
+    "photos": "zdjęcia",
     "docs": "dokumentów",
     "tasks": "zadań",
     "model3d": "Model 3D",
@@ -68,15 +68,15 @@
     "aiMessagesUnlimited": "bez limitu"
   },
   "checkout": {
-    "title": "Odblokuj pełną kontrolę nad swoją budową",
-    "subtitle": "Zacznij od 14-dniowego triala z 5 wiadomościami AI dziennie, a potem wybierz plan dopasowany do budowy.",
+    "title": "Wybierz plan, który prowadzi budowę dalej",
+    "subtitle": "Zacznij od 14-dniowego okresu próbnego z 5 wiadomościami AI dziennie. Potem wybierasz plan dopasowany do budowy.",
     "selectBtn": "Kontynuuj",
     "trialCta": "Kontynuuj",
     "freeCta": "Aktualny dostęp Free",
     "processing": "Przetwarzanie...",
-    "successTitle": "Dziękujemy!",
-    "successMessage": "Plan zostanie aktywowany po potwierdzeniu płatności.",
-    "security": "Bezpieczna płatność • Anuluj w dowolnym momencie",
+    "successTitle": "Gotowe",
+    "successMessage": "Plan aktywuje się po potwierdzeniu płatności.",
+    "security": "Bezpieczna płatność · Anuluj w dowolnym momencie",
     "savingsNote": "Oszczędzasz {{amount}} zł",
     "priceNotice": "Cena widoczna w App Store",
     "unavailableTitle": "Build developerski",
@@ -99,7 +99,7 @@
     "monthly": "Miesięcznie",
     "yearly": "Rocznie",
     "priceInStore": "Cena z App Store",
-    "manageSubtitle": "Wszystko, czego potrzebujesz do zarządzania budową, a poniżej masz wybrany plan, czas trwania, cenę, zasady odnowienia i linki prawne.",
+    "manageSubtitle": "Masz tu wybrany plan, czas trwania, cenę, zasady odnowienia i linki prawne.",
     "subscriptionDisclosure": "Subskrypcja odnawia się automatycznie. Wybrany plan, czas trwania, cena i linki prawne są pokazane na tym ekranie.",
     "saveMore": "Oszczędzasz",
     "secureCheckout": "Bezpieczna płatność przez App Store",
@@ -126,11 +126,7 @@
         "name": "Free",
         "badge": "",
         "description": "Start i podstawy projektu",
-        "details": [
-          "Podstawowa konfiguracja",
-          "Bazowe śledzenie",
-          "Limitowana przestrzeń"
-        ]
+        "details": ["Podstawowa konfiguracja", "Bazowe śledzenie", "Limitowana przestrzeń"]
       },
       "free_trial": {
         "name": "Free Trial",
@@ -138,95 +134,47 @@
         "description": "5 wiadomości AI dziennie w czasie triala",
         "price": "Free",
         "priceSub": "przez 14 dni",
-        "details": [
-          "5 wiadomości AI dziennie",
-          "Zdjęcia i dokumenty jak w Free",
-          "Zadania bez limitu",
-          "Bez zobowiązań"
-        ]
+        "details": ["5 wiadomości AI dziennie", "Zdjęcia i dokumenty jak w Free", "Zadania bez limitu", "Bez zobowiązań"]
       },
       "pro": {
         "name": "Pro",
         "badge": "NAJPOPULARNIEJSZY",
-        "description": "Pełna kontrola nad budową",
+        "description": "Plan do aktywnej budowy",
         "samplePrice": "14,99 $",
-        "details": [
-          "Kierownik Budowy AI",
-          "Pełna kontrola budżetu i wydatków",
-          "Wszystkie dokumenty w jednym miejscu",
-          "Zdjęcia uporządkowane według etapów budowy",
-          "Śledź postępy budowy krok po kroku"
-        ]
+        "details": ["Kierownik Budowy AI", "Pełna kontrola budżetu i wydatków", "Wszystkie dokumenty w jednym miejscu", "Zdjęcia uporządkowane według etapów budowy", "Śledzenie postępów budowy krok po kroku"]
       },
       "expert": {
         "name": "Expert",
         "badge": "",
         "description": "Najwyższe limity BuildIQ",
         "samplePrice": "19,99 $",
-        "details": [
-          "Wszystkie funkcje planu Pro",
-          "50 wiadomości AI dziennie",
-          "Zdjęcia bez limitów",
-          "Dokumenty bez limitów",
-          "Wczesny dostęp do nowych funkcji",
-          "Pełny dostęp przez cały okres budowy"
-        ]
+        "details": ["Wszystkie funkcje planu Pro", "50 wiadomości AI dziennie", "Zdjęcia bez limitu", "Dokumenty bez limitu", "Wczesny dostęp do nowych funkcji", "Pełny dostęp przez cały okres budowy"]
       }
     },
     "selected": {
       "free_trial": {
         "title": "Sprawdź BuildIQ z pełnym dostępem",
         "desc": "Przetestuj aplikację z 5 wiadomościami AI dziennie przed wyborem planu dla swojej budowy.",
-        "benefits": [
-          "5 AI/dzień",
-          "Zdjęcia i dokumenty w limicie",
-          "Zadania bez limitu",
-          "Bez zobowiązań"
-        ]
+        "benefits": ["5 AI/dzień", "Zdjęcia i dokumenty w limicie", "Zadania bez limitu", "Bez zobowiązań"]
       },
       "pro": {
         "title": "Najlepszy wybór dla większości budujących",
         "desc": "Plan do zarządzania aktywną budową z AI, budżetem i dokumentacją z placu budowy.",
-        "benefits": [
-          "20 AI/dzień",
-          "100 zdjęć",
-          "25 dokumentów",
-          "Raporty"
-        ]
+        "benefits": ["20 AI/dzień", "100 zdjęć", "25 dokumentów", "Raporty"]
       },
       "expert": {
         "title": "Pełna kontrola dla wymagających budów",
         "desc": "Dla intensywnej dokumentacji, częstej pracy z AI i długiego archiwum budowy.",
-        "benefits": [
-          "50 AI/dzień",
-          "Zdjęcia bez limitu",
-          "Dokumenty bez limitu",
-          "Priorytet AI"
-        ]
+        "benefits": ["50 AI/dzień", "Zdjęcia bez limitu", "Dokumenty bez limitu", "Priorytet AI"]
       }
     },
     "benefits": {
       "items": [
-        {
-          "title": "AI kierownik budowy",
-          "desc": "Planuj kolejne kroki, odpowiadaj na pytania i szybciej podejmuj decyzje."
-        },
-        {
-          "title": "Budżet i wydatki",
-          "desc": "Kontroluj koszty, historię wydatków i presję na budżet."
-        },
-        {
-          "title": "Zdjęcia i dokumenty budowy",
-          "desc": "Trzymaj zdjęcia, pliki i kontekst projektu w jednym miejscu."
-        },
-        {
-          "title": "Śledzenie postępu",
-          "desc": "Monitoruj etapy prac w uporządkowanej osi czasu budowy."
-        },
-        {
-          "title": "Raporty i eksporty",
-          "desc": "Przygotowuj czytelne podsumowania dla właścicieli, ekip i archiwum."
-        }
+        { "title": "AI kierownik budowy", "desc": "Planuj kolejne kroki, odpowiadaj na pytania i szybciej podejmuj decyzje." },
+        { "title": "Budżet i wydatki", "desc": "Kontroluj koszty, historię wydatków i presję na budżet." },
+        { "title": "Zdjęcia i dokumenty budowy", "desc": "Trzymaj zdjęcia, pliki i kontekst projektu w jednym miejscu." },
+        { "title": "Śledzenie postępu", "desc": "Monitoruj etapy prac w uporządkowanej osi czasu budowy." },
+        { "title": "Raporty i eksporty", "desc": "Przygotowuj czytelne podsumowania dla właścicieli, ekip i archiwum." }
       ]
     },
     "pro": {

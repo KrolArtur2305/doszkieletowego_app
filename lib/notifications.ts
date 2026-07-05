@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
+import i18n from './i18n'
 import { supabase } from './supabase'
 import {
   registerForPushNotificationsAsync,
@@ -7,6 +8,10 @@ import {
 } from '../src/services/notifications/pushService'
 
 // Centralny hub powiadomien BuildIQ.
+
+function t(key: string, options?: Record<string, unknown>): string {
+  return i18n.t(key, { ns: 'settings', ...options });
+}
 
 export function configureNotifications() {
   Notifications.setNotificationHandler({
@@ -31,22 +36,23 @@ export async function registerPushToken(
   try {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
-        name: 'BuildIQ',
+        name: t('appSettings.notif.channels.default'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#25F0C8',
       })
 
       await Notifications.setNotificationChannelAsync('tasks', {
-        name: 'Zadania',
+        name: t('appSettings.notif.channels.tasks'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#25F0C8',
       })
 
       await Notifications.setNotificationChannelAsync('ai', {
-        name: 'Asystent AI',
-        importance: Notifications.AndroidImportance.DEFAULT,
+        name: t('appSettings.notif.channels.ai'),
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
         lightColor: '#19705C',
       })
     }
@@ -94,8 +100,8 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     await Notifications.scheduleNotificationAsync({
       identifier: `task-${task.id}-before`,
       content: {
-        title: 'Jutro masz zadanie',
-        body: task.nazwa,
+        title: t('appSettings.notif.taskBeforeTitle'),
+        body: t('appSettings.notif.taskBeforeBody', { name: task.nazwa }),
         data: { taskId: task.id, type: 'task_reminder' },
         sound: true,
         ...(Platform.OS === 'android' && { channelId: 'tasks' }),
@@ -114,8 +120,8 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     await Notifications.scheduleNotificationAsync({
       identifier: `task-${task.id}-day`,
       content: {
-        title: 'Zadanie na dzis',
-        body: task.nazwa,
+        title: t('appSettings.notif.taskTodayTitle'),
+        body: t('appSettings.notif.taskTodayBody', { name: task.nazwa }),
         data: { taskId: task.id, type: 'task_reminder' },
         sound: true,
         ...(Platform.OS === 'android' && { channelId: 'tasks' }),

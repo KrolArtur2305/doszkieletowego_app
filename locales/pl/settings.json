@@ -85,10 +85,22 @@
       "groupLabel": "Powiadomienia",
       "pushTitle": "Powiadomienia push",
       "pushSubtitle": "Przypomnienia o zadaniach i alerty",
+      "channels": {
+        "default": "BuildIQ",
+        "tasks": "Zadania",
+        "ai": "Kierownik AI"
+      },
+      "taskBeforeTitle": "Jutro masz zadanie",
+      "taskBeforeBody": "Przypomnienie: {{name}}",
+      "taskTodayTitle": "Zadanie na dziś",
+      "taskTodayBody": "Dziś do zrobienia: {{name}}",
+      "lifecycle": {
+        "later": "Później"
+      },
       "deniedTitle": "Brak zgody",
       "deniedMessage": "Włącz powiadomienia w ustawieniach systemowych.",
       "disableTitle": "Wyłącz powiadomienia",
-      "disableMessage": "Aby wyłączyć powiadomienia, przejdź do ustawień systemowych telefonu."
+      "disableMessage": "Powiadomienia z BuildIQ zostały wyłączone w aplikacji. Systemową zgodę możesz dodatkowo zmienić w ustawieniach telefonu."
     },
     "security": {
       "groupLabel": "Bezpieczeństwo"

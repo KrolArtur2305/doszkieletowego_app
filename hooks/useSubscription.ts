@@ -33,23 +33,35 @@ const FREE_ACCESS: SubscriptionAccess = {
   hasAiAccess: AI_OPEN_ACCESS,
   hasPremiumAccess: false,
   aiMessagesPerDayLimit: null,
+  hasBudgetScannerAccess: false,
+  budgetScannerScansPerMonth: 0,
   activeEntitlementIds: [],
 };
 
 export function useSubscription(): UseSubscriptionResult {
   const { session } = useSupabaseAuth();
+  const supportStatus = getRevenueCatSupportStatus();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [offerings, setOfferings] = useState<PurchasesOfferings | null>(null);
   const [access, setAccess] = useState<SubscriptionAccess>(FREE_ACCESS);
-  const [supportStatus, setSupportStatus] = useState<RevenueCatSupportStatus>(
-    getRevenueCatSupportStatus()
-  );
+  const [currentSupportStatus, setCurrentSupportStatus] = useState<RevenueCatSupportStatus>(supportStatus);
+
+  const shouldUseRevenueCat = supportStatus === 'ready';
 
   async function refresh() {
     setLoading(true);
     setError(null);
+
+    if (!shouldUseRevenueCat) {
+      setCustomerInfo(null);
+      setOfferings(null);
+      setAccess(FREE_ACCESS);
+      setCurrentSupportStatus(supportStatus);
+      setLoading(false);
+      return;
+    }
 
     try {
       await configurePurchases();
@@ -65,12 +77,12 @@ export function useSubscription(): UseSubscriptionResult {
       setCustomerInfo(nextCustomerInfo);
       setOfferings(nextOfferings);
       setAccess(getSubscriptionAccess(nextCustomerInfo));
-      setSupportStatus(getRevenueCatSupportStatus());
+      setCurrentSupportStatus(getRevenueCatSupportStatus());
     } catch (e) {
       setCustomerInfo(null);
       setOfferings(null);
       setAccess(FREE_ACCESS);
-      setSupportStatus(getRevenueCatSupportStatus());
+      setCurrentSupportStatus(getRevenueCatSupportStatus());
       setError(getFriendlyErrorMessage(e, i18n.t.bind(i18n), 'subscription:errors.loadFailed'));
     } finally {
       setLoading(false);
@@ -83,6 +95,16 @@ export function useSubscription(): UseSubscriptionResult {
     (async () => {
       setLoading(true);
       setError(null);
+
+      if (!shouldUseRevenueCat) {
+        if (!alive) return;
+        setCustomerInfo(null);
+        setOfferings(null);
+        setAccess(FREE_ACCESS);
+        setCurrentSupportStatus(supportStatus);
+        setLoading(false);
+        return;
+      }
 
       try {
         await configurePurchases();
@@ -100,14 +122,14 @@ export function useSubscription(): UseSubscriptionResult {
         setCustomerInfo(nextCustomerInfo);
         setOfferings(nextOfferings);
         setAccess(getSubscriptionAccess(nextCustomerInfo));
-        setSupportStatus(getRevenueCatSupportStatus());
+        setCurrentSupportStatus(getRevenueCatSupportStatus());
       } catch (e) {
         if (!alive) return;
 
         setCustomerInfo(null);
         setOfferings(null);
         setAccess(FREE_ACCESS);
-        setSupportStatus(getRevenueCatSupportStatus());
+        setCurrentSupportStatus(getRevenueCatSupportStatus());
         setError(getFriendlyErrorMessage(e, i18n.t.bind(i18n), 'subscription:errors.loadFailed'));
       } finally {
         if (alive) setLoading(false);
@@ -117,7 +139,7 @@ export function useSubscription(): UseSubscriptionResult {
     return () => {
       alive = false;
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, shouldUseRevenueCat, supportStatus]);
 
   return {
     loading,
@@ -125,7 +147,7 @@ export function useSubscription(): UseSubscriptionResult {
     customerInfo,
     offerings,
     access,
-    supportStatus,
+    supportStatus: currentSupportStatus,
     refresh,
   };
 }

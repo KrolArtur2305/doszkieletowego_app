@@ -1,22 +1,22 @@
 {
   "header": {
-    "title": "Plan wählen",
-    "subtitle": "Dies ist ein einmaliger Schritt. Du kannst deinen Plan später in den Einstellungen ändern."
+    "title": "Wähle den Plan für dein Bauprojekt",
+    "subtitle": "Das ist ein einmaliger Schritt. Du kannst den Plan später in den Einstellungen ändern."
   },
   "alerts": {
     "errorTitle": "Fehler",
-    "noSession": "Keine Sitzung. Bitte erneut anmelden.",
-    "saveFailed": "Plan konnte nicht gespeichert werden. Bitte erneut versuchen.",
-    "paidPlanRequiresActivation": "Kauf oder Testphase wird auf dem Abo-Bildschirm verwaltet. Dieses Konto bleibt vorerst im kostenlosen Plan."
+    "noSession": "Keine Sitzung. Bitte melde dich erneut an.",
+    "saveFailed": "Der Plan konnte nicht gespeichert werden. Bitte versuche es erneut.",
+    "paidPlanRequiresActivation": "Käufe oder die Trial-Aktivierung werden auf dem Abo-Bildschirm abgewickelt. Vorerst bleibt das Konto im Free-Plan."
   },
   "cards": {
     "free": {
       "title": "Free",
-      "tagline": "Zum Start und zum Testen des Projekts"
+      "tagline": "Zum Einstieg und Testen des Projekts"
     },
     "pro": {
       "title": "Pro",
-      "tagline": "Für Nutzer, die volle Kontrolle wollen"
+      "tagline": "Für Eigentümer, die volle Kontrolle wollen"
     },
     "pro_plus": {
       "title": "Pro+",
@@ -39,5 +39,5 @@
   "actions": {
     "choose": "Auswählen"
   },
-  "launchInfo": "Preise werden aus dem App Store geladen, sobald Store-Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden."
+  "launchInfo": "Preise werden aus dem App Store geladen, sobald Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden."
 }

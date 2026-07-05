@@ -46,6 +46,8 @@ import {
   type StageTemplateLike,
   type UserStageLike} from '../../../../lib/stageModel';
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
+import { useSubscription } from '../../../../hooks/useSubscription';
+import type { SubscriptionPlanKey } from '../../../../src/config/subscriptionPlans';
 import {
   workflowBuildType} from '../../../../lib/buildWorkflow';
 import {
@@ -69,6 +71,12 @@ import {
   type BudgetScanDraftItem,
   type BudgetScanStageRef,
 } from '../../../../src/features/budgetScanner/draftTypes';
+import {
+  clearBudgetScanDraft,
+  getBudgetScanDraftKey,
+  loadBudgetScanDraft,
+  persistBudgetScanDraft,
+} from '../../../../src/features/budgetScanner/draftPersistence';
 import {
   BUDGET_SCANNER_AI_ENABLED,
   BUDGET_SCANNER_ENTRY_ENABLED,
@@ -269,6 +277,7 @@ export default function BudzetScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ openAdd?: string }>();
   const { session, loading: authLoading } = useSupabaseAuth();
+  const { access: subscriptionAccess, supportStatus: subscriptionSupportStatus } = useSubscription();
   const userId = session?.user?.id;
   const datePickerLocale = useMemo(
     () => getAppLocale(i18n.resolvedLanguage || i18n.language),
@@ -278,16 +287,21 @@ export default function BudzetScreen() {
     () => normalizeAppLanguage(i18n.resolvedLanguage || i18n.language),
     [i18n.language, i18n.resolvedLanguage],
   );
-
   const scrollRef = useRef<ScrollView>(null);
   const openedFromParamRef = useRef(false);
   const activeScanDraftIdRef = useRef<string | null>(null);
+  const suppressScanDraftRestoreRef = useRef(false);
+  const scanDraftRestoreReadyRef = useRef(false);
   const topPad = 0;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
+  const scanDraftStorageKey = useMemo(
+    () => (userId ? getBudgetScanDraftKey(userId, buildAccess?.investmentId ?? null) : null),
+    [buildAccess?.investmentId, userId],
+  );
 
   const [plannedBudget, setPlannedBudget] = useState(0);
   const [dates, setDates] = useState<{ start?: string | null; end?: string | null }>({ start: null, end: null });
@@ -329,6 +343,52 @@ export default function BudzetScreen() {
   const [receiptKindByPath, setReceiptKindByPath] = useState<Record<string, ReceiptDocKind>>({});
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
   const [scanMenuOpen, setScanMenuOpen] = useState(false);
+
+  const getScannerUpgradeTargetPlan = (code?: string | null): SubscriptionPlanKey | null => {
+    if (code === 'scanner_quota_reached') {
+      if (subscriptionAccess.currentPlan === 'pro') return 'expert';
+      if (subscriptionAccess.currentPlan === 'expert') return null;
+      if (subscriptionAccess.currentPlan === 'free_trial') return 'pro';
+      return 'pro';
+    }
+
+    if (subscriptionAccess.currentPlan === 'free_trial') return 'pro';
+    if (subscriptionAccess.currentPlan === 'pro') return 'expert';
+    if (subscriptionAccess.currentPlan === 'expert') return null;
+    return 'pro';
+  };
+
+  const openSubscriptionForScanner = (code?: string | null) => {
+    const targetPlan = getScannerUpgradeTargetPlan(code);
+    if (!targetPlan) {
+      router.push('/(app)/(tabs)/ustawienia/subskrypcja');
+      return;
+    }
+    router.push({
+      pathname: '/(app)/(tabs)/ustawienia/subskrypcja',
+      params: { planKey: targetPlan },
+    });
+  };
+
+  const showScannerAccessNotice = (code?: string | null) => {
+    const limitReached = code === 'scanner_quota_reached';
+    Alert.alert(
+      limitReached ? t('scanner.quotaReachedTitle') : t('scanner.planRequiredTitle'),
+      limitReached ? t('scanner.quotaReachedMessage') : t('scanner.planRequiredMessage'),
+      [
+        { text: t('scanner.cancel'), style: 'cancel' },
+        { text: t('scanner.upgradeCta'), onPress: () => openSubscriptionForScanner(code) },
+      ],
+    );
+  };
+
+  const ensureScannerAccess = () => {
+    if (!BUDGET_SCANNER_AI_ENABLED) return true;
+    if (subscriptionSupportStatus !== 'ready') return true;
+    if (subscriptionAccess.hasBudgetScannerAccess) return true;
+    showScannerAccessNotice('scanner_plan_required');
+    return false;
+  };
 
   // date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -696,6 +756,43 @@ export default function BudzetScreen() {
   useEffect(() => {
     loadBudget();
   }, [loadBudget]);
+
+  useEffect(() => {
+    let cancelled = false;
+    scanDraftRestoreReadyRef.current = false;
+
+    const restoreDraft = async () => {
+      if (!scanDraftStorageKey) {
+        scanDraftRestoreReadyRef.current = true;
+        return;
+      }
+      if (scanDraft || suppressScanDraftRestoreRef.current) {
+        scanDraftRestoreReadyRef.current = true;
+        return;
+      }
+      const storedDraft = await loadBudgetScanDraft(scanDraftStorageKey);
+      scanDraftRestoreReadyRef.current = true;
+      if (cancelled || !storedDraft) return;
+      setScanDraft(storedDraft);
+      activeScanDraftIdRef.current = storedDraft.id;
+    };
+
+    restoreDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scanDraft, scanDraftStorageKey]);
+
+  useEffect(() => {
+    if (!scanDraftRestoreReadyRef.current || !scanDraftStorageKey) return;
+    if (!scanDraft) {
+      clearBudgetScanDraft(scanDraftStorageKey).catch(() => undefined);
+      return;
+    }
+
+    persistBudgetScanDraft(scanDraftStorageKey, scanDraft).catch(() => undefined);
+  }, [scanDraft, scanDraftStorageKey]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -1073,7 +1170,11 @@ export default function BudzetScreen() {
         Alert.alert(t('errorTitle'), t('errors.documentSyncFailed'));
       }
 
+      suppressScanDraftRestoreRef.current = true;
       setScanDraft(null);
+      if (scanDraftStorageKey) {
+        clearBudgetScanDraft(scanDraftStorageKey).catch(() => undefined);
+      }
       activeScanDraftIdRef.current = null;
       setPicked(null);
       setAddOpen(false);
@@ -1114,29 +1215,47 @@ export default function BudzetScreen() {
     setFOpis('');
     setFSklep('');
     setPicked(null);
+    suppressScanDraftRestoreRef.current = true;
     setScanDraft(null);
+    if (scanDraftStorageKey) {
+      clearBudgetScanDraft(scanDraftStorageKey).catch(() => undefined);
+    }
     activeScanDraftIdRef.current = null;
     setFAttachmentKind('paragon');
     setAddOpen(true);
   };
 
-  const runBudgetScannerFromAsset = async (asset: ImagePicker.ImagePickerAsset) => {
-    const optimizedScan = await optimizeBudgetScanImage(asset);
-    if (!optimizedScan) return;
+  const runBudgetScannerFromFile = async (
+    file: BudgetScanFile,
+    draftId?: string | null,
+  ) => {
+    const nextDraft = draftId
+      ? {
+          ...createManualBudgetScanDraft({
+            file,
+            defaultStage: defaultCurrentScanStage,
+          }),
+          id: draftId,
+        }
+      : createManualBudgetScanDraft({
+          file,
+          defaultStage: defaultCurrentScanStage,
+        });
 
-    const nextDraft = createManualBudgetScanDraft({
-      file: optimizedScan,
-      defaultStage: defaultCurrentScanStage,
-    });
+    suppressScanDraftRestoreRef.current = false;
     activeScanDraftIdRef.current = nextDraft.id;
     if (!BUDGET_SCANNER_AI_ENABLED) {
       setScanDraft(nextDraft);
       return;
     }
 
-    setScanDraft({ ...nextDraft, status: 'processing', errorMessage: null });
+    setScanDraft(nextDraft);
     try {
-      const ocrResult = await runBudgetScanOcr(optimizedScan, appLanguage);
+      const ocrResult = await runBudgetScanOcr(
+        file,
+        appLanguage,
+        buildAccess?.investmentId ?? null,
+      );
       if (activeScanDraftIdRef.current !== nextDraft.id) return;
 
       const today = toYYYYMMDD(new Date());
@@ -1180,23 +1299,55 @@ export default function BudzetScreen() {
     } catch (ocrError: any) {
       if (activeScanDraftIdRef.current !== nextDraft.id) return;
       console.warn('[BudgetScanner] OCR failed:', ocrError?.message ?? ocrError);
+      if (
+        ocrError?.status === 403 &&
+        ['scanner_plan_required', 'scanner_quota_reached', 'subscription_required', 'trial_expired'].includes(String(ocrError?.code ?? ''))
+      ) {
+        activeScanDraftIdRef.current = null;
+        suppressScanDraftRestoreRef.current = true;
+        setScanDraft(null);
+        showScannerAccessNotice(String(ocrError?.code ?? 'scanner_plan_required'));
+        return;
+      }
+
+      let translatedOcrError: string | null = null;
+      if (ocrError?.code === 'scanner_image_too_large') {
+        translatedOcrError = t('scanner.imageTooLarge');
+      } else if (ocrError?.code === 'scanner_invalid_image') {
+        translatedOcrError = t('scanner.invalidImage');
+      } else if (ocrError?.code === 'scanner_timeout') {
+        translatedOcrError = t('scanner.timeout');
+      } else if (ocrError?.code === 'scanner_network_error') {
+        translatedOcrError = t('scanner.networkError');
+      } else if (ocrError?.code === 'scanner_rate_limited') {
+        translatedOcrError = t('scanner.rateLimited');
+      }
       const ocrDebugMessage = __DEV__
         ? [
             ocrError?.message,
             ocrError?.status ? `status: ${ocrError.status}` : null,
+            ocrError?.code ? `code: ${ocrError.code}` : null,
             ocrError?.details,
           ].filter(Boolean).join('\n')
         : null;
       setScanDraft({
         ...nextDraft,
         status: 'error',
-        errorMessage: ocrDebugMessage || getFriendlyErrorMessage(ocrError, t, 'scanner.ocrFailed'),
+        errorMessage: ocrDebugMessage || translatedOcrError || getFriendlyErrorMessage(ocrError, t, 'scanner.ocrFailed'),
       });
     }
   };
 
+  const runBudgetScannerFromAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    const optimizedScan = await optimizeBudgetScanImage(asset);
+    if (!optimizedScan) return;
+
+    await runBudgetScannerFromFile(optimizedScan);
+  };
+
   const openBudgetScannerFromCamera = async () => {
     setScanMenuOpen(false);
+    if (!ensureScannerAccess()) return;
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
@@ -1224,6 +1375,7 @@ export default function BudzetScreen() {
 
   const openBudgetScannerFromLibrary = async () => {
     setScanMenuOpen(false);
+    if (!ensureScannerAccess()) return;
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
@@ -1848,11 +2000,13 @@ export default function BudzetScreen() {
           saving={saving}
           labels={{
             title: t('scanner.draftTitle'),
+            reviewSummary: t('scanner.reviewSummary'),
             emptyTitle: t('scanner.draftEmptyTitle'),
             emptyHint: t('scanner.draftEmptyHint'),
             processingTitle: t('scanner.processingTitle'),
             processingHint: t('scanner.processingHint'),
             addItem: t('scanner.addItem'),
+            retry: t('scanner.retry'),
             itemName: t('scanner.itemName'),
             itemNamePlaceholder: t('scanner.itemNamePlaceholder'),
             amount: t('scanner.amount'),
@@ -1868,9 +2022,18 @@ export default function BudzetScreen() {
           }}
           onCancel={() => {
             activeScanDraftIdRef.current = null;
+            suppressScanDraftRestoreRef.current = true;
             setScanDraft(null);
+            if (scanDraftStorageKey) {
+              clearBudgetScanDraft(scanDraftStorageKey).catch(() => undefined);
+            }
           }}
           onSave={saveScanDraftExpenses}
+          onRetry={
+            scanDraft
+              ? () => runBudgetScannerFromFile(scanDraft.file, scanDraft.id)
+              : undefined
+          }
         />
 
         <View style={{ height: 26 }} />

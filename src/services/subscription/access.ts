@@ -70,6 +70,8 @@ export function getSubscriptionAccess(customerInfo: CustomerInfo | null): Subscr
       hasPremiumAccess: false,
       hasAiAccess: AI_OPEN_ACCESS,
       aiMessagesPerDayLimit: null,
+      hasBudgetScannerAccess: false,
+      budgetScannerScansPerMonth: 0,
       activeEntitlementIds: [],
     };
   }
@@ -100,6 +102,15 @@ export function getSubscriptionAccess(customerInfo: CustomerInfo | null): Subscr
           : accessPlan === PRO_PLAN_KEY
             ? 20
             : 50,
+    hasBudgetScannerAccess: accessPlan !== 'free',
+    budgetScannerScansPerMonth:
+      accessPlan === 'free'
+        ? 0
+        : accessPlan === FREE_TRIAL_PLAN_KEY
+          ? 5
+          : accessPlan === PRO_PLAN_KEY
+            ? 30
+            : 100,
     activeEntitlementIds,
   };
 }

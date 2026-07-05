@@ -19,7 +19,7 @@ export function BudgetScanFab({ accessibilityLabel, menuOpen = false, onPress }:
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      <MaterialCommunityIcons name={menuOpen ? 'close' : 'scanner'} size={22} color={NEON} />
+      <MaterialCommunityIcons name={menuOpen ? 'close' : 'receipt-text-outline'} size={22} color={NEON} />
     </TouchableOpacity>
   );
 }

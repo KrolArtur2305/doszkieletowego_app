@@ -24,6 +24,7 @@ import {
 } from '../../lib/investmentInvite';
 import { setCurrencyForLanguage } from '../../lib/currency';
 import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../lib/i18n';
+import { recordCheckpoint } from '../../lib/runtimeDiagnostics';
 import { AppButton, AppCard, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
@@ -40,6 +41,10 @@ export default function WelcomeScreen() {
   const [inviteCode, setInviteCode] = useState('');
   const [joinError, setJoinError] = useState('');
   const [joinChecking, setJoinChecking] = useState(false);
+
+  useEffect(() => {
+    void recordCheckpoint('auth/welcome');
+  }, []);
 
   const slides = useMemo(
     () => [

@@ -9,9 +9,9 @@
     "profileSubtitle": "Daten des Kontoinhabers",
     "investmentTitle": "Investition",
     "investmentSubtitle": "Projekt- / Baudetails",
-    "ownerOnlySubtitle": "Nur der Bauinhaber kann das aendern.",
+    "ownerOnlySubtitle": "Nur der Bauinhaber kann das ändern.",
     "buddyTitle": "KI-Bauleiter",
-    "buddySubtitle": "Name und Einstellungen aendern",
+    "buddySubtitle": "Name und Einstellungen ändern",
     "appTitle": "App",
     "appSubtitle": "App-Einstellungen",
     "subscriptionTitle": "Abonnement verwalten",
@@ -42,7 +42,7 @@
       "warningTitle": "Beschreibung zu kurz",
       "minLength": "Bitte beschreibe das Problem mit mindestens 10 Zeichen.",
       "thanksTitle": "Danke!",
-      "sent": "Deine Meldung wurde gesendet. Wir antworten so schnell wie moeglich.",
+      "sent": "Deine Meldung wurde gesendet. Wir antworten so schnell wie möglich.",
       "errorTitle": "Fehler",
       "sendFailed": "Die Meldung konnte nicht gesendet werden. Bitte versuche es erneut.",
       "savedLocalDemo": "Deine Meldung wurde lokal gespeichert (Demo)."
@@ -53,7 +53,7 @@
       "sending": "Wird gesendet..."
     },
     "hint": "Meldungen werden innerhalb von 24-48 Stunden bearbeitet.",
-    "hintDemo": "Dies ist eine Demo-Version. Spaeter verbinden wir Supabase Storage oder einen Webhook."
+    "hintDemo": "Dies ist eine Demo-Version. Später verbinden wir Supabase Storage oder einen Webhook."
   },
   "appSettings": {
     "title": "App-Einstellungen",
@@ -62,7 +62,7 @@
     "terms": "Nutzungsbedingungen / EULA",
     "privacy": "Datenschutz",
     "support": "Hilfe",
-    "deleteAccountLink": "Konto loeschen",
+    "deleteAccountLink": "Konto löschen",
     "language": {
       "groupLabel": "Sprache",
       "options": {
@@ -85,42 +85,54 @@
       "groupLabel": "Benachrichtigungen",
       "pushTitle": "Push-Benachrichtigungen",
       "pushSubtitle": "Erinnerungen zu Aufgaben und Warnungen",
+      "channels": {
+        "default": "BuildIQ",
+        "tasks": "Aufgaben",
+        "ai": "KI-Bauleiter"
+      },
+      "taskBeforeTitle": "Morgen ist eine Aufgabe fällig",
+      "taskBeforeBody": "Erinnerung: {{name}}",
+      "taskTodayTitle": "Aufgabe für heute",
+      "taskTodayBody": "Heute fällig: {{name}}",
+      "lifecycle": {
+        "later": "Später"
+      },
       "deniedTitle": "Keine Berechtigung",
       "deniedMessage": "Aktiviere Benachrichtigungen in den Systemeinstellungen.",
       "disableTitle": "Benachrichtigungen deaktivieren",
-      "disableMessage": "Um Benachrichtigungen zu deaktivieren, gehe zu den Systemeinstellungen deines Telefons."
+      "disableMessage": "BuildIQ-Benachrichtigungen wurden in der App deaktiviert. Die Systemberechtigung kannst du zusätzlich in den Einstellungen deines Telefons ändern."
     },
     "security": {
       "groupLabel": "Sicherheit"
     },
-    "partnerReadOnlyNotice": "Als Partner kannst du Waehrung und Einheiten nicht aendern. Diese Einstellungen gehoeren dem Bauinhaber.",
+    "partnerReadOnlyNotice": "Als Partner kannst du Währung und Einheiten nicht ändern. Diese Einstellungen gehören dem Bauinhaber.",
     "password": {
-      "title": "Passwort aendern",
+      "title": "Passwort ändern",
       "subtitle": "Aktualisiere dein Kontopasswort",
-      "modalTitle": "Passwort aendern",
+      "modalTitle": "Passwort ändern",
       "modalSubtitle": "Das neue Passwort muss mindestens 8 Zeichen lang sein",
       "newLabel": "Neues Passwort",
       "confirmLabel": "Neues Passwort bestaetigen",
-      "saveBtn": "Passwort aendern",
+      "saveBtn": "Passwort ändern",
       "saving": "Speichern...",
       "errorTitle": "Fehler",
       "tooShort": "Das Passwort muss mindestens 8 Zeichen lang sein.",
-      "mismatch": "Die Passwoerter stimmen nicht ueberein.",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
       "successTitle": "Fertig",
-      "successMessage": "Das Passwort wurde geaendert.",
-      "genericError": "Das Passwort konnte nicht geaendert werden."
+      "successMessage": "Das Passwort wurde geändert.",
+      "genericError": "Das Passwort konnte nicht geändert werden."
     },
     "deleteAccount": {
-      "title": "Konto loeschen",
-      "subtitle": "Alle Daten dauerhaft loeschen",
-      "confirmTitle": "Konto loeschen",
-      "confirmMessage": "Dieser Vorgang kann nicht rueckgaengig gemacht werden. Alle deine Daten werden geloescht.",
-      "confirmBtn": "Konto loeschen",
-      "deleting": "Wird geloescht...",
+      "title": "Konto löschen",
+      "subtitle": "Alle Daten dauerhaft löschen",
+      "confirmTitle": "Konto löschen",
+      "confirmMessage": "Dieser Vorgang kann nicht rückgängig gemacht werden. Alle deine Daten werden gelöscht.",
+      "confirmBtn": "Konto löschen",
+      "deleting": "Wird gelöscht...",
       "successTitle": "Fertig",
-      "successMessage": "Dein Konto wurde geloescht.",
+      "successMessage": "Dein Konto wurde gelöscht.",
       "errorTitle": "Fehler",
-      "errorMessage": "Konto konnte nicht geloescht werden. Kontaktiere den Support."
+      "errorMessage": "Konto konnte nicht gelöscht werden. Kontaktiere den Support."
     }
   },
   "subscription": {
@@ -134,7 +146,7 @@
     "month": "Monat",
     "twoYears": "2 Jahre",
     "orYearly": "oder {{price}} {{currency}} / {{period}}",
-    "savingsNote": "Bei Einmalzahlung sparst du ueber 40% pro Jahr",
+    "savingsNote": "Bei Einmalzahlung sparst du über 40% pro Jahr",
     "currentPlanBtn": "Aktiv",
     "downgradBtn": "Waehlen",
     "selectBtn": "Waehlen",
@@ -164,27 +176,27 @@
   },
   "partner": {
     "title": "Baupartner",
-    "heroTitle": "Begleitperson hinzufuegen",
-    "heroSubtitle": "Erstelle einen Einladungscode und lege fest, was dein Partner in deinem Bauprojekt sehen oder hinzufuegen darf.",
+    "heroTitle": "Begleitperson hinzufügen",
+    "heroSubtitle": "Erstelle einen Einladungscode und lege fest, was dein Partner in deinem Bauprojekt sehen oder hinzufügen darf.",
     "currentBuild": "Bauprojekt: {{name}}",
     "lockedTitle": "Expert-Plan erforderlich",
-    "lockedSubtitle": "Um eine Einladung fuer den Partner zu erstellen, brauchst du einen aktiven Expert-Plan.",
+    "lockedSubtitle": "Um eine Einladung für den Partner zu erstellen, brauchst du einen aktiven Expert-Plan.",
     "upgradeAction": "Zu Expert wechseln",
     "permissionsTitle": "Partnerberechtigungen",
     "presets": {
       "view": {
         "label": "Nur Ansicht",
         "title": "Nur lesen",
-        "text": "Der Partner kann das Bauprojekt sehen, aber nichts Neues hinzufuegen.",
+        "text": "Der Partner kann das Bauprojekt sehen, aber nichts Neues hinzufügen.",
         "summaryTitle": "Nur Ansicht",
-        "summaryText": "Budget und Dokumente sind sichtbar. Neue Eintraege bleiben deaktiviert."
+        "summaryText": "Budget und Dokumente sind sichtbar. Neue Einträge bleiben deaktiviert."
       },
       "collab": {
         "label": "Zusammenarbeit",
-        "title": "Darf hinzufuegen",
-        "text": "Der Partner kann Fotos, Eintraege und Ausgaben hinzufuegen.",
+        "title": "Darf hinzufügen",
+        "text": "Der Partner kann Fotos, Einträge und Ausgaben hinzufügen.",
         "summaryTitle": "Zusammenarbeit",
-        "summaryText": "Der Partner kann Fotos, Tagebucheintraege und Ausgaben hinzufuegen. Fortschritt und bestehende Daten koennen nicht editiert werden."
+        "summaryText": "Der Partner kann Fotos, Tagebucheinträge und Ausgaben hinzufügen. Fortschritt und bestehende Daten können nicht editiert werden."
       }
     },
     "permissionOn": "Ein",
@@ -198,21 +210,21 @@
     "revokeTitle": "Diesen Einladungscode widerrufen?",
     "revokeMessage": "Dieser Code funktioniert sofort nicht mehr. Der Partner braucht einen neuen Code.",
     "converting": "Wird verschoben...",
-    "convertAction": "Ja, mein Projekt loeschen und beitreten",
-    "convertWarningTitle": "Dein aktuelles Bauprojekt loeschen?",
-    "convertWarningMessage": "Du hast bereits ein eigenes Bauprojekt in diesem Konto. Wenn du als Partner beitrittst, loeschen wir dein aktuelles Bauprojekt mit seinen Daten: Budget, Dokumente, Fotos, Tagebuch, Aufgaben und Projekt. Diese Aktion kann nicht rueckgaengig gemacht werden.",
+    "convertAction": "Ja, mein Projekt löschen und beitreten",
+    "convertWarningTitle": "Dein aktuelles Bauprojekt löschen?",
+    "convertWarningMessage": "Du hast bereits ein eigenes Bauprojekt in diesem Konto. Wenn du als Partner beitrittst, löschen wir dein aktuelles Bauprojekt mit seinen Daten: Budget, Dokumente, Fotos, Tagebuch, Aufgaben und Projekt. Diese Aktion kann nicht rückgängig gemacht werden.",
     "leaveTitle": "Partnerzugang verlassen",
     "leaveMessage": "Nach dem Verlassen verlierst du den Zugriff auf das Projekt, zu dem du eingeladen wurdest. Das Konto bleibt aktiv.",
     "leaveAction": "Verlassen",
     "partnerMode": {
       "title": "Du bist Baupartner",
-      "message": "Du hast Zugriff auf ein gemeinsames Bauprojekt. Du kannst den Partnerzugang verlassen und zu einem normalen Konto zurueckkehren.",
+      "message": "Du hast Zugriff auf ein gemeinsames Bauprojekt. Du kannst den Partnerzugang verlassen und zu einem normalen Konto zurückkehren.",
       "leaveAction": "Partnerrolle verlassen",
       "leaving": "Partnerrolle wird verlassen..."
     },
     "partnerListTitle": "Aktive Partner",
     "partnerListItem": "Partner {{index}}",
-    "partnerListMeta": "Der Partnermodus ist fest. Um den Zugriff zu aendern, entferne den Partner und sende eine neue Einladung.",
+    "partnerListMeta": "Der Partnermodus ist fest. Um den Zugriff zu ändern, entferne den Partner und sende eine neue Einladung.",
     "presetModeLabel": "Modus",
     "presetModes": {
       "view": "Nur Ansicht",
@@ -224,17 +236,17 @@
         "text": "Eine gute Wahl, wenn du Informationen teilen moechtest, ohne versehentliche Aenderungen zu riskieren.",
         "bullets": {
           "budget": "Vollstaendige Ansicht von Budget, Dokumenten und Aufgaben",
-          "progress": "Ideal zur Kontrolle des Fortschritts und fuer den laufenden Einblick",
-          "noAdds": "Kein Hinzufuegen von Fotos, Dokumenten, Eintraegen oder Ausgaben"
+          "progress": "Ideal zur Kontrolle des Fortschritts und für den laufenden Einblick",
+          "noAdds": "Kein Hinzufügen von Fotos, Dokumenten, Einträgen oder Ausgaben"
         }
       },
       "collab": {
         "title": "Modus: Aktive Zusammenarbeit",
-        "text": "Die staerkste Zusammenarbeit fuer einen Partner, der aktiv beim Bau hilft.",
+        "text": "Die stärkste Zusammenarbeit für einen Partner, der aktiv beim Bau hilft.",
         "bullets": {
-          "adds": "Kann Fotos, Dokumente, Eintraege und Ausgaben hinzufuegen",
-          "tasks": "Aufgaben sind auf beiden Seiten verfuegbar",
-          "ownerControl": "Budget, Dokumente und Fortschritt bleiben unter Kontrolle des Eigentuemers"
+          "adds": "Kann Fotos, Dokumente, Einträge und Ausgaben hinzufügen",
+          "tasks": "Aufgaben sind auf beiden Seiten verfügbar",
+          "ownerControl": "Budget, Dokumente und Fortschritt bleiben unter Kontrolle des Eigentümers"
         }
       }
     },
@@ -242,8 +254,8 @@
     "removeMessage": "Diese Person verliert sofort den Zugriff auf das Projekt.",
     "removeAction": "Entfernen",
     "removedTitle": "Du wurdest aus dem Bauprojekt entfernt",
-    "removedMessage": "Du wurdest aus dem Bauprojekt entfernt und kehrst zu einem normalen Konto zurueck.",
-    "removedMessageNamed": "Du wurdest aus dem Bauprojekt \"{{name}}\" entfernt und kehrst zu einem normalen Konto zurueck.",
+    "removedMessage": "Du wurdest aus dem Bauprojekt entfernt und kehrst zu einem normalen Konto zurück.",
+    "removedMessageNamed": "Du wurdest aus dem Bauprojekt \"{{name}}\" entfernt und kehrst zu einem normalen Konto zurück.",
     "note": "In diesem Schritt wird der Partner ohne separate Zahlung hinzugefuegt. Die Umstellung auf ein gemeinsames Bauprojekt erfolgt modulweise, um Regressionen zu vermeiden.",
     "errors": {
       "load": "Partnereinstellungen konnten nicht geladen werden.",
@@ -264,15 +276,15 @@
         "subtitle": "Partner kann Dokumente des Bauprojekts sehen."
       },
       "add_photos": {
-        "title": "Fotos hinzufuegen",
+        "title": "Fotos hinzufügen",
         "subtitle": "Partner kann den Fortschritt mit Fotos dokumentieren."
       },
       "add_journal": {
         "title": "Tagebucheintraege",
-        "subtitle": "Partner kann Notizen vom Bau hinzufuegen."
+        "subtitle": "Partner kann Notizen vom Bau hinzufügen."
       },
       "add_expenses": {
-        "title": "Ausgaben hinzufuegen",
+        "title": "Ausgaben hinzufügen",
         "subtitle": "Partner kann neue Ausgaben erfassen."
       },
       "manage_tasks": {
@@ -292,7 +304,7 @@
         },
         "documentation": {
           "title": "Dokumentation ohne Chaos",
-          "subtitle": "Dein Partner kann Fotos und Eintraege hinzufuegen, wenn du nicht vor Ort bist."
+          "subtitle": "Dein Partner kann Fotos und Einträge hinzufügen, wenn du nicht vor Ort bist."
         },
         "permissions": {
           "title": "Sichere Berechtigungen",

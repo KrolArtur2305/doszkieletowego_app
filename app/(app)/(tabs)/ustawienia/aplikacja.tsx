@@ -35,8 +35,8 @@ import {
 import { getStoredUnits, setAppUnits, setUnitsForLanguage, type UnitSystem } from '../../../../lib/units';
 import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from '../../../../lib/i18n';
 import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildAccess } from '../../../../lib/buildAccess';
-import { registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
-import { removePushToken } from '../../../../src/services/notifications/pushService';
+import { cancelAllNotifications, registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
+import { isPushOptedOut, removePushToken, setPushOptOut } from '../../../../src/services/notifications/pushService';
 import { AppButton, AppInput } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
@@ -79,8 +79,9 @@ export default function UstawieniaAplikacjiScreen() {
 
   useEffect(() => {
     (async () => {
+      const optedOut = await isPushOptedOut();
       const { status } = await Notifications.getPermissionsAsync();
-      setNotifEnabled(status === 'granted');
+      setNotifEnabled(status === 'granted' && !optedOut);
       setNotifLoading(false);
     })();
   }, []);
@@ -131,6 +132,7 @@ export default function UstawieniaAplikacjiScreen() {
 
   const handleNotifToggle = async (value: boolean) => {
     if (value) {
+      await setPushOptOut(false);
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       const status =
         existingStatus === 'granted'
@@ -155,6 +157,16 @@ export default function UstawieniaAplikacjiScreen() {
         );
       }
     } else {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        await removePushToken(user.id);
+      }
+      await cancelAllNotifications();
+      await setPushOptOut(true);
+      setNotifEnabled(false);
       Alert.alert(
         t('appSettings.notif.disableTitle'),
         t('appSettings.notif.disableMessage')
@@ -526,6 +538,12 @@ export default function UstawieniaAplikacjiScreen() {
                     await setAppLanguage(lang.key);
                     await setUnitsForLanguage(lang.key);
                     setActiveUnits(lang.key === 'en' ? 'imperial' : 'metric');
+                    if (notifEnabled) {
+                      const { data } = await supabase.auth.getUser();
+                      if (data.user?.id) {
+                        await registerPushToken(data.user.id, { requestPermission: false });
+                      }
+                    }
                     setLanguageModalOpen(false);
                   }}
                   style={[styles.optionRow, isActive && styles.optionRowActive]}

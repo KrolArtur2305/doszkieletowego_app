@@ -484,7 +484,7 @@ export default function BuddyChatScreen() {
         ? t('chat.messages.timeoutError')
         : isAbortError
         ? t('chat.messages.requestCancelled')
-        : t('chat.messages.connectionError');
+        : String(e?.message ?? '').trim() || t('chat.messages.connectionError');
 
       clearPendingUserMessage();
 

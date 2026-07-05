@@ -1,22 +1,22 @@
 {
   "header": {
-    "title": "Choose a plan",
+    "title": "Choose a plan for your build",
     "subtitle": "This is a one-time step. You can change your plan later in settings."
   },
   "alerts": {
     "errorTitle": "Error",
     "noSession": "No session. Please sign in again.",
-    "saveFailed": "Couldn’t save the plan. Please try again.",
+    "saveFailed": "Could not save the plan. Please try again.",
     "paidPlanRequiresActivation": "Purchases or trial activation are handled on the subscription screen. For now, the account remains on the free plan."
   },
   "cards": {
     "free": {
       "title": "Free",
-      "tagline": "To get started and test your project"
+      "tagline": "For getting started and testing the project"
     },
     "pro": {
       "title": "Pro",
-      "tagline": "For investors who want full control"
+      "tagline": "For owners who want full control"
     },
     "pro_plus": {
       "title": "Pro+",

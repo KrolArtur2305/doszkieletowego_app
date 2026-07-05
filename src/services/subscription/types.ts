@@ -17,6 +17,8 @@ export type SubscriptionAccess = {
   hasAiAccess: boolean;
   hasPremiumAccess: boolean;
   aiMessagesPerDayLimit: number | null;
+  hasBudgetScannerAccess: boolean;
+  budgetScannerScansPerMonth: number | null;
   activeEntitlementIds: string[];
 };
 

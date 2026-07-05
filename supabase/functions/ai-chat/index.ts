@@ -621,7 +621,10 @@ async function checkDailyUsage(
   }
 
   const row = Array.isArray(data) ? data[0] : data;
-  const used = Number(row?.messages_count ?? 0);
+  const used = Number(typeof row === "number" ? row : row?.messages_count ?? 0);
+  if (!Number.isFinite(used) || used < 0) {
+    throw new Error("Nie udało się odczytać dziennego licznika AI.");
+  }
 
   if (used >= accessPolicy.dailyLimit) {
     const isTrial = accessPolicy.plan === "free_trial";
