@@ -123,7 +123,7 @@ export function FuturisticDonutSvg({
         Animated.timing(prog, { toValue: Math.min(v, 0.92), duration: 620, useNativeDriver: false }),
         Animated.timing(prog, { toValue: v, duration: 380, useNativeDriver: false }),
       ]),
-      Animated.timing(spin, { toValue: 1, duration: 900, useNativeDriver: false }),
+      Animated.timing(spin, { toValue: 1, duration: 900, useNativeDriver: true }),
     ]).start(({ finished }) => {
       if (!finished) return;
       setDidFinish(true);
@@ -168,7 +168,7 @@ export function FuturisticDonutSvg({
   return (
     <View style={[styles.wrap, { width: size, height: size + (showLabel ? 54 : 0) }]}>
       <View style={{ width: size, height: size }}>
-        <Animated.View style={{ transform: [{ rotate: ringDriftRotate }] }}>
+        <Animated.View style={{ transform: [{ rotate: rot }, { rotate: ringDriftRotate }] }}>
           <Svg width={size} height={size}>
             <Defs>
               <LinearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
@@ -193,7 +193,6 @@ export function FuturisticDonutSvg({
               fill="transparent"
               strokeDasharray={`${circumference} ${circumference}`}
               strokeDashoffset={dashoffset}
-              rotation={rot}
               originX={cx}
               originY={cy}
               opacity={0.35}
@@ -218,7 +217,6 @@ export function FuturisticDonutSvg({
               fill="transparent"
               strokeDasharray={`${circumference} ${circumference}`}
               strokeDashoffset={dashoffset}
-              rotation={rot}
               originX={cx}
               originY={cy}
               opacity={0.42}
@@ -235,7 +233,6 @@ export function FuturisticDonutSvg({
               opacity={glowOpacity}
               strokeDasharray={`${circumference} ${circumference}`}
               strokeDashoffset={dashoffset}
-              rotation={rot}
               originX={cx}
               originY={cy}
             />
@@ -250,7 +247,6 @@ export function FuturisticDonutSvg({
               fill="transparent"
               strokeDasharray={`${circumference} ${circumference}`}
               strokeDashoffset={dashoffset}
-              rotation={rot}
               originX={cx}
               originY={cy}
             />

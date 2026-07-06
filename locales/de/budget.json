@@ -219,6 +219,7 @@
                     "maxItemsReached":  "Limit von {{count}} Positionen pro Scan erreicht.",
                     "savedTitle":  "Gespeichert",
                     "savedMessage":  "{{count}} Positionen aus dem Scan hinzugefĂĽgt.",
+                    "savedMessageWithSkipped":  "{{saved}} Positionen aus dem Scan hinzugefĂĽgt, {{skipped}} unvollständige übersprungen.",
                     "saveDraftFailed":  "Die gescannten Positionen konnten nicht gespeichert werden.",
                     "ocrFailed":  "Das Bild konnte nicht gelesen werden.",
                     "timeout":  "Die Anfrage hat zu lange gedauert. Bitte versuche es erneut.",

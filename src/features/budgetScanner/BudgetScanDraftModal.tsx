@@ -4,6 +4,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 
 import { AppButton, AppCard, AppInput } from '../../ui/components';
+import { formatLooseAmount, parseLooseAmount } from './amountParsing';
 import { BUDGET_SCAN_MAX_ITEMS, type BudgetScanDraft, type BudgetScanDraftItem, type BudgetScanStageRef } from './draftTypes';
 
 const NEON = '#25F0C8';
@@ -181,104 +182,113 @@ export function BudgetScanDraftModal({
                     return (
                       <View key={item.id} style={[styles.itemCard, !item.selected && styles.itemCardOff]}>
                         <View style={styles.itemTopRow}>
-                          <View style={styles.itemIndexBadge}>
-                            <Text style={styles.itemIndexText}>{index + 1}</Text>
+                          <View style={styles.itemTitleWrap}>
+                            <View style={styles.itemIndexBadge}>
+                              <Text style={styles.itemIndexText}>{index + 1}</Text>
+                            </View>
+                            <Text style={styles.itemTitle} numberOfLines={1}>
+                              {item.name || labels.itemName}
+                            </Text>
                           </View>
 
-                          <TouchableOpacity
-                            onPress={() => toggleSelected(item.id)}
-                            style={[styles.itemSelectionPill, item.selected ? styles.itemSelectionPillOn : styles.itemSelectionPillOff]}
-                            activeOpacity={0.85}
-                          >
-                            <Feather
-                              name={item.selected ? 'check-square' : 'square'}
-                              size={16}
-                              color={item.selected ? NEON : 'rgba(255,255,255,0.52)'}
-                            />
-                          </TouchableOpacity>
+                          <View style={styles.itemActions}>
+                            <TouchableOpacity
+                              onPress={() => toggleSelected(item.id)}
+                              style={[styles.itemIconBtn, item.selected ? styles.itemSelectionPillOn : styles.itemSelectionPillOff]}
+                              activeOpacity={0.85}
+                            >
+                              <Feather
+                                name={item.selected ? 'check-square' : 'square'}
+                                size={16}
+                                color={item.selected ? NEON : 'rgba(255,255,255,0.52)'}
+                              />
+                            </TouchableOpacity>
 
-                          <TouchableOpacity
-                            onPress={() => removeItem(item.id)}
-                            style={styles.itemDeleteBtn}
-                            activeOpacity={0.85}
-                          >
-                            <Feather name="trash-2" size={16} color="#FCA5A5" />
-                          </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => removeItem(item.id)}
+                              style={[styles.itemIconBtn, styles.itemDeleteBtn]}
+                              activeOpacity={0.85}
+                            >
+                              <Feather name="trash-2" size={16} color="#FCA5A5" />
+                            </TouchableOpacity>
+                          </View>
                         </View>
 
-                        <View style={styles.itemFieldsRow}>
-                          <View style={styles.fieldGrow}>
-                            <Text style={styles.fieldLabel}>{labels.itemName}</Text>
-                            <AppInput
-                              value={item.name}
-                              onChangeText={(value) => updateItem(item.id, { name: value })}
-                              placeholder={labels.itemNamePlaceholder}
-                              style={styles.cellInput}
-                            />
-                          </View>
+                        <View style={styles.nameBlock}>
+                          <Text style={styles.fieldLabel}>{labels.itemName}</Text>
+                          <AppInput
+                            value={item.name}
+                            onChangeText={(value) => updateItem(item.id, { name: value })}
+                            placeholder={labels.itemNamePlaceholder}
+                            style={[styles.cellInput, styles.nameInput]}
+                            multiline
+                            textAlignVertical="top"
+                          />
+                        </View>
 
+                        <View style={styles.itemMetaRow}>
                           <View style={styles.amountField}>
                             <Text style={styles.fieldLabel}>{labels.amount}</Text>
                             <AppInput
-                              value={item.total > 0 ? String(item.total) : ''}
+                              value={item.total > 0 ? formatLooseAmount(item.total) : ''}
                               onChangeText={(value) => {
-                                const next = Number.parseFloat(String(value).replace(',', '.'));
-                                updateItem(item.id, { total: Number.isFinite(next) ? next : 0 });
+                                const next = parseLooseAmount(value);
+                                updateItem(item.id, { total: next ?? 0 });
                               }}
                               placeholder={labels.amountPlaceholder}
                               keyboardType="numeric"
                               style={styles.cellInput}
                             />
                           </View>
-                        </View>
 
-                        <View style={styles.stageBlock}>
-                          <Text style={styles.fieldLabel}>{labels.stage}</Text>
-                          <View style={styles.stageSelectWrap}>
-                            <TouchableOpacity
-                              onPress={() => setStageMenuOpenFor((open) => (open === item.id ? null : item.id))}
-                              style={[styles.stageSelect, stageMenuOpenFor === item.id && styles.stageSelectOpen]}
-                              activeOpacity={0.85}
-                            >
-                              <Text style={styles.stageSelectText} numberOfLines={1}>
-                                {stageLabel}
-                              </Text>
-                              <Feather
-                                name={stageMenuOpenFor === item.id ? 'chevron-up' : 'chevron-down'}
-                                size={16}
-                                color="rgba(220,255,245,0.82)"
-                              />
-                            </TouchableOpacity>
+                          <View style={styles.stageBlock}>
+                            <Text style={styles.fieldLabel}>{labels.stage}</Text>
+                            <View style={styles.stageSelectWrap}>
+                              <TouchableOpacity
+                                onPress={() => setStageMenuOpenFor((open) => (open === item.id ? null : item.id))}
+                                style={[styles.stageSelect, stageMenuOpenFor === item.id && styles.stageSelectOpen]}
+                                activeOpacity={0.85}
+                              >
+                                <Text style={styles.stageSelectText} numberOfLines={1}>
+                                  {stageLabel}
+                                </Text>
+                                <Feather
+                                  name={stageMenuOpenFor === item.id ? 'chevron-up' : 'chevron-down'}
+                                  size={16}
+                                  color="rgba(220,255,245,0.82)"
+                                />
+                              </TouchableOpacity>
 
-                            {stageMenuOpenFor === item.id ? (
-                              <View style={styles.stageDropdown}>
-                                <TouchableOpacity
-                                  onPress={() => selectStage(item.id, null)}
-                                  style={[styles.stageDropdownItem, !item.stage && styles.stageDropdownItemOn]}
-                                  activeOpacity={0.85}
-                                >
-                                  <Text style={[styles.stageDropdownText, !item.stage && styles.stageDropdownTextOn]} numberOfLines={1}>
-                                    {labels.noStage}
-                                  </Text>
-                                </TouchableOpacity>
+                              {stageMenuOpenFor === item.id ? (
+                                <View style={styles.stageDropdown}>
+                                  <TouchableOpacity
+                                    onPress={() => selectStage(item.id, null)}
+                                    style={[styles.stageDropdownItem, !item.stage && styles.stageDropdownItemOn]}
+                                    activeOpacity={0.85}
+                                  >
+                                    <Text style={[styles.stageDropdownText, !item.stage && styles.stageDropdownTextOn]} numberOfLines={1}>
+                                      {labels.noStage}
+                                    </Text>
+                                  </TouchableOpacity>
 
-                                {stageOptions.map((stage) => {
-                                  const isActive = stage.key === item.stage?.key;
-                                  return (
-                                    <TouchableOpacity
-                                      key={stage.key ?? stage.label}
-                                      onPress={() => selectStage(item.id, stage)}
-                                      style={[styles.stageDropdownItem, isActive && styles.stageDropdownItemOn]}
-                                      activeOpacity={0.85}
-                                    >
-                                      <Text style={[styles.stageDropdownText, isActive && styles.stageDropdownTextOn]} numberOfLines={1}>
-                                        {stage.label}
-                                      </Text>
-                                    </TouchableOpacity>
-                                  );
-                                })}
-                              </View>
-                            ) : null}
+                                  {stageOptions.map((stage) => {
+                                    const isActive = stage.key === item.stage?.key;
+                                    return (
+                                      <TouchableOpacity
+                                        key={stage.key ?? stage.label}
+                                        onPress={() => selectStage(item.id, stage)}
+                                        style={[styles.stageDropdownItem, isActive && styles.stageDropdownItemOn]}
+                                        activeOpacity={0.85}
+                                      >
+                                        <Text style={[styles.stageDropdownText, isActive && styles.stageDropdownTextOn]} numberOfLines={1}>
+                                          {stage.label}
+                                        </Text>
+                                      </TouchableOpacity>
+                                    );
+                                  })}
+                                </View>
+                              ) : null}
+                            </View>
                           </View>
                         </View>
                       </View>
@@ -500,7 +510,15 @@ const styles = StyleSheet.create({
   itemTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  itemTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
   },
   itemIndexBadge: {
     width: 30,
@@ -517,15 +535,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
   },
-  itemSelectionPill: {
+  itemTitle: {
     flex: 1,
-    minHeight: 32,
-    borderRadius: 999,
-    paddingHorizontal: 12,
+    minWidth: 0,
+    color: 'rgba(220,255,245,0.92)',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  itemActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  itemIconBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    borderRadius: 999,
   },
   itemSelectionPillOn: {
     backgroundColor: 'rgba(37,240,200,0.10)',
@@ -548,25 +575,26 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.58)',
   },
   itemDeleteBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  itemFieldsRow: {
+  nameBlock: {
+    gap: 0,
+  },
+  nameInput: {
+    minHeight: 72,
+    lineHeight: 20,
+    paddingTop: 11,
+    paddingBottom: 11,
+  },
+  itemMetaRow: {
     flexDirection: 'row',
     gap: 10,
-  },
-  fieldGrow: {
-    flex: 1.35,
+    alignItems: 'flex-start',
   },
   amountField: {
-    flex: 0.75,
-    minWidth: 112,
+    width: 124,
   },
   fieldLabel: {
     color: 'rgba(148,163,184,0.92)',
@@ -576,6 +604,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   stageBlock: {
+    flex: 1,
+    minWidth: 0,
     gap: 6,
   },
   stageSelectWrap: {

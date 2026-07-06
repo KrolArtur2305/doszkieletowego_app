@@ -1,0 +1,13 @@
+  --non-interactive is not supported, use $CI=1 instead
+Error: listen EADDRINUSE: address already in use :::8083
+Error: listen EADDRINUSE: address already in use :::8083
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at Server.listen (node:net:2067:7)
+    at C:\doszkieletowego_app\node_modules\expo\node_modules\@expo\cli\src\start\server\metro\runServer-fork.ts:135:16
+    at new Promise (<anonymous>)
+    at runServer (C:\doszkieletowego_app\node_modules\expo\node_modules\@expo\cli\src\start\server\metro\runServer-fork.ts:126:10)
+    at instantiateMetroAsync (C:\doszkieletowego_app\node_modules\expo\node_modules\@expo\cli\src\start\server\metro\instantiateMetro.ts:290:40)
+    at MetroBundlerDevServer.startImplementationAsync (C:\doszkieletowego_app\node_modules\expo\node_modules\@expo\cli\src\start\server\metro\MetroBundlerDevServer.ts:1062:69)
+    at MetroBundlerDevServer.startAsync (C:\doszkieletowego_app\node_modules\expo\node_modules\@expo\cli\src\start\server\BundlerDevServer.ts:171:18)
+    at DevServerManager.startAsync (C:\doszkieletowego_app\node_modules\expo\node_modules\@expo\cli\src\start\server\DevServerManager.ts:184:7)

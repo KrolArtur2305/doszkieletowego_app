@@ -219,6 +219,7 @@
                     "maxItemsReached":  "Reached the {{count}} item limit for one scan.",
                     "savedTitle":  "Saved",
                     "savedMessage":  "Added {{count}} items from the scan.",
+                    "savedMessageWithSkipped":  "Added {{saved}} items from the scan, skipped {{skipped}} incomplete ones.",
                     "saveDraftFailed":  "Could not save the scanned items.",
                     "ocrFailed":  "Could not read the image.",
                     "timeout":  "The request timed out. Try again.",

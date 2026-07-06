@@ -2,6 +2,7 @@ import { File } from 'expo-file-system';
 
 import { normalizeAppLanguage } from '../../../lib/i18n';
 import { publicConfig, supabase } from '../../../lib/supabase';
+import { parseLooseAmount } from './amountParsing';
 import type { BudgetScanFile } from './types';
 
 const BUDGET_SCAN_OCR_TIMEOUT_MS = 75_000;
@@ -46,15 +47,6 @@ class BudgetScanOcrHttpError extends Error {
     super(message);
     this.name = 'BudgetScanOcrHttpError';
   }
-}
-
-function toNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string') {
-    const parsed = Number(value.replace(',', '.'));
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
 }
 
 function normalizeText(value: unknown): string | null {
@@ -145,8 +137,8 @@ export async function runBudgetScanOcr(
       const row = item as Partial<BudgetScanOcrItem>;
       return {
         name: normalizeText(row.name) ?? '',
-        amount: toNumber(row.amount),
-        confidence: toNumber(row.confidence) ?? 0,
+        amount: parseLooseAmount(row.amount),
+        confidence: parseLooseAmount(row.confidence) ?? 0,
         rawText: normalizeText(row.rawText),
       };
     })
@@ -154,7 +146,7 @@ export async function runBudgetScanOcr(
 
   return {
     readable: Boolean(payload.readable),
-    confidence: toNumber(payload.confidence) ?? 0,
+    confidence: parseLooseAmount(payload.confidence) ?? 0,
     documentType: payload.documentType === 'invoice' || payload.documentType === 'receipt'
       ? payload.documentType
       : 'unknown',
@@ -162,7 +154,7 @@ export async function runBudgetScanOcr(
     documentNumber: normalizeText(payload.documentNumber),
     documentDate: normalizeText(payload.documentDate),
     currency: normalizeText(payload.currency),
-    totalAmount: toNumber(payload.totalAmount),
+    totalAmount: parseLooseAmount(payload.totalAmount),
     rawText: normalizeText(payload.rawText),
     issues: Array.isArray(payload.issues)
       ? payload.issues.map((issue) => String(issue)).filter(Boolean)

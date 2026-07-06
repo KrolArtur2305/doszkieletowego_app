@@ -1,0 +1,4 @@
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_BUDGET_SCANNER_AI_ENABLED EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY
+Starting project at C:\doszkieletowego_app
+Starting Metro Bundler

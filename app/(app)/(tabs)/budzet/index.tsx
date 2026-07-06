@@ -77,6 +77,7 @@ import {
   loadBudgetScanDraft,
   persistBudgetScanDraft,
 } from '../../../../src/features/budgetScanner/draftPersistence';
+import { parseLooseAmount } from '../../../../src/features/budgetScanner/amountParsing';
 import {
   BUDGET_SCANNER_AI_ENABLED,
   BUDGET_SCANNER_ENTRY_ENABLED,
@@ -1072,31 +1073,32 @@ export default function BudzetScreen() {
 
     const selectedItems = items.filter((item) => item.selected !== false);
 
-    const validItems = selectedItems
-      .map((item) => ({
-        ...item,
-        name: item.name.trim(),
-        total: safeNumber(item.total),
-      }))
+    const normalizedItems = selectedItems.map((item) => ({
+      ...item,
+      name: item.name.trim(),
+      total: parseLooseAmount(item.total) ?? 0,
+    }));
+
+    const validItems = normalizedItems
+      .map((item) => item)
       .filter((item) => item.name && item.total > 0);
 
-    const hasInvalidPartialItem = selectedItems.some((item) => {
+    const invalidPartialItems = normalizedItems.filter((item) => {
       const hasAnyValue =
-        !!item.name.trim() ||
-        safeNumber(item.total) > 0 ||
+        !!item.name ||
+        item.total > 0 ||
         !!item.description?.trim() ||
         !!item.store?.trim() ||
         !!item.date?.trim();
-      const isValid = !!item.name.trim() && safeNumber(item.total) > 0;
+      const isValid = !!item.name && item.total > 0;
       return hasAnyValue && !isValid;
     });
 
-    if (hasInvalidPartialItem) {
-      Alert.alert(t('errorTitle'), t('scanner.invalidItems'));
-      return;
-    }
-
     if (validItems.length === 0) {
+      if (invalidPartialItems.length > 0) {
+        Alert.alert(t('errorTitle'), t('scanner.invalidItems'));
+        return;
+      }
       Alert.alert(t('errorTitle'), t('scanner.noValidItems'));
       return;
     }
@@ -1180,7 +1182,15 @@ export default function BudzetScreen() {
       setAddOpen(false);
       setStageMenuOpen(false);
       await loadBudget();
-      Alert.alert(t('scanner.savedTitle'), t('scanner.savedMessage', { count: validItems.length }));
+      Alert.alert(
+        t('scanner.savedTitle'),
+        invalidPartialItems.length > 0
+          ? t('scanner.savedMessageWithSkipped', {
+              saved: validItems.length,
+              skipped: invalidPartialItems.length,
+            })
+          : t('scanner.savedMessage', { count: validItems.length })
+      );
     } catch (error: any) {
       if (uploadedReceipt) {
         await removeReceiptFileEverywhere(uploadedReceipt.receiptPath, uploadedReceipt.documentPath);
