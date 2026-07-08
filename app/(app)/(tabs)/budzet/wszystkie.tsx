@@ -439,7 +439,7 @@ export default function WszystkieWydatkiScreen() {
       const runtimeStageCode = resolveRuntimeCurrentStageCode(stageRows, normalizedBuildType, storedStageCode);
       if (runtimeStageCode !== storedStageCode) {
         await supabase.from('profiles').upsert(
-          { user_id: authUser.id, current_stage_code: runtimeStageCode },
+          { user_id: ownerUserId, current_stage_code: runtimeStageCode },
           { onConflict: 'user_id' }
         );
       }
@@ -487,8 +487,9 @@ export default function WszystkieWydatkiScreen() {
 
   const persistSuggestionPrefs = useCallback(async (nextPrefs: StoredExpenseSuggestionPrefs) => {
     if (!userId) return;
+    const prefsUserId = buildAccess?.ownerUserId ?? userId;
     setSuggestionPrefs(nextPrefs);
-    await saveExpenseSuggestionPrefs(userId, nextPrefs);
+    await saveExpenseSuggestionPrefs(prefsUserId, nextPrefs);
     const hidden = new Set(nextPrefs.hidden ?? []);
     const notApplicable = new Set(nextPrefs.notApplicable ?? []);
     setStageSuggestions(
@@ -498,7 +499,7 @@ export default function WszystkieWydatkiScreen() {
           hidden: hidden.has(item.id),
           notApplicable: notApplicable.has(item.id)}))
     );
-  }, [currentWorkflowType, userId]);
+  }, [buildAccess?.ownerUserId, currentWorkflowType, userId]);
 
   const hideSuggestion = useCallback((suggestion: SuggestionView) => {
     const id = suggestion.id || suggestion.expense_key;

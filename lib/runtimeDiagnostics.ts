@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
+import { reportError } from './errorReporting';
+
 const STORAGE_KEY = 'buildiq:runtime-diagnostics';
 
 export type RuntimeDiagnosticSnapshot = {
@@ -108,6 +110,15 @@ export function installRuntimeDiagnostics(): void {
 
       try {
         await writeSnapshot(snapshot);
+        await reportError(error, {
+          feature: 'runtime',
+          action: 'global_error_handler',
+          severity: isFatal ? 'fatal' : 'error',
+          metadata: {
+            checkpoint: currentCheckpoint,
+            componentStack: snapshot.lastError?.componentStack,
+          },
+        });
       } catch {
         // nothing else we can do here
       }

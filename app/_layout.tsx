@@ -23,6 +23,14 @@ import {
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { RuntimeCrashReport } from '../components/RuntimeCrashReport';
 import { PushLifecycleModal } from '../components/PushLifecycleModal';
+import { AppErrorBoundary } from '../components/AppErrorBoundary';
+import {
+  clearErrorReportingUser,
+  initErrorReporting,
+  reportError,
+  setErrorReportingUser,
+} from '../lib/errorReporting';
+import { fetchCurrentBuildAccess } from '../lib/buildAccess';
 import {
   configurePurchases,
   logInPurchasesUser,
@@ -47,6 +55,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     installRuntimeDiagnostics();
+    initErrorReporting();
     void recordCheckpoint('root-layout');
   }, []);
 
@@ -54,7 +63,8 @@ export default function RootLayout() {
     let mounted = true;
 
     initI18n()
-      .catch(() => {
+      .catch((error) => {
+        void reportError(error, { feature: 'boot', action: 'init_i18n' });
         // nawet jeśli coś pójdzie nie tak, nie blokujemy apki w nieskończoność
       })
       .finally(() => {
@@ -82,6 +92,31 @@ export default function RootLayout() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const userId = session?.user?.id ?? null;
+
+    if (!userId) {
+      clearErrorReportingUser();
+      return;
+    }
+
+    let alive = true;
+
+    fetchCurrentBuildAccess(userId)
+      .then((access) => {
+        if (!alive) return;
+        setErrorReportingUser(userId, access?.investmentId ?? null);
+      })
+      .catch((error) => {
+        setErrorReportingUser(userId, null);
+        void reportError(error, { feature: 'boot', action: 'load_error_reporting_context' });
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [session?.user?.id]);
 
   useEffect(() => {
     configurePurchases().catch(() => {
@@ -131,41 +166,43 @@ export default function RootLayout() {
         <StatusBar style="light" translucent />
 
         <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-          {configErrorScreen ?? (showCrashReport ? (
-            <RuntimeCrashReport
-              title="Aplikacja się wyłączyła"
-              subtitle="Zapisaliśmy ostatni błąd. Skopiuj go i podeślij, wtedy będziemy wiedzieć dokładnie, co padło."
-              snapshot={crashSnapshot}
-              onDismiss={async () => {
-                await clearRuntimeDiagnostics();
-                setCrashSnapshot(null);
-              }}
-            />
-          ) : showLoader ? (
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: '#000000',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 40,
-              }}
-            >
-              <Image
-                source={APP_LOGO}
-                resizeMode="contain"
-                style={{ width: '72%', maxWidth: 260, height: 120 }}
+          <AppErrorBoundary>
+            {configErrorScreen ?? (showCrashReport ? (
+              <RuntimeCrashReport
+                title="Aplikacja się wyłączyła"
+                subtitle="Zapisaliśmy ostatni błąd. Skopiuj go i podeślij, wtedy będziemy wiedzieć dokładnie, co padło."
+                snapshot={crashSnapshot}
+                onDismiss={async () => {
+                  await clearRuntimeDiagnostics();
+                  setCrashSnapshot(null);
+                }}
               />
-            </View>
-          ) : (
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(app)" />
-              <Stack.Screen name="auth/callback" />
-              <Stack.Screen name="auth-callback" />
-              <Stack.Screen name="reset-password" />
-            </Stack>
-          ))}
+            ) : showLoader ? (
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: '#000000',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 40,
+                }}
+              >
+                <Image
+                  source={APP_LOGO}
+                  resizeMode="contain"
+                  style={{ width: '72%', maxWidth: 260, height: 120 }}
+                />
+              </View>
+            ) : (
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(app)" />
+                <Stack.Screen name="auth/callback" />
+                <Stack.Screen name="auth-callback" />
+                <Stack.Screen name="reset-password" />
+              </Stack>
+            ))}
+          </AppErrorBoundary>
           <PushLifecycleModal
             state={lifecycleModal}
             onDismiss={dismissLifecycleModal}

@@ -5,3 +5,6 @@ Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watc
 Starting Metro Bundler
 Waiting on http://localhost:8083
 Logs for your project will appear below.
+› Detected a change in metro.config.js. Restart the server to see the new results.
+› Detected a change in metro.config.js. Restart the server to see the new results.
+› Detected a change in metro.config.js. Restart the server to see the new results.

@@ -14,8 +14,9 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { supabase } from '../../../../lib/supabase';
-import { fetchCurrentBuildAccess } from '../../../../lib/buildAccess';
+import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
+import { reportError } from '../../../../lib/errorReporting';
 import {
   MAIN_STAGE_TIMELINE,
   isDoneStageStatus,
@@ -50,7 +51,7 @@ type StageItem = {
 
 const NEON = '#25F0C8';
 const USER_STAGE_SELECT =
-  'id, user_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at';
+  'id, user_id, investment_id, project_id, template_id, workflow_code, stage_group_code, stage_code, source, status, custom_name, custom_name_key, order_index, updated_at, created_at';
 
 function safeOrder(n: number | null | undefined) {
   return typeof n === 'number' && Number.isFinite(n) ? n : 9999;
@@ -83,6 +84,7 @@ export default function WszystkieEtapyScreen() {
   const [savingAll, setSavingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [buildAccess, setBuildAccess] = useState<BuildAccess | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [templates, setTemplates] = useState<StageTemplateRow[]>([]);
   const [userStages, setUserStages] = useState<UserStageRow[]>([]);
@@ -169,10 +171,11 @@ export default function WszystkieEtapyScreen() {
         }
 
         const access = await fetchCurrentBuildAccess(user.id).catch(() => null);
+        const scopeUserId = access?.ownerUserId ?? user.id;
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('build_type, current_stage_code, ai_buddy_avatar')
-          .eq('user_id', user.id)
+          .eq('user_id', scopeUserId)
           .maybeSingle();
         if (profileError) throw profileError;
 
@@ -187,7 +190,7 @@ export default function WszystkieEtapyScreen() {
           supabase
             .from('user_stages')
             .select(USER_STAGE_SELECT)
-            .eq('user_id', user.id)
+            .eq('user_id', scopeUserId)
             .eq('workflow_code', workflowCode)
             .order('order_index', { ascending: true })]);
 
@@ -196,15 +199,23 @@ export default function WszystkieEtapyScreen() {
 
         if (!alive) return;
         setCurrentUserId(user.id);
+        setBuildAccess(access);
         const nextProfile = (profileData as ProfileRow | null) ?? null;
         setProfile({
           ...(nextProfile ?? {}),
-          ai_buddy_name: await loadSharedBuddyName(user.id, access?.ownerUserId ?? user.id),
+          ai_buddy_name: await loadSharedBuddyName(user.id, scopeUserId),
         } as ProfileRow);
         setTemplates((templateRes.data ?? []) as StageTemplateRow[]);
         setUserStages((userStageRes.data ?? []) as UserStageRow[]);
         setDraftStatuses({});
       } catch (e: any) {
+        void reportError(e, {
+          feature: 'progress',
+          action: 'load_all_stages',
+          route: '/postepy/wszystkie',
+          userId: currentUserId,
+          investmentId: buildAccess?.investmentId ?? null,
+        });
         if (!alive) return;
         setError(getFriendlyErrorMessage(e, t, 'errors.fetchFailed'));
         setProfile(null);
@@ -266,13 +277,14 @@ export default function WszystkieEtapyScreen() {
       !!nextTemplate &&
       currentGroupItems.length > 0 &&
       currentGroupItems.every((item) => isDoneStageStatus(item.status) || isHiddenStageStatus(item.status));
+    let nextStageCode: string | null = null;
 
     try {
       setSavingAll(true);
       setError(null);
 
       const workflowCode = normalizeWorkflowCode(profile?.build_type);
-      const nextStageCode = shouldAdvance && nextTemplate?.stage_code
+      nextStageCode = shouldAdvance && nextTemplate?.stage_code
         ? String(nextTemplate.stage_code ?? '').trim().toUpperCase()
         : null;
 
@@ -290,6 +302,7 @@ export default function WszystkieEtapyScreen() {
           order_index: item.orderIndex,
         })),
         p_next_stage_code: nextStageCode,
+        p_investment_id: buildAccess?.investmentId ?? null,
       });
 
       if (rpcError) throw rpcError;
@@ -308,6 +321,18 @@ export default function WszystkieEtapyScreen() {
         router.replace('/(app)/(tabs)/postepy');
       }
     } catch (e: any) {
+      void reportError(e, {
+        feature: 'progress',
+        action: 'save_user_stage_statuses',
+        route: '/postepy/wszystkie',
+        userId,
+        investmentId: buildAccess?.investmentId ?? null,
+        metadata: {
+          changedCount: changedItems.length,
+          nextStageCode,
+          currentGroupCode,
+        },
+      });
       setError(getFriendlyErrorMessage(e, t, 'errors.updateFailed'));
     } finally {
       setSavingAll(false);

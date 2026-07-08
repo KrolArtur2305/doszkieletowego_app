@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../../../lib/supabase';
+import { getLastErrorReport, reportError, type LastErrorReport } from '../../../../lib/errorReporting';
 import { AppButton, AppInput } from '../../../../src/ui/components';
 
 const NEON = '#25F0C8';
@@ -46,6 +47,11 @@ export default function ZglosProblemScreen() {
   const [category, setCategory] = useState<Category>(categories[0]);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [lastErrorReport, setLastErrorReport] = useState<LastErrorReport | null>(null);
+
+  useEffect(() => {
+    getLastErrorReport().then(setLastErrorReport).catch(() => undefined);
+  }, []);
 
   const handleSubmit = async () => {
     const trimmed = (message || '').trim();
@@ -59,10 +65,23 @@ export default function ZglosProblemScreen() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id ?? null;
 
+      const diagnosticSuffix = lastErrorReport
+        ? [
+            '',
+            '',
+            '[diagnostics]',
+            `client_report_id=${lastErrorReport.clientReportId}`,
+            `feature=${lastErrorReport.feature ?? ''}`,
+            `action=${lastErrorReport.action ?? ''}`,
+            `route=${lastErrorReport.route ?? ''}`,
+            `error_at=${lastErrorReport.createdAt}`,
+          ].join('\n')
+        : '';
+
       const { error } = await supabase.from('zgloszenia').insert({
         user_id: userId,
         kategoria: category.key,
-        opis: trimmed,
+        opis: `${trimmed}${diagnosticSuffix}`,
       });
 
       if (error) throw error;
@@ -73,7 +92,16 @@ export default function ZglosProblemScreen() {
         [{ text: t('report.actions.ok'), onPress: () => router.back() }]
       );
       setMessage('');
-    } catch {
+    } catch (error) {
+      void reportError(error, {
+        feature: 'settings',
+        action: 'submit_problem_report',
+        route: '/ustawienia/zglos_problem',
+        metadata: {
+          category: category.key,
+          hasLastErrorReport: !!lastErrorReport,
+        },
+      });
       Alert.alert(t('report.alerts.errorTitle'), t('report.alerts.sendFailed'));
     } finally {
       setSending(false);

@@ -22,6 +22,7 @@ export type StageTemplateRow = {
 export type UserStageRow = {
   id: string;
   user_id?: string | null;
+  investment_id?: string | null;
   project_id?: string | null;
   template_id?: string | null;
   workflow_code?: string | null;

@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../../../lib/supabase';
 import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess';
 import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
+import { reportError } from '../../../../lib/errorReporting';
 import {
   MAIN_STAGE_TIMELINE,
   getGroupDisplayKey,
@@ -135,6 +136,13 @@ export default function PostepyScreen() {
           setUserStages(nextUserStages);
         }
       } catch (e: any) {
+        void reportError(e, {
+          feature: 'progress',
+          action: 'load_progress_overview',
+          route: '/postepy',
+          userId,
+          investmentId: buildAccess?.investmentId ?? null,
+        });
         if (!cancelled) {
           setError(getFriendlyErrorMessage(e, t, 'errors.fetchFailed'));
           setProfile(null);

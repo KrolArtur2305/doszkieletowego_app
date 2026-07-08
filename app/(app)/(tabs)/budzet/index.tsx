@@ -727,16 +727,17 @@ export default function BudzetScreen() {
 
   const updateSuggestionPrefs = useCallback(async (updater: (prefs: StoredExpenseSuggestionPrefs) => StoredExpenseSuggestionPrefs) => {
     if (!userId) return;
+    const prefsUserId = buildAccess?.ownerUserId ?? userId;
     const nextPrefs = updater(suggestionPrefs);
     setSuggestionPrefs(nextPrefs);
-    await saveExpenseSuggestionPrefs(userId, nextPrefs);
+    await saveExpenseSuggestionPrefs(prefsUserId, nextPrefs);
     const hidden = new Set(nextPrefs.hidden ?? []);
     const notApplicable = new Set(nextPrefs.notApplicable ?? []);
     setStageSuggestions((prev) => prev.map((item) => ({
       ...item,
       hidden: hidden.has(item.id),
       notApplicable: notApplicable.has(item.id)})));
-  }, [suggestionPrefs, userId]);
+  }, [buildAccess?.ownerUserId, suggestionPrefs, userId]);
 
   const hideSuggestion = useCallback((suggestion: SuggestionView) => {
     const id = suggestion.id || suggestion.expense_key;
