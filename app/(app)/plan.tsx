@@ -8,6 +8,7 @@ import {
   Dimensions,
   Alert,
   Linking,
+  Platform,
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -23,6 +24,7 @@ import {
 } from '../../src/config/subscriptionPlans';
 
 const { width: W, height: H } = Dimensions.get('window');
+const storeName = Platform.OS === 'android' ? 'Google Play' : 'App Store';
 
 type Star = { left: number; top: number; size: number; opacity: number };
 
@@ -163,7 +165,7 @@ export default function PlanScreen() {
     const tagline = ts(planDef.descKey);
     const price = planDef.key === FREE_PLAN_KEY
       ? ts('free')
-      : ts('priceFromStore');
+      : ts('priceFromStore', { store: storeName });
 
     return (
       <View style={styles.card} key={planDef.key}>
@@ -223,7 +225,7 @@ export default function PlanScreen() {
         <View style={styles.header}>
           <Text style={styles.hTitle}>{t('header.title')}</Text>
           <Text style={styles.hSub}>{t('header.subtitle')}</Text>
-          <Text style={styles.hNote}>{t('launchInfo')}</Text>
+          <Text style={styles.hNote}>{t('launchInfo', { store: storeName })}</Text>
           <Text style={styles.hLegal}>{t('subscription:paywall.subscriptionDisclosure')}</Text>
           <View style={styles.legalRow}>
             <TouchableOpacity onPress={() => openLegalUrl('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')} activeOpacity={0.75}>

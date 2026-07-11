@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import { Image, Text, View } from 'react-native';
+import { Image, Platform, Text, View } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useFonts, Rubik_700Bold, Rubik_800ExtraBold } from '@expo-google-fonts/rubik';
 import { Syne_800ExtraBold } from '@expo-google-fonts/syne';
 import { useTranslation } from 'react-i18next';
@@ -31,11 +32,7 @@ import {
   setErrorReportingUser,
 } from '../lib/errorReporting';
 import { fetchCurrentBuildAccess } from '../lib/buildAccess';
-import {
-  configurePurchases,
-  logInPurchasesUser,
-  logOutPurchasesUser,
-} from '../src/services/subscription/revenuecat';
+import { logInPurchasesUser } from '../src/services/subscription/revenuecat';
 
 const APP_LOGO = require('../assets/logo.png');
 
@@ -57,6 +54,15 @@ export default function RootLayout() {
     installRuntimeDiagnostics();
     initErrorReporting();
     void recordCheckpoint('root-layout');
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    NavigationBar.setStyle('dark');
+    void NavigationBar.setButtonStyleAsync('light').catch(() => {
+      // Navigation bar styling is best-effort and must not affect app startup.
+    });
   }, []);
 
   useEffect(() => {
@@ -119,20 +125,9 @@ export default function RootLayout() {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    configurePurchases().catch(() => {
-      // RevenueCat is optional during local setup; do not block app boot.
-    });
-  }, []);
-
-  useEffect(() => {
     const appUserId = session?.user?.id;
 
-    if (!appUserId) {
-      logOutPurchasesUser().catch(() => {
-        // Keep auth flow resilient if RevenueCat is unavailable in this environment.
-      });
-      return;
-    }
+    if (!appUserId) return;
 
     logInPurchasesUser(appUserId).catch(() => {
       // Keep auth flow resilient if RevenueCat is unavailable in this environment.

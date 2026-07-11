@@ -33,7 +33,7 @@
       }
     },
     "android": {
-      "versionCode": 4,
+      "versionCode": 5,
       "package": "com.buildiq.app",
       "permissions": [
         "CAMERA"
@@ -49,6 +49,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#000000",
+      "barStyle": "light-content"
     },
     "web": {
       "favicon": "./app/assets/favicon.png"
@@ -66,7 +70,14 @@
         }
       ],
       "expo-web-browser",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-navigation-bar",
+        {
+          "backgroundColor": "#000000",
+          "barStyle": "light"
+        }
+      ]
     ],
     "extra": {
       "router": {},

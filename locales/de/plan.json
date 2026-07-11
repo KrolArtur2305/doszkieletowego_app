@@ -39,5 +39,5 @@
   "actions": {
     "choose": "Auswählen"
   },
-  "launchInfo": "Preise werden aus dem App Store geladen, sobald Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden."
+  "launchInfo": "Preise werden aus {{store}} geladen, sobald Produkte verfügbar sind. Abos verlängern sich automatisch, sofern sie nicht gekündigt werden."
 }

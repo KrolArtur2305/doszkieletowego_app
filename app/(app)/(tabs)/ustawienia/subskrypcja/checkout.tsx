@@ -37,6 +37,8 @@ type PaywallPlanKey = 'pro' | 'expert'
 type RevenueCatPlanKey = PaywallPlanKey
 
 const PAYWALL_PLAN_KEYS: PaywallPlanKey[] = ['pro', 'expert']
+const storeName = Platform.OS === 'android' ? 'Google Play' : 'App Store'
+
 function expectedProductId(planKey: RevenueCatPlanKey, billing: BillingCycle): string {
   return `buildiq_${planKey}_${billing}`
 }
@@ -112,6 +114,11 @@ export default function CheckoutScreen() {
     [offerings]
   )
   const productsUnavailable = !loading && availablePackages.length === 0
+  const selectedPackage = useMemo(
+    () => findPackage(availablePackages, selectedPlan, billing),
+    [availablePackages, selectedPlan, billing]
+  )
+  const purchaseDisabled = purchasing || !selectedPackage || productsUnavailable
 
   useEffect(() => {
     Animated.timing(introAnim, {
@@ -122,7 +129,7 @@ export default function CheckoutScreen() {
 
   const getPlanPrice = (key: PaywallPlanKey) => {
     const pkg = findPackage(availablePackages, key as RevenueCatPlanKey, billing)
-    return pkg?.product.priceString ?? t('paywall.priceInStore')
+    return pkg?.product.priceString ?? t('paywall.priceFromStore', { store: storeName })
   }
 
   const getPlanPeriod = () => (billing === 'monthly' ? t('month') : t('billingYearly'))
@@ -135,12 +142,10 @@ export default function CheckoutScreen() {
       return
     }
 
-    const selectedPackage = findPackage(availablePackages, selectedPlan, billing)
-
     if (!selectedPackage) {
       Alert.alert(
         t('paywall.purchaseUnavailableTitle'),
-        t('paywall.purchaseUnavailableMessage')
+        t('paywall.purchaseUnavailableMessage', { store: storeName })
       )
       return
     }
@@ -375,7 +380,7 @@ export default function CheckoutScreen() {
             style={styles.continueBtn}
             onPress={handleContinue}
             activeOpacity={0.92}
-            disabled={purchasing}
+            disabled={purchaseDisabled}
           >
             <View pointerEvents="none" style={styles.continueGlowLeft} />
             <View pointerEvents="none" style={styles.continueGlowRight} />

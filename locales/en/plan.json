@@ -39,5 +39,5 @@
   "actions": {
     "choose": "Choose"
   },
-  "launchInfo": "Prices are loaded from the App Store when store products are available. Subscriptions renew automatically unless cancelled."
+  "launchInfo": "Prices are loaded from {{store}} when store products are available. Subscriptions renew automatically unless cancelled."
 }

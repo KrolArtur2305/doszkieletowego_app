@@ -39,5 +39,5 @@
   "actions": {
     "choose": "Wybieram"
   },
-  "launchInfo": "Ceny są pobierane z App Store, gdy produkty sklepu są dostępne. Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane."
+  "launchInfo": "Ceny są pobierane z {{store}}, gdy produkty sklepu są dostępne. Subskrypcje odnawiają się automatycznie, jeśli nie zostaną anulowane."
 }

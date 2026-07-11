@@ -43,6 +43,7 @@ type UserContext = {
   firstName: string | null;
   projectName: string | null;
   location: string | null;
+  country: string | null;
   totalBudget: number | null;
   spentBudget: number | null;
   startDate: string | null;
@@ -249,6 +250,25 @@ Zasady:
 `.trim();
 }
 
+function buildNewConstructionDomainPrompt(): string {
+  return [
+    "Domain rule for BuildIQ AI Manager:",
+    "Always assume the user is building a new detached house from scratch.",
+    "Always assume the project is a private single-family house, not an apartment, multi-family building, commercial building, hall, or public facility.",
+    "BuildIQ is not intended for renovations, modernization, retrofits, or existing old/occupied buildings.",
+    "Do not ask whether the house is new or old.",
+    "Do not ask whether the building is already insulated, occupied, being renovated, or being modernized.",
+    "Do not suggest that the user's case may involve an old house, renovation, thermomodernization, or modernization of an existing building.",
+    "When the user asks about heat pumps, heating, recuperation, foundations, roofs, insulation, materials, installations, or schedule, answer in the context of a newly built house.",
+    "If clarification is needed, ask about new-build parameters such as design, floor area, insulation standard, construction stage, location, budget, planned systems, or technical assumptions.",
+    "Never ask about the age, current occupancy, past insulation, or renovation history of a building.",
+    "Use the user's project country from hidden context to choose legal/building context, terminology, and assumptions.",
+    "If the country is Poland, use Polish construction context. If the country is another country, avoid Polish-only legal assumptions unless the user asks about Poland.",
+    "Use metric units by default, but if the project country is the United States or the user uses US customary units, use US customary units and optionally include metric equivalents when helpful.",
+    "When the user asks about order of work, timing, or whether something can be done now, answer by stages: prerequisites, what to check now, and the next practical step.",
+  ].join(" ");
+}
+
 function normalizeAppLanguage(value: unknown): "pl" | "en" | "de" | null {
   if (typeof value !== "string") return null;
   const base = value.trim().toLowerCase().split("-")[0];
@@ -353,7 +373,9 @@ function buildEnhancedHiddenUserContext(ctx: UserContext): string {
 Hidden project context:
 - User first name: ${formatContextLine(ctx.firstName)}
 - Project name/type: ${formatContextLine(ctx.projectName)}
+- Domain assumption: this is a new detached-house construction project from scratch, not a renovation, modernization, retrofit, or existing old/occupied building.
 - Location: ${formatContextLine(ctx.location)}
+- Project country: ${formatContextLine(ctx.country)}
 - Total budget: ${formatContextMoney(ctx.totalBudget)}
 - Spent budget: ${formatContextMoney(ctx.spentBudget)}
 - Planned start date: ${formatContextLine(ctx.startDate)}
@@ -381,6 +403,13 @@ ${risks}
 
 Rules for using this data:
 - Use this context only when it is relevant to the user's question.
+- Always interpret construction questions as questions about a new house being built from scratch.
+- Always interpret the project as a private single-family house.
+- Use the project country for legal/building context and terminology. Do not assume Polish law if the country is not Poland.
+- Use metric units by default. If the country is the United States or the user uses US customary units, use US customary units and optionally add metric equivalents.
+- For questions about order of work, timing, or whether something can be done now, answer by stages: prerequisites, checks, next step.
+- Do not ask whether the building is old, already insulated, occupied, being renovated, or being modernized.
+- For heat pumps, heating, ventilation, recuperation, foundations, roofs, insulation, and installations, answer for a newly built house.
 - Do not mention missing data unless it matters.
 - When discussing budget, schedule, stages, tasks, or risks, ground the answer in this context.
 - Keep the answer concise and practical.
@@ -751,6 +780,7 @@ async function fetchInvestment(
 ): Promise<{
   projectName: string | null;
   location: string | null;
+  country: string | null;
   totalBudget: number | null;
   startDate: string | null;
   endDate: string | null;
@@ -772,6 +802,7 @@ async function fetchInvestment(
   return {
     projectName: normalizeText(data?.nazwa) || null,
     location: locationParts.length > 0 ? Array.from(new Set(locationParts)).join(", ") : null,
+    country: normalizeText(data?.location_country) || null,
     totalBudget: toNumber(data?.budzet),
     startDate: normalizeText(data?.data_start) || null,
     endDate: normalizeText(data?.data_koniec) || null,
@@ -1052,6 +1083,7 @@ async function getUserContext(
     firstName,
     projectName: investment.projectName,
     location: investment.location,
+    country: investment.country,
     totalBudget: investment.totalBudget,
     spentBudget,
     startDate: investment.startDate,
@@ -1136,6 +1168,10 @@ async function createOpenAIResponse(params: {
     {
       role: "developer",
       content: buildDeveloperPrompt(params.assistantName),
+    },
+    {
+      role: "developer",
+      content: buildNewConstructionDomainPrompt(),
     },
     {
       role: "developer",

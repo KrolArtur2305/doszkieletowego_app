@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 import type { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
 import { publicConfig } from '../../../lib/supabase';
@@ -19,6 +20,31 @@ export type PurchasePackageResult = {
 let configuredApiKey: string | null = null;
 let configuredPlatform: RevenueCatPlatformConfig['platform'] | null = null;
 const warnedStatuses = new Set<string>();
+
+function isDevelopmentLogEnabled() {
+  return typeof __DEV__ !== 'undefined' && __DEV__;
+}
+
+function maskApiKey(apiKey: string | null): string {
+  if (!apiKey) return 'missing';
+  if (apiKey.length <= 10) return `${apiKey.slice(0, 3)}...${apiKey.slice(-2)}`;
+  return `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}`;
+}
+
+function getErrorDiagnostics(error: any) {
+  return {
+    code: error?.code ?? error?.errorCode ?? null,
+    message: error?.message ?? String(error ?? 'unknown'),
+    underlyingErrorMessage: error?.underlyingErrorMessage ?? null,
+    readableErrorCode: error?.readableErrorCode ?? null,
+    userCancelled: error?.userCancelled ?? null,
+  };
+}
+
+function logDevelopment(message: string, data?: Record<string, unknown>) {
+  if (!isDevelopmentLogEnabled()) return;
+  console.log(message, data ?? {});
+}
 
 function warnOnce(key: string, message: string) {
   if (warnedStatuses.has(key)) return;
@@ -111,6 +137,11 @@ async function ensureConfigured(): Promise<boolean> {
   if (configuredApiKey === apiKey && configuredPlatform === platformConfig.platform) return true;
 
   const Purchases = await getPurchasesModule();
+  logDevelopment('[RevenueCat] configure', {
+    platform: platformConfig.platform,
+    packageName: Application.applicationId ?? null,
+    apiKey: maskApiKey(apiKey),
+  });
   Purchases.configure({ apiKey });
   configuredApiKey = apiKey;
   configuredPlatform = platformConfig.platform;
@@ -173,12 +204,32 @@ export async function getCustomerInfoSafe(): Promise<CustomerInfo | null> {
 export async function getOfferingsSafe(): Promise<PurchasesOfferings | null> {
   try {
     const ready = await ensureConfigured();
-    if (!ready) return null;
+    if (!ready) {
+      logDevelopment('[RevenueCat] offerings skipped', {
+        platform: Platform.OS,
+        packageName: Application.applicationId ?? null,
+        supportStatus: getRevenueCatSupportStatus(),
+        apiKey: maskApiKey(getRevenueCatPlatformConfig()?.apiKey ?? null),
+      });
+      return null;
+    }
 
     const Purchases = await getPurchasesModule();
-    return await Purchases.getOfferings();
-  } catch (error) {
-    console.warn('[RevenueCat] getOfferingsSafe failed:', error);
+    const offerings = await Purchases.getOfferings();
+    logDevelopment('[RevenueCat] offerings', {
+      platform: Platform.OS,
+      packageName: Application.applicationId ?? null,
+      currentOffering: offerings.current?.identifier ?? null,
+      packageIdentifiers: offerings.current?.availablePackages?.map((pkg: PurchasesPackage) => ({
+        packageIdentifier: pkg.identifier,
+        productIdentifier: pkg.product.identifier,
+        packageType: pkg.packageType,
+        priceString: pkg.product.priceString,
+      })) ?? [],
+    });
+    return offerings;
+  } catch (error: any) {
+    console.warn('[RevenueCat] getOfferingsSafe failed:', getErrorDiagnostics(error));
     return null;
   }
 }
@@ -211,7 +262,7 @@ export async function purchasePackageSafe(pkg: PurchasesPackage): Promise<Purcha
       return { customerInfo: null, cancelled: true, error: null };
     }
 
-    console.warn('[RevenueCat] purchasePackageSafe failed:', error);
+    console.warn('[RevenueCat] purchasePackageSafe failed:', getErrorDiagnostics(error));
     return { customerInfo: null, cancelled: false, error };
   }
 }
