@@ -226,6 +226,84 @@ function isSpentStatus(value: unknown): boolean {
   );
 }
 
+type AiStageGroupCode = "stan_zero" | "sso" | "ssz" | "instalacje" | "wykonczenie";
+
+const AI_STAGE_GROUPS: AiStageGroupCode[] = [
+  "stan_zero",
+  "sso",
+  "ssz",
+  "instalacje",
+  "wykonczenie",
+];
+
+function normalizePlain(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeAiWorkflowCode(buildType: unknown): "masonry" | "timber_frame" {
+  const value = normalizePlain(buildType);
+  return value === "szkieletowy" || value === "timber_frame" || value === "timber frame"
+    ? "timber_frame"
+    : "masonry";
+}
+
+function normalizeAiStageGroupCode(value: unknown): AiStageGroupCode | null {
+  const raw = normalizePlain(value);
+  if (!raw) return null;
+  if (raw === "stan_zero" || raw === "stan zero" || raw === "zero" || raw === "foundations" || raw === "fundamenty") return "stan_zero";
+  if (raw === "sso" || raw === "open_shell" || raw === "stan surowy otwarty" || raw === "surowy otwarty" || raw === "otwarty") return "sso";
+  if (raw === "ssz" || raw === "closed_shell" || raw === "stan surowy zamkniety" || raw === "surowy zamkniety" || raw === "zamkniety") return "ssz";
+  if (raw === "instalacje" || raw === "installations" || raw === "instalacja") return "instalacje";
+  if (raw === "wykonczenie" || raw === "developer_state" || raw === "stan deweloperski" || raw === "deweloperski" || raw === "finish" || raw === "finishing") return "wykonczenie";
+  return null;
+}
+
+function fallbackAiGroupFromStageCode(stageCode: unknown): AiStageGroupCode | null {
+  const code = String(stageCode ?? "").trim().toUpperCase();
+  const direct = normalizeAiStageGroupCode(code);
+  if (direct) return direct;
+  if (/^[AB]0[12]_/.test(code)) return "stan_zero";
+  if (/^[AB]03_/.test(code)) return "sso";
+  if (/^[AB]04_/.test(code)) return "ssz";
+  if (/^[AB]0[56]_/.test(code)) return "instalacje";
+  if (/^[AB](0[7-9]|1[0-3])_/.test(code)) return "wykonczenie";
+  const shortMatch = code.match(/^([AB])(\d{1,2})$/);
+  if (shortMatch) {
+    const n = Number.parseInt(shortMatch[2], 10);
+    if (n <= 2) return "stan_zero";
+    if (n <= 3) return "sso";
+    if (n <= 4) return "ssz";
+    if (n <= 6) return "instalacje";
+    return "wykonczenie";
+  }
+  return null;
+}
+
+function aiStageGroupLabel(groupCode: AiStageGroupCode | null): string | null {
+  switch (groupCode) {
+    case "stan_zero":
+      return "Stan zero";
+    case "sso":
+      return "Stan surowy otwarty (SSO)";
+    case "ssz":
+      return "Stan surowy zamkniety (SSZ)";
+    case "instalacje":
+      return "Instalacje";
+    case "wykonczenie":
+      return "Wykonczenie";
+    default:
+      return null;
+  }
+}
+
+function aiStageGroupFromRow(row: Record<string, unknown>): AiStageGroupCode | null {
+  return normalizeAiStageGroupCode(row?.stage_group_code) ?? fallbackAiGroupFromStageCode(row?.stage_code);
+}
+
 function buildDeveloperPrompt(assistantName: string | null): string {
   const safeName = assistantName?.trim() || "Buddy";
 
@@ -876,6 +954,109 @@ async function fetchCurrentStage(
   return normalizeText(last?.nazwa) || null;
 }
 
+async function fetchStageModelSummary(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  investmentId: string | null,
+): Promise<{
+  currentStage: string | null;
+  nextStage: string | null;
+  stagesDone: number | null;
+  stagesTotal: number | null;
+}> {
+  let ownerUserId = userId;
+
+  if (investmentId) {
+    const { data: investmentData } = await supabase
+      .from("inwestycje")
+      .select("user_id")
+      .eq("id", investmentId)
+      .maybeSingle();
+    ownerUserId = normalizeText(investmentData?.user_id) || userId;
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("build_type, current_stage_code")
+    .eq("user_id", ownerUserId)
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    return { currentStage: null, nextStage: null, stagesDone: null, stagesTotal: null };
+  }
+
+  const workflowCode = normalizeAiWorkflowCode(profile?.build_type);
+  const currentStageCode = String(profile?.current_stage_code ?? "").trim().toUpperCase();
+
+  const { data: templates, error: templatesError } = await supabase
+    .from("stage_templates")
+    .select("workflow_code, stage_group_code, stage_code, order_index, is_active")
+    .eq("workflow_code", workflowCode)
+    .eq("is_active", true)
+    .order("order_index", { ascending: true });
+
+  if (templatesError || !Array.isArray(templates) || templates.length === 0) {
+    const group = fallbackAiGroupFromStageCode(currentStageCode);
+    return {
+      currentStage: aiStageGroupLabel(group),
+      nextStage: null,
+      stagesDone: null,
+      stagesTotal: null,
+    };
+  }
+
+  const matchedTemplate = templates.find((row) =>
+    String(row?.stage_code ?? "").trim().toUpperCase() === currentStageCode
+  );
+  const currentGroup =
+    aiStageGroupFromRow((matchedTemplate ?? {}) as Record<string, unknown>) ??
+    fallbackAiGroupFromStageCode(currentStageCode) ??
+    aiStageGroupFromRow((templates[0] ?? {}) as Record<string, unknown>);
+
+  const currentIndex = Math.max(0, AI_STAGE_GROUPS.findIndex((group) => group === currentGroup));
+  const nextGroup = AI_STAGE_GROUPS[currentIndex + 1] ?? null;
+
+  const userStagesQuery = supabase
+    .from("user_stages")
+    .select("workflow_code, stage_group_code, stage_code, status")
+    .eq("workflow_code", workflowCode);
+
+  const { data: userStages } = investmentId
+    ? await userStagesQuery.eq("investment_id", investmentId).limit(1000)
+    : await userStagesQuery.eq("user_id", ownerUserId).limit(1000);
+
+  const userStageRows = Array.isArray(userStages) ? userStages : [];
+  const doneStageCodes = new Set(
+    userStageRows
+      .filter((row) => isCompletedStatus(row?.status))
+      .map((row) => String(row?.stage_code ?? "").trim().toUpperCase())
+      .filter(Boolean),
+  );
+  const hiddenStageCodes = new Set(
+    userStageRows
+      .filter((row) => {
+        const status = normalizeStatus(row?.status);
+        return status === "hidden" || status === "not_applicable" || status === "skipped";
+      })
+      .map((row) => String(row?.stage_code ?? "").trim().toUpperCase())
+      .filter(Boolean),
+  );
+
+  const visibleTemplates = templates.filter((row) => {
+    const code = String(row?.stage_code ?? "").trim().toUpperCase();
+    return !hiddenStageCodes.has(code);
+  });
+
+  return {
+    currentStage: aiStageGroupLabel(currentGroup),
+    nextStage: aiStageGroupLabel(nextGroup),
+    stagesDone: visibleTemplates.filter((row) =>
+      doneStageCodes.has(String(row?.stage_code ?? "").trim().toUpperCase())
+    ).length,
+    stagesTotal: visibleTemplates.length,
+  };
+}
+
 async function fetchStageSummary(
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -886,6 +1067,11 @@ async function fetchStageSummary(
   stagesDone: number | null;
   stagesTotal: number | null;
 }> {
+  const stageModelSummary = await fetchStageModelSummary(supabase, userId, investmentId);
+  if (stageModelSummary.currentStage) {
+    return stageModelSummary;
+  }
+
   const query = supabase
     .from("etapy")
     .select("nazwa, status, kolejnosc");

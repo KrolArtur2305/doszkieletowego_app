@@ -331,6 +331,28 @@
                   "fileOptional":  "Beleg hinzufÄ‚Ä˝gen (PDF/JPG/PNG) - optional",
                   "fileSelected":  "AusgewÄ‚Â¤hlt: {{name}}"
               },
+    "export":  {
+                   "button":  "Ausgaben exportieren",
+                   "generating":  "Datei wird erstellt...",
+                   "shareTitle":  "Ausgaben exportieren",
+                   "failed":  "Die CSV-Datei konnte nicht erstellt werden. Versuche es erneut.",
+                   "unavailableTitle":  "Export nicht verfügbar",
+                   "unavailableMessage":  "Auf diesem Gerät kann derzeit keine CSV-Datei gespeichert oder geteilt werden.",
+                   "headers":  {
+                                   "name":  "Ausgabenname",
+                                   "stage":  "Phase",
+                                   "category":  "Kategorie",
+                                   "type":  "Typ",
+                                   "status":  "Status",
+                                   "amount":  "Betrag",
+                                   "currency":  "Währung",
+                                   "date":  "Datum",
+                                   "plannedDate":  "Geplantes Datum",
+                                   "description":  "Beschreibung",
+                                   "vendor":  "Geschäft / Auftragnehmer",
+                                   "file":  "Datei"
+                               }
+               },
     "errorTitle":  "Fehler",
     "fallback":  {
                      "stage":  "Phase"

@@ -29,6 +29,23 @@ function isWorkflowPrefix(code: string) {
   return normalized.startsWith('A') || normalized.startsWith('B');
 }
 
+function stageNumberFromGroupLike(value: unknown): number | null {
+  const normalized = normalize(value);
+  if (!normalized) return null;
+  if (normalized === 'stan_zero' || normalized === 'stan zero' || normalized === 'zero' || normalized === 'foundations' || normalized === 'fundamenty') return 1;
+  if (normalized === 'sso' || normalized === 'open_shell' || normalized === 'stan surowy otwarty' || normalized === 'surowy otwarty' || normalized === 'otwarty') return 3;
+  if (normalized === 'ssz' || normalized === 'closed_shell' || normalized === 'stan surowy zamkniety' || normalized === 'surowy zamkniety' || normalized === 'zamkniety') return 4;
+  if (normalized === 'instalacje' || normalized === 'installations' || normalized === 'instalacja') return 5;
+  if (normalized === 'wykonczenie' || normalized === 'developer_state' || normalized === 'stan deweloperski' || normalized === 'deweloperski' || normalized === 'finish' || normalized === 'finishing') return 7;
+  return null;
+}
+
+function stageCodeFromGroupLike(value: unknown, buildType: unknown): string | null {
+  const stageNumber = stageNumberFromGroupLike(value);
+  if (!stageNumber) return null;
+  return `${workflowStagePrefix(buildType)}${String(stageNumber).padStart(2, '0')}_01`;
+}
+
 export function stageCodeMatchesWorkflow(stageCode: unknown, buildType: unknown): boolean {
   const code = String(stageCode ?? '').trim().toUpperCase();
   if (!code) return false;
@@ -56,8 +73,10 @@ export function remapStageCodeForBuildType(stageCode: unknown, buildType: unknow
   const workflowType = normalizeBuildType(buildType);
   const prefix = workflowStagePrefix(workflowType);
   const code = String(stageCode ?? '').trim().toUpperCase();
+  const groupStageCode = stageCodeFromGroupLike(stageCode, workflowType);
 
   if (!code) return `${prefix}1`;
+  if (groupStageCode) return groupStageCode;
   if (code.startsWith(prefix)) return code;
   if (code.startsWith('A') || code.startsWith('B')) {
     return `${prefix}${code.slice(1)}`;
@@ -73,8 +92,10 @@ export function resolveRuntimeCurrentStageCode<T extends { nazwa_code?: string |
   const workflowType = normalizeBuildType(buildType);
   const prefix = workflowStagePrefix(workflowType);
   const current = String(currentStageCode ?? '').trim().toUpperCase();
+  const groupStageCode = stageCodeFromGroupLike(currentStageCode, workflowType);
 
   if (current.startsWith(prefix)) return current;
+  if (groupStageCode) return groupStageCode;
   if (isWorkflowPrefix(current)) return `${prefix}1`;
 
   const workflowRows = filterWorkflowStages(rows, workflowType);

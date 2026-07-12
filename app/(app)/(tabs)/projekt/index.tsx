@@ -396,6 +396,7 @@ export default function ProjektScreen() {
   const [userFirstName, setUserFirstName] = useState('')
   const [buddyDisplayName, setBuddyDisplayName] = useState('')
   const [lokalizacja, setLokalizacja] = useState<string | null>(null)
+  const [locationCountry, setLocationCountry] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -594,7 +595,7 @@ export default function ProjektScreen() {
   const openInstallationDetails = (item: InstallationListItem) => {
     router.push({
       pathname: '/(app)/(tabs)/projekt/instalacje',
-      params: { title: item.label, icon: item.icon },
+      params: { title: item.label, icon: item.icon, detailKey: item.key, country: locationCountry ?? '' },
     })
   }
 
@@ -613,6 +614,7 @@ export default function ProjektScreen() {
           setProjekt(null)
           setRzuty([])
           setLokalizacja(null)
+          setLocationCountry(null)
           setLoading(false)
           return
         }
@@ -631,8 +633,8 @@ export default function ProjektScreen() {
             ? supabase.from('projekty').select('*').eq('investment_id', scopeInvestmentId).maybeSingle()
             : supabase.from('projekty').select('*').eq('user_id', user.id).maybeSingle(),
           scopeInvestmentId
-            ? supabase.from('inwestycje').select('lokalizacja').eq('id', scopeInvestmentId).maybeSingle()
-            : supabase.from('inwestycje').select('lokalizacja').eq('user_id', user.id).maybeSingle(),
+            ? supabase.from('inwestycje').select('lokalizacja,location_country').eq('id', scopeInvestmentId).maybeSingle()
+            : supabase.from('inwestycje').select('lokalizacja,location_country').eq('user_id', user.id).maybeSingle(),
           supabase.from('profiles').select('imie, ai_buddy_name').eq('user_id', scopeUserId).maybeSingle()])
 
         if (projErr) throw projErr
@@ -643,6 +645,7 @@ export default function ProjektScreen() {
         const nextProjekt = (projData as any) ?? null
         setProjekt(nextProjekt)
         setLokalizacja((invData as any)?.lokalizacja ?? null)
+        setLocationCountry((invData as any)?.location_country ?? null)
         const nextInstallationsConfig = normalizeInstallationConfig(nextProjekt?.installations_config)
         setInstallationsConfig(nextInstallationsConfig && isEmptyInstallationDraft(nextInstallationsConfig) ? null : nextInstallationsConfig)
         setUserFirstName(

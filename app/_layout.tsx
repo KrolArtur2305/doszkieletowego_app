@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import { Image, Platform, Text, View } from 'react-native';
+import { Image, Platform, Text, useColorScheme, View } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { useFonts, Rubik_700Bold, Rubik_800ExtraBold } from '@expo-google-fonts/rubik';
 import { Syne_800ExtraBold } from '@expo-google-fonts/syne';
@@ -42,7 +42,9 @@ export default function RootLayout() {
   const [diagnosticsReady, setDiagnosticsReady] = useState(false);
   const [crashSnapshot, setCrashSnapshot] = useState<RuntimeDiagnosticSnapshot | null>(null);
   const [fontsLoaded] = useFonts({ Rubik_700Bold, Rubik_800ExtraBold, Syne_800ExtraBold });
+  const colorScheme = useColorScheme();
   const { t } = useTranslation('common');
+  const androidSystemBarBg = colorScheme === 'light' ? '#FFFFFF' : '#000000';
 
   const {
     lifecycleModal,
@@ -59,11 +61,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
-    NavigationBar.setStyle('dark');
-    void NavigationBar.setButtonStyleAsync('light').catch(() => {
+    NavigationBar.setStyle(colorScheme === 'light' ? 'light' : 'dark');
+    void NavigationBar.setButtonStyleAsync(colorScheme === 'light' ? 'dark' : 'light').catch(() => {
       // Navigation bar styling is best-effort and must not affect app startup.
     });
-  }, []);
+  }, [colorScheme]);
 
   useEffect(() => {
     let mounted = true;
@@ -160,7 +162,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="light" translucent />
 
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: Platform.OS === 'android' ? androidSystemBarBg : '#000000' }}>
           <AppErrorBoundary>
             {configErrorScreen ?? (showCrashReport ? (
               <RuntimeCrashReport

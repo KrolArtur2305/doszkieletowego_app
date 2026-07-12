@@ -12,8 +12,11 @@ type AppHeaderProps = {
   rightSlot?: React.ReactNode;
   logoStyle?: StyleProp<ImageStyle>;
   titleStyle?: StyleProp<TextStyle>;
+  titleWrapStyle?: StyleProp<ViewStyle>;
   height?: number;
   sideSlotWidth?: number;
+  titleNumberOfLines?: number;
+  titleMinimumFontScale?: number;
 };
 
 export function AppHeader({
@@ -22,8 +25,11 @@ export function AppHeader({
   rightSlot,
   logoStyle,
   titleStyle,
+  titleWrapStyle,
   height = header.height,
   sideSlotWidth = header.sideSlot,
+  titleNumberOfLines = 1,
+  titleMinimumFontScale = 0.8,
 }: AppHeaderProps) {
   return (
     <View style={[styles.root, { height }, style]}>
@@ -36,11 +42,11 @@ export function AppHeader({
         />
       </View>
 
-      <View pointerEvents="none" style={styles.titleWrap}>
+      <View pointerEvents="none" style={[styles.titleWrap, titleWrapStyle]}>
         <Text
-          numberOfLines={1}
+          numberOfLines={titleNumberOfLines}
           adjustsFontSizeToFit
-          minimumFontScale={0.8}
+          minimumFontScale={titleMinimumFontScale}
           style={[styles.title, titleStyle]}
         >
           {title}

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   Keyboard,
   Linking,
   Modal,
@@ -16,9 +18,11 @@ import {
 import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
+import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -161,6 +165,31 @@ const toYYYYMMDD = (d: Date) => {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+};
+
+const CSV_SEPARATOR = ';';
+
+const csvValue = (value: unknown) => {
+  const text = String(value ?? '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  if (text.includes('"') || text.includes('\n') || text.includes(CSV_SEPARATOR)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+};
+
+const buildCsv = (rows: unknown[][]) => {
+  return `\uFEFF${rows.map((row) => row.map(csvValue).join(CSV_SEPARATOR)).join('\r\n')}`;
+};
+
+const csvDate = (dateRaw: any) => {
+  if (!dateRaw) return '';
+  const d = new Date(dateRaw);
+  if (Number.isNaN(d.getTime())) return String(dateRaw).slice(0, 10);
+  return toYYYYMMDD(d);
+};
+
+const csvAmount = (value: unknown) => {
+  return String(safeNumber(value).toFixed(2)).replace('.', ',');
 };
 
 function clamp01(n: number) {
@@ -344,6 +373,27 @@ export default function BudzetScreen() {
   const [receiptKindByPath, setReceiptKindByPath] = useState<Record<string, ReceiptDocKind>>({});
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
   const [scanMenuOpen, setScanMenuOpen] = useState(false);
+  const [exportingExpenses, setExportingExpenses] = useState(false);
+  const exportAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!exportingExpenses) {
+      exportAnim.stopAnimation();
+      exportAnim.setValue(0);
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.timing(exportAnim, {
+        toValue: 1,
+        duration: 1050,
+        easing: Easing.inOut(Easing.quad),
+        useNativeDriver: true,
+      }),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [exportAnim, exportingExpenses]);
 
   const getScannerUpgradeTargetPlan = (code?: string | null): SubscriptionPlanKey | null => {
     if (code === 'scanner_quota_reached') {
@@ -466,9 +516,13 @@ export default function BudzetScreen() {
 
   const defaultCurrentStageOption = useMemo(() => {
     const normalizedCurrentStageCode = String(currentStageCode ?? '').trim().toUpperCase();
+    const currentStageGroupCode = stageGroupCodeFromStageCode(normalizedCurrentStageCode);
     return (
       (normalizedCurrentStageCode
         ? modalStageOptions.find((option) => String(option.stageCode ?? '').trim().toUpperCase() === normalizedCurrentStageCode)
+        : null) ??
+      (currentStageGroupCode !== 'other'
+        ? modalStageOptions.find((option) => option.stageGroupCode === currentStageGroupCode)
         : null) ??
       (activeStageId
         ? modalStageOptions.find((option) => option.legacyId === activeStageId)
@@ -1505,6 +1559,105 @@ export default function BudzetScreen() {
     return '';
   }, [etapy, stageTemplates, t]);
 
+  const resolveExpenseStageLabel = useCallback((expense: WydatkiRow) => {
+    const stageCode = String(expense.stage_code ?? '').trim().toUpperCase();
+    if (stageCode) {
+      return getStageDisplayName(t, { stageCode, legacyName: '' });
+    }
+
+    if (expense.etap_id && stageNameById[expense.etap_id]) {
+      return stageNameById[expense.etap_id];
+    }
+
+    const stageGroupCode = String(expense.stage_group_code ?? '').trim().toLowerCase();
+    if (stageGroupCode) {
+      return getStageGroupDisplayName(t, stageGroupCode, '');
+    }
+
+    return '';
+  }, [stageNameById, t]);
+
+  const handleExportExpenses = useCallback(async () => {
+    if (exportingExpenses) return;
+    setExportingExpenses(true);
+
+    try {
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        Alert.alert(
+          t('export.unavailableTitle'),
+          t('export.unavailableMessage'),
+        );
+        return;
+      }
+
+      const sortedExpenses = [...wydatki].sort((a, b) => {
+        const aDate = new Date(expenseDateForMonth(a) || a.created_at || 0).getTime() || 0;
+        const bDate = new Date(expenseDateForMonth(b) || b.created_at || 0).getTime() || 0;
+        return bDate - aDate;
+      });
+
+      const rows: unknown[][] = [
+        [
+          t('export.headers.name'),
+          t('export.headers.stage'),
+          t('export.headers.category'),
+          t('export.headers.type'),
+          t('export.headers.status'),
+          t('export.headers.amount'),
+          t('export.headers.currency'),
+          t('export.headers.date'),
+          t('export.headers.plannedDate'),
+          t('export.headers.description'),
+          t('export.headers.vendor'),
+          t('export.headers.file'),
+        ],
+        ...sortedExpenses.map((expense) => {
+          const type = normalizeExpenseTypeCode(expense.expense_type ?? expense.typ);
+          const status = normalizeExpenseStatus(expense.status);
+          return [
+            expense.nazwa || t('expense.defaultName'),
+            resolveExpenseStageLabel(expense),
+            getBudgetCategoryLabel(expense.expense_category_code ?? expense.kategoria, t),
+            type === TYPE_SERVICE
+              ? t('type.service')
+              : type === TYPE_MIXED
+                ? t('type.mixed')
+                : type === TYPE_OTHER
+                  ? t('type.other')
+                  : t('type.material'),
+            status === STATUS_PLANNED ? t('status.planned') : t('status.paid'),
+            csvAmount(expense.kwota),
+            currency,
+            csvDate(expense.data),
+            csvDate(expense.planowana_data),
+            expense.opis ?? '',
+            expense.sklep ?? '',
+            expense.plik ?? '',
+          ];
+        }),
+      ];
+
+      const csv = buildCsv(rows);
+      const file = new FileSystem.File(FileSystem.Paths.cache, `buildiq-wydatki-${toYYYYMMDD(new Date())}.csv`);
+
+      file.write(csv);
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'text/csv',
+        dialogTitle: t('export.shareTitle'),
+        UTI: 'public.comma-separated-values-text',
+      });
+    } catch (error: any) {
+      console.warn('[Budget] expenses export failed:', error?.message ?? error);
+      Alert.alert(
+        t('errorTitle'),
+        t('export.failed'),
+      );
+    } finally {
+      setExportingExpenses(false);
+    }
+  }, [currency, exportingExpenses, resolveExpenseStageLabel, t, wydatki]);
+
   const suggestionTypeLabel = useCallback((type: string | null | undefined) => {
     const normalized = normalize(type);
     if (normalized === TYPE_SERVICE) return t('type.service');
@@ -1540,6 +1693,15 @@ export default function BudzetScreen() {
     activeScanDraftIdRef.current = null;
     setAddOpen(true);
   }, [activeStageId, stageGroupOptions, suggestionName]);
+
+  const exportSpin = exportAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+  const exportGlowOpacity = exportAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.12, 0.32, 0.12],
+  });
 
   return (
     <AppScreen>
@@ -1802,6 +1964,27 @@ export default function BudzetScreen() {
         <TouchableOpacity style={styles.allExpensesLink} onPress={() => openAllExpenses('all', 'date')} activeOpacity={0.86}>
           <Text style={styles.allExpensesLinkText}>{t('list.openAll')}</Text>
           <Feather name="arrow-right" size={16} color={NEON} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.exportExpensesButton, exportingExpenses && styles.exportExpensesButtonBusy]}
+          onPress={handleExportExpenses}
+          activeOpacity={0.86}
+          disabled={exportingExpenses}
+        >
+          {exportingExpenses ? (
+            <>
+              <Animated.View style={[styles.exportExpensesGlow, { opacity: exportGlowOpacity }]} />
+              <Animated.View style={[styles.exportExpensesSpinner, { transform: [{ rotate: exportSpin }] }]} />
+            </>
+          ) : (
+            <Feather name="download" size={16} color="#07120F" />
+          )}
+          <Text style={[styles.exportExpensesText, exportingExpenses && styles.exportExpensesTextBusy]}>
+            {exportingExpenses
+              ? t('export.generating')
+              : t('export.button')}
+          </Text>
         </TouchableOpacity>
 
         {/* MODAL */}
@@ -2197,6 +2380,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(37,240,200,0.26)'},
   allExpensesLinkText: { color: NEON, fontSize: 13, fontWeight: '900' },
+  exportExpensesButton: {
+    marginTop: 10,
+    minHeight: 48,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    overflow: 'hidden',
+    backgroundColor: NEON,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)'},
+  exportExpensesButtonBusy: {
+    backgroundColor: 'rgba(37,240,200,0.22)',
+    borderColor: 'rgba(37,240,200,0.38)'},
+  exportExpensesGlow: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FFFFFF'},
+  exportExpensesSpinner: {
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.28)',
+    borderTopColor: '#FFFFFF'},
+  exportExpensesText: {
+    color: '#07120F',
+    fontSize: 13,
+    fontWeight: '900'},
+  exportExpensesTextBusy: {
+    color: '#F8FAFC'},
 
   vLabel: { marginTop: 8, color: 'rgba(255,255,255,0.78)', fontWeight: '900', fontSize: 11, textAlign: 'center' },
 

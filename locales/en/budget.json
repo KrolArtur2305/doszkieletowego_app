@@ -331,6 +331,28 @@
                   "fileOptional":  "Add receipt (PDF/JPG/PNG) â€” optional",
                   "fileSelected":  "Selected: {{name}}"
               },
+    "export":  {
+                   "button":  "Export expenses",
+                   "generating":  "Generating file...",
+                   "shareTitle":  "Export expenses",
+                   "failed":  "Could not generate the CSV file. Try again.",
+                   "unavailableTitle":  "Export unavailable",
+                   "unavailableMessage":  "This device cannot save or share a CSV file right now.",
+                   "headers":  {
+                                   "name":  "Expense name",
+                                   "stage":  "Stage",
+                                   "category":  "Category",
+                                   "type":  "Type",
+                                   "status":  "Status",
+                                   "amount":  "Amount",
+                                   "currency":  "Currency",
+                                   "date":  "Date",
+                                   "plannedDate":  "Planned date",
+                                   "description":  "Description",
+                                   "vendor":  "Store / contractor",
+                                   "file":  "File"
+                               }
+               },
     "errorTitle":  "Error",
     "fallback":  {
                      "stage":  "Stage"

@@ -166,6 +166,9 @@ export function stageGroupCodeFromStageCode(
   stageCode: unknown,
   stageTemplates?: Pick<StageTemplateLike, 'stage_code' | 'stage_group_code'>[]
 ): StageGroupCode {
+  const directGroup = normalizeStageGroupCode(stageCode);
+  if (directGroup !== 'other') return directGroup;
+
   const raw = String(stageCode ?? '').trim().toUpperCase();
   if (!raw) return 'other';
 

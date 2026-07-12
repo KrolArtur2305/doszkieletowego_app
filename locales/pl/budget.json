@@ -331,6 +331,28 @@
                   "fileOptional":  "Dodaj paragon (PDF/JPG/PNG) - opcjonalnie",
                   "fileSelected":  "Wybrano: {{name}}"
               },
+    "export":  {
+                   "button":  "Eksportuj wydatki",
+                   "generating":  "Generuję plik...",
+                   "shareTitle":  "Eksportuj wydatki",
+                   "failed":  "Nie udało się wygenerować pliku CSV. Spróbuj ponownie.",
+                   "unavailableTitle":  "Eksport niedostępny",
+                   "unavailableMessage":  "Na tym urządzeniu nie można teraz zapisać ani udostępnić pliku CSV.",
+                   "headers":  {
+                                   "name":  "Nazwa wydatku",
+                                   "stage":  "Etap",
+                                   "category":  "Kategoria",
+                                   "type":  "Typ",
+                                   "status":  "Status",
+                                   "amount":  "Kwota",
+                                   "currency":  "Waluta",
+                                   "date":  "Data",
+                                   "plannedDate":  "Planowana data",
+                                   "description":  "Opis",
+                                   "vendor":  "Sklep / wykonawca",
+                                   "file":  "Plik"
+                               }
+               },
     "errorTitle":  "Błąd",
     "fallback":  {
                      "stage":  "Etap"
