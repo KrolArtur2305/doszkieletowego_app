@@ -38,6 +38,7 @@ import { fetchCurrentBuildAccess, isNonOwnerBuildRole, type BuildAccess } from '
 import { cancelAllNotifications, registerPushToken, syncAllTaskReminders } from '../../../../lib/notifications';
 import { isPushOptedOut, removePushToken, setPushOptOut } from '../../../../src/services/notifications/pushService';
 import { AppButton, AppInput } from '../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -60,6 +61,7 @@ function getAppVersionLabel(unknownLabel: string): string {
 export default function UstawieniaAplikacjiScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation(['settings', 'common']);
+  const ensureOnlineAction = useOnlineActionGuard();
   const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
   const bottomPad = Math.max(60, insets.bottom + 96);
@@ -131,6 +133,8 @@ export default function UstawieniaAplikacjiScreen() {
   }, []);
 
   const handleNotifToggle = async (value: boolean) => {
+    if (!ensureOnlineAction('Zmiana ustawień powiadomień wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     if (value) {
       await setPushOptOut(false);
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -184,6 +188,8 @@ export default function UstawieniaAplikacjiScreen() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handleChangePassword = async () => {
+    if (!ensureOnlineAction('Zmiana hasła wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     if (!newPwd || newPwd.length < 8) {
       Alert.alert(
         t('appSettings.password.errorTitle'),
@@ -236,6 +242,8 @@ export default function UstawieniaAplikacjiScreen() {
           text: t('appSettings.deleteAccount.confirmBtn'),
           style: 'destructive',
           onPress: async () => {
+            if (!ensureOnlineAction('Usunięcie konta wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
             setDeletingAccount(true);
             try {
               const user = await getUserWithTimeout();

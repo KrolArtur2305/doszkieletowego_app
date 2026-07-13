@@ -32,6 +32,7 @@ import { getFriendlyErrorMessage } from '../../../../lib/errorMessages';
 import { getAppLocale } from '../../../../lib/i18n';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 import {
   buildStageGroupPickerOptions,
@@ -121,6 +122,7 @@ function isAllowedImageAsset(asset: UploadPhotoAsset) {
 
 export default function ZdjeciaScreen() {
   const { t, i18n } = useTranslation(['photos', 'common']);
+  const ensureOnlineAction = useOnlineActionGuard();
   const params = useLocalSearchParams<{ openAdd?: string }>();
   const openedFromParamRef = useRef(false);
 
@@ -612,6 +614,8 @@ export default function ZdjeciaScreen() {
   };
 
   const handleSavePendingPhotos = async () => {
+    if (!ensureOnlineAction('Dodawanie zdjęć wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     if (!stagesReady) {
       Alert.alert(
         tt('common:errorTitle'),
@@ -838,6 +842,8 @@ export default function ZdjeciaScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (!ensureOnlineAction('Usuwanie zdjęcia wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
               const userId = await getUserId();
               if (!userId) throw new Error(tt('photos:alerts.loginRequired'));
               if (!canManagePhoto) throw new Error(tt('photos:alerts.deleteError'));

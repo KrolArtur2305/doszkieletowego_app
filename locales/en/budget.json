@@ -332,7 +332,7 @@
                   "fileSelected":  "Selected: {{name}}"
               },
     "export":  {
-                   "button":  "Export expenses",
+                   "button":  "Export expenses CSV",
                    "generating":  "Generating file...",
                    "shareTitle":  "Export expenses",
                    "failed":  "Could not generate the CSV file. Try again.",

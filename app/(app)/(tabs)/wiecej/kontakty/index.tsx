@@ -26,6 +26,7 @@ import { getFriendlyErrorMessage } from '../../../../../lib/errorMessages';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../../../components/FloatingAddButton';
 import { AppButton, AppHeader, AppInput } from '../../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../../src/services/network/NetworkStatusProvider';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -91,6 +92,7 @@ const isValidPhone = (phone: string) => {
 export default function KontaktyScreen() {
   const { session } = useSupabaseAuth();
   const { t } = useTranslation('contacts');
+  const ensureOnlineAction = useOnlineActionGuard();
   const topPad = 0;
 
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -181,6 +183,8 @@ export default function KontaktyScreen() {
   };
 
   const saveContact = async () => {
+    if (!ensureOnlineAction('Zapis kontaktu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     if (!form.imie_nazwisko.trim()) {
       Alert.alert(t('alerts.errorTitle'), t('alerts.nameRequired'));
       return;
@@ -247,6 +251,8 @@ export default function KontaktyScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
+            if (!ensureOnlineAction('Usuwanie kontaktu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
             const userId = session?.user?.id;
             if (!userId) return;
 

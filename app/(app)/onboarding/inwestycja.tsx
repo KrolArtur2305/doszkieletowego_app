@@ -29,6 +29,7 @@ import { AppButton, AppInput, PlaceAutocomplete } from '../../../src/ui/componen
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 import { getPlaceLocalityName, type PlaceSuggestion } from '../../../src/services/geocoding/places';
 import { getAppLocale, getDefaultCountry } from '../../../lib/i18n';
+import { useOnlineActionGuard } from '../../../src/services/network/NetworkStatusProvider';
 
 const BG = '#000000';
 const NEON = '#25F0C8';
@@ -64,6 +65,7 @@ function parseISODate(value: string) {
 export default function OnboardingInvestmentScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('investment');
+  const ensureOnlineAction = useOnlineActionGuard();
   const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
 
@@ -257,6 +259,7 @@ export default function OnboardingInvestmentScreen() {
 
   const handleSave = async () => {
     if (!userId || saving) return;
+    if (!ensureOnlineAction('Zapis inwestycji wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     const trimmedName = nazwa.trim();
 
@@ -359,6 +362,7 @@ export default function OnboardingInvestmentScreen() {
       router.replace(appleUser ? '/(app)/onboarding' : '/(app)/onboarding/profile');
       return;
     }
+    if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     try {
       await supabase.from('profiles').upsert(

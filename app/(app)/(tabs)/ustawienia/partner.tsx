@@ -45,6 +45,7 @@ import {
 } from '../../../../lib/investmentInvite';
 import { isExpertEquivalentPlan } from '../../../../src/config/subscriptionPlans';
 import { AppButton } from '../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -76,6 +77,7 @@ type PartnerPreset = 'view' | 'collab' | null;
 export default function BuildPartnerScreen() {
   const router = useRouter();
   const { t } = useTranslation(['settings', 'common']);
+  const ensureOnlineAction = useOnlineActionGuard();
   const insets = useSafeAreaInsets();
   const introScrollRef = useRef<ScrollView | null>(null);
   const { width: screenWidth } = useWindowDimensions();
@@ -342,6 +344,7 @@ export default function BuildPartnerScreen() {
 
   const handleConvertToPartner = () => {
     if (!pendingInviteCode || !investmentId || converting) return;
+    if (!ensureOnlineAction('Zmiana roli partnera wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     Alert.alert(
       t('settings:partner.convertWarningTitle'),
@@ -374,6 +377,7 @@ export default function BuildPartnerScreen() {
 
   const handleLeavePartner = () => {
     if (leaving) return;
+    if (!ensureOnlineAction('Opuszczenie budowy wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     Alert.alert(
       t('settings:partner.leaveTitle'),
@@ -404,6 +408,7 @@ export default function BuildPartnerScreen() {
 
   const handleRemovePartner = async (member: PartnerMember) => {
     if (!investmentId || membershipRole !== 'owner') return;
+    if (!ensureOnlineAction('Usunięcie partnera wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     Alert.alert(
       t('settings:partner.removeTitle'),
@@ -431,6 +436,7 @@ export default function BuildPartnerScreen() {
 
   const generateInvite = async () => {
     if (!investmentId || generating) return;
+    if (!ensureOnlineAction('Wygenerowanie zaproszenia wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     if (!isExpert) {
       setUpgradeNoticeVisible(true);
@@ -479,6 +485,7 @@ export default function BuildPartnerScreen() {
 
   const revokeInvite = async () => {
     if (!invite?.invite_code || !investmentId || membershipRole !== 'owner' || revoking) return;
+    if (!ensureOnlineAction('Wycofanie zaproszenia wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     Alert.alert(
       t('settings:partner.revokeTitle'),

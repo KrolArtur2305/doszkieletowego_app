@@ -332,7 +332,7 @@
                   "fileSelected":  "AusgewÄ‚Â¤hlt: {{name}}"
               },
     "export":  {
-                   "button":  "Ausgaben exportieren",
+                   "button":  "Ausgaben als CSV exportieren",
                    "generating":  "Datei wird erstellt...",
                    "shareTitle":  "Ausgaben exportieren",
                    "failed":  "Die CSV-Datei konnte nicht erstellt werden. Versuche es erneut.",

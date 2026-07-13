@@ -64,6 +64,7 @@ import {
 import { useSupabaseAuth } from '../../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppCard, AppInput, AppScreen } from '../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 import { colors, spacing, typography } from '../../../../src/ui/theme';
 import { RADIUS } from '../../../../theme';
 
@@ -195,6 +196,7 @@ const toYYYYMMDD = (d: Date) => {
 
 export default function WszystkieWydatkiScreen() {
   const { t, i18n } = useTranslation('budget');
+  const ensureOnlineAction = useOnlineActionGuard();
   const { currency } = useCurrency();
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
@@ -611,6 +613,7 @@ export default function WszystkieWydatkiScreen() {
   };
 
   const deleteExpense = async (row: WydatkiRow) => {
+    if (!ensureOnlineAction('Usuwanie wydatku wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
     if (!userId) return;
     try {
       const { data, error } = await supabase.functions.invoke('delete-expense', {
@@ -700,6 +703,8 @@ export default function WszystkieWydatkiScreen() {
   };
 
   const saveExpense = async () => {
+    if (!ensureOnlineAction('Zapis wydatku wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     if (!userId) return;
     const nazwa = fNazwa.trim();
     const kw = safeNumber(fKwota);

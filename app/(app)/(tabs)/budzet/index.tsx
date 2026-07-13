@@ -89,6 +89,7 @@ import {
 import { optimizeBudgetScanImage } from '../../../../src/features/budgetScanner/scannerImage';
 import { runBudgetScanOcr } from '../../../../src/features/budgetScanner/scanOcr';
 import type { BudgetScanFile } from '../../../../src/features/budgetScanner/types';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 import { colors, spacing, typography } from '../../../../src/ui/theme';
 import { RADIUS } from '../../../../theme';
 
@@ -308,6 +309,7 @@ export default function BudzetScreen() {
   const params = useLocalSearchParams<{ openAdd?: string }>();
   const { session, loading: authLoading } = useSupabaseAuth();
   const { access: subscriptionAccess, supportStatus: subscriptionSupportStatus } = useSubscription();
+  const ensureOnlineAction = useOnlineActionGuard();
   const userId = session?.user?.id;
   const datePickerLocale = useMemo(
     () => getAppLocale(i18n.resolvedLanguage || i18n.language),
@@ -889,6 +891,10 @@ export default function BudzetScreen() {
   };
 
   const uploadReceiptFile = async (ownerId: string, file: PickedFile | BudgetScanFile): Promise<UploadedReceiptFile> => {
+    if (!ensureOnlineAction('Dodanie załącznika wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) {
+      throw new Error(t('errors.saveFailed'));
+    }
+
     if (typeof file.size === 'number' && file.size <= 0) throw new Error(t('errors.emptyFile'));
     if (typeof file.size === 'number' && file.size > MAX_RECEIPT_UPLOAD_BYTES) throw new Error(t('errors.fileTooLarge'));
     if (!isAllowedReceiptFile(file)) throw new Error(t('errors.invalidFileType'));
@@ -1021,6 +1027,7 @@ export default function BudzetScreen() {
   }, [t]);
 
   const saveExpense = async () => {
+    if (!ensureOnlineAction('Zapis wydatku wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
     if (!userId) return;
     const nazwa = fNazwa.trim();
     const kw = safeNumber(fKwota);
@@ -1119,6 +1126,7 @@ export default function BudzetScreen() {
   };
 
   const saveScanDraftExpenses = async (items: BudgetScanDraftItem[]) => {
+    if (!ensureOnlineAction('Zapis wydatków ze skanu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
     if (saving || !userId || !scanDraft) return;
 
     if (items.length > BUDGET_SCAN_MAX_ITEMS) {
@@ -1294,6 +1302,8 @@ export default function BudzetScreen() {
     file: BudgetScanFile,
     draftId?: string | null,
   ) => {
+    if (!ensureOnlineAction('Skanowanie paragonu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     const nextDraft = draftId
       ? {
           ...createManualBudgetScanDraft({
@@ -1412,6 +1422,7 @@ export default function BudzetScreen() {
 
   const openBudgetScannerFromCamera = async () => {
     setScanMenuOpen(false);
+    if (!ensureOnlineAction('Skanowanie paragonu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
     if (!ensureScannerAccess()) return;
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -1440,6 +1451,7 @@ export default function BudzetScreen() {
 
   const openBudgetScannerFromLibrary = async () => {
     setScanMenuOpen(false);
+    if (!ensureOnlineAction('Skanowanie paragonu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
     if (!ensureScannerAccess()) return;
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();

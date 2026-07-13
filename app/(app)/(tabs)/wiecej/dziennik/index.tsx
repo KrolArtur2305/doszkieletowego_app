@@ -30,6 +30,7 @@ import { getFriendlyErrorMessage } from '../../../../../lib/errorMessages';
 import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../../lib/buildAccess';
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth';
 import { AppButton, AppInput } from '../../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../../src/services/network/NetworkStatusProvider';
 import { colors as uiColors, typography } from '../../../../../src/ui/theme';
 import {
   buildStageGroupPickerOptions,
@@ -137,6 +138,7 @@ async function getJournalSignedUrlForPath(filePath: string) {
 export default function DziennikScreen() {
   const { session } = useSupabaseAuth();
   const { t, i18n } = useTranslation(['journal', 'common']);
+  const ensureOnlineAction = useOnlineActionGuard();
   const params = useLocalSearchParams<{ openAdd?: string }>();
   const topPad = 0;
   const dateLocale = useMemo(
@@ -478,6 +480,8 @@ export default function DziennikScreen() {
 
   // Save
   const save = async () => {
+    if (!ensureOnlineAction('Zapis wpisu dziennika wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     if (!formTresc.trim()) {
       Alert.alert(t('alerts.errorTitle'), t('alerts.noteRequired'));
       return;
@@ -544,6 +548,8 @@ export default function DziennikScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (!ensureOnlineAction('Usuwanie wpisu dziennika wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
               const userId = session?.user?.id;
               if (!userId) return;
 

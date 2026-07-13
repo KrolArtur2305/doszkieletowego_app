@@ -21,6 +21,7 @@ import { forceLoggedOutAuthSnapshot } from '../../hooks/useSupabaseAuth'
 import { getUserWithTimeout } from '../../lib/supabaseTimeout'
 import { getFriendlyErrorMessage } from '../../lib/errorMessages'
 import { AppButton, AppScreen } from '../../src/ui/components'
+import { useOnlineActionGuard } from '../../src/services/network/NetworkStatusProvider'
 import {
   DEFAULT_BUDDY_AVATAR_ID,
   getBuddyAvatarSource,
@@ -45,6 +46,7 @@ type ProfileData = {
 export default function GuidedSetupScreen() {
   const router = useRouter()
   const { t } = useTranslation(['onboarding', 'common'])
+  const ensureOnlineAction = useOnlineActionGuard()
   const insets = useSafeAreaInsets()
   const { step: stepParam } = useLocalSearchParams<{ step?: string | string[] }>()
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 10
@@ -164,6 +166,7 @@ export default function GuidedSetupScreen() {
 
   const finish = async () => {
     if (saving) return
+    if (!ensureOnlineAction('Zapis konfiguracji startowej wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
     setSaving(true)
     try {
       if (userId) {

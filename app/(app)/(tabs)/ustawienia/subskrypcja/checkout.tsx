@@ -25,6 +25,7 @@ import { getSubscriptionAccess } from '../../../../../src/services/subscription/
 import { purchasePackageSafe, restorePurchasesSafe } from '../../../../../src/services/subscription/revenuecat'
 import { syncRevenueCatProfile } from '../../../../../src/services/subscription/profileSync'
 import { useSupabaseAuth } from '../../../../../hooks/useSupabaseAuth'
+import { useOnlineActionGuard } from '../../../../../src/services/network/NetworkStatusProvider'
 
 const NEON = '#25F0C8'
 const ACCENT = '#19705C'
@@ -91,6 +92,7 @@ function getTrialDaysRemaining(trialEndsAt: string | null): number | null {
 export default function CheckoutScreen() {
   const router = useRouter()
   const { t } = useTranslation('subscription')
+  const ensureOnlineAction = useOnlineActionGuard()
   const insets = useSafeAreaInsets()
   const { planKey } = useLocalSearchParams<{ planKey?: SubscriptionPlanKey }>()
   const subscriptionUiReadOnly = isSubscriptionUiReadOnly()
@@ -136,6 +138,7 @@ export default function CheckoutScreen() {
 
   const handleContinue = async () => {
     if (purchasing) return
+    if (!ensureOnlineAction('Zakup subskrypcji wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
 
     if (subscriptionUiReadOnly) {
       Alert.alert(t('paywall.devAlertTitle'), t('paywall.devAlertMessage'))
@@ -182,6 +185,9 @@ export default function CheckoutScreen() {
   }
 
   const handleRestore = async () => {
+    if (restoring) return
+    if (!ensureOnlineAction('Przywrócenie zakupów wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
+
     setRestoring(true)
     try {
       const restored = await restorePurchasesSafe()

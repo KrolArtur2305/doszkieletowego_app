@@ -32,6 +32,7 @@ import {
   type BuddyAvatarId,
   getBuddyAvatarSource,
   loadBuddyAvatarId} from '../../../../src/services/buddy/avatar';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -146,6 +147,7 @@ export default function BuddyChatScreen() {
   const { access } = useSubscription();
   const router = useRouter();
   const { t, i18n } = useTranslation('buddy');
+  const ensureOnlineAction = useOnlineActionGuard();
   const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 44) + 8;
   const uiLocale = getAppLocale(i18n.resolvedLanguage || i18n.language);
@@ -346,6 +348,7 @@ export default function BuddyChatScreen() {
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
+    if (!ensureOnlineAction('Kierownik AI wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     let requestTimedOut = false;
 

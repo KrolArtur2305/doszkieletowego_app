@@ -25,6 +25,7 @@ import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
 import { AppButton, AppInput } from '../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../src/services/network/NetworkStatusProvider';
 import { FuturisticDonutSvg } from '../../../components/FuturisticDonutSvg';
 import { resolveOnboardingCurrentStageCode } from '../../../lib/buildWorkflow';
 import {
@@ -82,6 +83,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation(['onboarding', 'buddy', 'common']);
   const { session } = useSupabaseAuth();
+  const ensureOnlineAction = useOnlineActionGuard();
   const insets = useSafeAreaInsets();
   const userId = session?.user?.id;
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
@@ -193,6 +195,7 @@ export default function OnboardingScreen() {
 
   const saveBuildType = async (value: string) => {
     if (!userId || saving) return;
+    if (!ensureOnlineAction('Zapis typu budowy wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     setSaving(true);
     try {
@@ -240,6 +243,7 @@ export default function OnboardingScreen() {
 
   const saveBuildStage = async (value: string) => {
     if (!userId || saving) return;
+    if (!ensureOnlineAction('Zapis etapu budowy wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     setSaving(true);
     try {
@@ -266,6 +270,7 @@ export default function OnboardingScreen() {
 
   const saveBudget = async () => {
     if (!userId || saving) return;
+    if (!ensureOnlineAction('Zapis budżetu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     const budget = toNumber(plannedBudget);
     const spent = toNumber(spentBudget) ?? 0;
@@ -414,6 +419,7 @@ export default function OnboardingScreen() {
   const renderBudget = () => (
     <>
       {renderBackButton(async () => {
+        if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
         setStep('build_stage');
         if (userId) {
           await supabase.from('profiles').upsert(
@@ -570,6 +576,7 @@ export default function OnboardingScreen() {
 
   const saveBuddySetup = async () => {
     if (!userId || saving) return;
+    if (!ensureOnlineAction('Zapis ustawień Kierownika AI wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     const trimmedName = buddyName.trim();
 
@@ -625,6 +632,7 @@ export default function OnboardingScreen() {
   const renderBuddyStep = () => (
     <>
       {renderBackButton(async () => {
+        if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
         if (userId) {
           await supabase.from('profiles').upsert(
             { user_id: userId, onboarding_step: 'investment', onboarding_completed: false },

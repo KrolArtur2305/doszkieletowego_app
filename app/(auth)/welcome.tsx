@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Dimensions,
   Image,
   Keyboard,
   Modal,
@@ -11,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import type { ScrollView as ScrollViewType } from 'react-native';
@@ -28,12 +28,37 @@ import { recordCheckpoint } from '../../lib/runtimeDiagnostics';
 import { AppButton, AppCard, AppInput, AppScreen } from '../../src/ui/components';
 import { colors, radius, spacing, typography } from '../../src/ui/theme';
 
-const { width: W } = Dimensions.get('window');
 const APP_LOGO = require('../../assets/logo.png');
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('auth');
+  const { width, height } = useWindowDimensions();
+  const slideWidth = Math.round(width);
+  const isShortScreen = height < 760;
+  const isVeryShortScreen = height < 700;
+  const layout = useMemo(
+    () => ({
+      containerPaddingHorizontal: isVeryShortScreen ? spacing.lg : spacing.xl + 2,
+      containerPaddingTop: isVeryShortScreen ? spacing.md : isShortScreen ? spacing.xl : spacing['2xl'] + 12,
+      containerPaddingBottom: isVeryShortScreen ? spacing.sm : isShortScreen ? spacing.md : spacing.xl,
+      topGap: isVeryShortScreen ? spacing.sm : isShortScreen ? spacing.md : spacing['2xl'],
+      topMarginBottom: isShortScreen ? 0 : spacing.md,
+      brandLogoSize: isVeryShortScreen ? 106 : isShortScreen ? 126 : 146,
+      brandMarginBottom: isVeryShortScreen ? -30 : isShortScreen ? -28 : -26,
+      brandNameMarginTop: isVeryShortScreen ? -30 : isShortScreen ? -32 : -36,
+      heroMarginTop: isVeryShortScreen ? spacing.sm : isShortScreen ? spacing.md : spacing.xl,
+      slideIconSize: isVeryShortScreen ? 124 : isShortScreen ? 156 : 196,
+      slidePaddingHorizontal: isVeryShortScreen ? spacing.xl + spacing.sm : spacing.xl + spacing.lg,
+      slideTextLineHeight: isVeryShortScreen ? 20 : 22,
+      paginationMarginTop: isVeryShortScreen ? spacing.sm : isShortScreen ? spacing.md : spacing.lg,
+      actionsPadding: isVeryShortScreen ? spacing.md : isShortScreen ? spacing.md + 2 : spacing.lg,
+      primaryMarginBottom: isVeryShortScreen ? spacing.sm : spacing.md,
+      joinPaddingTop: isVeryShortScreen ? spacing.sm : spacing.md,
+      joinPaddingBottom: isVeryShortScreen ? 0 : spacing.xs,
+    }),
+    [isShortScreen, isVeryShortScreen]
+  );
 
   const sliderRef = useRef<ScrollViewType | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -110,7 +135,7 @@ export default function WelcomeScreen() {
   };
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / W);
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / slideWidth);
     const clampedIndex = Math.max(0, Math.min(slides.length - 1, nextIndex));
     setActiveIndex(clampedIndex);
   };
@@ -147,17 +172,31 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <AppScreen scroll contentContainerStyle={styles.container}>
-        <View style={styles.topBlock}>
-          <View style={styles.brandStack}>
-            <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
-            <View style={styles.brandName} accessibilityLabel="BuildIQ">
+    <AppScreen
+      scroll
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingHorizontal: layout.containerPaddingHorizontal,
+          paddingTop: layout.containerPaddingTop,
+          paddingBottom: layout.containerPaddingBottom,
+        },
+      ]}
+    >
+        <View style={[styles.topBlock, { gap: layout.topGap, marginBottom: layout.topMarginBottom }]}>
+          <View style={[styles.brandStack, { marginBottom: layout.brandMarginBottom }]}>
+            <Image
+              source={APP_LOGO}
+              style={[styles.brandLogo, { width: layout.brandLogoSize, height: layout.brandLogoSize }]}
+              resizeMode="contain"
+            />
+            <View style={[styles.brandName, { marginTop: layout.brandNameMarginTop }]} accessibilityLabel="BuildIQ">
               <Text style={[styles.brandNameText, styles.brandNameBuild]}>Build</Text>
               <Text style={[styles.brandNameText, styles.brandNameIq]}>IQ</Text>
             </View>
           </View>
 
-          <View style={styles.heroCopy}>
+          <View style={[styles.heroCopy, { marginTop: layout.heroMarginTop }]}>
             <Text style={styles.heroTitle}>{t('welcome.heroTitle')}</Text>
           </View>
 
@@ -167,7 +206,7 @@ export default function WelcomeScreen() {
           </View>
         </View>
 
-        <View style={styles.sliderWrap} key={`slider-${i18n.language}`}>
+        <View style={[styles.sliderWrap, { width: slideWidth }]} key={`slider-${i18n.language}-${slideWidth}`}>
           <ScrollView
             ref={sliderRef}
             horizontal
@@ -178,22 +217,39 @@ export default function WelcomeScreen() {
             contentContainerStyle={styles.sliderTrack}
           >
             {slides.map((slide) => (
-              <View key={slide.key} style={styles.slide}>
-                <Image source={slide.icon} style={styles.slideIcon} resizeMode="contain" />
+              <View
+                key={slide.key}
+                style={[
+                  styles.slide,
+                  {
+                    width: slideWidth,
+                    paddingHorizontal: layout.slidePaddingHorizontal,
+                  },
+                ]}
+              >
+                <Image
+                  source={slide.icon}
+                  style={[styles.slideIcon, { width: layout.slideIconSize, height: layout.slideIconSize }]}
+                  resizeMode="contain"
+                />
                 <Text style={styles.slideTitle}>{slide.title}</Text>
-                <Text style={styles.slideText}>{slide.text}</Text>
+                <Text style={[styles.slideText, { lineHeight: layout.slideTextLineHeight }]}>{slide.text}</Text>
               </View>
             ))}
           </ScrollView>
 
-          <View style={styles.pagination}>
+          <View style={[styles.pagination, { marginTop: layout.paginationMarginTop }]}>
             {slides.map((_, index) => (
               <View key={index} style={[styles.dot, activeIndex === index && styles.dotActive]} />
             ))}
           </View>
         </View>
 
-        <AppCard style={styles.actionsCard} contentStyle={styles.actionsCardContent} withShadow={false}>
+        <AppCard
+          style={styles.actionsCard}
+          contentStyle={[styles.actionsCardContent, { padding: layout.actionsPadding }]}
+          withShadow={false}
+        >
           <View style={styles.actions}>
             <AppButton
               title={t('welcome.loginCta')}
@@ -201,7 +257,7 @@ export default function WelcomeScreen() {
                 await clearPendingInviteCode();
                 router.push('/(auth)/login');
               }}
-              style={styles.primaryBtn}
+              style={[styles.primaryBtn, { marginBottom: layout.primaryMarginBottom }]}
             />
 
             <AppButton
@@ -219,7 +275,13 @@ export default function WelcomeScreen() {
                 setJoinError('');
                 setJoinModalOpen(true);
               }}
-              style={styles.joinLink}
+              style={[
+                styles.joinLink,
+                {
+                  paddingTop: layout.joinPaddingTop,
+                  paddingBottom: layout.joinPaddingBottom,
+                },
+              ]}
             >
               <Text style={styles.joinLinkText}>{t('welcome.join.cta')}</Text>
             </Pressable>
@@ -361,7 +423,6 @@ const styles = StyleSheet.create({
     color: colors.accentBright,
   },
   sliderWrap: {
-    width: W,
     alignSelf: 'center',
     marginBottom: spacing.xs,
   },
@@ -369,10 +430,8 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   slide: {
-    width: W,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl + spacing.lg,
   },
   slideIcon: {
     width: 196,

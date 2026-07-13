@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../../../lib/supabase';
 import { getLastErrorReport, reportError, type LastErrorReport } from '../../../../lib/errorReporting';
 import { AppButton, AppInput } from '../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 
 const NEON = '#25F0C8';
 const ACCENT = '#19705C';
@@ -28,6 +29,7 @@ type Category = { key: string; label: string; icon: keyof typeof Feather.glyphMa
 export default function ZglosProblemScreen() {
   const router = useRouter();
   const { t } = useTranslation('settings');
+  const ensureOnlineAction = useOnlineActionGuard();
   const insets = useSafeAreaInsets();
 
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 16) + 8;
@@ -54,6 +56,8 @@ export default function ZglosProblemScreen() {
   }, []);
 
   const handleSubmit = async () => {
+    if (!ensureOnlineAction('Wysłanie zgłoszenia wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     const trimmed = (message || '').trim();
     if (trimmed.length < 10) {
       Alert.alert(t('report.alerts.warningTitle'), t('report.alerts.minLength'));

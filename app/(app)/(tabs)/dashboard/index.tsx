@@ -39,6 +39,7 @@ import {
 import { FuturisticDonutSvg } from '../../../../components/FuturisticDonutSvg';
 import { useTranslation } from 'react-i18next';
 import { AppButton, AppCard, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 import { colors } from '../../../../src/ui/theme';
 
 const { width: W } = Dimensions.get('window');
@@ -371,6 +372,7 @@ function pickHeroMessageKey(params: {
 export default function DashboardScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation('dashboard');
+  const ensureOnlineAction = useOnlineActionGuard();
   const { t: tStages } = useTranslation('stages');
   const { currency } = useCurrency();
   const appLocale = useMemo(() => getAppLocale(i18n.resolvedLanguage || i18n.language), [i18n.resolvedLanguage, i18n.language]);
@@ -556,6 +558,8 @@ export default function DashboardScreen() {
   };
 
   const addTask = async () => {
+    if (!ensureOnlineAction('Dodanie zadania wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     const title = newTitle.trim();
     if (!title) return;
 

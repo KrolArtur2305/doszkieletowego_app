@@ -33,6 +33,7 @@ import {
 } from '../lib/errorReporting';
 import { fetchCurrentBuildAccess } from '../lib/buildAccess';
 import { logInPurchasesUser } from '../src/services/subscription/revenuecat';
+import { NetworkStatusProvider } from '../src/services/network/NetworkStatusProvider';
 
 const APP_LOGO = require('../assets/logo.png');
 
@@ -163,48 +164,50 @@ export default function RootLayout() {
         <StatusBar style="light" translucent />
 
         <SafeAreaView style={{ flex: 1, backgroundColor: Platform.OS === 'android' ? androidSystemBarBg : '#000000' }}>
-          <AppErrorBoundary>
-            {configErrorScreen ?? (showCrashReport ? (
-              <RuntimeCrashReport
-                title="Aplikacja się wyłączyła"
-                subtitle="Zapisaliśmy ostatni błąd. Skopiuj go i podeślij, wtedy będziemy wiedzieć dokładnie, co padło."
-                snapshot={crashSnapshot}
-                onDismiss={async () => {
-                  await clearRuntimeDiagnostics();
-                  setCrashSnapshot(null);
-                }}
-              />
-            ) : showLoader ? (
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#000000',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 40,
-                }}
-              >
-                <Image
-                  source={APP_LOGO}
-                  resizeMode="contain"
-                  style={{ width: '72%', maxWidth: 260, height: 120 }}
+          <NetworkStatusProvider>
+            <AppErrorBoundary>
+              {configErrorScreen ?? (showCrashReport ? (
+                <RuntimeCrashReport
+                  title="Aplikacja się wyłączyła"
+                  subtitle="Zapisaliśmy ostatni błąd. Skopiuj go i podeślij, wtedy będziemy wiedzieć dokładnie, co padło."
+                  snapshot={crashSnapshot}
+                  onDismiss={async () => {
+                    await clearRuntimeDiagnostics();
+                    setCrashSnapshot(null);
+                  }}
                 />
-              </View>
-            ) : (
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(app)" />
-                <Stack.Screen name="auth/callback" />
-                <Stack.Screen name="auth-callback" />
-                <Stack.Screen name="reset-password" />
-              </Stack>
-            ))}
-          </AppErrorBoundary>
-          <PushLifecycleModal
-            state={lifecycleModal}
-            onDismiss={dismissLifecycleModal}
-            onConfirm={confirmLifecycleModal}
-          />
+              ) : showLoader ? (
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#000000',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 40,
+                  }}
+                >
+                  <Image
+                    source={APP_LOGO}
+                    resizeMode="contain"
+                    style={{ width: '72%', maxWidth: 260, height: 120 }}
+                  />
+                </View>
+              ) : (
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(app)" />
+                  <Stack.Screen name="auth/callback" />
+                  <Stack.Screen name="auth-callback" />
+                  <Stack.Screen name="reset-password" />
+                </Stack>
+              ))}
+            </AppErrorBoundary>
+            <PushLifecycleModal
+              state={lifecycleModal}
+              onDismiss={dismissLifecycleModal}
+              onConfirm={confirmLifecycleModal}
+            />
+          </NetworkStatusProvider>
         </SafeAreaView>
       </SafeAreaProvider>
     </GestureHandlerRootView>

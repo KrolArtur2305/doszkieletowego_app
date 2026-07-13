@@ -32,6 +32,7 @@ import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/build
 import { getAppLocale } from '../../../../lib/i18n';
 import { FloatingAddButton } from '../../../../components/FloatingAddButton';
 import { AppButton, AppInput } from '../../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider';
 import { colors as uiColors, typography } from '../../../../src/ui/theme';
 import { COLORS as THEME_COLORS, RADIUS } from '../../../../theme';
 
@@ -238,6 +239,7 @@ const SUGGESTED_DOCUMENTS: SuggestedDocumentItem[] = [
 
 export default function DokumentyScreen() {
   const { t, i18n } = useTranslation(['documents', 'common']);
+  const ensureOnlineAction = useOnlineActionGuard();
   const params = useLocalSearchParams<{ openAdd?: string }>();
 
   const tt = useCallback((key: string, options?: any) => String(t(key as any, options)), [t]);
@@ -596,6 +598,8 @@ export default function DokumentyScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (!ensureOnlineAction('Usuwanie dokumentu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
               const userId = await getUserId();
               if (!userId) throw new Error('NO_USER');
               const canManage = buildAccess?.role === 'owner' || String(doc.user_id ?? '') === String(userId);
@@ -645,6 +649,7 @@ export default function DokumentyScreen() {
 
   const addDoc = async () => {
     if (saving) return;
+    if (!ensureOnlineAction('Dodanie dokumentu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     if (!file?.uri) {
       Alert.alert(

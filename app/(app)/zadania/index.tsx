@@ -28,6 +28,7 @@ import { syncAllTaskReminders } from '../../../lib/notifications';
 import { useSupabaseAuth } from '../../../hooks/useSupabaseAuth';
 import { FloatingAddButton } from '../../../components/FloatingAddButton';
 import { AppHeader, AppInput } from '../../../src/ui/components';
+import { useOnlineActionGuard } from '../../../src/services/network/NetworkStatusProvider';
 
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
@@ -129,6 +130,7 @@ function getMonthMatrix(baseDate: Date) {
 export default function ZadaniaScreen() {
   const { session } = useSupabaseAuth();
   const { t, i18n } = useTranslation('tasks');
+  const ensureOnlineAction = useOnlineActionGuard();
   const topPad = 0;
   const dateLocale = useMemo(
     () => getAppLocale(i18n.resolvedLanguage || i18n.language),
@@ -306,6 +308,8 @@ export default function ZadaniaScreen() {
   };
 
   const saveTask = async () => {
+    if (!ensureOnlineAction('Zapis zadania wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
     if (!form.nazwa.trim()) {
       Alert.alert(t('alerts.errorTitle'), t('alerts.nameRequired'));
       return;
@@ -360,6 +364,8 @@ export default function ZadaniaScreen() {
 
   const toggleDone = async (task: Task) => {
     try {
+      if (!ensureOnlineAction('Zmiana statusu zadania wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
       const nextDone = !task.wykonane;
       const access = buildAccess ?? (await fetchCurrentBuildAccess(session?.user?.id ?? ''));
       const userId = session?.user?.id;
@@ -393,6 +399,8 @@ export default function ZadaniaScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
+            if (!ensureOnlineAction('Usuwanie zadania wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
             const userId = session?.user?.id;
             if (!userId) return;
 

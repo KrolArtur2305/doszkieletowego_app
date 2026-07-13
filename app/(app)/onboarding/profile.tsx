@@ -25,6 +25,7 @@ import { getUserWithTimeout } from '../../../lib/supabaseTimeout';
 import { getFriendlyErrorMessage } from '../../../lib/errorMessages';
 import { AppButton, AppInput } from '../../../src/ui/components';
 import { isAppleAuthUser } from '../../../src/services/auth/appleAuth';
+import { useOnlineActionGuard } from '../../../src/services/network/NetworkStatusProvider';
 
 const BG = '#000000';
 const ACCENT = '#19705C';
@@ -45,6 +46,7 @@ function normalizePhoneInput(v: string) {
 export default function OnboardingProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation('onboarding');
+  const ensureOnlineAction = useOnlineActionGuard();
   const insets = useSafeAreaInsets();
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
   const [loading, setLoading] = useState(true);
@@ -156,6 +158,7 @@ export default function OnboardingProfileScreen() {
 
   const handleSave = async () => {
     if (!userId || saving) return;
+    if (!ensureOnlineAction('Zapis profilu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     const first = imie.trim();
     const last = nazwisko.trim();
@@ -204,6 +207,7 @@ export default function OnboardingProfileScreen() {
       router.replace('/(app)/onboarding');
       return;
     }
+    if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
 
     try {
       await supabase.from('profiles').upsert(

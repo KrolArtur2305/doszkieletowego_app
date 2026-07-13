@@ -34,6 +34,7 @@ import Model3DView from '../../../../components/Model3DView'
 import { InstallationsIllustration } from '../../../../components/InstallationsIllustration'
 import { fetchCurrentBuildAccess, type BuildAccess } from '../../../../lib/buildAccess'
 import { AppButton, AppCard, AppHeader, AppInput, AppScreen, SectionHeader } from '../../../../src/ui/components'
+import { useOnlineActionGuard } from '../../../../src/services/network/NetworkStatusProvider'
 import { colors, radius, spacing, typography } from '../../../../src/ui/theme'
 const ACCENT = colors.accent
 const NEON = colors.accentBright
@@ -381,6 +382,7 @@ function base64ToUint8Array(base64: string) {
 
 export default function ProjektScreen() {
   const { t, i18n } = useTranslation('project')
+  const ensureOnlineAction = useOnlineActionGuard()
   const { units } = useUnits()
   const { width, height } = useWindowDimensions()
   const router = useRouter()
@@ -486,6 +488,7 @@ export default function ProjektScreen() {
 
   const saveInstallations = () => {
     if (installationsSaving) return
+    if (!ensureOnlineAction('Zapis konfiguracji instalacji wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
 
     const nextConfig: InstallationDraft = {
       heatingSystem: installationsDraft.heatingSystem,
@@ -774,6 +777,7 @@ export default function ProjektScreen() {
     try {
       if (modelUploading) return
       if (!canEditProject) return
+      if (!ensureOnlineAction('Zmiana modelu 3D wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
 
       if (!userId) {
         Alert.alert(
@@ -928,6 +932,7 @@ export default function ProjektScreen() {
   const uploadRzutAndSave = async (type: ProjectAssetType = 'plan') => {
     try {
       if (!canEditProject) return
+      if (!ensureOnlineAction('Dodanie rzutu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
       if (!userId) {
         Alert.alert(
           t('notLoggedTitle'),
@@ -1001,6 +1006,7 @@ export default function ProjektScreen() {
   const savePendingRzut = async () => {
     try {
       if (!canEditProject) return
+      if (!ensureOnlineAction('Zapis rzutu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
       if (!userId || !pendingPlan?.uri) {
         Alert.alert(
           t('notLoggedTitle'),
@@ -1107,6 +1113,7 @@ export default function ProjektScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
+            if (!ensureOnlineAction('Usuwanie rzutu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
             if (!userId) return
 
             const { error: delDbErr } = await supabase
@@ -1181,6 +1188,7 @@ export default function ProjektScreen() {
     try {
       setSaving(true)
       if (!canEditProject) return
+      if (!ensureOnlineAction('Zapis parametrów projektu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
 
       if (!userId) {
         Alert.alert(
