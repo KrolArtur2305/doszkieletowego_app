@@ -11,9 +11,11 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View} from 'react-native';
+  View,
+  type LayoutChangeEvent} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -51,6 +53,7 @@ const APP_LOGO = require('../../assets/logo.png');
 const BUDDY_NAME_MAX_LENGTH = 10;
 
 type OnboardingStep = 'build_type' | 'build_stage' | 'budget' | 'buddy';
+type OnboardingField = 'plannedBudget' | 'spentBudget' | 'buddyName' | 'avatar';
 
 const BUILD_TYPES = [
   { value: 'szkieletowy', key: 'buildTypes.szkieletowy' },
@@ -97,6 +100,8 @@ export default function OnboardingScreen() {
   const [buildStage, setBuildStage] = useState<string>('');
   const [plannedBudget, setPlannedBudget] = useState('');
   const [spentBudget, setSpentBudget] = useState('');
+  const [plannedBudgetError, setPlannedBudgetError] = useState<string | null>(null);
+  const [spentBudgetError, setSpentBudgetError] = useState<string | null>(null);
   const [budgetCurrency, setBudgetCurrency] = useState<AppCurrency>(() =>
     defaultCurrencyForLanguage(i18n.resolvedLanguage || i18n.language)
   );
@@ -106,9 +111,27 @@ export default function OnboardingScreen() {
   const [activeStageInfo, setActiveStageInfo] = useState<string | null>(null);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [buddyName, setBuddyName] = useState('');
+  const [buddyNameError, setBuddyNameError] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarId, setAvatarId] = useState<BuddyAvatarId>(DEFAULT_BUDDY_AVATAR_ID);
   const scrollRef = useRef<ScrollView>(null);
+  const fieldPositions = useRef<Partial<Record<OnboardingField, number>>>({});
+  const plannedBudgetRef = useRef<TextInput>(null);
+  const spentBudgetRef = useRef<TextInput>(null);
+  const buddyNameRef = useRef<TextInput>(null);
   const buddyFloat = useRef(new Animated.Value(0)).current;
+
+  const rememberFieldPosition = (field: OnboardingField) => (event: LayoutChangeEvent) => {
+    fieldPositions.current[field] = event.nativeEvent.layout.y;
+  };
+
+  const moveToField = (field: OnboardingField, focus?: () => void) => {
+    const y = fieldPositions.current[field] ?? 0;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+    if (focus) {
+      setTimeout(focus, 260);
+    }
+  };
   useEffect(() => {
     if (step !== 'buddy') return;
 
@@ -241,6 +264,32 @@ export default function OnboardingScreen() {
     );
   };
 
+  const backToBuildType = async () => {
+    if (!userId || saving) {
+      setStep('build_type');
+      return;
+    }
+    if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('profiles').upsert(
+        {
+          user_id: userId,
+          onboarding_step: 'build_type',
+          onboarding_completed: false},
+        { onConflict: 'user_id' }
+      );
+
+      if (error) throw error;
+      setStep('build_type');
+    } catch (e: any) {
+      Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveBuildTypeError'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveBuildStage = async (value: string) => {
     if (!userId || saving) return;
     if (!ensureOnlineAction('Zapis etapu budowy wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
@@ -276,12 +325,14 @@ export default function OnboardingScreen() {
     const spent = toNumber(spentBudget) ?? 0;
 
     if (budget === null || budget < 0) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.invalidBudget'));
+      setPlannedBudgetError(t('alerts.invalidBudget'));
+      moveToField('plannedBudget', () => plannedBudgetRef.current?.focus());
       return;
     }
 
     if (spent < 0) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.negativeSpent'));
+      setSpentBudgetError(t('alerts.negativeSpent'));
+      moveToField('spentBudget', () => spentBudgetRef.current?.focus());
       return;
     }
 
@@ -376,7 +427,7 @@ export default function OnboardingScreen() {
 
   const renderBuildStage = () => (
     <>
-      {renderBackButton(() => setStep('build_type'))}
+      {renderBackButton(backToBuildType)}
       <Image source={APP_LOGO} style={styles.stageLogo} resizeMode="contain" />
       <Text style={styles.stageTitle}>{t('steps.buildStageTitle')}</Text>
 
@@ -533,32 +584,46 @@ export default function OnboardingScreen() {
           </View>
         </View>
 
-        <View style={styles.fieldWrap}>
+        <View style={styles.fieldWrap} onLayout={rememberFieldPosition('plannedBudget')}>
           <Text style={styles.fieldLabel}>{t('budget.plannedLabel')}</Text>
           <AppInput
+            ref={plannedBudgetRef}
             value={plannedBudget}
-            onChangeText={(value) => setPlannedBudget(formatBudgetInput(value))}
-            onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120)}
+            onChangeText={(value) => {
+              const nextValue = formatBudgetInput(value);
+              setPlannedBudget(nextValue);
+              const nextBudget = toNumber(nextValue);
+              if (plannedBudgetError && nextBudget !== null && nextBudget >= 0) setPlannedBudgetError(null);
+            }}
+            onFocus={() => setTimeout(() => moveToField('plannedBudget'), 120)}
             placeholder={t('budget.plannedPlaceholder')}
             keyboardType="numeric"
             autoComplete="off"
             importantForAutofill="no"
             textContentType="none"
+            error={plannedBudgetError || undefined}
             style={styles.input}
           />
         </View>
 
-        <View style={styles.fieldWrapLast}>
+        <View style={styles.fieldWrapLast} onLayout={rememberFieldPosition('spentBudget')}>
           <Text style={styles.fieldLabel}>{t('budget.spentLabel')}</Text>
           <AppInput
+            ref={spentBudgetRef}
             value={spentBudget}
-            onChangeText={(value) => setSpentBudget(formatBudgetInput(value))}
-            onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120)}
+            onChangeText={(value) => {
+              const nextValue = formatBudgetInput(value);
+              setSpentBudget(nextValue);
+              const nextSpent = toNumber(nextValue) ?? 0;
+              if (spentBudgetError && nextSpent >= 0) setSpentBudgetError(null);
+            }}
+            onFocus={() => setTimeout(() => moveToField('spentBudget'), 120)}
             placeholder={t('budget.spentPlaceholder')}
             keyboardType="numeric"
             autoComplete="off"
             importantForAutofill="no"
             textContentType="none"
+            error={spentBudgetError || undefined}
             style={styles.input}
           />
         </View>
@@ -581,26 +646,20 @@ export default function OnboardingScreen() {
     const trimmedName = buddyName.trim();
 
     if (!trimmedName) {
-      Alert.alert(
-        t('onboarding:alerts.errorTitle'),
-        t('buddy:onboarding.nameRequired')
-      );
+      setBuddyNameError(t('buddy:onboarding.nameRequired'));
+      moveToField('buddyName', () => buddyNameRef.current?.focus());
       return;
     }
 
     if (!avatarId) {
-      Alert.alert(
-        t('onboarding:alerts.errorTitle'),
-        t('buddy:onboarding.avatarRequired')
-      );
+      setAvatarError(t('buddy:onboarding.avatarRequired'));
+      moveToField('avatar');
       return;
     }
 
     if (trimmedName.length > BUDDY_NAME_MAX_LENGTH) {
-      Alert.alert(
-        t('onboarding:alerts.errorTitle'),
-        t('buddy:onboarding.nameTooLong')
-      );
+      setBuddyNameError(t('buddy:onboarding.nameTooLong'));
+      moveToField('buddyName', () => buddyNameRef.current?.focus());
       return;
     }
 
@@ -668,33 +727,45 @@ export default function OnboardingScreen() {
           <View style={styles.buddyHeroGlow} />
         </Animated.View>
 
-        <View style={styles.fieldWrap}>
+        <View style={styles.fieldWrap} onLayout={rememberFieldPosition('buddyName')}>
           <Text style={styles.fieldLabel}>{t('buddy:onboarding.nameLabel')}</Text>
           <AppInput
+            ref={buddyNameRef}
             value={buddyName}
-            onChangeText={setBuddyName}
+            onChangeText={(value) => {
+              setBuddyName(value);
+              const trimmed = value.trim();
+              if (buddyNameError && trimmed && trimmed.length <= BUDDY_NAME_MAX_LENGTH) setBuddyNameError(null);
+            }}
             placeholder={t('buddy:onboarding.namePlaceholder')}
             maxLength={BUDDY_NAME_MAX_LENGTH}
+            error={buddyNameError || undefined}
             style={styles.input}
           />
         </View>
 
-        <Text style={styles.fieldLabel}>{t('buddy:settings.sections.avatar')}</Text>
-        <View style={styles.avatarGrid}>
-          {BUDDY_AVATAR_OPTIONS.map((option) => {
-            const active = avatarId === option.id;
-            return (
-              <TouchableOpacity
-                key={option.id}
-                onPress={() => setAvatarId(option.id)}
-                activeOpacity={0.88}
-                style={[styles.avatarTile, active && styles.avatarTileActive]}
-              >
-                <Image source={option.source} style={styles.avatarTileImage} resizeMode="cover" />
-                {active ? <View style={styles.avatarTileBadge} /> : null}
-              </TouchableOpacity>
-            );
-          })}
+        <View onLayout={rememberFieldPosition('avatar')}>
+          <Text style={styles.fieldLabel}>{t('buddy:settings.sections.avatar')}</Text>
+          <View style={[styles.avatarGrid, avatarError && styles.avatarGridError]}>
+            {BUDDY_AVATAR_OPTIONS.map((option) => {
+              const active = avatarId === option.id;
+              return (
+                <TouchableOpacity
+                  key={option.id}
+                  onPress={() => {
+                    setAvatarId(option.id);
+                    if (avatarError) setAvatarError(null);
+                  }}
+                  activeOpacity={0.88}
+                  style={[styles.avatarTile, active && styles.avatarTileActive]}
+                >
+                  <Image source={option.source} style={styles.avatarTileImage} resizeMode="cover" />
+                  {active ? <View style={styles.avatarTileBadge} /> : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {avatarError ? <Text style={styles.formError}>{avatarError}</Text> : null}
         </View>
       </BlurView>
 
@@ -1088,6 +1159,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between'},
+  avatarGridError: {
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    borderRadius: 24,
+    padding: 8},
+  formError: {
+    marginTop: 8,
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '700'},
   buddyHeroWrap: {
     alignSelf: 'center',
     width: 124,

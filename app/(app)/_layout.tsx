@@ -80,7 +80,16 @@ export default function AppLayout() {
   const [partnerRole, setPartnerRole] = useState<BuildRole | null>(null);
 
   const lastCheckKeyRef = useRef<string>('');
+  const pendingCheckKeyRef = useRef<string | null>(null);
   const removalNoticeHandledRef = useRef<string | null>(null);
+
+  const gateSensitivePathKey = useMemo(() => {
+    const onAppRoot = pathname === '/' || pathname === '/(app)';
+    const onOnboarding = pathname.startsWith('/onboarding') || pathname.startsWith('/(app)/onboarding');
+    const onGuidedSetup = pathname === '/guided-setup' || pathname === '/(app)/guided-setup';
+    const onDashboard = pathname === '/(app)/(tabs)/dashboard' || pathname === '/(tabs)/dashboard';
+    return onAppRoot || onOnboarding || onGuidedSetup || onDashboard ? pathname : '';
+  }, [pathname]);
 
   // 1) Pobierz stan onboardingu i kompletności danych
   useEffect(() => {
@@ -103,9 +112,10 @@ export default function AppLayout() {
         return;
       }
 
-      const checkKey = `${userId}`;
+      const checkKey = `${userId}:${gateSensitivePathKey}`;
       if (lastCheckKeyRef.current === checkKey) return;
       lastCheckKeyRef.current = checkKey;
+      pendingCheckKeyRef.current = checkKey;
 
       if (!alive) return;
       setProfileComplete(null);
@@ -221,6 +231,9 @@ export default function AppLayout() {
         setGuidedSetupCompleted(true);
         setPartnerRole(null);
       } finally {
+        if (pendingCheckKeyRef.current === checkKey) {
+          pendingCheckKeyRef.current = null;
+        }
         if (alive) setChecking(false);
       }
     };
@@ -229,7 +242,7 @@ export default function AppLayout() {
     return () => {
       alive = false;
     };
-  }, [authLoading, session?.user?.id]);
+  }, [authLoading, session?.user?.id, gateSensitivePathKey]);
 
   useEffect(() => {
     if (authLoading || session) return;
@@ -401,16 +414,17 @@ export default function AppLayout() {
       return;
     }
 
+    if (pendingCheckKeyRef.current) {
+      return;
+    }
+
     if (gateTarget) {
       const onAppRoot = pathname === '/' || pathname === '/(app)';
-      const onOnboarding = pathname.startsWith('/onboarding') || pathname.startsWith('/(app)/onboarding');
-      const onGuidedSetup = pathname === '/guided-setup' || pathname === '/(app)/guided-setup';
       const onProjectSetup =
         (pathname === '/(app)/(tabs)/projekt' || pathname === '/(tabs)/projekt') &&
         (Array.isArray(setup) ? setup[0] : setup) === '1';
       const alreadyOnTargetFamily =
-        (gateTarget.includes('/guided-setup') && onGuidedSetup) ||
-        (gateTarget.includes('/onboarding') && onOnboarding) ||
+        ((pathname === gateTarget || pathname === gateTarget.replace('/(app)', ''))) ||
         (gateTarget.includes('/guided-setup') && onProjectSetup)
 
       if ((onAppRoot || !alreadyOnTargetFamily) && pathname !== gateTarget) {

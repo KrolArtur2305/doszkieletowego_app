@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,9 +10,11 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
@@ -31,6 +33,7 @@ const BG = '#000000';
 const ACCENT = '#19705C';
 const NEON = '#25F0C8';
 const APP_LOGO = require('../../assets/logo.png');
+type ProfileField = 'firstName' | 'phone';
 
 function normalizePhone(v: string) {
   return v.replace(/[^\d+]/g, '');
@@ -59,6 +62,22 @@ export default function OnboardingProfileScreen() {
   const [imie, setImie] = useState('');
   const [nazwisko, setNazwisko] = useState('');
   const [telefon, setTelefon] = useState('');
+  const [firstNameError, setFirstNameError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const fieldPositions = useRef<Partial<Record<ProfileField, number>>>({});
+  const firstNameRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+
+  const rememberFieldPosition = (field: ProfileField) => (event: LayoutChangeEvent) => {
+    fieldPositions.current[field] = event.nativeEvent.layout.y;
+  };
+
+  const moveToField = (field: ProfileField, focus?: () => void) => {
+    const y = fieldPositions.current[field] ?? 0;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+    if (focus) setTimeout(focus, 260);
+  };
 
   useEffect(() => {
     let alive = true;
@@ -165,12 +184,14 @@ export default function OnboardingProfileScreen() {
     const phone = telefon.trim() ? normalizePhone(telefon.trim()) : '';
 
     if (!first) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.firstNameRequired'));
+      setFirstNameError(t('alerts.firstNameRequired'));
+      moveToField('firstName', () => firstNameRef.current?.focus());
       return;
     }
 
     if (phone && phone.replace(/\D/g, '').length < 7) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.invalidPhone'));
+      setPhoneError(t('alerts.invalidPhone'));
+      moveToField('phone', () => phoneRef.current?.focus());
       return;
     }
 
@@ -233,6 +254,7 @@ export default function OnboardingProfileScreen() {
         <View pointerEvents="none" style={styles.bg} />
 
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={[
             styles.content,
             { paddingBottom: Math.max(0, insets.bottom + 32) },
@@ -258,22 +280,36 @@ export default function OnboardingProfileScreen() {
             ) : (
               <>
                 <Field
+                  ref={firstNameRef}
                   label={t('profile.firstName')}
                   value={imie}
-                  onChangeText={setImie}
+                  onChangeText={(value) => {
+                    setImie(value);
+                    if (firstNameError && value.trim()) setFirstNameError(null);
+                  }}
                   placeholder={t('profile.firstNamePlaceholder')}
                   autoComplete="off"
                   textContentType="none"
                   autoCorrect={false}
+                  error={firstNameError || undefined}
+                  onLayout={rememberFieldPosition('firstName')}
                 />
                 <Field label={t('profile.lastName')} value={nazwisko} onChangeText={setNazwisko} placeholder={t('profile.lastNamePlaceholder')} />
                 <Field
+                  ref={phoneRef}
                   label={t('profile.phone')}
                   value={telefon}
-                  onChangeText={(value) => setTelefon(normalizePhoneInput(value))}
+                  onChangeText={(value) => {
+                    const nextValue = normalizePhoneInput(value);
+                    setTelefon(nextValue);
+                    const digits = normalizePhone(nextValue).replace(/\D/g, '');
+                    if (phoneError && (!nextValue.trim() || digits.length >= 7)) setPhoneError(null);
+                  }}
                   placeholder={t('profile.phonePlaceholder')}
                   keyboardType="phone-pad"
                   maxLength={16}
+                  error={phoneError || undefined}
+                  onLayout={rememberFieldPosition('phone')}
                 />
 
                 <AppButton
@@ -292,7 +328,7 @@ export default function OnboardingProfileScreen() {
   );
 }
 
-function Field(props: {
+const Field = forwardRef<TextInput, {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
@@ -302,7 +338,9 @@ function Field(props: {
   textContentType?: 'none' | 'name' | 'familyName' | 'telephoneNumber';
   autoCorrect?: boolean;
   maxLength?: number;
-}) {
+  error?: string;
+  onLayout?: (event: LayoutChangeEvent) => void;
+}>(function Field(props, ref) {
   const {
     label,
     value,
@@ -313,25 +351,31 @@ function Field(props: {
     textContentType,
     autoCorrect,
     maxLength,
+    error,
+    onLayout,
   } = props;
 
   return (
-    <AppInput
-      label={label}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      keyboardType={keyboardType}
-      autoCapitalize={keyboardType === 'phone-pad' ? 'none' : 'words'}
-      autoComplete={autoComplete}
-      textContentType={textContentType}
-      autoCorrect={autoCorrect}
-      maxLength={maxLength}
-      containerStyle={styles.fieldWrap}
-      style={styles.input}
-    />
+    <View onLayout={onLayout}>
+      <AppInput
+        ref={ref}
+        label={label}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        keyboardType={keyboardType}
+        autoCapitalize={keyboardType === 'phone-pad' ? 'none' : 'words'}
+        autoComplete={autoComplete}
+        textContentType={textContentType}
+        autoCorrect={autoCorrect}
+        maxLength={maxLength}
+        error={error}
+        containerStyle={styles.fieldWrap}
+        style={styles.input}
+      />
+    </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },

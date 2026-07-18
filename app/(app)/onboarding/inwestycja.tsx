@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,9 +11,11 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
@@ -35,6 +37,7 @@ const BG = '#000000';
 const NEON = '#25F0C8';
 const APP_LOGO = require('../../assets/logo.png');
 const INVESTMENT_NAME_MAX_LENGTH = 18;
+type InvestmentField = 'name' | 'location' | 'startDate' | 'endDate';
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -86,15 +89,34 @@ export default function OnboardingInvestmentScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [appleUser, setAppleUser] = useState(false);
   const [nazwa, setNazwa] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
   const [lokalizacja, setLokalizacja] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<PlaceSuggestion | null>(null);
   const [savedLegacyLocation, setSavedLegacyLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [dataStartISO, setDataStartISO] = useState('');
+  const [startDateError, setStartDateError] = useState<string | null>(null);
   const [dataKoniecISO, setDataKoniecISO] = useState('');
+  const [endDateError, setEndDateError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const fieldPositions = useRef<Partial<Record<InvestmentField, number>>>({});
+  const nameRef = useRef<TextInput>(null);
+  const locationRef = useRef<TextInput>(null);
+  const startDateRef = useRef<View>(null);
+  const endDateRef = useRef<View>(null);
 
   const [pickerOpen, setPickerOpen] = useState<null | 'start' | 'koniec'>(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
+
+  const rememberFieldPosition = (field: InvestmentField) => (event: LayoutChangeEvent) => {
+    fieldPositions.current[field] = event.nativeEvent.layout.y;
+  };
+
+  const moveToField = (field: InvestmentField, focus?: () => void) => {
+    const y = fieldPositions.current[field] ?? 0;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+    if (focus) setTimeout(focus, 260);
+  };
 
   const startDisplay = useMemo(() => {
     const dt = parseISODate(dataStartISO);
@@ -236,23 +258,25 @@ export default function OnboardingInvestmentScreen() {
     const selectedISO = toISODate(tempDate);
     if (pickerOpen === 'start') {
       if (dataKoniecISO && selectedISO > dataKoniecISO) {
-        Alert.alert(
-          t('alerts.errorTitle'),
-          t('alerts.startAfterEnd')
-        );
+        setStartDateError(t('alerts.startAfterEnd'));
+        closePicker();
+        moveToField('startDate', () => (startDateRef.current as any)?.focus?.());
         return;
       }
       setDataStartISO(selectedISO);
+      setStartDateError(null);
+      if (endDateError === t('alerts.endBeforeStart')) setEndDateError(null);
     }
     if (pickerOpen === 'koniec') {
       if (dataStartISO && selectedISO < dataStartISO) {
-        Alert.alert(
-          t('alerts.errorTitle'),
-          t('alerts.endBeforeStart')
-        );
+        setEndDateError(t('alerts.endBeforeStart'));
+        closePicker();
+        moveToField('endDate', () => (endDateRef.current as any)?.focus?.());
         return;
       }
       setDataKoniecISO(selectedISO);
+      setEndDateError(null);
+      if (startDateError === t('alerts.startAfterEnd')) setStartDateError(null);
     }
     closePicker();
   };
@@ -264,40 +288,39 @@ export default function OnboardingInvestmentScreen() {
     const trimmedName = nazwa.trim();
 
     if (!trimmedName) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.nameRequired'));
+      setNameError(t('alerts.nameRequired'));
+      moveToField('name', () => nameRef.current?.focus());
       return;
     }
 
     if (trimmedName.length > INVESTMENT_NAME_MAX_LENGTH) {
-      Alert.alert(
-        t('alerts.errorTitle'),
-        t('alerts.nameTooLong')
-      );
+      setNameError(t('alerts.nameTooLong'));
+      moveToField('name', () => nameRef.current?.focus());
       return;
     }
 
     if (!selectedPlace && !savedLegacyLocation) {
       const message = t('alerts.selectLocationFromList');
       setLocationError(message);
-      Alert.alert(t('alerts.errorTitle'), message);
+      moveToField('location', () => locationRef.current?.focus());
       return;
     }
 
     if (!dataStartISO) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.startDateRequired'));
+      setStartDateError(t('alerts.startDateRequired'));
+      moveToField('startDate', () => (startDateRef.current as any)?.focus?.());
       return;
     }
 
     if (!dataKoniecISO) {
-      Alert.alert(t('alerts.errorTitle'), t('alerts.endDateRequired'));
+      setEndDateError(t('alerts.endDateRequired'));
+      moveToField('endDate', () => (endDateRef.current as any)?.focus?.());
       return;
     }
 
     if (dataStartISO > dataKoniecISO) {
-      Alert.alert(
-        t('alerts.errorTitle'),
-        t('alerts.startAfterEnd')
-      );
+      setStartDateError(t('alerts.startAfterEnd'));
+      moveToField('startDate', () => (startDateRef.current as any)?.focus?.());
       return;
     }
 
@@ -400,6 +423,7 @@ export default function OnboardingInvestmentScreen() {
           </TouchableOpacity>
         ) : null}
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={[
             styles.content,
             { paddingTop: topPad, paddingBottom: Math.max(44, insets.bottom + 40) },
@@ -424,52 +448,74 @@ export default function OnboardingInvestmentScreen() {
             ) : (
               <>
                 <Field
+                  ref={nameRef}
                   label={`${t('form.nameLabel')} *`}
                   value={nazwa}
-                  onChangeText={setNazwa}
+                  onChangeText={(value) => {
+                    setNazwa(value);
+                    const trimmed = value.trim();
+                    if (nameError && trimmed && trimmed.length <= INVESTMENT_NAME_MAX_LENGTH) setNameError(null);
+                  }}
                   placeholder={t('form.namePlaceholder')}
                   maxLength={INVESTMENT_NAME_MAX_LENGTH}
+                  error={nameError || undefined}
+                  onLayout={rememberFieldPosition('name')}
                 />
-                <PlaceAutocomplete
-                  label={`${t('form.locationLabel')} *`}
-                  value={lokalizacja}
-                  onChangeText={(value) => {
-                    setLokalizacja(value);
-                    setSelectedPlace(null);
-                    setSavedLegacyLocation(false);
-                    setLocationError(null);
-                  }}
-                  selectedPlace={selectedPlace}
-                  onSelect={(place) => {
-                    setSelectedPlace(place);
-                    setLokalizacja(getPlaceLocalityName(place));
-                    setLocationError(null);
-                  }}
-                  countryLabel={t('form.countryLabel')}
-                  defaultCountryCode={defaultCountryCode}
-                  placeholder={t('form.locationPlaceholder')}
-                  disabled={saving}
-                  error={locationError}
-                  showSelectedDetails={false}
-                />
+                <View onLayout={rememberFieldPosition('location')}>
+                  <PlaceAutocomplete
+                    ref={locationRef}
+                    label={`${t('form.locationLabel')} *`}
+                    value={lokalizacja}
+                    onChangeText={(value) => {
+                      setLokalizacja(value);
+                      setSelectedPlace(null);
+                      setSavedLegacyLocation(false);
+                      setLocationError(null);
+                    }}
+                    selectedPlace={selectedPlace}
+                    onSelect={(place) => {
+                      setSelectedPlace(place);
+                      setLokalizacja(getPlaceLocalityName(place));
+                      setLocationError(null);
+                    }}
+                    countryLabel={t('form.countryLabel')}
+                    defaultCountryCode={defaultCountryCode}
+                    placeholder={t('form.locationPlaceholder')}
+                    disabled={saving}
+                    error={locationError}
+                    showSelectedDetails={false}
+                  />
+                </View>
 
                 <View style={styles.row}>
-                  <View style={[styles.fieldBlock, { flex: 1 }]}>
+                  <View style={[styles.fieldBlock, { flex: 1 }]} onLayout={rememberFieldPosition('startDate')}>
                     <Text style={styles.fieldLabel}>{t('form.startLabel')}</Text>
-                    <TouchableOpacity style={styles.pickerWrap} onPress={() => openPicker('start')} activeOpacity={0.88}>
+                    <TouchableOpacity
+                      ref={startDateRef}
+                      style={[styles.pickerWrap, startDateError && styles.pickerWrapError]}
+                      onPress={() => openPicker('start')}
+                      activeOpacity={0.88}
+                    >
                       <Feather name="calendar" size={16} color="rgba(37,240,200,0.55)" />
                       <Text style={styles.pickerText}>{startDisplay || t('form.datePlaceholder')}</Text>
                     </TouchableOpacity>
+                    {startDateError ? <Text style={styles.formError}>{startDateError}</Text> : null}
                   </View>
 
                   <View style={{ width: 10 }} />
 
-                  <View style={[styles.fieldBlock, { flex: 1 }]}>
+                  <View style={[styles.fieldBlock, { flex: 1 }]} onLayout={rememberFieldPosition('endDate')}>
                     <Text style={styles.fieldLabel}>{t('form.endLabel')}</Text>
-                    <TouchableOpacity style={styles.pickerWrap} onPress={() => openPicker('koniec')} activeOpacity={0.88}>
+                    <TouchableOpacity
+                      ref={endDateRef}
+                      style={[styles.pickerWrap, endDateError && styles.pickerWrapError]}
+                      onPress={() => openPicker('koniec')}
+                      activeOpacity={0.88}
+                    >
                       <Feather name="calendar" size={16} color="rgba(37,240,200,0.55)" />
                       <Text style={styles.pickerText}>{koniecDisplay || t('form.datePlaceholder')}</Text>
                     </TouchableOpacity>
+                    {endDateError ? <Text style={styles.formError}>{endDateError}</Text> : null}
                   </View>
                 </View>
                 <AppButton
@@ -518,27 +564,33 @@ export default function OnboardingInvestmentScreen() {
   );
 }
 
-function Field(props: {
+const Field = forwardRef<TextInput, {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   maxLength?: number;
-}) {
-  const { label, value, onChangeText, placeholder, maxLength } = props;
+  error?: string;
+  onLayout?: (event: LayoutChangeEvent) => void;
+}>(function Field(props, ref) {
+  const { label, value, onChangeText, placeholder, maxLength, error, onLayout } = props;
 
   return (
-    <AppInput
-      label={label}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      maxLength={maxLength}
-      containerStyle={styles.fieldBlock}
-      style={styles.input}
-    />
+    <View onLayout={onLayout}>
+      <AppInput
+        ref={ref}
+        label={label}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        error={error}
+        containerStyle={styles.fieldBlock}
+        style={styles.input}
+      />
+    </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
@@ -642,6 +694,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+  },
+  pickerWrapError: {
+    borderColor: '#EF4444',
+  },
+  formError: {
+    marginTop: 8,
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '700',
   },
   pickerText: {
     flex: 1,

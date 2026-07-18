@@ -57,8 +57,8 @@ export const AppInput = forwardRef<TextInput, AppInputProps>(function AppInput(
           styles.input,
           focused && styles.inputFocused,
           !editable && styles.inputDisabled,
-          !!error && styles.inputError,
           style,
+          !!error && styles.inputError,
         ]}
         {...props}
       />

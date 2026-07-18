@@ -20,10 +20,45 @@ export type PurchasePackageResult = {
 let configuredApiKey: string | null = null;
 let configuredPlatform: RevenueCatPlatformConfig['platform'] | null = null;
 const warnedStatuses = new Set<string>();
+let lastOfferingsDiagnostics: RevenueCatOfferingsDiagnostics | null = null;
 
-function isDevelopmentLogEnabled() {
-  return typeof __DEV__ !== 'undefined' && __DEV__;
-}
+const EXPECTED_ANDROID_PACKAGE_NAME = 'com.buildiq.app';
+const EXPECTED_PRODUCT_IDS = [
+  'buildiq_pro_monthly',
+  'buildiq_pro_yearly',
+  'buildiq_expert_monthly',
+  'buildiq_expert_yearly',
+];
+
+type StoreEnvironmentDiagnostics = {
+  platform: typeof Platform.OS;
+  packageName: string | null;
+  expectedAndroidPackageName: string | null;
+  packageNameMatchesExpected: boolean | null;
+  installReferrer: string | null;
+  installReferrerAvailable: boolean | null;
+  supportStatus: RevenueCatSupportStatus;
+  apiKey: string;
+  apiKeyPrefix: string | null;
+};
+
+type RevenueCatOfferingsDiagnostics = StoreEnvironmentDiagnostics & {
+  offeringsReturned: boolean;
+  currentOffering: string | null;
+  offeringIdentifiers: string[];
+  currentPackageCount: number;
+  products: Array<{
+    packageIdentifier: string;
+    packageType: string | null;
+    productIdentifier: string;
+    priceString: string | null;
+    title: string | null;
+    subscriptionPeriod: string | null;
+  }>;
+  expectedProductIds: string[];
+  missingExpectedProductIds: string[];
+  error: ReturnType<typeof getErrorDiagnostics> | null;
+};
 
 function maskApiKey(apiKey: string | null): string {
   if (!apiKey) return 'missing';
@@ -42,7 +77,6 @@ function getErrorDiagnostics(error: any) {
 }
 
 function logDevelopment(message: string, data?: Record<string, unknown>) {
-  if (!isDevelopmentLogEnabled()) return;
   console.log(message, data ?? {});
 }
 
@@ -102,6 +136,51 @@ async function getPurchasesModule() {
   return module.default;
 }
 
+async function getInstallReferrer(): Promise<string | null> {
+  if (Platform.OS !== 'android') return null;
+  try {
+    return await Application.getInstallReferrerAsync();
+  } catch (error) {
+    console.warn('[RevenueCat] Google Play install referrer lookup failed:', getErrorDiagnostics(error));
+    return null;
+  }
+}
+
+async function getStoreEnvironmentDiagnostics(): Promise<StoreEnvironmentDiagnostics> {
+  const platformConfig = getRevenueCatPlatformConfig();
+  const installReferrer = await getInstallReferrer();
+  const packageName = Application.applicationId ?? null;
+
+  return {
+    platform: Platform.OS,
+    packageName,
+    expectedAndroidPackageName: Platform.OS === 'android' ? EXPECTED_ANDROID_PACKAGE_NAME : null,
+    packageNameMatchesExpected:
+      Platform.OS === 'android' ? packageName === EXPECTED_ANDROID_PACKAGE_NAME : null,
+    installReferrer,
+    installReferrerAvailable: Platform.OS === 'android' ? installReferrer !== null : null,
+    supportStatus: getRevenueCatSupportStatus(),
+    apiKey: maskApiKey(platformConfig?.apiKey ?? null),
+    apiKeyPrefix: platformConfig?.apiKey ? platformConfig.apiKey.slice(0, 5) : null,
+  };
+}
+
+function summarizePackage(pkg: PurchasesPackage) {
+  return {
+    packageIdentifier: pkg.identifier,
+    packageType: pkg.packageType ? String(pkg.packageType) : null,
+    productIdentifier: pkg.product.identifier,
+    priceString: pkg.product.priceString ?? null,
+    title: pkg.product.title ?? null,
+    subscriptionPeriod: (pkg.product as any)?.subscriptionPeriod ?? null,
+  };
+}
+
+function getMissingExpectedProductIds(packages: PurchasesPackage[]) {
+  const productIds = new Set(packages.map((pkg) => pkg.product.identifier.toLowerCase()));
+  return EXPECTED_PRODUCT_IDS.filter((productId) => !productIds.has(productId));
+}
+
 async function ensureConfigured(): Promise<boolean> {
   if (isLaunchPaymentsDisabled()) {
     warnOnce(
@@ -137,9 +216,10 @@ async function ensureConfigured(): Promise<boolean> {
   if (configuredApiKey === apiKey && configuredPlatform === platformConfig.platform) return true;
 
   const Purchases = await getPurchasesModule();
+  const environment = await getStoreEnvironmentDiagnostics();
   logDevelopment('[RevenueCat] configure', {
-    platform: platformConfig.platform,
-    packageName: Application.applicationId ?? null,
+    ...environment,
+    configuredPlatform: platformConfig.platform,
     apiKey: maskApiKey(apiKey),
   });
   Purchases.configure({ apiKey });
@@ -203,35 +283,64 @@ export async function getCustomerInfoSafe(): Promise<CustomerInfo | null> {
 
 export async function getOfferingsSafe(): Promise<PurchasesOfferings | null> {
   try {
+    const environment = await getStoreEnvironmentDiagnostics();
     const ready = await ensureConfigured();
     if (!ready) {
-      logDevelopment('[RevenueCat] offerings skipped', {
-        platform: Platform.OS,
-        packageName: Application.applicationId ?? null,
+      lastOfferingsDiagnostics = {
+        ...environment,
         supportStatus: getRevenueCatSupportStatus(),
-        apiKey: maskApiKey(getRevenueCatPlatformConfig()?.apiKey ?? null),
+        offeringsReturned: false,
+        currentOffering: null,
+        offeringIdentifiers: [],
+        currentPackageCount: 0,
+        products: [],
+        expectedProductIds: EXPECTED_PRODUCT_IDS,
+        missingExpectedProductIds: EXPECTED_PRODUCT_IDS,
+        error: null,
+      };
+      logDevelopment('[RevenueCat] offerings skipped', {
+        ...lastOfferingsDiagnostics,
       });
       return null;
     }
 
     const Purchases = await getPurchasesModule();
     const offerings = await Purchases.getOfferings();
-    logDevelopment('[RevenueCat] offerings', {
-      platform: Platform.OS,
-      packageName: Application.applicationId ?? null,
+    const packages = offerings.current?.availablePackages ?? [];
+    lastOfferingsDiagnostics = {
+      ...environment,
+      supportStatus: getRevenueCatSupportStatus(),
+      offeringsReturned: true,
       currentOffering: offerings.current?.identifier ?? null,
-      packageIdentifiers: offerings.current?.availablePackages?.map((pkg: PurchasesPackage) => ({
-        packageIdentifier: pkg.identifier,
-        productIdentifier: pkg.product.identifier,
-        packageType: pkg.packageType,
-        priceString: pkg.product.priceString,
-      })) ?? [],
-    });
+      offeringIdentifiers: Object.keys(offerings.all ?? {}),
+      currentPackageCount: packages.length,
+      products: packages.map(summarizePackage),
+      expectedProductIds: EXPECTED_PRODUCT_IDS,
+      missingExpectedProductIds: getMissingExpectedProductIds(packages),
+      error: null,
+    };
+    logDevelopment('[RevenueCat] getOfferings() result', lastOfferingsDiagnostics);
     return offerings;
   } catch (error: any) {
-    console.warn('[RevenueCat] getOfferingsSafe failed:', getErrorDiagnostics(error));
+    const diagnostics = getErrorDiagnostics(error);
+    lastOfferingsDiagnostics = {
+      ...(await getStoreEnvironmentDiagnostics()),
+      offeringsReturned: false,
+      currentOffering: null,
+      offeringIdentifiers: [],
+      currentPackageCount: 0,
+      products: [],
+      expectedProductIds: EXPECTED_PRODUCT_IDS,
+      missingExpectedProductIds: EXPECTED_PRODUCT_IDS,
+      error: diagnostics,
+    };
+    console.warn('[RevenueCat] getOfferingsSafe failed:', lastOfferingsDiagnostics);
     return null;
   }
+}
+
+export function getLastOfferingsDiagnostics(): RevenueCatOfferingsDiagnostics | null {
+  return lastOfferingsDiagnostics;
 }
 
 export async function restorePurchasesSafe(): Promise<CustomerInfo | null> {

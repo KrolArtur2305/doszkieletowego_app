@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -33,7 +34,7 @@ type Props = {
   onSelect: (place: PlaceSuggestion) => void;
 };
 
-export function PlaceAutocomplete({
+export const PlaceAutocomplete = forwardRef<TextInput, Props>(function PlaceAutocomplete({
   countryLabel,
   label,
   placeholder,
@@ -45,7 +46,7 @@ export function PlaceAutocomplete({
   showSelectedDetails = true,
   onChangeText,
   onSelect,
-}: Props) {
+}: Props, ref) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -102,6 +103,7 @@ export function PlaceAutocomplete({
       </TouchableOpacity>
 
       <AppInput
+        ref={ref}
         label={label}
         value={value}
         onChangeText={onChangeText}
@@ -195,7 +197,7 @@ export function PlaceAutocomplete({
       </Modal>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrap: {

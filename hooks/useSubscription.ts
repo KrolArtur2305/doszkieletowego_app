@@ -8,6 +8,7 @@ import { AI_OPEN_ACCESS } from '../src/services/subscription/launchMode';
 import {
   configurePurchases,
   getCustomerInfoSafe,
+  getLastOfferingsDiagnostics,
   getOfferingsSafe,
   getRevenueCatSupportStatus,
 } from '../src/services/subscription/revenuecat';
@@ -50,6 +51,30 @@ export function useSubscription(): UseSubscriptionResult {
 
   const shouldUseRevenueCat = supportStatus === 'ready';
 
+  function resolveOfferingsError(nextOfferings: PurchasesOfferings | null): string | null {
+    const diagnostics = getLastOfferingsDiagnostics();
+    if (!nextOfferings) {
+      const reason = diagnostics?.error?.message ?? diagnostics?.supportStatus ?? null;
+      return reason
+        ? i18n.t('subscription:paywall.productsErrorWithReason', { reason })
+        : i18n.t('subscription:paywall.productsError');
+    }
+
+    if (!nextOfferings.current) {
+      return i18n.t('subscription:paywall.productsErrorWithReason', {
+        reason: 'RevenueCat getOfferings() returned no current offering.',
+      });
+    }
+
+    if ((nextOfferings.current.availablePackages ?? []).length === 0) {
+      return i18n.t('subscription:paywall.productsErrorWithReason', {
+        reason: 'RevenueCat current offering has no available packages.',
+      });
+    }
+
+    return null;
+  }
+
   async function refresh() {
     setLoading(true);
     setError(null);
@@ -70,6 +95,7 @@ export function useSubscription(): UseSubscriptionResult {
         getCustomerInfoSafe(),
         getOfferingsSafe(),
       ]);
+      const offeringsError = resolveOfferingsError(nextOfferings);
       await syncRevenueCatProfile(nextCustomerInfo, session?.user?.id).catch((syncError) => {
         console.warn('[RevenueCat] profile sync failed:', syncError);
       });
@@ -78,6 +104,7 @@ export function useSubscription(): UseSubscriptionResult {
       setOfferings(nextOfferings);
       setAccess(getSubscriptionAccess(nextCustomerInfo));
       setCurrentSupportStatus(getRevenueCatSupportStatus());
+      setError(offeringsError);
     } catch (e) {
       setCustomerInfo(null);
       setOfferings(null);
@@ -113,6 +140,7 @@ export function useSubscription(): UseSubscriptionResult {
           getCustomerInfoSafe(),
           getOfferingsSafe(),
         ]);
+        const offeringsError = resolveOfferingsError(nextOfferings);
         await syncRevenueCatProfile(nextCustomerInfo, session?.user?.id).catch((syncError) => {
           console.warn('[RevenueCat] profile sync failed:', syncError);
         });
@@ -123,6 +151,7 @@ export function useSubscription(): UseSubscriptionResult {
         setOfferings(nextOfferings);
         setAccess(getSubscriptionAccess(nextCustomerInfo));
         setCurrentSupportStatus(getRevenueCatSupportStatus());
+        setError(offeringsError);
       } catch (e) {
         if (!alive) return;
 

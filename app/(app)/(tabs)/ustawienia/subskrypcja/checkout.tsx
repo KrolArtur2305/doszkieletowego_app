@@ -129,6 +129,25 @@ export default function CheckoutScreen() {
       useNativeDriver: true}).start()
   }, [introAnim])
 
+  useEffect(() => {
+    console.log('[RevenueCat] checkout package mapping', {
+      platform: Platform.OS,
+      billing,
+      availablePackageCount: availablePackages.length,
+      availableProducts: availablePackages.map((pkg) => ({
+        packageIdentifier: pkg.identifier,
+        packageType: String(pkg.packageType ?? ''),
+        productIdentifier: pkg.product.identifier,
+        priceString: pkg.product.priceString ?? null,
+      })),
+      expectedMatches: PAYWALL_PLAN_KEYS.map((key) => ({
+        plan: key,
+        expectedProductId: expectedProductId(key, billing),
+        matchedProductId: findPackage(availablePackages, key, billing)?.product.identifier ?? null,
+      })),
+    })
+  }, [availablePackages, billing])
+
   const getPlanPrice = (key: PaywallPlanKey) => {
     const pkg = findPackage(availablePackages, key as RevenueCatPlanKey, billing)
     return pkg?.product.priceString ?? t('paywall.priceFromStore', { store: storeName })
@@ -285,11 +304,7 @@ export default function CheckoutScreen() {
             <View style={styles.storeErrorRow}>
               <View style={styles.storeErrorDot} />
               <Text style={styles.storeErrorText}>
-                {error
-                  ? t('paywall.productsErrorWithReason', {
-                      reason: error,
-                    })
-                  : t('paywall.productsError')}
+                {error || t('paywall.productsError')}
               </Text>
             </View>
           </BlurView>
