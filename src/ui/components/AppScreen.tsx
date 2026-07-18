@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import {
   ScrollView,
   StyleProp,
@@ -19,14 +19,17 @@ type AppScreenProps = {
   showsVerticalScrollIndicator?: boolean;
 };
 
-export function AppScreen({
-  children,
-  background,
-  scroll = false,
-  style,
-  contentContainerStyle,
-  showsVerticalScrollIndicator = false,
-}: AppScreenProps) {
+export const AppScreen = forwardRef<ScrollView, AppScreenProps>(function AppScreen(
+  {
+    children,
+    background,
+    scroll = false,
+    style,
+    contentContainerStyle,
+    showsVerticalScrollIndicator = false,
+  },
+  ref
+) {
   return (
     <View style={[styles.screen, style]}>
       <View pointerEvents="none" style={styles.blackBase} />
@@ -34,6 +37,7 @@ export function AppScreen({
 
       {scroll ? (
         <ScrollView
+          ref={ref}
           style={styles.fill}
           contentContainerStyle={contentContainerStyle}
           showsVerticalScrollIndicator={showsVerticalScrollIndicator}
@@ -47,7 +51,7 @@ export function AppScreen({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   screen: {

@@ -55,7 +55,7 @@
   "photos": {
     "latestTitle": "Zuletzt hinzugefügte Fotos",
     "loading": "Fotos werden geladen...",
-    "empty": "Noch keine Fotos — fügen Sie das erste im Fotos-Modul hinzu."
+    "empty": "Füge das erste Baustellenfoto hinzu, um den Fortschritt sichtbar zu dokumentieren."
   },
   "calendar": {
     "title": "Kalender",
@@ -64,10 +64,10 @@
     "clickDayHint": "Tag antippen, um Aufgaben zu sehen",
     "nearestTasks": "Nächste Aufgaben",
     "addTaskPlus": "+ Hinzufügen",
-    "noTasks": "Keine Aufgaben — erste hinzufügen.",
+    "noTasks": "Füge die erste Aufgabe hinzu, damit die nächsten Arbeiten leichter planbar sind.",
     "tasksForDay": "Aufgaben: {{date}}",
     "addTask": "Hinzufügen",
-    "noTasksForDay": "Keine Aufgaben für diesen Tag.",
+    "noTasksForDay": "Für diesen Tag sind noch keine Aufgaben geplant.",
     "allDay": "ganztägig",
     "weekdays": {
       "mon": "Mo",
@@ -90,8 +90,8 @@
       "sat": "Sa"
     },
     "workConditionsTitle": "Bedingungen auf der Baustelle",
-    "emptyText": "Im Profil ist noch kein Baustandort hinterlegt.",
-    "emptyFallback": "Standort ergänzen, um die Prognose zu sehen.",
+    "emptyText": "Füge den Baustandort hinzu, um die Bedingungen vor Ort zu sehen.",
+    "emptyFallback": "Ergänze den Standort und prüfe die Prognose vor den Arbeiten.",
     "emptyCta": "Standort ergänzen",
     "dayNotes": {
       "clear": "Trocken",
@@ -183,7 +183,7 @@
   },
   "activity": {
     "title": "Letzte Aktivität",
-    "empty": "Noch keine Aktivität",
+    "empty": "Die ersten Aktualisierungen deiner Baustelle erscheinen hier.",
     "expense": "Ausgabe",
     "stageDone": "Phase abgeschlossen"
   },
@@ -200,7 +200,7 @@
     "summary": "Sie haben heute {{count}} Aufgaben.",
     "summary_one": "Sie haben heute {{count}} Aufgabe.",
     "summary_other": "Sie haben heute {{count}} Aufgaben.",
-    "emptySummary": "Für heute ist noch nichts geplant.",
+    "emptySummary": "Für heute sind noch keine Aufgaben geplant.",
     "badge": "heute",
     "add": "+ Aufgabe hinzufügen",
     "openAll": "Alle anzeigen",
@@ -209,8 +209,8 @@
     "countLabel_one": "{{count}} Eintrag",
     "countLabel_other": "{{count}} Einträge",
     "countEmpty": "0 Einträge",
-    "emptyTitle": "Ruhiger Tag",
-    "emptyText": "Sie haben heute keine Aufgaben. Sie können neue hinzufügen oder kommende Termine prüfen.",
+    "emptyTitle": "Im heutigen Plan ist noch Platz",
+    "emptyText": "Füge eine Aufgabe für heute hinzu oder sieh dir an, was als Nächstes ansteht.",
     "upcomingTitle": "Als Nächstes",
     "upcomingHint": "nächste Termine",
     "summary_few": "Sie haben heute {{count}} Aufgaben.",

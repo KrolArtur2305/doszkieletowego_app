@@ -55,7 +55,7 @@
   "photos": {
     "latestTitle": "Ostatnio dodane zdjęcia",
     "loading": "Ładowanie zdjęć...",
-    "empty": "Brak zdjęć — dodaj pierwsze w module Zdjęcia."
+    "empty": "Dodaj pierwsze zdjęcie z budowy, aby zacząć tworzyć historię postępów."
   },
   "calendar": {
     "title": "Kalendarz",
@@ -64,10 +64,10 @@
     "clickDayHint": "Kliknij dzień, aby zobaczyć zadania",
     "nearestTasks": "Najbliższe zadania",
     "addTaskPlus": "+ Dodaj",
-    "noTasks": "Brak zadań — dodaj pierwsze.",
+    "noTasks": "Dodaj pierwsze zadanie, aby łatwiej zaplanować najbliższe prace.",
     "tasksForDay": "Zadania: {{date}}",
     "addTask": "Dodaj",
-    "noTasksForDay": "Brak zadań na ten dzień.",
+    "noTasksForDay": "Na ten dzień nie ma jeszcze zadań.",
     "allDay": "całodniowe",
     "weekdays": {
       "mon": "Pn",
@@ -90,8 +90,8 @@
       "sat": "sob"
     },
     "workConditionsTitle": "Warunki na budowie",
-    "emptyText": "Brak lokalizacji budowy w profilu.",
-    "emptyFallback": "Uzupełnij lokalizację, aby zobaczyć prognozę.",
+    "emptyText": "Dodaj lokalizację budowy, aby zobaczyć warunki na miejscu.",
+    "emptyFallback": "Uzupełnij lokalizację i sprawdzaj prognozę przed pracami.",
     "emptyCta": "Uzupełnij lokalizację",
     "dayNotes": {
       "clear": "Bez opadów",
@@ -183,7 +183,7 @@
   },
   "activity": {
     "title": "Ostatnia aktywność",
-    "empty": "Brak aktywności",
+    "empty": "Pierwsze zmiany na budowie pojawią się tutaj.",
     "expense": "Wydatek",
     "stageDone": "Etap zrealizowany"
   },
@@ -201,7 +201,7 @@
     "summary_one": "Na dziś masz {{count}} zadanie.",
     "summary_few": "Na dziś masz {{count}} zadania.",
     "summary_many": "Na dziś masz {{count}} zadań.",
-    "emptySummary": "Na dziś nie masz jeszcze nic zaplanowanego.",
+    "emptySummary": "Na dziś nie masz jeszcze zaplanowanych zadań.",
     "badge": "dziś",
     "add": "+ Dodaj zadanie",
     "openAll": "Zobacz wszystkie",
@@ -211,8 +211,8 @@
     "countLabel_few": "{{count}} pozycje",
     "countLabel_many": "{{count}} pozycji",
     "countEmpty": "0 pozycji",
-    "emptyTitle": "Spokojny dzień",
-    "emptyText": "Nie masz dziś żadnych zadań. Możesz dodać nowe albo sprawdzić kolejne terminy.",
+    "emptyTitle": "Masz wolne miejsce w planie",
+    "emptyText": "Dodaj zadanie na dziś albo spokojnie sprawdź, co czeka w kolejnych dniach.",
     "upcomingTitle": "Dalej w kolejce",
     "upcomingHint": "następne terminy",
     "summary_other": "Na dziś masz {{count}} zadań.",

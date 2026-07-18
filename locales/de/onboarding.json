@@ -3,6 +3,9 @@
     "prepare": "Onboarding wird vorbereitet...",
     "profile": "Daten werden geladen..."
   },
+  "errors": {
+    "noUser": "Es wurde kein angemeldeter Benutzer gefunden. Bitte melde dich erneut an."
+  },
   "alerts": {
     "errorTitle": "Fehler",
     "prepareError": "Onboarding konnte nicht vorbereitet werden.",

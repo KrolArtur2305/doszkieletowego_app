@@ -3,6 +3,9 @@
     "prepare": "Przygotowuję onboarding...",
     "profile": "Ładuję dane..."
   },
+  "errors": {
+    "noUser": "Nie znaleziono zalogowanego użytkownika. Zaloguj się ponownie."
+  },
   "alerts": {
     "errorTitle": "Błąd",
     "prepareError": "Nie udało się przygotować onboardingu.",

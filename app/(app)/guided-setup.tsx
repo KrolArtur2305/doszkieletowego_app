@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -53,6 +53,8 @@ export default function GuidedSetupScreen() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const transitionRef = useRef(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
@@ -128,8 +130,25 @@ export default function GuidedSetupScreen() {
       ? profile.ai_buddy_avatar
       : DEFAULT_BUDDY_AVATAR_ID
 
-  const next = () => setStep((current) => Math.min(current + 1, 4))
-  const back = () => setStep((current) => Math.max(current - 1, 0))
+  const releaseTransitionLock = () => {
+    setTimeout(() => {
+      transitionRef.current = false
+    }, 350)
+  }
+
+  const next = () => {
+    if (transitionRef.current) return
+    transitionRef.current = true
+    setStep((current) => Math.min(current + 1, 4))
+    releaseTransitionLock()
+  }
+
+  const back = () => {
+    if (transitionRef.current) return
+    transitionRef.current = true
+    setStep((current) => Math.max(current - 1, 0))
+    releaseTransitionLock()
+  }
 
   if (!loading && loadError) {
     return (
@@ -165,8 +184,9 @@ export default function GuidedSetupScreen() {
   }
 
   const finish = async () => {
-    if (saving) return
+    if (savingRef.current) return
     if (!ensureOnlineAction('Zapis konfiguracji startowej wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return
+    savingRef.current = true
     setSaving(true)
     try {
       if (userId) {
@@ -190,6 +210,7 @@ export default function GuidedSetupScreen() {
         getFriendlyErrorMessage(e, t, 'onboarding:guided.alerts.finishError')
       )
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }

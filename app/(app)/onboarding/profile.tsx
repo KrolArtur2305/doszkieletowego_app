@@ -54,6 +54,7 @@ export default function OnboardingProfileScreen() {
   const topPad = (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0) + 2;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -176,20 +177,23 @@ export default function OnboardingProfileScreen() {
   }
 
   const handleSave = async () => {
-    if (!userId || saving) return;
+    if (!userId || savingRef.current) return;
     if (!ensureOnlineAction('Zapis profilu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    savingRef.current = true;
 
     const first = imie.trim();
     const last = nazwisko.trim();
     const phone = telefon.trim() ? normalizePhone(telefon.trim()) : '';
 
     if (!first) {
+      savingRef.current = false;
       setFirstNameError(t('alerts.firstNameRequired'));
       moveToField('firstName', () => firstNameRef.current?.focus());
       return;
     }
 
     if (phone && phone.replace(/\D/g, '').length < 7) {
+      savingRef.current = false;
       setPhoneError(t('alerts.invalidPhone'));
       moveToField('phone', () => phoneRef.current?.focus());
       return;
@@ -219,16 +223,19 @@ export default function OnboardingProfileScreen() {
         getFriendlyErrorMessage(e, t, 'alerts.saveProfileError')
       );
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   const handleBack = async () => {
-    if (!userId || saving) {
+    if (savingRef.current) return;
+    if (!userId) {
       router.replace('/(app)/onboarding');
       return;
     }
     if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    savingRef.current = true;
 
     try {
       await supabase.from('profiles').upsert(
@@ -240,6 +247,7 @@ export default function OnboardingProfileScreen() {
         { onConflict: 'user_id' }
       );
     } catch {}
+    savingRef.current = false;
 
     router.replace('/(app)/onboarding');
   };

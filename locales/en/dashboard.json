@@ -55,7 +55,7 @@
   "photos": {
     "latestTitle": "Recently added photos",
     "loading": "Loading photos...",
-    "empty": "No photos yet — add your first one in the Photos module."
+    "empty": "Add your first site photo to start building a visual progress history."
   },
   "calendar": {
     "title": "Calendar",
@@ -64,10 +64,10 @@
     "clickDayHint": "Tap a day to see tasks",
     "nearestTasks": "Upcoming tasks",
     "addTaskPlus": "+ Add",
-    "noTasks": "No tasks — add your first one.",
+    "noTasks": "Add your first task to make the next jobs easier to plan.",
     "tasksForDay": "Tasks: {{date}}",
     "addTask": "Add",
-    "noTasksForDay": "No tasks for this day.",
+    "noTasksForDay": "There are no tasks scheduled for this day yet.",
     "allDay": "all day",
     "weekdays": {
       "mon": "Mo",
@@ -90,8 +90,8 @@
       "sat": "sat"
     },
     "workConditionsTitle": "Site conditions",
-    "emptyText": "No site location is set in the profile.",
-    "emptyFallback": "Add the location to see the forecast.",
+    "emptyText": "Add the site location to see conditions on the build.",
+    "emptyFallback": "Complete the location and check the forecast before work starts.",
     "emptyCta": "Add location",
     "dayNotes": {
       "clear": "Dry",
@@ -183,7 +183,7 @@
   },
   "activity": {
     "title": "Recent activity",
-    "empty": "No activity yet",
+    "empty": "Your first build updates will appear here.",
     "expense": "Expense",
     "stageDone": "Stage completed"
   },
@@ -200,7 +200,7 @@
     "summary": "You have {{count}} tasks today.",
     "summary_one": "You have {{count}} task today.",
     "summary_other": "You have {{count}} tasks today.",
-    "emptySummary": "You do not have anything planned for today yet.",
+    "emptySummary": "You do not have any tasks planned for today yet.",
     "badge": "today",
     "add": "+ Add task",
     "openAll": "See all",
@@ -209,8 +209,8 @@
     "countLabel_one": "{{count}} item",
     "countLabel_other": "{{count}} items",
     "countEmpty": "0 items",
-    "emptyTitle": "Quiet day",
-    "emptyText": "You do not have any tasks today. You can add new ones or check upcoming dates.",
+    "emptyTitle": "There is room in today's plan",
+    "emptyText": "Add a task for today or check what is coming up next.",
     "upcomingTitle": "Coming up next",
     "upcomingHint": "next deadlines",
     "summary_few": "You have {{count}} tasks today.",

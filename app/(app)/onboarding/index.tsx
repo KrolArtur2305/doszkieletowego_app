@@ -95,6 +95,7 @@ export default function OnboardingScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<OnboardingStep>('build_type');
+  const savingRef = useRef(false);
 
   const [buildType, setBuildType] = useState<string>('');
   const [buildStage, setBuildStage] = useState<string>('');
@@ -131,6 +132,18 @@ export default function OnboardingScreen() {
     if (focus) {
       setTimeout(focus, 260);
     }
+  };
+
+  const beginSaving = () => {
+    if (savingRef.current) return false;
+    savingRef.current = true;
+    setSaving(true);
+    return true;
+  };
+
+  const endSaving = () => {
+    savingRef.current = false;
+    setSaving(false);
   };
   useEffect(() => {
     if (step !== 'buddy') return;
@@ -217,10 +230,10 @@ export default function OnboardingScreen() {
   }, [userId, t]);
 
   const saveBuildType = async (value: string) => {
-    if (!userId || saving) return;
+    if (!userId || savingRef.current) return;
     if (!ensureOnlineAction('Zapis typu budowy wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    if (!beginSaving()) return;
 
-    setSaving(true);
     try {
       const { error } = await supabase.from('profiles').upsert(
         {
@@ -239,7 +252,7 @@ export default function OnboardingScreen() {
     } catch (e: any) {
       Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveBuildTypeError'));
     } finally {
-      setSaving(false);
+      endSaving();
     }
   };
 
@@ -265,13 +278,14 @@ export default function OnboardingScreen() {
   };
 
   const backToBuildType = async () => {
-    if (!userId || saving) {
+    if (!userId) {
       setStep('build_type');
       return;
     }
+    if (savingRef.current) return;
     if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    if (!beginSaving()) return;
 
-    setSaving(true);
     try {
       const { error } = await supabase.from('profiles').upsert(
         {
@@ -286,15 +300,15 @@ export default function OnboardingScreen() {
     } catch (e: any) {
       Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveBuildTypeError'));
     } finally {
-      setSaving(false);
+      endSaving();
     }
   };
 
   const saveBuildStage = async (value: string) => {
-    if (!userId || saving) return;
+    if (!userId || savingRef.current) return;
     if (!ensureOnlineAction('Zapis etapu budowy wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    if (!beginSaving()) return;
 
-    setSaving(true);
     try {
       const { error } = await supabase.from('profiles').upsert(
         {
@@ -313,24 +327,27 @@ export default function OnboardingScreen() {
     } catch (e: any) {
       Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveBuildStageError'));
     } finally {
-      setSaving(false);
+      endSaving();
     }
   };
 
   const saveBudget = async () => {
-    if (!userId || saving) return;
+    if (!userId || savingRef.current) return;
     if (!ensureOnlineAction('Zapis budżetu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    savingRef.current = true;
 
     const budget = toNumber(plannedBudget);
     const spent = toNumber(spentBudget) ?? 0;
 
     if (budget === null || budget < 0) {
+      savingRef.current = false;
       setPlannedBudgetError(t('alerts.invalidBudget'));
       moveToField('plannedBudget', () => plannedBudgetRef.current?.focus());
       return;
     }
 
     if (spent < 0) {
+      savingRef.current = false;
       setSpentBudgetError(t('alerts.negativeSpent'));
       moveToField('spentBudget', () => spentBudgetRef.current?.focus());
       return;
@@ -398,7 +415,25 @@ export default function OnboardingScreen() {
     } catch (e: any) {
       Alert.alert(t('alerts.errorTitle'), getFriendlyErrorMessage(e, t, 'alerts.saveBudgetError'));
     } finally {
-      setSaving(false);
+      endSaving();
+    }
+  };
+
+  const backToBuildStage = async () => {
+    if (savingRef.current) return;
+    if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    if (!beginSaving()) return;
+
+    try {
+      setStep('build_stage');
+      if (userId) {
+        await supabase.from('profiles').upsert(
+          { user_id: userId, onboarding_step: 'build_stage', onboarding_completed: false },
+          { onConflict: 'user_id' }
+        );
+      }
+    } finally {
+      endSaving();
     }
   };
 
@@ -469,16 +504,7 @@ export default function OnboardingScreen() {
 
   const renderBudget = () => (
     <>
-      {renderBackButton(async () => {
-        if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
-        setStep('build_stage');
-        if (userId) {
-          await supabase.from('profiles').upsert(
-            { user_id: userId, onboarding_step: 'build_stage', onboarding_completed: false },
-            { onConflict: 'user_id' }
-          );
-        }
-      })}
+      {renderBackButton(backToBuildStage)}
       <Text style={styles.title}>{t('steps.budgetTitle')}</Text>
 
       <BlurView intensity={20} tint="dark" style={styles.budgetHero}>
@@ -640,24 +666,28 @@ export default function OnboardingScreen() {
   );
 
   const saveBuddySetup = async () => {
-    if (!userId || saving) return;
+    if (!userId || savingRef.current) return;
     if (!ensureOnlineAction('Zapis ustawień Kierownika AI wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    savingRef.current = true;
 
     const trimmedName = buddyName.trim();
 
     if (!trimmedName) {
+      savingRef.current = false;
       setBuddyNameError(t('buddy:onboarding.nameRequired'));
       moveToField('buddyName', () => buddyNameRef.current?.focus());
       return;
     }
 
     if (!avatarId) {
+      savingRef.current = false;
       setAvatarError(t('buddy:onboarding.avatarRequired'));
       moveToField('avatar');
       return;
     }
 
     if (trimmedName.length > BUDDY_NAME_MAX_LENGTH) {
+      savingRef.current = false;
       setBuddyNameError(t('buddy:onboarding.nameTooLong'));
       moveToField('buddyName', () => buddyNameRef.current?.focus());
       return;
@@ -684,22 +714,31 @@ export default function OnboardingScreen() {
         getFriendlyErrorMessage(e, t, 'buddy:settings.errors.save')
       );
     } finally {
-      setSaving(false);
+      endSaving();
+    }
+  };
+
+  const backToInvestment = async () => {
+    if (savingRef.current) return;
+    if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    if (!beginSaving()) return;
+
+    try {
+      if (userId) {
+        await supabase.from('profiles').upsert(
+          { user_id: userId, onboarding_step: 'investment', onboarding_completed: false },
+          { onConflict: 'user_id' }
+        );
+      }
+      router.replace('/(app)/onboarding/inwestycja');
+    } finally {
+      endSaving();
     }
   };
 
   const renderBuddyStep = () => (
     <>
-      {renderBackButton(async () => {
-        if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
-        if (userId) {
-          await supabase.from('profiles').upsert(
-            { user_id: userId, onboarding_step: 'investment', onboarding_completed: false },
-            { onConflict: 'user_id' }
-          );
-        }
-        router.replace('/(app)/onboarding/inwestycja');
-      })}
+      {renderBackButton(backToInvestment)}
       <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
       <Text style={styles.title}>{t('buddy:onboarding.title')}</Text>
       <Text style={styles.subtitle}>{t('buddy:onboarding.subtitle')}</Text>

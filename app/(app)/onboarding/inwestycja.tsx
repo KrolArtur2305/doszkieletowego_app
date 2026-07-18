@@ -83,6 +83,7 @@ export default function OnboardingInvestmentScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -282,24 +283,28 @@ export default function OnboardingInvestmentScreen() {
   };
 
   const handleSave = async () => {
-    if (!userId || saving) return;
+    if (!userId || savingRef.current) return;
     if (!ensureOnlineAction('Zapis inwestycji wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    savingRef.current = true;
 
     const trimmedName = nazwa.trim();
 
     if (!trimmedName) {
+      savingRef.current = false;
       setNameError(t('alerts.nameRequired'));
       moveToField('name', () => nameRef.current?.focus());
       return;
     }
 
     if (trimmedName.length > INVESTMENT_NAME_MAX_LENGTH) {
+      savingRef.current = false;
       setNameError(t('alerts.nameTooLong'));
       moveToField('name', () => nameRef.current?.focus());
       return;
     }
 
     if (!selectedPlace && !savedLegacyLocation) {
+      savingRef.current = false;
       const message = t('alerts.selectLocationFromList');
       setLocationError(message);
       moveToField('location', () => locationRef.current?.focus());
@@ -307,18 +312,21 @@ export default function OnboardingInvestmentScreen() {
     }
 
     if (!dataStartISO) {
+      savingRef.current = false;
       setStartDateError(t('alerts.startDateRequired'));
       moveToField('startDate', () => (startDateRef.current as any)?.focus?.());
       return;
     }
 
     if (!dataKoniecISO) {
+      savingRef.current = false;
       setEndDateError(t('alerts.endDateRequired'));
       moveToField('endDate', () => (endDateRef.current as any)?.focus?.());
       return;
     }
 
     if (dataStartISO > dataKoniecISO) {
+      savingRef.current = false;
       setStartDateError(t('alerts.startAfterEnd'));
       moveToField('startDate', () => (startDateRef.current as any)?.focus?.());
       return;
@@ -376,16 +384,19 @@ export default function OnboardingInvestmentScreen() {
         getFriendlyErrorMessage(e, t, 'alerts.saveFailed')
       );
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   const handleBack = async () => {
-    if (!userId || saving) {
+    if (savingRef.current) return;
+    if (!userId) {
       router.replace(appleUser ? '/(app)/onboarding' : '/(app)/onboarding/profile');
       return;
     }
     if (!ensureOnlineAction('Zmiana kroku onboardingu wymaga internetu. Sprawdź połączenie i spróbuj ponownie.')) return;
+    savingRef.current = true;
 
     try {
       await supabase.from('profiles').upsert(
@@ -397,6 +408,7 @@ export default function OnboardingInvestmentScreen() {
         { onConflict: 'user_id' }
       );
     } catch {}
+    savingRef.current = false;
 
     router.replace(appleUser ? '/(app)/onboarding' : '/(app)/onboarding/profile');
   };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   View,
@@ -9,8 +9,11 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  TextInput,
   TouchableWithoutFeedback,
   TouchableOpacity,
+  type LayoutChangeEvent,
 } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
@@ -28,6 +31,13 @@ const FACEBOOK_AUTH_ENABLED = false;
 const APP_LOGO = require('../../assets/logo.png');
 const GOOGLE_LOGO = require('../../assets/google-g.png');
 
+type RegisterField = 'email' | 'password' | 'password2';
+type RegisterErrorTarget = RegisterField | 'form';
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export default function RegisterScreen() {
   const router = useRouter();
   const { t } = useTranslation('auth');
@@ -41,7 +51,67 @@ export default function RegisterScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [password2Error, setPassword2Error] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const password2Ref = useRef<TextInput>(null);
+  const fieldPositions = useRef<Partial<Record<RegisterField, number>>>({});
   const authBusy = loading || appleLoading || googleLoading || facebookLoading;
+
+  const rememberFieldPosition = (field: RegisterField) => (event: LayoutChangeEvent) => {
+    fieldPositions.current[field] = event.nativeEvent.layout.y;
+  };
+
+  const moveToField = (field: RegisterField) => {
+    const y = fieldPositions.current[field] ?? 0;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+    const ref = field === 'email' ? emailRef : field === 'password' ? passwordRef : password2Ref;
+    setTimeout(() => ref.current?.focus(), 260);
+  };
+
+  const clearFieldErrors = () => {
+    setEmailError(null);
+    setPasswordError(null);
+    setPassword2Error(null);
+  };
+
+  const validateRegisterForm = () => {
+    const e = email.trim();
+    let firstInvalid: RegisterField | null = null;
+    const nextErrors: Partial<Record<RegisterField, string>> = {};
+
+    if (!e) {
+      nextErrors.email = t('register.errors.enterEmail');
+      firstInvalid = firstInvalid ?? 'email';
+    } else if (!isValidEmail(e)) {
+      nextErrors.email = t('register.errors.invalidEmail');
+      firstInvalid = firstInvalid ?? 'email';
+    }
+
+    if (password.length < 6) {
+      nextErrors.password = t('register.errors.passwordTooShort');
+      firstInvalid = firstInvalid ?? 'password';
+    }
+
+    if (password !== password2) {
+      nextErrors.password2 = t('register.errors.passwordsMismatch');
+      firstInvalid = firstInvalid ?? 'password2';
+    }
+
+    setEmailError(nextErrors.email ?? null);
+    setPasswordError(nextErrors.password ?? null);
+    setPassword2Error(nextErrors.password2 ?? null);
+
+    if (firstInvalid) {
+      moveToField(firstInvalid);
+      return false;
+    }
+
+    return true;
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -62,11 +132,10 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     if (authBusy) return;
     setError(null);
+    clearFieldErrors();
 
     const e = email.trim();
-    if (!e) return setError(t('register.errors.enterEmail'));
-    if (password.length < 6) return setError(t('register.errors.passwordTooShort'));
-    if (password !== password2) return setError(t('register.errors.passwordsMismatch'));
+    if (!validateRegisterForm()) return;
 
     setLoading(true);
     try {
@@ -79,7 +148,19 @@ export default function RegisterScreen() {
       });
 
       if (registerError) {
-        setError(mapRegisterError(registerError.message, t));
+        const mappedError = mapRegisterError(registerError.message, t);
+        if (mappedError.target === 'email') {
+          setEmailError(mappedError.message);
+          moveToField('email');
+        } else if (mappedError.target === 'password') {
+          setPasswordError(mappedError.message);
+          moveToField('password');
+        } else if (mappedError.target === 'password2') {
+          setPassword2Error(mappedError.message);
+          moveToField('password2');
+        } else {
+          setError(mappedError.message);
+        }
         return;
       }
 
@@ -94,7 +175,16 @@ export default function RegisterScreen() {
         [{ text: t('common:ok'), onPress: () => router.replace('/(auth)/login') }]
       );
     } catch (e: any) {
-      setError(mapRegisterError(e?.message ?? 'network error', t));
+      const mappedError = mapRegisterError(e?.message ?? 'network error', t);
+      if (mappedError.target === 'email') {
+        setEmailError(mappedError.message);
+        moveToField('email');
+      } else if (mappedError.target === 'password') {
+        setPasswordError(mappedError.message);
+        moveToField('password');
+      } else {
+        setError(mappedError.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -151,7 +241,7 @@ export default function RegisterScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         style={styles.container}
       >
-        <AppScreen scroll contentContainerStyle={styles.content}>
+        <AppScreen ref={scrollRef} scroll contentContainerStyle={styles.content}>
             <View style={styles.brandStack}>
               <Image source={APP_LOGO} style={styles.brandLogo} resizeMode="contain" />
               <View style={styles.brandName} accessibilityLabel="BuildIQ">
@@ -162,30 +252,58 @@ export default function RegisterScreen() {
 
             <View style={styles.formBlock}>
               <View>
-                <AppInput
-                  placeholder={t('register.form.emailPlaceholder')}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                  containerStyle={styles.inputWrap}
-                />
+                <View onLayout={rememberFieldPosition('email')}>
+                  <AppInput
+                    ref={emailRef}
+                    placeholder={t('register.form.emailPlaceholder')}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      setError(null);
+                      if (emailError) {
+                        const trimmed = value.trim();
+                        setEmailError(!trimmed ? t('register.errors.enterEmail') : isValidEmail(trimmed) ? null : t('register.errors.invalidEmail'));
+                      }
+                    }}
+                    error={emailError || undefined}
+                    containerStyle={styles.inputWrap}
+                  />
+                </View>
 
-                <AppInput
-                  placeholder={t('register.form.passwordPlaceholder')}
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                  containerStyle={styles.inputWrap}
-                />
+                <View onLayout={rememberFieldPosition('password')}>
+                  <AppInput
+                    ref={passwordRef}
+                    placeholder={t('register.form.passwordPlaceholder')}
+                    secureTextEntry
+                    value={password}
+                    onChangeText={(value) => {
+                      setPassword(value);
+                      setError(null);
+                      if (passwordError && value.length >= 6) setPasswordError(null);
+                      if (password2Error && value === password2) setPassword2Error(null);
+                    }}
+                    error={passwordError || undefined}
+                    containerStyle={styles.inputWrap}
+                  />
+                </View>
 
-                <AppInput
-                  placeholder={t('register.form.repeatPasswordPlaceholder')}
-                  secureTextEntry
-                  value={password2}
-                  onChangeText={setPassword2}
-                  containerStyle={styles.inputWrap}
-                />
+                <View onLayout={rememberFieldPosition('password2')}>
+                  <AppInput
+                    ref={password2Ref}
+                    placeholder={t('register.form.repeatPasswordPlaceholder')}
+                    secureTextEntry
+                    value={password2}
+                    onChangeText={(value) => {
+                      setPassword2(value);
+                      setError(null);
+                      if (password2Error && value === password) setPassword2Error(null);
+                    }}
+                    error={password2Error || undefined}
+                    containerStyle={styles.inputWrap}
+                  />
+                </View>
 
                 {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -258,12 +376,14 @@ export default function RegisterScreen() {
   );
 }
 
-function mapRegisterError(msg: string, t: any) {
+function mapRegisterError(msg: string, t: any): { target: RegisterErrorTarget; message: string } {
   const l = msg.toLowerCase();
-  if (l.includes('user already registered')) return t('register.errors.userAlreadyRegistered');
-  if (l.includes('password')) return t('register.errors.weakPassword');
-  if (l.includes('email')) return t('register.errors.invalidEmail');
-  return t('register.errors.generic');
+  if (l.includes('user already registered') || l.includes('already exists')) {
+    return { target: 'email', message: t('register.errors.userAlreadyRegistered') };
+  }
+  if (l.includes('password')) return { target: 'password', message: t('register.errors.weakPassword') };
+  if (l.includes('email')) return { target: 'email', message: t('register.errors.invalidEmail') };
+  return { target: 'form', message: t('register.errors.generic') };
 }
 
 const styles = StyleSheet.create({

@@ -3,6 +3,9 @@
     "prepare": "Preparing onboarding...",
     "profile": "Loading data..."
   },
+  "errors": {
+    "noUser": "No signed-in user was found. Please log in again."
+  },
   "alerts": {
     "errorTitle": "Error",
     "prepareError": "Failed to prepare onboarding.",
